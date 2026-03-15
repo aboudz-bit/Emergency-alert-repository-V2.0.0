@@ -1,15 +1,18 @@
 import express, { type Express } from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import router from "./routes";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app: Express = express();
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-app.use("/api", router);
+app.use(
+  createProxyMiddleware({
+    target: "http://localhost:5000",
+    changeOrigin: true,
+    on: {
+      error: (err, _req, res: any) => {
+        res.status(502).json({ message: "Boutique server unavailable" });
+      },
+    },
+  })
+);
 
 export default app;

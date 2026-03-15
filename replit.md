@@ -1,96 +1,69 @@
-# Workspace
+# Masah Boutique — بوتيك ماسـة
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Full-stack boutique e-commerce app with an Express.js backend (from the GitHub branch `claude/instagram-boutique-integration-MLd62`) and a Flutter mobile frontend.
 
-## Stack
+## Architecture
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-
-## Structure
-
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+```
+workspace/
+├── artifacts/
+│   ├── boutique-server/        # ← Main backend (from GitHub branch, exact code)
+│   │   ├── server/             # Express.js + TypeScript server
+│   │   │   ├── index.ts        # Entry point (reads PORT from env)
+│   │   │   ├── routes.ts       # All API routes
+│   │   │   ├── storage.ts      # DB access layer (DatabaseStorage)
+│   │   │   ├── seed.ts         # Seeds products, stores, discount codes
+│   │   │   ├── db.ts           # Drizzle + pg connection
+│   │   │   ├── payments.ts     # Payment abstraction (Moyasar-ready)
+│   │   │   └── shipping.ts     # Shipping abstraction (Aramex-ready)
+│   │   ├── shared/
+│   │   │   └── schema.ts       # Drizzle schema (products, cart, orders, stores, etc.)
+│   │   ├── package.json        # npm-based (express, drizzle-orm, tsx, zod...)
+│   │   ├── tsconfig.json       # paths: @shared/* → ./shared/*
+│   │   └── drizzle.config.ts   # Points to ./shared/schema.ts
+│   ├── api-server/             # Thin proxy → forwards all traffic to boutique-server:5000
+│   ├── mobile/                 # Expo React Native scaffold (not yet built out)
+│   └── mockup-sandbox/         # UI prototyping sandbox
+├── masah_boutique/             # Flutter app (from GitHub branch)
+└── lib/                        # Shared TS libs (api-spec, api-client-react, api-zod, db)
 ```
 
-## TypeScript & Composite Projects
+## Running Services
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+| Workflow | What it runs | Port |
+|---|---|---|
+| `Boutique Server` | `cd artifacts/boutique-server && ./node_modules/.bin/tsx server/index.ts` | 5000 |
+| `artifacts/api-server: API Server` | Thin proxy → forwards all `/api/*` traffic to port 5000 | system-assigned |
+| `artifacts/mobile: expo` | Expo dev server | system-assigned |
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## API Endpoints (all via `/api/*`)
 
-## Root Scripts
+- `GET /api/products` — list products (filter by `?category=`, `?search=`, `?featured=true`)
+- `GET /api/products/:id` — single product
+- `GET /api/cart` — cart items (session-based)
+- `POST /api/cart` — add to cart
+- `PATCH /api/cart/:id` — update quantity
+- `DELETE /api/cart/:id` — remove item
+- `DELETE /api/cart` — clear cart
+- `POST /api/orders` — place order
+- `GET /api/orders` — session order history
+- `GET /api/stores` — active store locations
+- `POST /api/discounts/validate` — validate discount code
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Database
 
-## Packages
+- PostgreSQL via Replit's built-in database (`DATABASE_URL` env var)
+- Drizzle ORM — schema in `artifacts/boutique-server/shared/schema.ts`
+- Push schema: `cd artifacts/boutique-server && npx drizzle-kit push`
+- Auto-seeds 10 products, 3 stores, 3 discount codes on first start
 
-### `artifacts/api-server` (`@workspace/api-server`)
+## Theme
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+- Dark luxury: `#1A1A2E` background, `#C8A96E` gold, `#222240` card
+- Bilingual: Arabic (RTL) + English
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+## Categories
 
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+abayas, jalabiyas, dresses, bridal, kids, gifts
