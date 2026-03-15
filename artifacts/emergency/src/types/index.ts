@@ -43,7 +43,7 @@ export interface Zone {
 export interface Location {
   id: number;
   name: string;
-  zone: 'CPF' | 'Camp';
+  zone: string;
   isActive: boolean;
 }
 

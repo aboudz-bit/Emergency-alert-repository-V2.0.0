@@ -57,6 +57,7 @@ interface AppState {
   addLocation: (location: Omit<Location, 'id'>) => void;
   updateLocation: (id: number, partial: Partial<Location>) => void;
   disableLocation: (id: number) => void;
+  deleteLocation: (id: number) => void;
 
   // ── Settings ─────────────────────────────────────────────────────────────────
   updateSettings: (partial: Partial<AppSettings>) => void;
@@ -69,7 +70,7 @@ interface AppState {
   getActiveAlert: () => Alert | null;
   getAlertHistory: () => Alert[];
   getUsersByZone: (zone: 'CPF' | 'Camp') => User[];
-  getLocationsByZone: (zone: 'CPF' | 'Camp') => Location[];
+  getLocationsByZone: (zone: string) => Location[];
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -340,6 +341,10 @@ export const useStore = create<AppState>()(
 
       disableLocation: (id) => {
         set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, isActive: false } : l) }));
+      },
+
+      deleteLocation: (id) => {
+        set(s => ({ locations: s.locations.filter(l => l.id !== id) }));
       },
 
       // ── Settings ──────────────────────────────────────────────────────────────
