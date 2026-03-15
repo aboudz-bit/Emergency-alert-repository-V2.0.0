@@ -1,22 +1,18 @@
 export const Colors = {
-  // Base
   background: '#0F1117',
   surface: '#171B24',
   surfaceElevated: '#1E2330',
   border: '#2A2F3C',
   borderLight: '#353B4A',
 
-  // Text
   text: '#F0F1F3',
   textSecondary: '#8B91A0',
   textTertiary: '#5C6275',
 
-  // Brand / Primary
   primary: '#EF4444',
   primaryDim: 'rgba(239, 68, 68, 0.15)',
   primaryBorder: 'rgba(239, 68, 68, 0.25)',
 
-  // Status
   safe: '#22C55E',
   safeDim: 'rgba(34, 197, 94, 0.15)',
   safeBorder: 'rgba(34, 197, 94, 0.25)',
@@ -37,7 +33,6 @@ export const Colors = {
 
   destructive: '#EF4444',
 
-  // White
   white: '#FFFFFF',
   black: '#000000',
 } as const;
@@ -45,22 +40,22 @@ export const Colors = {
 export const Spacing = {
   xs: 4,
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  md: 14,
+  lg: 18,
+  xl: 24,
+  xxl: 32,
+  xxxl: 40,
 } as const;
 
 export const FontSize = {
-  xs: 10,
-  sm: 12,
-  md: 14,
-  lg: 16,
-  xl: 18,
-  xxl: 22,
-  xxxl: 28,
-  display: 34,
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 20,
+  xxl: 24,
+  xxxl: 30,
+  display: 36,
 } as const;
 
 export const BorderRadius = {

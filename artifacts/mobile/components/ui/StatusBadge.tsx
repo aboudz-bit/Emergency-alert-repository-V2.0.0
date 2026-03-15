@@ -26,6 +26,7 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
 
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
+      <View style={[styles.dot, { backgroundColor: config.text }]} />
       <Text style={[styles.text, { color: config.text }]}>
         {label || config.label}
       </Text>
@@ -35,14 +36,21 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: Spacing.xs + 1,
+    borderRadius: BorderRadius.full,
     alignSelf: "flex-start",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   text: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_600SemiBold",
-    textTransform: "uppercase",
   },
 });

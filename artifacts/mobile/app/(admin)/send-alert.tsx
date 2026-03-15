@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   Pressable,
@@ -25,7 +25,6 @@ import {
 import { useStore } from "@/store";
 import type { AlertType, AlertPriority } from "@/types";
 
-const ZONE_OPTIONS = ["CPF", "Camp", "All Zones"] as const;
 const PRIORITY_OPTIONS: AlertPriority[] = ["High", "Medium", "Low"];
 
 const priorityColors: Record<AlertPriority, string> = {
@@ -38,6 +37,12 @@ export default function SendAlertScreen() {
   const router = useRouter();
   const createAlert = useStore((s) => s.createAlert);
   const currentUser = useStore((s) => s.currentUser);
+  const zones = useStore((s) => s.zones);
+
+  const zoneOptions = useMemo(() => {
+    const names = zones.filter((z) => z.isActive).map((z) => z.name);
+    return ["All Zones", ...names];
+  }, [zones]);
 
   const [selectedType, setSelectedType] = useState<AlertType | null>(null);
   const [selectedZone, setSelectedZone] = useState<string>("All Zones");
@@ -77,7 +82,6 @@ export default function SendAlertScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Alert Type */}
         <View style={styles.section}>
           <Text style={styles.label}>Alert Type</Text>
           <ScrollView
@@ -107,48 +111,40 @@ export default function SendAlertScreen() {
           </ScrollView>
         </View>
 
-        {/* Target Zone */}
         <View style={styles.section}>
           <Text style={styles.label}>Target Zone</Text>
-          <View style={styles.zoneRow}>
-            {ZONE_OPTIONS.map((zone) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {zoneOptions.map((zone) => (
               <Pressable
                 key={zone}
                 style={[
-                  styles.zoneCard,
-                  selectedZone === zone && styles.zoneCardSelected,
+                  styles.zoneChip,
+                  selectedZone === zone && styles.zoneChipSelected,
                 ]}
                 onPress={() => setSelectedZone(zone)}
               >
                 <Feather
-                  name={
-                    zone === "CPF"
-                      ? "hard-drive"
-                      : zone === "Camp"
-                      ? "home"
-                      : "globe"
-                  }
-                  size={20}
-                  color={
-                    selectedZone === zone
-                      ? Colors.primary
-                      : Colors.textSecondary
-                  }
+                  name={zone === "All Zones" ? "globe" : "map-pin"}
+                  size={16}
+                  color={selectedZone === zone ? Colors.primary : Colors.textSecondary}
                 />
                 <Text
                   style={[
-                    styles.zoneText,
-                    selectedZone === zone && styles.zoneTextSelected,
+                    styles.zoneChipText,
+                    selectedZone === zone && styles.zoneChipTextSelected,
                   ]}
                 >
                   {zone}
                 </Text>
               </Pressable>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
-        {/* Message */}
         <View style={styles.section}>
           <Text style={styles.label}>Message</Text>
           <TextInput
@@ -163,26 +159,26 @@ export default function SendAlertScreen() {
           />
         </View>
 
-        {/* Priority */}
         <View style={styles.section}>
           <Text style={styles.label}>Priority</Text>
-          <View style={styles.chipRow}>
+          <View style={styles.priorityRow}>
             {PRIORITY_OPTIONS.map((p) => (
               <Pressable
                 key={p}
                 style={[
-                  styles.chip,
+                  styles.priorityChip,
                   priority === p && {
-                    backgroundColor: priorityColors[p],
+                    backgroundColor: priorityColors[p] + "20",
                     borderColor: priorityColors[p],
                   },
                 ]}
                 onPress={() => setPriority(p)}
               >
+                <View style={[styles.priorityDot, { backgroundColor: priorityColors[p] }]} />
                 <Text
                   style={[
-                    styles.chipText,
-                    priority === p && styles.chipTextSelected,
+                    styles.priorityText,
+                    priority === p && { color: priorityColors[p] },
                   ]}
                 >
                   {p}
@@ -192,7 +188,6 @@ export default function SendAlertScreen() {
           </View>
         </View>
 
-        {/* Preview */}
         {selectedType && (
           <View style={styles.section}>
             <Text style={styles.label}>Preview</Text>
@@ -210,12 +205,7 @@ export default function SendAlertScreen() {
                     { backgroundColor: priorityColors[priority] + "20" },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.priorityText,
-                      { color: priorityColors[priority] },
-                    ]}
-                  >
+                  <Text style={[styles.priorityBadgeText, { color: priorityColors[priority] }]}>
                     {priority}
                   </Text>
                 </View>
@@ -228,18 +218,20 @@ export default function SendAlertScreen() {
           </View>
         )}
 
-        {/* Send Button */}
         <Button
           title="SEND ALERT"
           onPress={() => setShowConfirm(true)}
           variant="primary"
           fullWidth
           disabled={!canSend}
-          style={{ marginTop: Spacing.md }}
+          icon="send"
+          size="lg"
+          style={{ marginTop: Spacing.sm }}
         />
+
+        <View style={{ height: Spacing.xxl }} />
       </ScrollView>
 
-      {/* Confirmation Modal */}
       <Modal
         visible={showConfirm}
         transparent
@@ -249,37 +241,34 @@ export default function SendAlertScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconWrap}>
-              <Feather
-                name="alert-triangle"
-                size={32}
-                color={Colors.primary}
-              />
+              <Feather name="alert-triangle" size={32} color={Colors.primary} />
             </View>
             <Text style={styles.modalTitle}>Confirm Alert</Text>
             <Text style={styles.modalMessage}>
               You are about to send a{" "}
-              <Text style={{ color: priorityColors[priority] }}>
+              <Text style={{ color: priorityColors[priority], fontFamily: "Inter_700Bold" }}>
                 {priority}
               </Text>{" "}
               priority{" "}
-              <Text style={{ color: Colors.primary }}>{selectedType}</Text>{" "}
+              <Text style={{ color: Colors.primary, fontFamily: "Inter_700Bold" }}>{selectedType}</Text>{" "}
               alert to{" "}
-              <Text style={{ fontFamily: "Inter_600SemiBold" }}>
-                {selectedZone}
-              </Text>
-              . This action cannot be undone.
+              <Text style={{ fontFamily: "Inter_700Bold" }}>{selectedZone}</Text>.
+              {"\n\n"}This action cannot be undone.
             </Text>
             <View style={styles.modalActions}>
               <Button
                 title="Cancel"
                 onPress={() => setShowConfirm(false)}
                 variant="secondary"
+                size="lg"
                 style={{ flex: 1 }}
               />
               <Button
                 title="Send Now"
                 onPress={handleSend}
                 variant="destructive"
+                icon="send"
+                size="lg"
                 style={{ flex: 1 }}
               />
             </View>
@@ -301,14 +290,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     gap: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
   },
   section: {
     gap: Spacing.sm,
   },
   label: {
     fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
   chipRow: {
@@ -317,7 +305,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -329,36 +317,33 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   chipTextSelected: {
     color: Colors.white,
   },
-  zoneRow: {
+  zoneChip: {
     flexDirection: "row",
-    gap: Spacing.md,
-  },
-  zoneCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
     alignItems: "center",
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  zoneCardSelected: {
+  zoneChipSelected: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryDim,
   },
-  zoneText: {
+  zoneChipText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
-  zoneTextSelected: {
+  zoneChipTextSelected: {
     color: Colors.primary,
   },
   messageInput: {
@@ -373,14 +358,40 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minHeight: 120,
   },
+  priorityRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  priorityChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  priorityText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
   previewCard: {
     borderColor: Colors.borderLight,
+    gap: Spacing.sm,
   },
   previewHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
   previewType: {
     flex: 1,
@@ -393,7 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
   },
-  priorityText: {
+  priorityBadgeText: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_600SemiBold",
   },
@@ -401,12 +412,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
   },
   previewMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
     color: Colors.text,
+    lineHeight: 22,
   },
   modalOverlay: {
     flex: 1,
@@ -425,9 +436,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   modalIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",

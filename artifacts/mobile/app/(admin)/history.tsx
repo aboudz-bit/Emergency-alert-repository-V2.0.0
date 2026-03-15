@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   FlatList,
   Pressable,
@@ -51,86 +51,82 @@ export default function HistoryScreen() {
     return result;
   }, [alerts, selectedType]);
 
-  const renderAlertCard = ({ item }: { item: Alert }) => {
-    const iconName = alertTypeIcons[item.type] || "alert-triangle";
-    const iconColor = alertTypeColors[item.type] || Colors.primary;
+  const renderAlertCard = useCallback(
+    ({ item }: { item: Alert }) => {
+      const iconName = alertTypeIcons[item.type] || "alert-triangle";
+      const iconColor = alertTypeColors[item.type] || Colors.primary;
 
-    return (
-      <Card style={styles.alertCard}>
-        <View style={styles.alertHeader}>
-          <View style={[styles.alertIconWrap, { backgroundColor: iconColor + "20" }]}>
-            <Feather name={iconName} size={18} color={iconColor} />
+      return (
+        <Card style={styles.alertCard}>
+          <View style={styles.alertHeader}>
+            <View style={[styles.alertIconWrap, { backgroundColor: iconColor + "20" }]}>
+              <Feather name={iconName} size={18} color={iconColor} />
+            </View>
+            <View style={styles.alertInfo}>
+              <Text style={styles.alertTitle}>{item.title}</Text>
+              <Text style={styles.alertMeta}>
+                {item.zone} · {format(new Date(item.timestamp), "MMM d, yyyy HH:mm")}
+              </Text>
+            </View>
+            <StatusBadge status={item.status} />
           </View>
-          <View style={styles.alertInfo}>
-            <Text style={styles.alertTitle}>{item.title}</Text>
-            <Text style={styles.alertMeta}>
-              {item.zone} · {format(new Date(item.timestamp), "MMM d, yyyy HH:mm")}
-            </Text>
-          </View>
-          <StatusBadge status={item.status} />
-        </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.safe }]}>
-              {item.stats.confirmed}
-            </Text>
-            <Text style={styles.statLabel}>Confirmed</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.safe }]}>
+                {item.stats.confirmed}
+              </Text>
+              <Text style={styles.statLabel}>Safe</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.missing }]}>
+                {item.stats.missing}
+              </Text>
+              <Text style={styles.statLabel}>Missing</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.noreply }]}>
+                {item.stats.noReply}
+              </Text>
+              <Text style={styles.statLabel}>No Reply</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.primary }]}>
+                {item.stats.needHelp}
+              </Text>
+              <Text style={styles.statLabel}>Help</Text>
+            </View>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.missing }]}>
-              {item.stats.missing}
-            </Text>
-            <Text style={styles.statLabel}>Missing</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.noreply }]}>
-              {item.stats.noReply}
-            </Text>
-            <Text style={styles.statLabel}>No Reply</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.primary }]}>
-              {item.stats.needHelp}
-            </Text>
-            <Text style={styles.statLabel}>Help</Text>
-          </View>
-        </View>
 
-        {item.closedAt && (
-          <Text style={styles.closedAt}>
-            Closed: {format(new Date(item.closedAt), "MMM d, yyyy HH:mm")}
-          </Text>
-        )}
-      </Card>
-    );
-  };
+          {item.closedAt && (
+            <Text style={styles.closedAt}>
+              Closed: {format(new Date(item.closedAt), "MMM d, yyyy HH:mm")}
+            </Text>
+          )}
+        </Card>
+      );
+    },
+    []
+  );
 
   return (
     <View style={styles.container}>
       <Header title="Alert History" />
 
-      {/* Filter Chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
       >
         <Pressable
-          style={[
-            styles.filterChip,
-            selectedType === null && styles.filterChipActive,
-          ]}
+          style={[styles.filterChip, selectedType === null && styles.filterChipActive]}
           onPress={() => setSelectedType(null)}
         >
           <Text
-            style={[
-              styles.filterChipText,
-              selectedType === null && styles.filterChipTextActive,
-            ]}
+            style={[styles.filterChipText, selectedType === null && styles.filterChipTextActive]}
           >
             All
           </Text>
@@ -138,10 +134,7 @@ export default function HistoryScreen() {
         {ALERT_TYPES.map((type) => (
           <Pressable
             key={type}
-            style={[
-              styles.filterChip,
-              selectedType === type && styles.filterChipActive,
-            ]}
+            style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
             onPress={() => setSelectedType(selectedType === type ? null : type)}
           >
             <Text
@@ -156,7 +149,6 @@ export default function HistoryScreen() {
         ))}
       </ScrollView>
 
-      {/* Alert List */}
       <FlatList
         data={sortedAlerts}
         keyExtractor={(item) => item.id.toString()}
@@ -193,7 +185,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -205,7 +197,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   filterChipTextActive: {
@@ -225,9 +217,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   alertIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -247,14 +239,15 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: Spacing.sm,
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
   statItem: {
     alignItems: "center",
     gap: 2,
+    flex: 1,
   },
   statValue: {
     fontSize: FontSize.lg,
@@ -281,9 +274,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",

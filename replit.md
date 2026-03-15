@@ -114,8 +114,51 @@ artifacts/emergency/
 - **Routing**: Wouter with `base={import.meta.env.BASE_URL}` (base is `/emergency/`)
 - **Demo login**: Badge 102934 (Super Admin), 110001 (IT), 123456 (User); password `demo1234`
 
+## Mobile App (KEAS)
+
+```
+artifacts/mobile/
+├── app/
+│   ├── (auth)/login.tsx           # Badge + password login
+│   ├── (admin)/
+│   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
+│   │   ├── index.tsx              # Dashboard: KPIs, alert banner, quick actions, activity feed
+│   │   ├── send-alert.tsx         # Alert form with type/zone/priority/preview
+│   │   ├── users.tsx              # Personnel list with search + zone filter
+│   │   ├── alert-monitor.tsx      # Live alert tracking with status tabs
+│   │   ├── history.tsx            # Alert history with type filter chips
+│   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
+│   │   ├── locations.tsx          # Location management with zone tabs
+│   │   └── settings.tsx           # System settings with steppers and toggles
+│   └── (user)/
+│       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
+│       ├── index.tsx              # User home: alert banner, response buttons, status
+│       ├── alert.tsx              # Active alert detail
+│       ├── history.tsx            # User alert history
+│       └── profile.tsx            # User profile
+├── components/ui/
+│   ├── Header.tsx                 # Chevron back, pill back button
+│   ├── Card.tsx                   # Base card with border + optional elevated style
+│   ├── KPICard.tsx                # Icon+value top row, label below
+│   ├── Button.tsx                 # Variant/size/icon props
+│   ├── StatusBadge.tsx            # Dot+label pill badge
+│   └── Input.tsx                  # Input with bold label + focus border
+├── constants/theme.ts             # Colors, Spacing, FontSize, BorderRadius
+├── store/index.ts                 # Zustand store (keas-mobile-store-v1)
+└── types/index.ts                 # TypeScript types
+```
+
+### Mobile Key Details
+
+- **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
+- **Zone screen map**: WebView + Leaflet + CartoDB dark tiles. Polygons clickable → postMessage. Falls back to placeholder on web.
+- **Dependencies**: `react-native-webview` for Leaflet map
+- **Store**: `keas-mobile-store-v1` — bump when type shapes change
+- **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
+
 ## Workflow
 
 | Workflow | Command |
 |---|---|
 | `artifacts/emergency: web` | `pnpm --filter @workspace/emergency run dev` |
+| `artifacts/mobile: expo` | `pnpm --filter @workspace/mobile run dev` |

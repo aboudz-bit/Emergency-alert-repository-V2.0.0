@@ -1,9 +1,17 @@
 import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
-import { Colors, FontSize } from "@/constants/theme";
+import { Colors, FontSize, Spacing } from "@/constants/theme";
+
+function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Feather name={name} size={20} color={color} />
+    </View>
+  );
+}
 
 export default function UserLayout() {
   return (
@@ -14,27 +22,28 @@ export default function UserLayout() {
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: "Alerts",
-          tabBarIcon: ({ color }) => <Feather name="bell" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="bell" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="user" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen name="alert" options={{ href: null }} />
@@ -47,12 +56,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopColor: Colors.border,
     borderTopWidth: 1,
-    height: 88,
-    paddingBottom: 28,
-    paddingTop: 8,
+    height: Platform.OS === "ios" ? 88 : 68,
+    paddingBottom: Platform.OS === "ios" ? 28 : 8,
+    paddingTop: 6,
+    paddingHorizontal: Spacing.sm,
   },
   tabLabel: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_500Medium",
+    marginTop: 2,
+  },
+  tabItem: {
+    gap: 2,
+  },
+  iconWrap: {
+    width: 36,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.primaryDim,
   },
 });

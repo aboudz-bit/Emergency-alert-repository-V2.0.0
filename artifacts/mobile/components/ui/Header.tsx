@@ -4,7 +4,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, FontSize, Spacing } from "@/constants/theme";
+import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 
 interface HeaderProps {
   title: string;
@@ -21,8 +21,12 @@ export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) 
     <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
       <View style={styles.row}>
         {showBack && (
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Feather name="arrow-left" size={22} color={Colors.text} />
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Feather name="chevron-left" size={24} color={Colors.text} />
           </Pressable>
         )}
         <View style={styles.titleWrap}>
@@ -46,10 +50,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: Spacing.sm,
+    minHeight: 44,
   },
   backBtn: {
-    padding: Spacing.xs,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
   },
   titleWrap: {
     flex: 1,

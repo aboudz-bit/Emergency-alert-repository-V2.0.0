@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   FlatList,
   Modal,
@@ -11,26 +11,34 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Location } from "@/types";
 
-type ZoneTab = "CPF" | "Camp";
-
 export default function LocationsScreen() {
   const locations = useStore((s) => s.locations);
+  const zones = useStore((s) => s.zones);
   const addLocation = useStore((s) => s.addLocation);
   const updateLocation = useStore((s) => s.updateLocation);
 
-  const [selectedTab, setSelectedTab] = useState<ZoneTab>("CPF");
+  const activeZones = useMemo(
+    () => zones.filter((z) => z.isActive),
+    [zones]
+  );
+
+  const [selectedTab, setSelectedTab] = useState(() =>
+    activeZones.length > 0 ? activeZones[0].name : "CPF"
+  );
   const [showModal, setShowModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [locationName, setLocationName] = useState("");
 
-  const filteredLocations = locations.filter((l) => l.zone === selectedTab);
+  const filteredLocations = useMemo(
+    () => locations.filter((l) => l.zone === selectedTab),
+    [locations, selectedTab]
+  );
 
   const handleToggleActive = (location: Location) => {
     updateLocation(location.id, { isActive: !location.isActive });
@@ -64,80 +72,74 @@ export default function LocationsScreen() {
     setEditingLocation(null);
   };
 
-  const renderLocationRow = ({ item }: { item: Location }) => (
-    <Pressable style={styles.locationRow} onPress={() => handleOpenEdit(item)}>
-      <View style={styles.locationInfo}>
-        <Text style={styles.locationName}>{item.name}</Text>
-        <Text style={styles.locationZone}>{item.zone}</Text>
-      </View>
-      <Switch
-        value={item.isActive}
-        onValueChange={() => handleToggleActive(item)}
-        trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-        thumbColor={item.isActive ? Colors.safe : Colors.textSecondary}
-      />
-    </Pressable>
-  );
-
   return (
     <View style={styles.container}>
-      <Header title="Location Management" showBack />
+      <Header
+        title="Locations"
+        showBack
+        rightAction={
+          <Pressable style={styles.addBtn} onPress={handleOpenAdd} hitSlop={8}>
+            <Feather name="plus" size={20} color={Colors.text} />
+          </Pressable>
+        }
+      />
 
-      {/* Tab Bar */}
       <View style={styles.tabBar}>
-        {(["CPF", "Camp"] as ZoneTab[]).map((tab) => (
-          <Pressable
-            key={tab}
-            style={[
-              styles.tab,
-              selectedTab === tab && styles.tabActive,
-            ]}
-            onPress={() => setSelectedTab(tab)}
-          >
-            <Feather
-              name={tab === "CPF" ? "hard-drive" : "home"}
-              size={16}
-              color={selectedTab === tab ? Colors.primary : Colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab && styles.tabTextActive,
-              ]}
+        {activeZones.map((zone) => {
+          const isActive = selectedTab === zone.name;
+          const count = locations.filter((l) => l.zone === zone.name).length;
+          return (
+            <Pressable
+              key={zone.id}
+              style={[styles.tab, isActive && { borderBottomColor: zone.color }]}
+              onPress={() => setSelectedTab(zone.name)}
             >
-              {tab}
-            </Text>
-            <View
-              style={[
-                styles.tabBadge,
-                {
-                  backgroundColor:
-                    selectedTab === tab ? Colors.primaryDim : Colors.surfaceElevated,
-                },
-              ]}
-            >
-              <Text
+              <View style={[styles.tabDot, { backgroundColor: zone.color }]} />
+              <Text style={[styles.tabText, isActive && { color: Colors.text }]}>
+                {zone.name}
+              </Text>
+              <View
                 style={[
-                  styles.tabBadgeText,
-                  {
-                    color:
-                      selectedTab === tab ? Colors.primary : Colors.textSecondary,
-                  },
+                  styles.tabBadge,
+                  { backgroundColor: isActive ? zone.color + "20" : Colors.surfaceElevated },
                 ]}
               >
-                {locations.filter((l) => l.zone === tab).length}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
+                <Text
+                  style={[
+                    styles.tabBadgeText,
+                    { color: isActive ? zone.color : Colors.textSecondary },
+                  ]}
+                >
+                  {count}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {/* Location List */}
       <FlatList
         data={filteredLocations}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        renderItem={renderLocationRow}
+        renderItem={({ item }) => (
+          <Pressable
+            style={({ pressed }) => [styles.locationRow, pressed && styles.pressed]}
+            onPress={() => handleOpenEdit(item)}
+          >
+            <View style={styles.locationInfo}>
+              <Text style={[styles.locationName, !item.isActive && { color: Colors.textTertiary }]}>
+                {item.name}
+              </Text>
+            </View>
+            <Switch
+              value={item.isActive}
+              onValueChange={() => handleToggleActive(item)}
+              trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
+              thumbColor={item.isActive ? Colors.safe : Colors.textSecondary}
+            />
+          </Pressable>
+        )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Feather name="map-pin" size={48} color={Colors.textSecondary} />
@@ -146,12 +148,6 @@ export default function LocationsScreen() {
         }
       />
 
-      {/* FAB */}
-      <Pressable style={styles.fab} onPress={handleOpenAdd}>
-        <Feather name="plus" size={24} color={Colors.white} />
-      </Pressable>
-
-      {/* Add/Edit Modal */}
       <Modal
         visible={showModal}
         transparent
@@ -163,9 +159,7 @@ export default function LocationsScreen() {
             <Text style={styles.modalTitle}>
               {editingLocation ? "Edit Location" : "Add Location"}
             </Text>
-            <Text style={styles.modalSubtitle}>
-              Zone: {selectedTab}
-            </Text>
+            <Text style={styles.modalSubtitle}>Zone: {selectedTab}</Text>
             <Input
               label="Location Name"
               value={locationName}
@@ -182,6 +176,7 @@ export default function LocationsScreen() {
                   setEditingLocation(null);
                 }}
                 variant="secondary"
+                size="lg"
                 style={{ flex: 1 }}
               />
               <Button
@@ -189,6 +184,7 @@ export default function LocationsScreen() {
                 onPress={handleSave}
                 variant="primary"
                 disabled={!locationName.trim()}
+                size="lg"
                 style={{ flex: 1 }}
               />
             </View>
@@ -203,6 +199,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBar: {
     flexDirection: "row",
@@ -220,16 +224,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  tabActive: {
-    borderBottomColor: Colors.primary,
+  tabDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   tabText: {
     fontSize: FontSize.md,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: Colors.primary,
   },
   tabBadge: {
     paddingHorizontal: Spacing.sm,
@@ -254,19 +257,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: Spacing.lg,
   },
+  pressed: {
+    backgroundColor: Colors.surfaceElevated,
+  },
   locationInfo: {
     flex: 1,
-    gap: 2,
   },
   locationName: {
     fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
-  },
-  locationZone: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
   },
   emptyContainer: {
     alignItems: "center",
@@ -277,22 +277,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
-  },
-  fab: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   modalOverlay: {
     flex: 1,
