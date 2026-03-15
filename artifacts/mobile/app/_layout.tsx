@@ -9,12 +9,21 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Colors } from "@/constants/theme";
+
+// KeyboardProvider uses native modules (react-native-is-edge-to-edge) that
+// are not available on web, so we only load it on native platforms.
+let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> =
+  React.Fragment;
+if (Platform.OS !== "web") {
+  KeyboardProvider =
+    require("react-native-keyboard-controller").KeyboardProvider;
+}
 
 SplashScreen.preventAutoHideAsync();
 

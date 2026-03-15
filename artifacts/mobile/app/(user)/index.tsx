@@ -15,7 +15,6 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
-import type { Alert, UserResponseStatus } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {

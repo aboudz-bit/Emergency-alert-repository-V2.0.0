@@ -13,7 +13,7 @@ export default function MobileAlert() {
     respondToAlert: s.respondToAlert,
   })));
 
-  const alert = alerts.find(a => a.isActive) || alerts[0];
+  const alert = alerts.find(a => a.isActive);
 
   if (!alert) {
     return (
