@@ -244,3 +244,18 @@
 .toast-animate {
   animation: toast-slide-in 0.3s ease-out;
 }
+
+.my-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+@keyframes location-pulse {
+  0% { box-shadow: 0 0 0 4px rgba(37,99,235,0.25), 0 2px 8px rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 0 0 10px rgba(37,99,235,0.08), 0 2px 8px rgba(0,0,0,0.2); }
+  100% { box-shadow: 0 0 0 4px rgba(37,99,235,0.25), 0 2px 8px rgba(0,0,0,0.2); }
+}
+
+.my-location-marker div {
+  animation: location-pulse 2s ease-in-out infinite;
+}

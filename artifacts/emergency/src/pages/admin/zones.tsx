@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import {
   Plus, Trash2, X, Pencil, Undo2, Save, Layers, Users,
   MapPin, Palette, Type, ChevronRight, CheckCircle2,
   Circle as CircleIcon, Hexagon, RotateCcw, MousePointer2,
-  GripVertical, Info,
+  GripVertical, Info, LocateFixed, AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore, useShallow } from '@/store';
@@ -136,16 +136,34 @@ function CircleEditHandles({
   );
 }
 
-function Toast({ message, onDone }: { message: string; onDone: () => void }) {
-  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+function Toast({ message, onDone, variant = 'success' }: { message: string; onDone: () => void; variant?: 'success' | 'error' }) {
+  useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] toast-animate">
-      <div className="flex items-center gap-2.5 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl font-semibold text-sm">
-        <CheckCircle2 className="w-5 h-5 shrink-0" />
+      <div className={cn(
+        'flex items-center gap-2.5 px-5 py-3 rounded-xl shadow-2xl font-semibold text-sm text-white',
+        variant === 'success' ? 'bg-emerald-600' : 'bg-red-600',
+      )}>
+        {variant === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
         {message}
       </div>
     </div>
   );
+}
+
+function makeLocationIcon() {
+  return L.divIcon({
+    className: 'my-location-marker',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    html: '<div style="width:100%;height:100%;background:#2563eb;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 4px rgba(37,99,235,0.25),0 2px 8px rgba(0,0,0,0.2);"></div>',
+  });
+}
+
+function MapRefCapture({ onMap }: { onMap: (map: L.Map) => void }) {
+  const map = useMap();
+  useEffect(() => { onMap(map); }, [map]);
+  return null;
 }
 
 function AddZoneModal({
@@ -335,7 +353,10 @@ export default function Zones() {
   const [editingBoundary, setEditingBoundary] = useState<ZoneBoundaryType>('Polygon');
   const [circleCenter, setCircleCenter] = useState<LatLng>({ lat: 25.082, lng: 48.178 });
   const [circleRadius, setCircleRadius] = useState(500);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const mapRef = useRef<L.Map | null>(null);
+  const locationMarkerRef = useRef<L.Marker | null>(null);
 
   const activeZones = zones.filter(z => z.isActive);
   const selectedZone = zones.find(z => z.id === selectedZoneId);
@@ -381,7 +402,7 @@ export default function Zones() {
       updateZone(editingZoneId, { polygonPoints: draftPoints });
     } else { return; }
     setEditMode('idle'); setDraftPoints([]); setEditingZoneId(null);
-    setToast('Zone boundary saved successfully');
+    setToast({ message: 'Zone boundary saved successfully', variant: 'success' });
   };
 
   const handleStartEdit = (zone: Zone) => {
@@ -413,27 +434,63 @@ export default function Zones() {
   };
 
   const handleRename = (name: string) => {
-    if (renameZone) { updateZone(renameZone.id, { name }); setToast(`Zone renamed to "${name}"`); }
+    if (renameZone) { updateZone(renameZone.id, { name }); setToast({ message: `Zone renamed to "${name}"`, variant: 'success' }); }
   };
 
   const handleColorChange = (color: string) => {
-    if (colorZone) { updateZone(colorZone.id, { color }); setToast('Zone color updated'); }
+    if (colorZone) { updateZone(colorZone.id, { color }); setToast({ message: 'Zone color updated', variant: 'success' }); }
   };
 
   const handleDisable = (zone: Zone) => {
     if (confirm(`Disable zone "${zone.name}"? It will be hidden from the map.`)) {
       disableZone(zone.id);
       if (selectedZoneId === zone.id) setSelectedZoneId(null);
-      setToast(`Zone "${zone.name}" disabled`);
+      setToast({ message: `Zone "${zone.name}" disabled`, variant: 'success' });
     }
   };
+
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setToast({ message: 'Geolocation is not supported by your browser', variant: 'error' });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latlng: LatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const map = mapRef.current;
+        if (map) map.flyTo([latlng.lat, latlng.lng], 16, { duration: 1.2 });
+        if (locationMarkerRef.current) {
+          locationMarkerRef.current.setLatLng([latlng.lat, latlng.lng]);
+        } else if (map) {
+          const m = L.marker([latlng.lat, latlng.lng], { icon: makeLocationIcon(), zIndexOffset: 1000 }).addTo(map);
+          m.bindTooltip('My Location', { direction: 'top', offset: [0, -14], className: 'zone-label' });
+          locationMarkerRef.current = m;
+        }
+        setLocating(false);
+        setToast({ message: 'Location found', variant: 'success' });
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) setToast({ message: 'Location permission denied', variant: 'error' });
+        else if (err.code === err.POSITION_UNAVAILABLE) setToast({ message: 'Location unavailable', variant: 'error' });
+        else if (err.code === err.TIMEOUT) setToast({ message: 'Location request timed out', variant: 'error' });
+        else setToast({ message: 'Unable to determine location', variant: 'error' });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => { if (locationMarkerRef.current) locationMarkerRef.current.remove(); };
+  }, []);
 
   return (
     <AdminLayout title="Zone Management">
       {showAddModal && <AddZoneModal onClose={() => setShowAddModal(false)} onSave={handleCreateZone} existingZones={activeZones} />}
       {renameZone && <RenameModal zone={renameZone} onClose={() => setRenameZone(null)} onSave={handleRename} />}
       {colorZone && <ChangeColorModal zone={colorZone} onClose={() => setColorZone(null)} onSave={handleColorChange} />}
-      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} variant={toast.variant} onDone={() => setToast(null)} />}
 
       {/* Light professional wrapper — overrides the dark theme for this page only */}
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)]">
@@ -648,6 +705,7 @@ export default function Zones() {
             <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
             <FitBoundsControl zones={activeZones} />
             <ClickToAddPoints active={isEditing && editingBoundary === 'Polygon'} onAdd={handleAddPoint} />
+            <MapRefCapture onMap={(m) => { mapRef.current = m; }} />
 
             {activeZones.map(zone => {
               if (editingZoneId === zone.id && isEditing) return null;
@@ -694,6 +752,14 @@ export default function Zones() {
           {/* Floating map controls */}
           {!isEditing && (
             <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
+              <button onClick={handleLocateMe} disabled={locating}
+                className={cn(
+                  'bg-white border border-slate-200 text-slate-600 rounded-xl p-3 shadow-lg hover:bg-slate-50 hover:text-blue-600 transition-all hover:scale-105',
+                  locating && 'animate-pulse text-blue-600',
+                )}
+                title="My Location">
+                <LocateFixed className="w-5 h-5" />
+              </button>
               <button onClick={() => setShowAddModal(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-3 shadow-lg transition-all hover:scale-105" title="Add new zone">
                 <Plus className="w-5 h-5" />
