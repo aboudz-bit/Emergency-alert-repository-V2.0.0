@@ -70,7 +70,7 @@ export default function SendAlertScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="Send Alert" showBack />
+      <Header title="Send Alert" />
 
       <ScrollView
         style={styles.scroll}
