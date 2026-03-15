@@ -3,28 +3,48 @@ import { useLocation } from 'wouter';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { KPICard } from '@/components/shared/KPICard';
 import { Users, Activity, Bell, Shield, ChevronRight, UserCheck, AlertCircle, RadioTower, History, Map } from 'lucide-react';
-import { useUsers, useActiveAlert } from '@/hooks/use-api';
+import { useStore, useShallow, selectActiveAlert } from '@/store';
 import { AlertTypeBadge } from '@/components/shared/Badges';
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const { data: users, isLoading: usersLoading } = useUsers();
-  const { data: activeAlert } = useActiveAlert();
+  const { users, activityLogs, sendAllClear } = useStore(useShallow(s => ({
+    users: s.users,
+    activityLogs: s.activityLogs,
+    sendAllClear: s.sendAllClear,
+  })));
+  const activeAlert = useStore(selectActiveAlert);
 
   const kpis = [
-    { title: "Total Personnel", value: users?.length || 0, icon: Users, trend: "Stable", trendUp: true },
-    { title: "Inside CPF", value: users?.filter(u => u.zone === 'CPF').length || 0, icon: Shield, colorClass: "text-red-500" },
-    { title: "Inside Camp", value: users?.filter(u => u.zone === 'Camp').length || 0, icon: Activity, colorClass: "text-blue-500" },
-    { title: "Active Alerts", value: activeAlert ? 1 : 0, icon: Bell, colorClass: activeAlert ? "text-primary" : "text-muted-foreground" },
+    { title: 'Total Personnel', value: users.length, icon: Users, trend: 'Stable', trendUp: true },
+    { title: 'Inside CPF', value: users.filter(u => u.zone === 'CPF').length, icon: Shield, colorClass: 'text-red-500' },
+    { title: 'Inside Camp', value: users.filter(u => u.zone === 'Camp').length, icon: Activity, colorClass: 'text-blue-500' },
+    { title: 'Active Alerts', value: activeAlert ? 1 : 0, icon: Bell, colorClass: activeAlert ? 'text-primary' : 'text-muted-foreground' },
   ];
+
+  const handleSendAllClear = () => {
+    if (confirm('Send ALL CLEAR to all zones? This will close the current alert and mark all personnel as safe.')) {
+      sendAllClear();
+    }
+  };
+
+  const timeAgo = (ts: string) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (mins > 0) return `${mins}m ago`;
+    return 'Just now';
+  };
 
   return (
     <AdminLayout title="Command Center Dashboard">
-      
       {activeAlert && (
         <div className="mb-8 bg-destructive/10 border-2 border-destructive shadow-lg shadow-destructive/10 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="absolute top-0 right-0 w-64 h-64 bg-destructive/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          
+
           <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center relative z-10">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
@@ -36,16 +56,17 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-display font-bold text-foreground mb-2">{activeAlert.title}</h2>
               <p className="text-muted-foreground max-w-3xl leading-relaxed">{activeAlert.message}</p>
             </div>
-            
+
             <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">
-              <button 
+              <button
                 onClick={() => setLocation('/admin/alert-monitor')}
                 className="w-full px-6 py-3 bg-card border border-border hover:bg-muted text-foreground font-semibold rounded-lg transition-colors flex items-center justify-between group"
               >
                 View Live Monitor
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-transform group-hover:translate-x-1" />
               </button>
-              <button 
+              <button
+                onClick={handleSendAllClear}
                 className="w-full px-6 py-3 bg-safe hover:bg-safe/90 text-white font-bold rounded-lg shadow-lg shadow-safe/20 transition-transform active:scale-95 flex items-center justify-center gap-2"
               >
                 <UserCheck className="w-5 h-5" />
@@ -70,12 +91,14 @@ export default function AdminDashboard() {
             <div className="bg-background/50 border border-border rounded-xl p-4 flex flex-col justify-center">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-foreground font-medium">Response Rate</span>
-                <span className="text-primary font-bold">{Math.round((activeAlert.stats.confirmed / activeAlert.stats.total) * 100)}%</span>
+                <span className="text-primary font-bold">
+                  {activeAlert.stats.total > 0 ? Math.round((activeAlert.stats.confirmed / activeAlert.stats.total) * 100) : 0}%
+                </span>
               </div>
               <div className="w-full h-3 bg-card rounded-full overflow-hidden border border-border">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000" 
-                  style={{ width: `${(activeAlert.stats.confirmed / activeAlert.stats.total) * 100}%` }}
+                <div
+                  className="h-full bg-primary transition-all duration-1000"
+                  style={{ width: `${activeAlert.stats.total > 0 ? (activeAlert.stats.confirmed / activeAlert.stats.total) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -133,21 +156,17 @@ export default function AdminDashboard() {
               System Activity
             </h3>
             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-              {[
-                { time: '10 mins ago', msg: 'System check completed successfully.', type: 'info' },
-                { time: '2 hours ago', msg: 'Admin Ahmed updated CPF boundaries.', type: 'action' },
-                { time: '5 hours ago', msg: 'Weekly Drill report generated.', type: 'report' },
-                { time: '1 day ago', msg: '5 new user accounts provisioned.', type: 'action' },
-                { time: '2 days ago', msg: 'All Clear sent for Security Alert.', type: 'alert' },
-              ].map((act, i) => (
-                <div key={i} className="flex gap-4 relative">
-                  {i !== 4 && <div className="absolute left-[9px] top-6 bottom-[-24px] w-px bg-border" />}
+              {activityLogs.slice(0, 6).map((act, i) => (
+                <div key={act.id} className="flex gap-4 relative">
+                  {i !== Math.min(activityLogs.length - 1, 5) && (
+                    <div className="absolute left-[9px] top-6 bottom-[-24px] w-px bg-border" />
+                  )}
                   <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 bg-background z-10 ${
                     act.type === 'alert' ? 'border-primary' : act.type === 'action' ? 'border-blue-500' : 'border-muted-foreground'
                   }`} />
                   <div>
-                    <p className="text-sm text-foreground">{act.msg}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{act.time}</p>
+                    <p className="text-sm text-foreground">{act.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{timeAgo(act.timestamp)}</p>
                   </div>
                 </div>
               ))}

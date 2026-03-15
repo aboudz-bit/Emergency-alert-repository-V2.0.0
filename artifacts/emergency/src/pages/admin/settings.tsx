@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Settings, Globe, Map, Bell, Shield, HelpCircle, Save, Wifi, MapPin, UserCheck, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useStore, useShallow } from '@/store';
 
-function SettingsCard({ icon: Icon, title, description, children }: {
+function SettingsCard({ icon: Icon, title, description, children, onSave }: {
   icon: React.ComponentType<any>;
   title: string;
   description: string;
   children: React.ReactNode;
+  onSave?: () => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-6 space-y-5">
@@ -29,7 +30,7 @@ function SettingsCard({ icon: Icon, title, description, children }: {
       <Separator className="bg-border/60" />
       <div className="space-y-4">{children}</div>
       <div className="flex justify-end pt-1">
-        <Button size="sm" className="bg-primary hover:bg-primary/90 text-white gap-2">
+        <Button onClick={onSave} size="sm" className="bg-primary hover:bg-primary/90 text-white gap-2">
           <Save className="w-3.5 h-3.5" />
           Save Changes
         </Button>
@@ -60,10 +61,11 @@ function PolicyRow({ icon: Icon, text }: { icon: React.ComponentType<any>; text:
 }
 
 export default function SettingsPage() {
-  const [alertSound, setAlertSound] = useState(true);
-  const [pushNotif, setPushNotif] = useState(true);
-  const [autoDetect, setAutoDetect] = useState(true);
-  const [rtlSupport, setRtlSupport] = useState(false);
+  const { settings, updateSettings, updateNotificationSettings } = useStore(useShallow(s => ({
+    settings: s.settings,
+    updateSettings: s.updateSettings,
+    updateNotificationSettings: s.updateNotificationSettings,
+  })));
 
   return (
     <AdminLayout breadcrumbs={[{ label: 'Settings' }]}>
@@ -77,15 +79,22 @@ export default function SettingsPage() {
         </div>
 
         {/* General */}
-        <SettingsCard icon={Globe} title="General" description="Core system preferences and locale configuration">
+        <SettingsCard
+          icon={Globe}
+          title="General"
+          description="Core system preferences and locale configuration"
+          onSave={() => {}}
+        >
           <SettingRow label="System Name">
-            <Input defaultValue="Khurais Emergency Alert System" className="w-64 h-8 text-sm" />
+            <Input
+              value={settings.systemName}
+              onChange={e => updateSettings({ systemName: e.target.value })}
+              className="w-64 h-8 text-sm"
+            />
           </SettingRow>
           <SettingRow label="Timezone">
-            <Select defaultValue="ast">
-              <SelectTrigger className="w-48 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={settings.timezone} onValueChange={v => updateSettings({ timezone: v })}>
+              <SelectTrigger className="w-48 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ast">AST (UTC+3)</SelectItem>
                 <SelectItem value="utc">UTC</SelectItem>
@@ -94,34 +103,45 @@ export default function SettingsPage() {
             </Select>
           </SettingRow>
           <SettingRow label="Primary Language">
-            <Select defaultValue="en">
-              <SelectTrigger className="w-48 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={settings.language} onValueChange={v => updateSettings({ language: v })}>
+              <SelectTrigger className="w-48 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="ar">العربية (Planned)</SelectItem>
               </SelectContent>
             </Select>
           </SettingRow>
-          <SettingRow label="RTL Support" description="Arabic right-to-left layout — coming in Phase 2">
+          <SettingRow label="RTL Support" description="Arabic right-to-left layout — planned for Phase 3">
             <div className="flex items-center gap-2">
-              <Switch checked={rtlSupport} onCheckedChange={setRtlSupport} disabled />
+              <Switch
+                checked={settings.rtlSupport}
+                onCheckedChange={v => updateSettings({ rtlSupport: v })}
+                disabled
+              />
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Soon</Badge>
             </div>
           </SettingRow>
         </SettingsCard>
 
         {/* Zone Management */}
-        <SettingsCard icon={Map} title="Zone Management" description="GPS geofencing and location detection settings">
-          <SettingRow label="Auto-detect zone entry / exit" description="Use GPS coordinates to automatically assign users to zones">
-            <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
+        <SettingsCard
+          icon={Map}
+          title="Zone Management"
+          description="GPS geofencing and location detection settings"
+          onSave={() => {}}
+        >
+          <SettingRow label="Auto-detect zone entry / exit" description="Use GPS to automatically assign users to zones">
+            <Switch
+              checked={settings.autoDetectZone}
+              onCheckedChange={v => updateSettings({ autoDetectZone: v })}
+            />
           </SettingRow>
           <SettingRow label="GPS Accuracy Threshold">
-            <Select defaultValue="50">
-              <SelectTrigger className="w-40 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select
+              value={String(settings.gpsAccuracyMeters)}
+              onValueChange={v => updateSettings({ gpsAccuracyMeters: Number(v) })}
+            >
+              <SelectTrigger className="w-40 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="10">10 meters</SelectItem>
                 <SelectItem value="25">25 meters</SelectItem>
@@ -131,10 +151,11 @@ export default function SettingsPage() {
             </Select>
           </SettingRow>
           <SettingRow label="Location Update Interval">
-            <Select defaultValue="30">
-              <SelectTrigger className="w-40 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select
+              value={String(settings.locationUpdateIntervalSeconds)}
+              onValueChange={v => updateSettings({ locationUpdateIntervalSeconds: Number(v) })}
+            >
+              <SelectTrigger className="w-40 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="15">Every 15 sec</SelectItem>
                 <SelectItem value="30">Every 30 sec</SelectItem>
@@ -145,18 +166,30 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* Notifications */}
-        <SettingsCard icon={Bell} title="Notifications" description="Alert delivery and escalation configuration">
+        <SettingsCard
+          icon={Bell}
+          title="Notifications"
+          description="Alert delivery and escalation configuration"
+          onSave={() => {}}
+        >
           <SettingRow label="Alert Sound" description="Play an alarm tone when emergency alerts are broadcast">
-            <Switch checked={alertSound} onCheckedChange={setAlertSound} />
+            <Switch
+              checked={settings.notifications.alertSound}
+              onCheckedChange={v => updateNotificationSettings({ alertSound: v })}
+            />
           </SettingRow>
           <SettingRow label="Push Notifications" description="Send mobile push notifications to all in-zone users">
-            <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
+            <Switch
+              checked={settings.notifications.pushNotifications}
+              onCheckedChange={v => updateNotificationSettings({ pushNotifications: v })}
+            />
           </SettingRow>
           <SettingRow label="Escalation Timeout" description="Auto-escalate if no response within this window">
-            <Select defaultValue="15">
-              <SelectTrigger className="w-36 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select
+              value={String(settings.notifications.escalationTimeoutMinutes)}
+              onValueChange={v => updateNotificationSettings({ escalationTimeoutMinutes: Number(v) })}
+            >
+              <SelectTrigger className="w-36 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="5">5 minutes</SelectItem>
                 <SelectItem value="10">10 minutes</SelectItem>
@@ -168,12 +201,18 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* Account & Security */}
-        <SettingsCard icon={Shield} title="Account & Security" description="Authentication policies and session management">
+        <SettingsCard
+          icon={Shield}
+          title="Account & Security"
+          description="Authentication policies and session management"
+          onSave={() => {}}
+        >
           <SettingRow label="Session Timeout" description="Automatically log out inactive users">
-            <Select defaultValue="60">
-              <SelectTrigger className="w-40 h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+            <Select
+              value={String(settings.sessionTimeoutMinutes)}
+              onValueChange={v => updateSettings({ sessionTimeoutMinutes: Number(v) })}
+            >
+              <SelectTrigger className="w-40 h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="30">30 minutes</SelectItem>
                 <SelectItem value="60">1 hour</SelectItem>
@@ -190,17 +229,22 @@ export default function SettingsPage() {
             <PolicyRow icon={UserCheck} text="Badge number is used as the username — no email required" />
             <PolicyRow icon={MapPin} text="Location permission is mandatory for app functionality" />
             <PolicyRow icon={Wifi} text="System works on both WiFi and mobile data (4G/LTE)" />
-            <PolicyRow icon={Clock} text="Future RTL (Arabic) support is planned for Phase 2" />
+            <PolicyRow icon={Clock} text="RTL (Arabic) support planned for Phase 3" />
           </div>
         </SettingsCard>
 
         {/* Support */}
-        <SettingsCard icon={HelpCircle} title="Support" description="System information and IT contact details">
+        <SettingsCard
+          icon={HelpCircle}
+          title="Support"
+          description="System information and IT contact details"
+          onSave={() => {}}
+        >
           <SettingRow label="System Version">
-            <Badge variant="outline" className="font-mono text-xs">v1.0.0-phase1</Badge>
+            <Badge variant="outline" className="font-mono text-xs">{settings.systemVersion}</Badge>
           </SettingRow>
           <SettingRow label="Environment">
-            <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Production</Badge>
+            <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Development</Badge>
           </SettingRow>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button variant="outline" size="sm" className="gap-2 flex-1">

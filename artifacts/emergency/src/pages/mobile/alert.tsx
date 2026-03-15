@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation, Link } from 'wouter';
 import { AlertTriangle, CheckCircle2, Phone, Clock, ArrowLeft, Siren } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { store } from '@/lib/mock-data';
 import { format } from 'date-fns';
+import { useStore, useShallow } from '@/store';
 
 export default function MobileAlert() {
   const [, navigate] = useLocation();
-  const [responded, setResponded] = useState<'safe' | 'help' | null>(null);
-  const alert = store.alerts.find(a => a.isActive) || store.alerts[0];
+  const { alerts, mobileUserResponse, respondToAlert } = useStore(useShallow(s => ({
+    alerts: s.alerts,
+    mobileUserResponse: s.mobileUserResponse,
+    respondToAlert: s.respondToAlert,
+  })));
+
+  const alert = alerts.find(a => a.isActive) || alerts[0];
 
   if (!alert) {
     return (
@@ -20,7 +25,7 @@ export default function MobileAlert() {
     );
   }
 
-  if (responded === 'safe') {
+  if (mobileUserResponse === 'confirmed') {
     return (
       <div className="min-h-screen bg-background flex justify-center">
         <div className="w-full max-w-[428px] bg-background border-x border-border/40 flex flex-col items-center justify-center p-8 text-center">
@@ -48,7 +53,7 @@ export default function MobileAlert() {
     );
   }
 
-  if (responded === 'help') {
+  if (mobileUserResponse === 'need_help') {
     return (
       <div className="min-h-screen bg-background flex justify-center">
         <div className="w-full max-w-[428px] bg-background border-x border-border/40 flex flex-col items-center justify-center p-8 text-center">
@@ -92,21 +97,16 @@ export default function MobileAlert() {
 
         {/* Body */}
         <div className="flex-1 p-5 space-y-4">
-          {/* Message */}
           <div className="bg-card rounded-xl p-4 border border-border/60">
             <p className="text-xs text-muted-foreground mb-2">ALERT MESSAGE</p>
             <p className="text-sm text-foreground leading-relaxed">{alert.message}</p>
           </div>
 
-          {/* Timestamp */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card rounded-xl p-3.5 border border-border/60">
             <Clock className="w-4 h-4" />
-            <span>
-              Issued at {format(new Date(alert.timestamp), 'HH:mm, EEEE d MMMM yyyy')}
-            </span>
+            <span>Issued at {format(new Date(alert.timestamp), 'HH:mm, EEEE d MMMM yyyy')}</span>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-green-400">{alert.stats.confirmed}</p>
@@ -122,19 +122,18 @@ export default function MobileAlert() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="pt-2 space-y-3">
             <p className="text-xs text-muted-foreground text-center font-medium uppercase tracking-wide">Confirm Your Status</p>
             <Button
               className="w-full h-16 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-2xl gap-3 transition-transform active:scale-[0.98]"
-              onClick={() => setResponded('safe')}
+              onClick={() => respondToAlert('confirmed')}
             >
               <CheckCircle2 className="w-7 h-7" />
               I AM SAFE
             </Button>
             <Button
               className="w-full h-14 bg-amber-600 hover:bg-amber-700 text-white font-bold text-base rounded-2xl gap-3 transition-transform active:scale-[0.98]"
-              onClick={() => setResponded('help')}
+              onClick={() => respondToAlert('need_help')}
             >
               <Phone className="w-6 h-6" />
               NEED HELP

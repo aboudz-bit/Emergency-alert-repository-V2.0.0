@@ -1,0 +1,434 @@
+Continue from the existing Khurais Emergency Alert System codebase exactly as it is now.
+
+Do NOT rebuild from scratch.
+Do NOT replace the current design direction.
+Do NOT remove working pages unless they are broken, duplicated, or clearly unnecessary.
+
+This is PHASE 2.
+
+PROJECT DIRECTION:
+The final product direction is:
+- One main system
+- Same product for IT, Super Admin, and User
+- Keep the current WEB version as a backup portal for IT and Super Admin
+- Keep the current mobile routes inside the web project for now
+- Prepare the codebase so later we can build ONE real iOS app version for all roles using the same design system and same business logic
+- For now, do NOT build the native iOS app yet
+- For now, do NOT build a real backend yet
+- This step is about making the current project stable, clean, structured, and ready for real expansion
+
+PHASE 2 GOAL:
+Turn the current frontend prototype into a structured, realistic, backend-ready application with:
+- proper architecture
+- centralized types
+- centralized mock data
+- app state management
+- role-based routing
+- realistic local app flows
+- clean reusable services
+- stable pages
+- demo persistence
+
+TECH STACK:
+- Next.js 14 App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- lucide-react
+- Zustand preferred for app state
+- localStorage persistence for demo state where useful
+
+IMPORTANT RULES:
+- Keep Admin / IT pages as web-first
+- Keep current mobile screens as mobile-preview routes inside the same project
+- Keep the dark industrial enterprise style
+- Keep the premium UI quality
+- Do not degrade the design
+- Do not create messy one-file logic
+- Keep the code modular and scalable
+
+==================================================
+PHASE 2 TASKS
+==================================================
+
+1) CLEANUP + STABILIZATION
+Audit the whole project and clean it up:
+- remove dead code
+- remove duplicate code/components
+- fix broken imports
+- fix prop mismatches
+- fix inconsistent naming
+- standardize route/page structure
+- standardize component patterns
+- standardize table/card/chip/modal/drawer styles
+- make sure every route works
+- make sure project builds cleanly
+- make sure no obvious runtime errors exist
+- keep the current UI quality strong
+
+2) CENTRALIZED TYPES
+Create proper TypeScript models in a central types folder for:
+- User
+- UserRole
+- AccountStatus
+- Zone
+- ZoneType
+- ZoneBoundaryType
+- ZonePoint
+- Location
+- Alert
+- AlertType
+- AlertPriority
+- AlertStatus
+- AlertTarget
+- UserResponseStatus
+- ActivityLog
+- AppSettings
+- NotificationPolicy
+- AuthState
+
+Make these types future-backend-ready and reusable across pages, mock data, and state.
+
+3) CENTRALIZED MOCK DATA
+Move all mock data into structured files under something like lib/mock-data:
+- mock-users.ts
+- mock-zones.ts
+- mock-locations.ts
+- mock-alerts.ts
+- mock-activities.ts
+- mock-settings.ts
+
+Requirements:
+- 50 users
+- Arabic-style names written in English letters
+- 6-digit badge numbers
+- realistic CPF / Camp assignments
+- realistic location assignments
+
+Main zones:
+- CPF
+- Camp
+
+CPF locations:
+- Control Room
+- OT-1
+- OT-2
+- OT-3
+- OT-4
+- OT-5
+- Gas Train 1
+- Gas Train 2
+- Gas Train 3
+- Shipping
+- Utility
+- WIP
+- Cogen
+- Central Shop
+- Lab
+
+Camp locations:
+- Admin
+- Clinic
+- Field
+- IT
+- Airport
+- Community
+- Security
+- Contractors
+- Other
+
+Zones:
+- CPF polygon
+- Camp polygon
+
+Alerts:
+- 1 active alert:
+  - Blackout on CPF
+  - 30 confirmed
+  - 12 missing
+  - 8 no reply
+- 5 historical alerts
+
+Make sure all mock data is internally consistent across:
+- dashboard
+- users page
+- alert monitor
+- history
+- mobile views
+
+4) CENTRALIZED APP STATE
+Implement proper app state using Zustand.
+
+State should manage:
+- current authenticated user
+- selected role
+- auth status
+- all users
+- all zones
+- all locations
+- all alerts
+- active alert
+- alert history
+- app settings
+- dashboard stats
+- filters for tables/pages
+- mobile current user response state
+
+Create actions such as:
+- login
+- logout
+- registerUser
+- createSuperAdmin
+- resetPassword
+- toggleAccountStatus
+- createAlert
+- sendAlert
+- followUpAlert
+- closeAlert
+- sendAllClear
+- updateUserResponse
+- addZone
+- updateZone
+- disableZone
+- addLocation
+- updateLocation
+- disableLocation
+- updateSettings
+
+Persist demo state in localStorage where reasonable so refreshing does not wipe everything.
+
+5) AUTH FLOW + ROLE-BASED ACCESS
+Implement a proper frontend-only auth flow.
+
+Rules:
+- Badge number is the username
+- Password-based login
+- Demo role selector can remain for testing, but structure auth correctly
+- Create a simple auth provider/store-based auth pattern
+- Add route guards:
+  - IT → only IT pages
+  - Super Admin → only admin pages
+  - User → only mobile pages
+- Redirect after login:
+  - IT → /it
+  - Super Admin → /admin
+  - User → /mobile/home
+- Prevent wrong-role page access
+- If unauthenticated, redirect to /login
+
+6) REGISTRATION FLOW
+Make the registration flow actually work locally:
+- Name
+- Badge Number
+- Password
+- Confirm Password
+- Working On:
+  - CPF
+  - Camp
+- Dynamic location dropdown based on selected working zone
+- Save newly registered users into mock app state/local persistence
+- Prevent duplicate badge number registration
+- After successful registration, allow user login
+- Keep location permission screen linked logically to this flow
+
+7) REAL LOCAL ALERT FLOW
+Make the alert workflow function locally across the app.
+
+When Super Admin creates and sends an alert:
+- create an active alert in app state
+- assign target zone:
+  - CPF
+  - Camp
+  - Both
+- generate title automatically based on alert type
+- save message, time, sender, priority
+- update dashboard metrics
+- show alert in alert monitor
+- show active alert in mobile user screens
+- show it in history once closed or completed
+
+Support alert types:
+- Shelter-in
+- Blackout
+- Security Alert
+- Restricted Movement
+- Drill
+- All Clear
+- Custom
+
+8) MOBILE RESPONSE FLOW
+Make user response flow work locally.
+
+On mobile alert screen:
+- user sees active alert
+- user can press:
+  - I AM SAFE
+  - NEED HELP
+
+After response:
+- update the current alert state
+- update dashboard counts
+- update alert monitor tables
+- reflect status on user history
+- show confirmation state on mobile
+
+Map response logic into categories used by admin:
+- Confirmed
+- Missing
+- No Reply
+- Need Help
+
+9) ALERT MONITOR DYNAMIC COUNTS
+Make the Alert Monitor page connected to app state:
+- counts update from actual in-memory/local state
+- tabs show correct people per category
+- search/filter works
+- user drawer shows real mock-derived details
+- follow-up and all clear actions update state
+- closing an alert moves it properly into history
+
+10) DASHBOARD DYNAMIC DATA
+Connect dashboard cards and summary sections to centralized state:
+- Total Users
+- Inside CPF
+- Inside Camp
+- Active Alerts
+- active alert banner counts
+- CPF summary
+- Camp summary
+- recent activity feed driven by activity data
+
+11) ZONE MANAGEMENT STATE
+Make Zones page operate from one source of truth.
+
+Requirements:
+- existing zones from centralized zone store
+- Add New Zone modal updates state
+- Edit zone updates state
+- Disable zone updates state
+- support boundary types:
+  - Polygon
+  - Circle
+- keep map UI visual/premium
+- keep CPF and Camp polygons visible
+- use real mock zone data for point markers and counts
+
+12) LOCATION MANAGEMENT STATE
+Make Locations page operate from centralized state:
+- CPF and Camp tabs driven from state
+- add location works locally
+- edit location works locally
+- disable location works locally
+- search works
+- user counts derive from assigned users
+
+13) USERS PAGE STATE
+Make Users page driven from centralized state:
+- search
+- zone filter
+- location filter
+- status filter
+- user detail drawer from real data
+- show realistic last activity
+- show account status
+- show working on / location correctly
+
+14) ALERT HISTORY STATE
+Make alert history work from state:
+- old historical alerts shown from mock data
+- closed alerts added into history
+- Replay action clones alert into a new draft/current alert locally
+- Follow-up action appends a new related alert event locally
+- View Report opens polished details modal/drawer
+
+15) SETTINGS STATE
+Make Settings page functional locally:
+- grouped sections
+- toggles/selects update local state
+- policies stored in settings state
+- include:
+  - location permission required
+  - badge as username
+  - WiFi + mobile data support
+  - future RTL support placeholder
+
+16) SERVICE / UTILITY LAYER
+Create a clean service layer or domain utilities for:
+- auth helpers
+- alert helpers
+- zone helpers
+- user helpers
+- status calculation helpers
+- dashboard summary helpers
+- local persistence helpers
+
+Keep business logic out of UI components as much as possible.
+
+17) REUSABLE COMPONENT IMPROVEMENT
+Refactor or improve reusable components:
+- sidebar
+- header
+- breadcrumbs
+- stat cards
+- alert chips
+- status badges
+- data table wrappers
+- search/filter toolbar
+- user detail drawer
+- confirmation modal
+- alert preview card
+- zone card
+- map panel
+- empty states
+- loading skeletons
+- mobile bottom nav
+
+Make components cleaner, reusable, and consistent.
+
+18) RESPONSIVENESS + QUALITY PASS
+Do a final quality pass:
+- ensure admin pages work well on laptop widths
+- ensure mobile preview routes look great at max width 428px
+- fix overflow issues
+- fix spacing inconsistencies
+- fix typography inconsistencies
+- ensure polished hover/focus states
+- ensure dark theme consistency
+- ensure no broken UI sections
+
+19) KEEP FUTURE IOS MIGRATION IN MIND
+Very important:
+Structure the mobile side so it can later be rebuilt in Expo / React Native more easily.
+That means:
+- keep mobile route components modular
+- keep mobile business logic separated from web layout logic
+- keep shared domain/state logic reusable
+- avoid tightly coupling mobile screens to admin-only web layout patterns
+
+20) DEMO-READY RESULT
+By the end of Phase 2, the project should feel like:
+- a stable product demo
+- a structured application
+- a backend-ready frontend system
+- a clean base for later:
+  - real backend integration
+  - push notifications
+  - GPS integration
+  - geofence logic
+  - real iOS app build
+  - web backup portal for IT and Super Admin
+
+==================================================
+DELIVERABLE EXPECTATION
+==================================================
+
+When done:
+- keep the existing beautiful UI
+- make the app stateful and realistic
+- make flows actually work locally
+- keep code clean and modular
+- make the whole project feel production-minded
+- prepare it for Phase 3 backend integration and later native iOS conversion
+
+Do not respond with only a summary.
+Actually implement the Phase 2 changes in the codebase.

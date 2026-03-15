@@ -1,86 +1,106 @@
-export type UserStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_help';
-export type AlertType = 'Blackout' | 'Security Alert' | 'Shelter-in' | 'Drill' | 'Restricted Movement' | 'All Clear' | 'Custom';
-export type ZoneType = 'CPF' | 'Camp' | 'Both';
+/**
+ * Centralized mock data — re-exports from types and provides seeded data.
+ * All state is managed by the Zustand store (src/store/index.ts).
+ * This file provides the initial seed data only.
+ */
 
-export interface User {
-  id: number;
-  name: string;
-  badge: string;
-  role: 'User' | 'IT' | 'Super Admin';
-  zone: 'CPF' | 'Camp';
-  location: string;
-  status: UserStatus;
-  lastActivity: string;
-  isActive: boolean;
-}
+export type {
+  UserStatus,
+  UserResponseStatus,
+  UserRole,
+  AlertType,
+  ZoneType,
+  User,
+  Alert,
+  Zone,
+  Location,
+  AppSettings,
+  ActivityLog,
+} from '@/types';
 
-export interface Alert {
-  id: number;
-  type: AlertType;
-  zone: ZoneType;
-  title: string;
-  message: string;
-  timestamp: string;
-  sentBy: string;
-  stats: {
-    confirmed: number;
-    missing: number;
-    noReply: number;
-    needHelp: number;
-    total: number;
-  };
-  isActive: boolean;
-}
+// ─── Location lists ────────────────────────────────────────────────────────────
 
-const names = [
-  "Abdullah Al-Rashidi", "Khalid Al-Mutairi", "Fahad Al-Dosari", "Omar Al-Shehri", "Saeed Al-Ghamdi", 
-  "Nasser Al-Qahtani", "Mohammed Al-Harbi", "Faisal Al-Otaibi", "Ali Al-Zahrani", "Turki Al-Enezi", 
-  "Hamad Al-Shammari", "Badr Al-Anazi", "Sultan Al-Yami", "Waleed Al-Maliki", "Rayan Al-Thaqafi", 
-  "Yazeed Al-Baqami", "Majid Al-Hajri", "Saud Al-Dossari", "Ibrahim Al-Ruwaili", "Bandar Al-Subhi", 
-  "Nawaf Al-Balawi", "Tariq Al-Shahrani", "Wael Al-Asmari", "Hani Al-Sufyani", "Ziad Al-Juhani", 
-  "Saleh Al-Ahmadi", "Rashid Al-Mansouri", "Meshal Al-Rashidi", "Jaber Al-Mutairi", "Fares Al-Salmi", 
-  "Nayef Al-Khalidi", "Saad Al-Amri", "Marzouq Al-Hajri", "Ahmad Al-Dawsari", "Sami Al-Bakri", 
-  "Raed Al-Harthy", "Qasem Al-Jabri", "Adel Al-Sayed", "Khaled Al-Barrak", "Yasser Al-Mudaiheem", 
-  "Talal Al-Habdan", "Hamza Al-Bishi", "Mazen Al-Sulaimi", "Dhafer Al-Qahtani", "Ghazi Al-Dawsari", 
-  "Loai Al-Rashidi", "Emad Al-Shamari", "Essam Al-Juaid", "Nooreddine Al-Yami", "Bilal Al-Osaimi"
+export const cpfLocations = [
+  'Control Room', 'OT-1', 'OT-2', 'OT-3', 'OT-4', 'OT-5',
+  'Gas Train 1', 'Gas Train 2', 'Gas Train 3', 'Shipping',
+  'Utility', 'WIP', 'Cogen', 'Central Shop', 'Lab',
 ];
 
-export const cpfLocations = ["Control Room", "OT-1", "OT-2", "OT-3", "OT-4", "OT-5", "Gas Train 1", "Gas Train 2", "Gas Train 3", "Shipping", "Utility", "WIP", "Cogen", "Central Shop", "Lab"];
-export const campLocations = ["Admin", "Clinic", "Field", "IT", "Airport", "Community", "Security", "Contractors", "Other"];
+export const campLocations = [
+  'Admin', 'Clinic', 'Field', 'IT', 'Airport',
+  'Community', 'Security', 'Contractors', 'Other',
+];
 
-// Generate exactly 30 Confirmed, 12 Missing, 8 No Reply for the active alert
-const generateStatus = (index: number): UserStatus => {
-  if (index < 30) return 'confirmed';
-  if (index < 42) return 'missing';
-  return 'no_reply';
-};
+// ─── Seed users (50 personnel) ─────────────────────────────────────────────────
 
-export const mockUsers: User[] = names.map((name, i) => {
-  const isCpf = i < 30; // 30 CPF, 20 Camp
+const names = [
+  'Abdullah Al-Rashidi', 'Khalid Al-Mutairi', 'Fahad Al-Dosari', 'Omar Al-Shehri', 'Saeed Al-Ghamdi',
+  'Nasser Al-Qahtani', 'Mohammed Al-Harbi', 'Faisal Al-Otaibi', 'Ali Al-Zahrani', 'Turki Al-Enezi',
+  'Hamad Al-Shammari', 'Badr Al-Anazi', 'Sultan Al-Yami', 'Waleed Al-Maliki', 'Rayan Al-Thaqafi',
+  'Yazeed Al-Baqami', 'Majid Al-Hajri', 'Saud Al-Dossari', 'Ibrahim Al-Ruwaili', 'Bandar Al-Subhi',
+  'Nawaf Al-Balawi', 'Tariq Al-Shahrani', 'Wael Al-Asmari', 'Hani Al-Sufyani', 'Ziad Al-Juhani',
+  'Saleh Al-Ahmadi', 'Rashid Al-Mansouri', 'Meshal Al-Rashidi', 'Jaber Al-Mutairi', 'Fares Al-Salmi',
+  'Nayef Al-Khalidi', 'Saad Al-Amri', 'Marzouq Al-Hajri', 'Ahmad Al-Dawsari', 'Sami Al-Bakri',
+  'Raed Al-Harthy', 'Qasem Al-Jabri', 'Adel Al-Sayed', 'Khaled Al-Barrak', 'Yasser Al-Mudaiheem',
+  'Talal Al-Habdan', 'Hamza Al-Bishi', 'Mazen Al-Sulaimi', 'Dhafer Al-Qahtani', 'Ghazi Al-Dawsari',
+  'Loai Al-Rashidi', 'Emad Al-Shamari', 'Essam Al-Juaid', 'Nooreddine Al-Yami', 'Bilal Al-Osaimi',
+];
+
+const badges = [
+  '102934', '104822', '101156', '109982', '107543',
+  '103618', '108291', '105477', '106832', '101994',
+  '109123', '107765', '104391', '102847', '108564',
+  '103027', '106148', '109371', '105892', '107234',
+  '101463', '108907', '104715', '102381', '109654',
+  '106523', '103849', '107112', '104268', '108736',
+  '101827', '106394', '109041', '103572', '107983',
+  '105139', '102716', '108452', '104897', '101345',
+  '109218', '106781', '103164', '107529', '104063',
+  '108317', '102593', '105864', '109742', '101678',
+];
+
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings } from '@/types';
+
+export const seedUsers: User[] = names.map((name, i) => {
+  const isCpf = i < 30;
+  const locList = isCpf ? cpfLocations : campLocations;
+  const locIndex = isCpf ? (i % locList.length) : ((i - 30) % locList.length);
+  const status: User['status'] =
+    i < 30 ? 'confirmed' : i < 42 ? 'missing' : 'no_reply';
+
+  let role: User['role'] = 'User';
+  if (i === 0) role = 'Super Admin';
+  else if (i === 1) role = 'IT';
+
   return {
     id: i + 1,
     name,
-    badge: `10${Math.floor(1000 + Math.random() * 9000)}`,
-    role: i === 0 ? 'Super Admin' : (i === 1 ? 'IT' : 'User'),
+    badge: badges[i],
+    password: 'demo1234',
+    role,
     zone: isCpf ? 'CPF' : 'Camp',
-    location: isCpf ? cpfLocations[i % cpfLocations.length] : campLocations[(i - 30) % campLocations.length],
-    status: generateStatus(i),
-    lastActivity: new Date(Date.now() - Math.random() * 10000000).toISOString(),
-    isActive: true
+    location: locList[locIndex],
+    status,
+    accountStatus: i === 3 ? 'disabled' : 'active',
+    lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
+    isActive: i !== 3,
   };
 });
 
-export const mockAlerts: Alert[] = [
+export const seedAlerts: Alert[] = [
   {
     id: 1,
     type: 'Blackout',
     zone: 'CPF',
     title: 'BLACKOUT ACTIVATED',
-    message: 'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
-    timestamp: '2024-01-15T14:32:00Z',
+    message:
+      'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Ahmed Al-Qahtani',
+    priority: 'High',
+    status: 'active',
+    isActive: true,
     stats: { confirmed: 30, missing: 12, noReply: 8, needHelp: 0, total: 50 },
-    isActive: true
   },
   {
     id: 2,
@@ -88,21 +108,25 @@ export const mockAlerts: Alert[] = [
     zone: 'Camp',
     title: 'SECURITY INCIDENT',
     message: 'Please remain indoors and lock all doors until further notice.',
-    timestamp: '2024-01-10T09:15:00Z',
+    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Security Team',
+    priority: 'High',
+    status: 'closed',
+    isActive: false,
     stats: { confirmed: 45, missing: 2, noReply: 1, needHelp: 0, total: 48 },
-    isActive: false
   },
   {
     id: 3,
     type: 'Shelter-in',
     zone: 'CPF',
-    title: 'SHELter IN PLACE',
+    title: 'SHELTER IN PLACE',
     message: 'Toxic gas alarm triggered. Shelter in place immediately.',
-    timestamp: '2024-01-08T11:20:00Z',
+    timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'System Auto',
+    priority: 'High',
+    status: 'closed',
+    isActive: false,
     stats: { confirmed: 47, missing: 2, noReply: 1, needHelp: 0, total: 50 },
-    isActive: false
   },
   {
     id: 4,
@@ -110,10 +134,12 @@ export const mockAlerts: Alert[] = [
     zone: 'Both',
     title: 'EMERGENCY EVACUATION DRILL',
     message: 'This is a drill. Proceed to muster points.',
-    timestamp: '2024-01-05T10:00:00Z',
+    timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'HSE Dept',
+    priority: 'Medium',
+    status: 'closed',
+    isActive: false,
     stats: { confirmed: 90, missing: 5, noReply: 3, needHelp: 0, total: 98 },
-    isActive: false
   },
   {
     id: 5,
@@ -121,15 +147,75 @@ export const mockAlerts: Alert[] = [
     zone: 'CPF',
     title: 'ALL CLEAR',
     message: 'The previous emergency condition has been resolved. Return to normal operations.',
-    timestamp: '2023-12-28T16:00:00Z',
+    timestamp: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Command Center',
+    priority: 'Low',
+    status: 'closed',
+    isActive: false,
     stats: { confirmed: 50, missing: 0, noReply: 0, needHelp: 0, total: 50 },
-    isActive: false
-  }
+  },
 ];
 
-// In-memory store to simulate backend state
+export const seedZones: Zone[] = [
+  {
+    id: 1,
+    name: 'CPF',
+    type: 'CPF',
+    boundaryType: 'Polygon',
+    points: [
+      { x: 10, y: 10 }, { x: 55, y: 8 }, { x: 60, y: 45 }, { x: 50, y: 58 }, { x: 15, y: 55 }, { x: 8, y: 35 },
+    ],
+    isActive: true,
+    color: 'border-primary',
+  },
+  {
+    id: 2,
+    name: 'Camp',
+    type: 'Camp',
+    boundaryType: 'Polygon',
+    points: [
+      { x: 65, y: 15 }, { x: 92, y: 12 }, { x: 95, y: 55 }, { x: 70, y: 60 }, { x: 62, y: 40 },
+    ],
+    isActive: true,
+    color: 'border-blue-500',
+  },
+];
+
+export const seedLocations: Location[] = [
+  ...cpfLocations.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true })),
+  ...campLocations.map((name, i) => ({ id: cpfLocations.length + i + 1, name, zone: 'Camp' as const, isActive: true })),
+];
+
+export const seedActivityLogs: ActivityLog[] = [
+  { id: 1, type: 'info', message: 'System check completed successfully.', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+  { id: 2, type: 'action', message: 'Admin Ahmed updated CPF zone boundaries.', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), actorName: 'Ahmed Al-Qahtani' },
+  { id: 3, type: 'report', message: 'Weekly drill report generated and archived.', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 4, type: 'user', message: '5 new user accounts provisioned by IT.', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 5, type: 'alert', message: 'All Clear sent — Security Alert resolved.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
+export const seedSettings: AppSettings = {
+  systemName: 'Khurais Emergency Alert System',
+  timezone: 'ast',
+  language: 'en',
+  rtlSupport: false,
+  autoDetectZone: true,
+  gpsAccuracyMeters: 50,
+  locationUpdateIntervalSeconds: 30,
+  notifications: {
+    alertSound: true,
+    pushNotifications: true,
+    escalationTimeoutMinutes: 15,
+  },
+  sessionTimeoutMinutes: 60,
+  requireLocationPermission: true,
+  badgeAsUsername: true,
+  wifiAndMobileData: true,
+  systemVersion: '2.0.0-phase2',
+};
+
+// Legacy store shim — keep for any file that hasn't been updated yet
 export const store = {
-  users: [...mockUsers],
-  alerts: [...mockAlerts],
+  get users() { return seedUsers; },
+  get alerts() { return seedAlerts; },
 };
