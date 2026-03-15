@@ -1,0 +1,116 @@
+Update the Zone Management logic and UI.
+
+There are 2 important problems to fix:
+
+1) I cannot properly delete a zone
+2) When adding a new zone, the current flow incorrectly forces me to classify it as CPF or Camp
+
+This is NOT the desired behavior.
+
+What we want instead:
+- A new zone should be allowed to be a completely independent zone
+- I should be able to create a zone with any custom name, for example:
+  - Field Area
+  - Airport Area
+  - Restricted Area
+  - Utility Yard
+- It should NOT be forced to be “CPF” or “Camp”
+- Parent relationship should be optional, not mandatory
+
+==================================================
+REQUIRED LOGIC CHANGE
+==================================================
+
+When creating a new zone, use this structure:
+
+- Zone Name
+- Zone Level:
+  - Main Zone
+  - Sub Zone
+- Parent Zone:
+  - Optional
+  - None by default
+- Boundary Shape:
+  - Polygon
+  - Circle
+- Zone Color
+
+Important:
+- Remove the current forced “Zone Type = CPF / Camp” logic from the Add Zone flow
+- CPF and Camp should remain as existing default zones
+- But any new zone can be a fully custom independent zone
+
+Example valid new zones:
+- Field Area
+- Airport Area
+- Community Sector A
+- Security Perimeter
+- Contractor Yard
+
+==================================================
+DELETE ZONE FIX
+==================================================
+
+Add a proper Delete Zone action.
+
+Requirements:
+- Every non-system zone should have:
+  - Rename
+  - Edit Shape
+  - Change Color
+  - Disable
+  - Delete
+- Delete must actually remove the zone from local state/store
+- Show a confirmation dialog before delete:
+  - “Are you sure you want to delete this zone?”
+- After delete:
+  - remove it from the map
+  - remove it from the zone list
+  - update legend
+  - update counts if needed
+
+Important:
+- Protect system zones if needed:
+  - CPF
+  - Camp
+- If system zones should not be deleted, disable delete for them clearly
+- But custom zones must be deletable
+
+==================================================
+UI / UX REQUIREMENTS
+==================================================
+
+For Add Zone modal:
+- Remove the forced CPF/Camp selector
+- Make the modal simpler and clearer:
+  - Zone Name
+  - Zone Level
+  - Optional Parent Zone
+  - Boundary Shape
+  - Zone Color
+  - Continue to Draw
+
+For selected zone actions:
+- Show buttons clearly:
+  - Rename
+  - Edit Shape
+  - Change Color
+  - Disable
+  - Delete
+
+==================================================
+KEEP WORKING
+==================================================
+
+Do not break:
+- existing CPF zone
+- existing Camp zone
+- existing drawing flow
+- existing map functionality
+- existing edit and rename logic
+
+Just fix the zone model and UX so custom zones behave correctly.
+
+OUTPUT EXPECTATION:
+Implement the logic and UI changes directly in the codebase.
+Do not just summarize.

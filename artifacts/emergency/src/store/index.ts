@@ -51,6 +51,7 @@ interface AppState {
   addZone: (zone: Omit<Zone, 'id'>) => void;
   updateZone: (id: number, partial: Partial<Zone>) => void;
   disableZone: (id: number) => void;
+  deleteZone: (id: number) => void;
 
   // ── Location actions ─────────────────────────────────────────────────────────
   addLocation: (location: Omit<Location, 'id'>) => void;
@@ -321,6 +322,10 @@ export const useStore = create<AppState>()(
 
       disableZone: (id) => {
         set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, isActive: false } : z) }));
+      },
+
+      deleteZone: (id) => {
+        set(s => ({ zones: s.zones.filter(z => z.id !== id) }));
       },
 
       // ── Location actions ──────────────────────────────────────────────────────

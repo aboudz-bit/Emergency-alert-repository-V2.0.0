@@ -170,13 +170,12 @@ function AddZoneModal({
   onClose, onSave, existingZones,
 }: {
   onClose: () => void;
-  onSave: (data: { name: string; zoneCategory: 'main' | 'sub'; parentZoneId: number | null; type: 'CPF' | 'Camp'; boundaryType: ZoneBoundaryType; color: string }) => void;
+  onSave: (data: { name: string; zoneCategory: 'main' | 'sub'; parentZoneId: number | null; boundaryType: ZoneBoundaryType; color: string }) => void;
   existingZones: Zone[];
 }) {
   const [name, setName] = useState('');
   const [zoneCategory, setZoneCategory] = useState<'main' | 'sub'>('main');
   const [parentZoneId, setParentZoneId] = useState<number | null>(null);
-  const [type, setType] = useState<'CPF' | 'Camp'>('CPF');
   const [boundary, setBoundary] = useState<ZoneBoundaryType>('Polygon');
   const [color, setColor] = useState('#10B981');
   const mainZones = existingZones.filter(z => z.isActive);
@@ -193,7 +192,7 @@ function AddZoneModal({
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={e => { e.preventDefault(); onSave({ name, zoneCategory, parentZoneId: zoneCategory === 'sub' ? parentZoneId : null, type, boundaryType: boundary, color }); }} className="p-5 space-y-5">
+        <form onSubmit={e => { e.preventDefault(); onSave({ name, zoneCategory, parentZoneId: zoneCategory === 'sub' ? parentZoneId : null, boundaryType: boundary, color }); }} className="p-5 space-y-5">
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Name</label>
             <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Substation Alpha"
@@ -228,19 +227,6 @@ function AddZoneModal({
               </select>
             </div>
           )}
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Type</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['CPF', 'Camp'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setType(t)}
-                  className={cn('py-2.5 rounded-xl border text-sm font-bold transition-all',
-                    type === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300')}>
-                  {t === 'CPF' ? 'CPF (Processing)' : 'Camp (Residential)'}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Boundary Shape</label>
@@ -338,8 +324,8 @@ function ChangeColorModal({ zone, onClose, onSave }: { zone: Zone; onClose: () =
 }
 
 export default function Zones() {
-  const { zones, disableZone, addZone, updateZone, users } = useStore(useShallow(s => ({
-    zones: s.zones, disableZone: s.disableZone, addZone: s.addZone, updateZone: s.updateZone, users: s.users,
+  const { zones, disableZone, deleteZone, addZone, updateZone, users } = useStore(useShallow(s => ({
+    zones: s.zones, disableZone: s.disableZone, deleteZone: s.deleteZone, addZone: s.addZone, updateZone: s.updateZone, users: s.users,
   })));
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -370,10 +356,10 @@ export default function Zones() {
 
   const handleCreateZone = (data: {
     name: string; zoneCategory: 'main' | 'sub'; parentZoneId: number | null;
-    type: 'CPF' | 'Camp'; boundaryType: ZoneBoundaryType; color: string;
+    boundaryType: ZoneBoundaryType; color: string;
   }) => {
     addZone({
-      name: data.name, type: data.type, parentZoneId: data.parentZoneId,
+      name: data.name, type: 'Custom', parentZoneId: data.parentZoneId,
       boundaryType: data.boundaryType, points: [], polygonPoints: [],
       center: data.boundaryType === 'Circle' ? { lat: 25.082, lng: 48.178 } : undefined,
       radius: data.boundaryType === 'Circle' ? 500 : undefined,
@@ -446,6 +432,15 @@ export default function Zones() {
       disableZone(zone.id);
       if (selectedZoneId === zone.id) setSelectedZoneId(null);
       setToast({ message: `Zone "${zone.name}" disabled`, variant: 'success' });
+    }
+  };
+
+  const handleDeleteZone = (zone: Zone) => {
+    if (confirm(`Are you sure you want to delete zone "${zone.name}"? This action cannot be undone.`)) {
+      deleteZone(zone.id);
+      if (selectedZoneId === zone.id) setSelectedZoneId(null);
+      if (editingZoneId === zone.id) { setEditMode('idle'); setDraftPoints([]); setEditingZoneId(null); }
+      setToast({ message: `Zone "${zone.name}" deleted`, variant: 'success' });
     }
   };
 
@@ -555,7 +550,7 @@ export default function Zones() {
                   </div>
 
                   {isSelected && !isEditing && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-4 gap-1.5">
+                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-5 gap-1">
                       <button onClick={e => { e.stopPropagation(); if (!isSystemZone(zone)) setRenameZone(zone); }}
                         className={cn('flex flex-col items-center gap-1 py-2 rounded-lg transition-colors',
                           isSystemZone(zone) ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100')}
@@ -571,8 +566,14 @@ export default function Zones() {
                         <Palette className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Color</span>
                       </button>
                       <button onClick={e => { e.stopPropagation(); handleDisable(zone); }}
-                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Disable</span>
+                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                        <X className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Disable</span>
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); if (!isSystemZone(zone)) handleDeleteZone(zone); }}
+                        className={cn('flex flex-col items-center gap-1 py-2 rounded-lg transition-colors',
+                          isSystemZone(zone) ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-red-50')}
+                        title={isSystemZone(zone) ? 'System zones cannot be deleted' : 'Delete zone permanently'}>
+                        <Trash2 className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Delete</span>
                       </button>
                     </div>
                   )}

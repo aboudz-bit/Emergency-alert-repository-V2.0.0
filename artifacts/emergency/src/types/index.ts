@@ -11,7 +11,7 @@ export interface AuthState {
 
 // ─── Zones ────────────────────────────────────────────────────────────────────
 
-export type ZoneType = 'CPF' | 'Camp' | 'Both';
+export type ZoneType = 'CPF' | 'Camp' | 'Both' | 'Custom';
 export type ZoneBoundaryType = 'Polygon' | 'Circle';
 
 export interface ZonePoint {
