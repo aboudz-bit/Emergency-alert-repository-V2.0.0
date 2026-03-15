@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(225 21% 7%);
+  --color-foreground: hsl(210 40% 96%);
+  
+  --color-card: hsl(225 28% 14%);
+  --color-card-foreground: hsl(210 40% 96%);
+  
+  --color-popover: hsl(225 28% 14%);
+  --color-popover-foreground: hsl(210 40% 96%);
+  
+  --color-primary: hsl(0 84% 60%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  
+  --color-secondary: hsl(215 32% 17%);
+  --color-secondary-foreground: hsl(210 40% 96%);
+  
+  --color-muted: hsl(215 32% 17%);
+  --color-muted-foreground: hsl(215 16% 47%);
+  
+  --color-accent: hsl(215 32% 17%);
+  --color-accent-foreground: hsl(210 40% 96%);
+  
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  
+  --color-border: hsl(218 23% 23%);
+  --color-input: hsl(218 23% 23%);
+  --color-ring: hsl(0 84% 60%);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
+}
+
+:root {
+  /* Forced Dark Mode for Enterprise Industrial Look */
+  --background: 225 21% 7%;
+  --foreground: 210 40% 96%;
+
+  --card: 225 28% 14%;
+  --card-foreground: 210 40% 96%;
+
+  --popover: 225 28% 14%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 0 84% 60%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 215 32% 17%;
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 215 32% 17%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 215 32% 17%;
+  --accent-foreground: 210 40% 96%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 218 23% 23%;
+  --input: 218 23% 23%;
+  --ring: 0 84% 60%;
+
+  /* Custom Status Colors */
+  --status-safe: 142 71% 45%;
+  --status-missing: 43 74% 49%;
+  --status-noreply: 215 16% 47%;
+  --status-info: 217 91% 60%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
+    /* Custom scrollbar for dark enterprise feel */
+  }
+  
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background)); 
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border)); 
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground)); 
+  }
+}
+
+@layer utilities {
+  .text-safe { color: hsl(var(--status-safe)); }
+  .bg-safe { background-color: hsl(var(--status-safe)); }
+  .text-missing { color: hsl(var(--status-missing)); }
+  .bg-missing { background-color: hsl(var(--status-missing)); }
+  .text-noreply { color: hsl(var(--status-noreply)); }
+  .bg-noreply { background-color: hsl(var(--status-noreply)); }
+  .text-info { color: hsl(var(--status-info)); }
+  .bg-info { background-color: hsl(var(--status-info)); }
+
+  .glass-panel {
+    @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-xl;
+  }
+}

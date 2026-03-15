@@ -1,0 +1,13 @@
+packages:
+  "framer-motion": "For smooth layout transitions and pulse animations on alerts"
+  "date-fns": "For formatting timestamps"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+  "lucide-react": "For all system icons"
+
+images: []
+
+notes:
+  - "Since there is no backend provided, I will implement a robust mock API layer using TanStack Query."
+  - "The app is forced into dark mode per requirements by setting dark colors in the :root CSS scope."
+  - "All components and pages are fully implemented and wired to the mock state to demonstrate the complete user flow."

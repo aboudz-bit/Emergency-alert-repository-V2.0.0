@@ -1,0 +1,448 @@
+Build Phase 1 of a polished, modern, responsive emergency alert system called "Khurais Emergency Alert System" using Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui + lucide-react.
+
+IMPORTANT:
+This is Phase 1 only.
+Focus on building the core frontend foundation with premium UI quality, clean architecture, reusable components, and realistic mock data.
+Do NOT build backend logic yet.
+Do NOT build full functionality yet.
+Do NOT over-engineer.
+Make it look like a real enterprise emergency operations platform demo.
+
+DESIGN STYLE:
+- Dark industrial enterprise theme
+- Primary red: #EF4444
+- Background: dark slate / charcoal
+- Cards: slightly lighter gray
+- Text: white / cool gray
+- State colors:
+  - Red = emergency / critical
+  - Green = confirmed / safe
+  - Yellow = pending / missing
+  - Gray = no reply / inactive
+  - Blue = info / drill
+- Serious, clean, operational look
+- Premium SaaS quality
+- Strong spacing, hover states, shadows, transitions
+- No childish UI
+- No generic dashboard template feel
+
+APP CONCEPT:
+This system is for a remote industrial site.
+A Super Admin sends emergency alerts only to users physically inside selected geofenced zones such as CPF and Camp.
+Users receive alerts and confirm their status.
+The system tracks:
+- Total users
+- Confirmed
+- Missing
+- No reply
+
+PHASE 1 SCOPE ONLY:
+Build these core parts first:
+
+1) LOGIN PAGE
+Route: /login
+- Centered login card
+- App name: Khurais Emergency Alert System
+- Badge Number field
+- Password field
+- Demo role selector:
+  - IT
+  - Super Admin
+  - User
+- Red login button
+- Footer text: Emergency Alert System v1.0
+- On submit:
+  - IT → /it
+  - Super Admin → /admin
+  - User → /mobile/home
+
+2) IT PAGE
+Route: /it
+- Minimal but polished support dashboard
+- Header: IT Administration
+- Table of accounts:
+  - Name
+  - Badge
+  - Role
+  - Status
+  - Actions
+- Action buttons:
+  - Reset Password
+  - Enable / Disable
+- Top button:
+  - Create Super Admin Account
+- Modal form:
+  - Name
+  - Badge Number
+  - Password
+  - Confirm Password
+- Keep this page simple and clean
+
+3) SUPER ADMIN APP SHELL
+Routes under /admin
+Build a premium reusable admin layout with:
+- Collapsible sidebar
+- Top header
+- App name
+- Notification bell
+- Profile menu
+- Breadcrumbs
+- Clean desktop-first layout
+- Sidebar items:
+  - Dashboard
+  - Send Alert
+  - Zones
+  - Locations
+  - Users
+  - History
+  - Settings
+
+4) SUPER ADMIN DASHBOARD
+Route: /admin
+Build a strong polished main dashboard:
+- KPI cards:
+  - Total Users
+  - Inside CPF
+  - Inside Camp
+  - Active Alerts
+- Large active alert banner:
+  - Example active alert: Blackout on CPF
+  - Show:
+    - Alert type
+    - Zone
+    - Time
+    - Message
+    - Confirmed / Missing / No Reply counters
+    - Progress bar
+    - Button: Send All Clear
+- Quick action buttons:
+  - New Alert
+  - View Map
+  - View Missing
+  - Alert History
+- Recent activity feed
+- Separate CPF summary section
+- Separate Camp summary section
+- Use realistic mock numbers
+
+5) SEND ALERT PAGE
+Route: /admin/send-alert
+Build a polished alert creation page:
+- Alert Type selector:
+  - Shelter-in
+  - Blackout
+  - Security Alert
+  - Restricted Movement
+  - Drill
+  - All Clear
+  - Custom
+- Target Zone selector:
+  - CPF
+  - Camp
+  - Both
+- Message textarea
+- Auto-generated title preview:
+  - Example: BLACKOUT ACTIVATED
+- Priority selector:
+  - High
+  - Medium
+  - Low
+- Mobile alert preview card on the right
+- Buttons:
+  - Save Draft
+  - Send Alert
+- Confirmation modal before sending
+
+6) ALERT MONITOR PAGE
+Route: /admin/alert-monitor
+Build a live alert monitoring page:
+- Header with:
+  - Alert type
+  - Zone
+  - Sent time
+  - Message
+- Tabs:
+  - Confirmed
+  - Missing
+  - No Reply
+  - Need Help
+- Each tab includes:
+  - Search input
+  - Filter control
+  - Export button
+  - Table:
+    - Name
+    - Badge
+    - Zone
+    - Location
+    - Status / Time
+- Click row opens right-side user detail drawer:
+  - Name
+  - Badge
+  - Zone
+  - Location
+  - Current status
+  - Last response time
+  - Simple action timeline
+- Add top action buttons:
+  - Send Follow-up
+  - Send All Clear
+  - Close Alert
+
+7) ZONE MANAGEMENT PAGE
+Route: /admin/zones
+This is a key page.
+Build a premium split layout:
+- Left panel:
+  - Zone list
+  - Search
+  - Zone cards
+  - Add New Zone button
+- Right panel:
+  - Styled placeholder map canvas
+
+Existing zones:
+- CPF
+- Camp
+
+Each zone card shows:
+- Zone name
+- Boundary type: Polygon
+- Point count
+- User count
+- Active / Inactive
+- Edit button
+- Disable button
+
+Add New Zone modal:
+- Zone Name
+- Zone Type:
+  - Main Zone
+  - Sub Zone
+- Parent Zone:
+  - None
+  - CPF
+  - Camp
+- Boundary Type:
+  - Polygon
+  - Circle
+
+MAP REQUIREMENTS:
+Even if real maps are not connected yet, create a believable premium map UI.
+Show:
+- CPF polygon
+- Camp polygon
+- 5 visual point markers for each
+- Zone labels
+- Draw / Undo / Clear / Save controls
+- Map legend
+- Floating zone info card
+Make it look like a real geofence management experience.
+
+8) LOCATION MANAGEMENT PAGE
+Route: /admin/locations
+Build:
+- Tabs:
+  - CPF Locations
+  - Camp Locations
+- Search bar
+- Add Location button
+- Editable table or card list
+- Add modal
+- Edit modal
+
+CPF locations:
+- Control Room
+- OT-1
+- OT-2
+- OT-3
+- OT-4
+- OT-5
+- Gas Train 1
+- Gas Train 2
+- Gas Train 3
+- Shipping
+- Utility
+- WIP
+- Cogen
+- Central Shop
+- Lab
+
+Camp locations:
+- Admin
+- Clinic
+- Field
+- IT
+- Airport
+- Community
+- Security
+- Contractors
+- Other
+
+9) USERS PAGE
+Route: /admin/users
+Build:
+- Search bar
+- Filters:
+  - Zone
+  - Location
+  - Status
+- Table:
+  - Name
+  - Badge
+  - Working On
+  - Location
+  - Status
+  - Last Activity
+- Click row opens user detail drawer
+
+10) ALERT HISTORY PAGE
+Route: /admin/history
+Build:
+- Search
+- Date range filter
+- Alert type chips
+- Table:
+  - Date / Time
+  - Type
+  - Zone
+  - Sent By
+  - Total
+  - Confirmed
+  - Missing
+  - No Reply
+- Actions:
+  - Replay
+  - Follow-up
+  - View Report
+
+11) SETTINGS PAGE
+Route: /admin/settings
+Build grouped settings cards:
+- General
+- Zone Management
+- Location Management
+- Account & Security
+- Support
+
+Include policy-style items:
+- Location permission required
+- Badge number used as username
+- Works on WiFi and mobile data
+- Future RTL support
+
+12) MOBILE USER SCREENS
+Build a centered mobile app preview with max width 428px.
+
+Routes:
+- /mobile/register
+- /mobile/location-permission
+- /mobile/home
+- /mobile/alert/[id]
+- /mobile/history
+- /mobile/profile
+
+Registration screen:
+- Name
+- Badge Number
+- Password
+- Confirm Password
+- Working On toggle:
+  - CPF
+  - Camp
+- Dynamic Location dropdown
+- Register button
+- Link to login
+
+Location permission screen:
+- Explain location is required
+- Buttons:
+  - Enable Location
+  - Exit
+
+Mobile home:
+- User name
+- Badge
+- Zone badge
+- Current location
+- GPS status
+- Alert card
+- Bottom nav:
+  - Home
+  - Alerts
+  - Profile
+
+Active alert screen:
+- Strong emergency visual
+- Alert title
+- Message
+- Timestamp
+- Buttons:
+  - I AM SAFE
+  - NEED HELP
+- After submit show confirmed state
+
+Profile screen:
+- Name
+- Badge
+- Zone
+- Location
+- GPS status
+- Notification status
+- App version
+- Logout
+
+SHARED COMPONENTS
+Create reusable components:
+- Admin sidebar
+- Admin header
+- Breadcrumbs
+- Stat cards
+- Alert chips
+- Status badges
+- Data table
+- Search/filter toolbar
+- User detail drawer
+- Confirmation modal
+- Alert preview card
+- Zone card
+- Map panel
+- Empty state
+- Loading skeleton
+- Mobile bottom nav
+
+MOCK DATA
+Generate realistic mock data:
+- 50 users
+- Arabic-style names written in English letters
+- 6-digit badge numbers
+- CPF and Camp assignments
+- 1 active alert:
+  - Blackout on CPF
+  - 30 confirmed
+  - 12 missing
+  - 8 no reply
+- 5 historical alerts
+- CPF polygon and Camp polygon
+- Make the data consistent across pages
+
+TECHNICAL QUALITY
+- Use App Router properly
+- Use TypeScript types
+- Use clean reusable components
+- Use shadcn/ui where it makes sense
+- Make page layouts feel complete, not scaffolded
+- Make the result visually impressive and demo-ready
+- Keep code organized and ready for future backend integration
+
+IMPORTANT FINAL INSTRUCTION
+This is Phase 1 foundation only.
+Prioritize:
+- beautiful layout
+- strong UX
+- clean architecture
+- reusable components
+- realistic enterprise feel
+
+Do not waste time on backend logic yet.
+Focus on making the core system look premium, coherent, and ready for Phase 2 integration.
