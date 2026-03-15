@@ -122,10 +122,10 @@ artifacts/mobile/
 │   ├── (auth)/login.tsx           # Badge + password login
 │   ├── (admin)/
 │   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
-│   │   ├── index.tsx              # Dashboard: KPIs, alert banner, quick actions, activity feed
+│   │   ├── index.tsx              # Dashboard: KPIs, alert banner + per-zone breakdown, quick actions, activity feed
 │   │   ├── send-alert.tsx         # Alert form with type/zone/priority/preview
 │   │   ├── users.tsx              # Personnel list with search + zone filter
-│   │   ├── alert-monitor.tsx      # Live alert tracking with status tabs
+│   │   ├── alert-monitor.tsx      # Live alert tracking with total + per-zone breakdown + personnel list
 │   │   ├── history.tsx            # Alert history with type filter chips
 │   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
 │   │   ├── locations.tsx          # Location management with zone tabs
@@ -142,8 +142,10 @@ artifacts/mobile/
 │   ├── KPICard.tsx                # Icon+value top row, label below
 │   ├── Button.tsx                 # Variant/size/icon props
 │   ├── StatusBadge.tsx            # Dot+label pill badge
-│   └── Input.tsx                  # Input with bold label + focus border
+│   ├── Input.tsx                  # Input with bold label + focus border
+│   └── ZoneBreakdown.tsx          # Per-zone response stats cards (Safe/Missing/NoReply/Help per zone)
 ├── constants/theme.ts             # Colors, Spacing, FontSize, BorderRadius
+├── hooks/useZoneBreakdown.ts       # Computes per-zone response counts from users+zones+activeAlert
 ├── store/index.ts                 # Zustand store (keas-mobile-store-v1)
 └── types/index.ts                 # TypeScript types
 ```

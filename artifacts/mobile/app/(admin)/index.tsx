@@ -15,16 +15,21 @@ import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
+import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 
 export default function DashboardScreen() {
   const router = useRouter();
   const users = useStore((s) => s.users);
+  const zones = useStore((s) => s.zones);
   const activityLogs = useStore((s) => s.activityLogs);
   const activeAlert = useStore(selectActiveAlert);
   const sendAllClear = useStore((s) => s.sendAllClear);
   const logout = useStore((s) => s.logout);
+
+  const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
   const stats = useMemo(() => {
     const total = users.length;
@@ -113,77 +118,88 @@ export default function DashboardScreen() {
         </View>
 
         {activeAlert && (
-          <Pressable onPress={() => router.push("/(admin)/alert-monitor")}>
-            <Card style={styles.alertBanner}>
-              <View style={styles.alertBannerHeader}>
-                <View style={styles.alertBannerLeft}>
-                  <View style={styles.alertIconCircle}>
-                    <Feather name="alert-triangle" size={18} color={Colors.primary} />
+          <>
+            <Pressable onPress={() => router.push("/(admin)/alert-monitor")}>
+              <Card style={styles.alertBanner}>
+                <View style={styles.alertBannerHeader}>
+                  <View style={styles.alertBannerLeft}>
+                    <View style={styles.alertIconCircle}>
+                      <Feather name="alert-triangle" size={18} color={Colors.primary} />
+                    </View>
+                    <View style={styles.alertBannerTitleWrap}>
+                      <Text style={styles.alertBannerTitle}>{activeAlert.type}</Text>
+                      <Text style={styles.alertBannerMeta}>
+                        {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "HH:mm:ss")}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.alertBannerTitleWrap}>
-                    <Text style={styles.alertBannerTitle}>{activeAlert.type}</Text>
-                    <Text style={styles.alertBannerMeta}>
-                      {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "HH:mm:ss")}
+                  <StatusBadge status="active" />
+                </View>
+
+                <Text style={styles.alertMessage} numberOfLines={2}>
+                  {activeAlert.message}
+                </Text>
+
+                <View style={styles.alertStats}>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.safe }]}>
+                      {activeAlert.stats.confirmed}
                     </Text>
+                    <Text style={styles.statLabel}>Safe</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.missing }]}>
+                      {activeAlert.stats.missing}
+                    </Text>
+                    <Text style={styles.statLabel}>Missing</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.noreply }]}>
+                      {activeAlert.stats.noReply}
+                    </Text>
+                    <Text style={styles.statLabel}>No Reply</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.primary }]}>
+                      {activeAlert.stats.needHelp}
+                    </Text>
+                    <Text style={styles.statLabel}>Help</Text>
                   </View>
                 </View>
-                <StatusBadge status="active" />
-              </View>
 
-              <Text style={styles.alertMessage} numberOfLines={2}>
-                {activeAlert.message}
-              </Text>
+                <View style={styles.alertActions}>
+                  <Button
+                    title="All Clear"
+                    onPress={sendAllClear}
+                    variant="safe"
+                    icon="check-circle"
+                    size="lg"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="Monitor"
+                    onPress={() => router.push("/(admin)/alert-monitor")}
+                    variant="secondary"
+                    icon="eye"
+                    size="lg"
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </Card>
+            </Pressable>
 
-              <View style={styles.alertStats}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.safe }]}>
-                    {activeAlert.stats.confirmed}
-                  </Text>
-                  <Text style={styles.statLabel}>Safe</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.missing }]}>
-                    {activeAlert.stats.missing}
-                  </Text>
-                  <Text style={styles.statLabel}>Missing</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.noreply }]}>
-                    {activeAlert.stats.noReply}
-                  </Text>
-                  <Text style={styles.statLabel}>No Reply</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.primary }]}>
-                    {activeAlert.stats.needHelp}
-                  </Text>
-                  <Text style={styles.statLabel}>Help</Text>
-                </View>
+            {zoneStats.length > 0 && (
+              <View style={styles.zoneBreakdownWrap}>
+                <Text style={styles.zoneBreakdownTitle}>
+                  {zoneStats.length > 1 ? "Per-Zone Breakdown" : `${zoneStats[0].zoneName} Zone`}
+                </Text>
+                <ZoneBreakdown zoneStats={zoneStats} />
               </View>
-
-              <View style={styles.alertActions}>
-                <Button
-                  title="All Clear"
-                  onPress={sendAllClear}
-                  variant="safe"
-                  icon="check-circle"
-                  size="lg"
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  title="Monitor"
-                  onPress={() => router.push("/(admin)/alert-monitor")}
-                  variant="secondary"
-                  icon="eye"
-                  size="lg"
-                  style={{ flex: 1 }}
-                />
-              </View>
-            </Card>
-          </Pressable>
+            )}
+          </>
         )}
 
         <View style={styles.section}>
@@ -391,6 +407,16 @@ const styles = StyleSheet.create({
   alertActions: {
     flexDirection: "row",
     gap: Spacing.md,
+  },
+  zoneBreakdownWrap: {
+    gap: Spacing.sm,
+  },
+  zoneBreakdownTitle: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   section: {
     gap: Spacing.md,
