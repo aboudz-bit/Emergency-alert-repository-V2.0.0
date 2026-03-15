@@ -1,14 +1,12 @@
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Dimensions,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -18,14 +16,10 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Zone, ZoneType } from "@/types";
-
-let WebView: any = null;
-try {
-  WebView = require("react-native-webview").WebView;
-} catch {}
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_HEIGHT = SCREEN_HEIGHT * 0.42;
@@ -40,126 +34,6 @@ const ZONE_TYPES: { key: ZoneType; label: string }[] = [
   { key: "Camp", label: "Camp" },
   { key: "Custom", label: "Custom" },
 ];
-
-function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
-  const allPoints = zones.flatMap((z) => z.polygonPoints);
-  let centerLat = 25.082;
-  let centerLng = 48.175;
-  if (allPoints.length > 0) {
-    centerLat = allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length;
-    centerLng = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
-  }
-
-  const zonePolygons = zones
-    .filter((z) => z.polygonPoints.length > 0)
-    .map((z) => {
-      const isSelected = z.id === selectedZoneId;
-      const coords = z.polygonPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
-      const fillOpacity = isSelected ? 0.35 : z.isActive ? 0.2 : 0.08;
-      const weight = isSelected ? 3 : 2;
-      const dashArray = z.isActive ? "" : "5,5";
-      const color = z.isActive ? z.color : "#6B7280";
-
-      return `
-        var poly${z.id} = L.polygon([${coords}], {
-          color: '${color}',
-          fillColor: '${z.color}',
-          fillOpacity: ${fillOpacity},
-          weight: ${weight},
-          ${dashArray ? `dashArray: '${dashArray}',` : ""}
-        }).addTo(map);
-        poly${z.id}.on('click', function() {
-          try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'select', id:${z.id}})); } catch(e) {}
-          try { window.parent.postMessage(JSON.stringify({type:'select', id:${z.id}}), '*'); } catch(e) {}
-        });
-        ${z.center ? `
-        L.marker([${z.center.lat}, ${z.center.lng}], {
-          icon: L.divIcon({
-            className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
-            iconAnchor: [30, 10],
-          })
-        }).addTo(map);` : `
-        L.marker([${z.polygonPoints[0]?.lat || centerLat}, ${z.polygonPoints[0]?.lng || centerLng}], {
-          icon: L.divIcon({
-            className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
-            iconAnchor: [30, 10],
-          })
-        }).addTo(map);`}
-      `;
-    })
-    .join("\n");
-
-  const zonesWithoutPolygons = zones
-    .filter((z) => z.polygonPoints.length === 0 && z.center)
-    .map((z) => {
-      const isSelected = z.id === selectedZoneId;
-      return `
-        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
-          radius: ${isSelected ? 14 : 10},
-          color: '${z.color}',
-          fillColor: '${z.color}',
-          fillOpacity: ${isSelected ? 0.5 : 0.3},
-          weight: ${isSelected ? 3 : 2},
-        }).addTo(map).on('click', function() {
-          try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'select', id:${z.id}})); } catch(e) {}
-          try { window.parent.postMessage(JSON.stringify({type:'select', id:${z.id}}), '*'); } catch(e) {}
-        });
-        L.marker([${z.center!.lat}, ${z.center!.lng}], {
-          icon: L.divIcon({
-            className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);">${z.name}</div>',
-            iconAnchor: [30, -12],
-          })
-        }).addTo(map);
-      `;
-    })
-    .join("\n");
-
-  return `<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body, #map { width:100%; height:100%; }
-  .zone-label { background:none !important; border:none !important; }
-  .leaflet-control-zoom a {
-    background: #171B24 !important; color: #F0F1F3 !important;
-    border-color: #2A2F3C !important; width: 34px !important; height: 34px !important;
-    line-height: 34px !important; font-size: 16px !important;
-  }
-  .leaflet-control-zoom { border: 1px solid #2A2F3C !important; border-radius: 10px !important; overflow: hidden; }
-</style></head><body>
-<div id="map"></div>
-<script>
-  var map = L.map('map', {
-    center: [${centerLat}, ${centerLng}],
-    zoom: 13,
-    zoomControl: true,
-    attributionControl: false,
-  });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  }).addTo(map);
-  ${zonePolygons}
-  ${zonesWithoutPolygons}
-  setTimeout(function(){
-    var allBounds = [];
-    ${zones.filter(z => z.polygonPoints.length > 0).map(z =>
-      `allBounds.push([${z.polygonPoints.map(p => `[${p.lat},${p.lng}]`).join(",")}]);`
-    ).join("\n")}
-    ${zones.filter(z => z.polygonPoints.length === 0 && z.center).map(z =>
-      `allBounds.push([[${z.center!.lat},${z.center!.lng}]]);`
-    ).join("\n")}
-    if(allBounds.length > 0) {
-      var flat = allBounds.flat();
-      if(flat.length > 1) map.fitBounds(flat, {padding:[30,30]});
-    }
-  }, 200);
-<\/script></body></html>`;
-}
 
 export default function ZonesScreen() {
   const zones = useStore((s) => s.zones);
@@ -179,35 +53,15 @@ export default function ZonesScreen() {
     [zones, selectedZoneId]
   );
 
-  const mapHtml = useMemo(
-    () => generateMapHtml(zones, selectedZoneId),
-    [zones, selectedZoneId]
-  );
+  const handleZonePress = useCallback((zoneId: number) => {
+    setSelectedZoneId((prev) => (prev === zoneId ? null : zoneId));
+  }, []);
 
   const handleToggleZone = useCallback(
     (zone: Zone) => {
       updateZone(zone.id, { isActive: !zone.isActive });
     },
     [updateZone]
-  );
-
-  const handleMapMessage = useCallback(
-    (data: any) => {
-      try {
-        const parsed = typeof data === "string" ? JSON.parse(data) : data;
-        if (parsed.type === "select") {
-          setSelectedZoneId((prev) => (prev === parsed.id ? null : parsed.id));
-        }
-      } catch {}
-    },
-    []
-  );
-
-  const handleWebViewMessage = useCallback(
-    (event: any) => {
-      handleMapMessage(event.nativeEvent.data);
-    },
-    [handleMapMessage]
   );
 
   const handleOpenAdd = useCallback(() => {
@@ -267,69 +121,6 @@ export default function ZonesScreen() {
     setShowEditModal(false);
   }, [selectedZone, deleteZone]);
 
-  const renderZoneChip = (zone: Zone) => {
-    const isSelected = zone.id === selectedZoneId;
-    return (
-      <Pressable
-        key={zone.id}
-        style={[
-          styles.zoneChip,
-          isSelected && { borderColor: zone.color, backgroundColor: zone.color + "20" },
-          !zone.isActive && styles.zoneChipInactive,
-        ]}
-        onPress={() => setSelectedZoneId(isSelected ? null : zone.id)}
-      >
-        <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
-        <Text
-          style={[
-            styles.zoneChipText,
-            isSelected && { color: zone.color },
-            !zone.isActive && { color: Colors.textTertiary },
-          ]}
-        >
-          {zone.name}
-        </Text>
-      </Pressable>
-    );
-  };
-
-  const renderMap = () => {
-    if (Platform.OS !== "web" && WebView) {
-      return (
-        <WebView
-          source={{ html: mapHtml }}
-          style={styles.mapWebView}
-          onMessage={handleWebViewMessage}
-          scrollEnabled={false}
-          javaScriptEnabled
-          originWhitelist={["*"]}
-        />
-      );
-    }
-
-    return (
-      <View style={styles.iframeContainer}>
-        <iframe
-          srcDoc={mapHtml}
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            borderRadius: 0,
-          }}
-          ref={(el: HTMLIFrameElement | null) => {
-            if (!el) return;
-            const handler = (event: MessageEvent) => {
-              handleMapMessage(event.data);
-            };
-            window.addEventListener("message", handler);
-            (el as any).__cleanup = () => window.removeEventListener("message", handler);
-          }}
-        />
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <Header
@@ -343,7 +134,12 @@ export default function ZonesScreen() {
       />
 
       <View style={styles.mapContainer}>
-        {renderMap()}
+        <ZoneMap
+          zones={zones}
+          selectedZoneId={selectedZoneId}
+          onZonePress={handleZonePress}
+          height={MAP_HEIGHT}
+        />
 
         <View style={styles.zoneChipBar}>
           <ScrollView
@@ -351,7 +147,31 @@ export default function ZonesScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.zoneChipBarContent}
           >
-            {zones.map(renderZoneChip)}
+            {zones.map((zone) => {
+              const isSelected = zone.id === selectedZoneId;
+              return (
+                <Pressable
+                  key={zone.id}
+                  style={[
+                    styles.zoneChip,
+                    isSelected && { borderColor: zone.color, backgroundColor: zone.color + "20" },
+                    !zone.isActive && styles.zoneChipInactive,
+                  ]}
+                  onPress={() => handleZonePress(zone.id)}
+                >
+                  <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
+                  <Text
+                    style={[
+                      styles.zoneChipText,
+                      isSelected && { color: zone.color },
+                      !zone.isActive && { color: Colors.textTertiary },
+                    ]}
+                  >
+                    {zone.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       </View>
@@ -590,14 +410,6 @@ const styles = StyleSheet.create({
   mapContainer: {
     height: MAP_HEIGHT,
     position: "relative",
-  },
-  mapWebView: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  iframeContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
   },
   zoneChipBar: {
     position: "absolute",

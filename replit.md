@@ -151,8 +151,16 @@ artifacts/mobile/
 ### Mobile Key Details
 
 - **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
-- **Zone screen map**: Uses iframe+srcdoc on web, WebView on native, both with Leaflet + CartoDB dark tiles. Polygons clickable via postMessage. Add Zone modal (name/type/color), Edit Zone modal (rename/recolor/delete). New zones auto-appear in Location Management tabs.
-- **Dependencies**: `react-native-webview` for Leaflet map (native only)
+- **Zone Map Architecture (Google Maps target)**:
+  - `components/map/` — unified map abstraction layer
+    - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
+    - `ZoneMap.tsx` — provider router: Google Maps on native (FINAL), Leaflet iframe on web preview (TEMPORARY fallback)
+    - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, dark styled map, zone polygons, labels, selection
+    - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB dark tiles). Will be removed when shipping native.
+    - `index.ts` — barrel export
+  - **To activate Google Maps**: Set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` env var, keys configured in app.json for both iOS and Android
+  - Zone CRUD: Add Zone modal (name/type/color picker), Edit Zone modal (rename/recolor/delete). New zones auto-appear in Location Management tabs.
+- **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
 - **Store**: `keas-mobile-store-v1` — bump when type shapes change
 - **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
 
