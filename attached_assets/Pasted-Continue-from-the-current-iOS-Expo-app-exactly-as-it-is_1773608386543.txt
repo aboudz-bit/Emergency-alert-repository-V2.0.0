@@ -1,0 +1,110 @@
+Continue from the current iOS Expo app exactly as it is now.
+
+Do NOT rebuild from scratch.
+Do NOT remove existing logic.
+This is a focused mobile polish + zone/location system fix.
+
+MAIN GOAL:
+Make the iOS app feel professional and actually usable, especially for Zone Map and Location Management.
+
+There are still important issues that must be fixed.
+
+==================================================
+1) ZONE MAP ISSUES TO FIX
+==================================================
+
+Current problems:
+1. The map is not actually showing
+   - it says “Map view requires native device”
+   - but I need the map to actually work in the app preview / supported environment as much as possible
+2. The Add button on Zone Map does not work properly
+3. The “Edit on Web” button is not useful and does not take me anywhere meaningful
+
+Required fixes:
+
+A) Map rendering
+- Make the Zone Map actually render a working map in the mobile app wherever possible
+- If native map is required, make sure it works properly in the intended mobile runtime
+- If the current preview environment cannot fully render the native map, provide a proper fallback that is still useful and visually clear
+- Do NOT leave a dead screen with only “Map view requires native device”
+- The screen must still be useful
+
+B) Add zone button
+- Fix the + Add button so it actually works
+- It must open the add zone flow
+- It must allow creating a new zone correctly
+
+C) Edit action
+- Remove the useless “Edit on Web” behavior unless it actually navigates correctly
+- If editing on mobile is supported, allow editing inside the app
+- If full editing stays on web, make the button actually navigate to the correct destination or show a proper message/workflow
+- Do not leave a dead button
+
+D) Zone map UX
+- Show zone polygons clearly
+- Show selected zone clearly
+- Show zone names clearly
+- Keep the screen professional and comfortable for the eyes
+- Do not make it look broken or incomplete
+
+==================================================
+2) LOCATION MANAGEMENT INTEGRATION
+==================================================
+
+Important:
+If I add a new zone in Zone Map / Zone Management,
+it must be reflected correctly in Location Management.
+
+Required behavior:
+- Newly created zones must appear correctly in Location Management
+- When adding a location, the available parent zone list must include the new zones
+- The relationship between zones and locations must stay correct
+- Locations are inside zones, not separate zone types
+
+Please verify and fix:
+- Add location flow
+- Edit location flow
+- Parent zone selection
+- Display of locations under the correct zone
+- Counts update correctly
+
+==================================================
+3) KEEP THE PREVIOUS MOBILE POLISH DIRECTION
+==================================================
+
+Keep improving the mobile app quality:
+- native-feeling layout
+- proper spacing
+- better hierarchy
+- cleaner cards
+- better buttons
+- consistent bottom tabs
+- proper safe areas
+- professional enterprise feel
+
+==================================================
+4) DO NOT BREAK
+==================================================
+
+Do not break:
+- dashboard
+- send alert
+- users
+- history
+- settings
+- existing role-based flows
+- current zone logic
+- current location logic
+
+==================================================
+5) WHEN DONE
+==================================================
+
+Actually implement the fixes in code.
+
+Then tell me clearly:
+1. how Zone Map works now
+2. whether Add Zone works now
+3. how Edit works now
+4. whether new zones now appear correctly in Location Management
+5. what files you changed

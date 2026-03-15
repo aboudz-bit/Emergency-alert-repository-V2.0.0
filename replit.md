@@ -151,8 +151,8 @@ artifacts/mobile/
 ### Mobile Key Details
 
 - **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
-- **Zone screen map**: WebView + Leaflet + CartoDB dark tiles. Polygons clickable → postMessage. Falls back to placeholder on web.
-- **Dependencies**: `react-native-webview` for Leaflet map
+- **Zone screen map**: Uses iframe+srcdoc on web, WebView on native, both with Leaflet + CartoDB dark tiles. Polygons clickable via postMessage. Add Zone modal (name/type/color), Edit Zone modal (rename/recolor/delete). New zones auto-appear in Location Management tabs.
+- **Dependencies**: `react-native-webview` for Leaflet map (native only)
 - **Store**: `keas-mobile-store-v1` — bump when type shapes change
 - **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
 

@@ -1,28 +1,45 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
-  Alert,
   Dimensions,
   FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { WebView } from "react-native-webview";
 
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Zone } from "@/types";
+import type { Zone, ZoneType } from "@/types";
+
+let WebView: any = null;
+try {
+  WebView = require("react-native-webview").WebView;
+} catch {}
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.45;
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.42;
+
+const ZONE_COLORS = [
+  "#EF4444", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6",
+  "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#6366F1",
+];
+
+const ZONE_TYPES: { key: ZoneType; label: string }[] = [
+  { key: "CPF", label: "CPF" },
+  { key: "Camp", label: "Camp" },
+  { key: "Custom", label: "Custom" },
+];
 
 function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
   const allPoints = zones.flatMap((z) => z.polygonPoints);
@@ -52,7 +69,8 @@ function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
           ${dashArray ? `dashArray: '${dashArray}',` : ""}
         }).addTo(map);
         poly${z.id}.on('click', function() {
-          window.ReactNativeWebView.postMessage(JSON.stringify({type:'select', id:${z.id}}));
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'select', id:${z.id}})); } catch(e) {}
+          try { window.parent.postMessage(JSON.stringify({type:'select', id:${z.id}}), '*'); } catch(e) {}
         });
         ${z.center ? `
         L.marker([${z.center.lat}, ${z.center.lng}], {
@@ -61,7 +79,40 @@ function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
             html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
             iconAnchor: [30, 10],
           })
-        }).addTo(map);` : ""}
+        }).addTo(map);` : `
+        L.marker([${z.polygonPoints[0]?.lat || centerLat}, ${z.polygonPoints[0]?.lng || centerLng}], {
+          icon: L.divIcon({
+            className: 'zone-label',
+            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
+            iconAnchor: [30, 10],
+          })
+        }).addTo(map);`}
+      `;
+    })
+    .join("\n");
+
+  const zonesWithoutPolygons = zones
+    .filter((z) => z.polygonPoints.length === 0 && z.center)
+    .map((z) => {
+      const isSelected = z.id === selectedZoneId;
+      return `
+        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
+          radius: ${isSelected ? 14 : 10},
+          color: '${z.color}',
+          fillColor: '${z.color}',
+          fillOpacity: ${isSelected ? 0.5 : 0.3},
+          weight: ${isSelected ? 3 : 2},
+        }).addTo(map).on('click', function() {
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({type:'select', id:${z.id}})); } catch(e) {}
+          try { window.parent.postMessage(JSON.stringify({type:'select', id:${z.id}}), '*'); } catch(e) {}
+        });
+        L.marker([${z.center!.lat}, ${z.center!.lng}], {
+          icon: L.divIcon({
+            className: 'zone-label',
+            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);">${z.name}</div>',
+            iconAnchor: [30, -12],
+          })
+        }).addTo(map);
       `;
     })
     .join("\n");
@@ -69,7 +120,7 @@ function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body, #map { width:100%; height:100%; }
@@ -93,24 +144,35 @@ function generateMapHtml(zones: Zone[], selectedZoneId: number | null): string {
     maxZoom: 19
   }).addTo(map);
   ${zonePolygons}
+  ${zonesWithoutPolygons}
   setTimeout(function(){
     var allBounds = [];
     ${zones.filter(z => z.polygonPoints.length > 0).map(z =>
       `allBounds.push([${z.polygonPoints.map(p => `[${p.lat},${p.lng}]`).join(",")}]);`
     ).join("\n")}
+    ${zones.filter(z => z.polygonPoints.length === 0 && z.center).map(z =>
+      `allBounds.push([[${z.center!.lat},${z.center!.lng}]]);`
+    ).join("\n")}
     if(allBounds.length > 0) {
       var flat = allBounds.flat();
-      map.fitBounds(flat, {padding:[30,30]});
+      if(flat.length > 1) map.fitBounds(flat, {padding:[30,30]});
     }
   }, 200);
-</script></body></html>`;
+<\/script></body></html>`;
 }
 
 export default function ZonesScreen() {
   const zones = useStore((s) => s.zones);
+  const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
+  const deleteZone = useStore((s) => s.deleteZone);
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
-  const webViewRef = useRef<WebView>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const [formName, setFormName] = useState("");
+  const [formType, setFormType] = useState<ZoneType>("Custom");
+  const [formColor, setFormColor] = useState(ZONE_COLORS[0]);
 
   const selectedZone = useMemo(
     () => zones.find((z) => z.id === selectedZoneId) || null,
@@ -129,56 +191,142 @@ export default function ZonesScreen() {
     [updateZone]
   );
 
-  const handleWebViewMessage = useCallback(
-    (event: any) => {
+  const handleMapMessage = useCallback(
+    (data: any) => {
       try {
-        const data = JSON.parse(event.nativeEvent.data);
-        if (data.type === "select") {
-          setSelectedZoneId((prev) => (prev === data.id ? null : data.id));
+        const parsed = typeof data === "string" ? JSON.parse(data) : data;
+        if (parsed.type === "select") {
+          setSelectedZoneId((prev) => (prev === parsed.id ? null : parsed.id));
         }
       } catch {}
     },
     []
   );
 
-  const handleEditZone = useCallback(() => {
-    Alert.alert(
-      "Desktop Required",
-      "Zone boundary editing with polygon drawing tools is available in the web admin panel. You can toggle zone status and view zone details from mobile.",
-      [{ text: "OK" }]
-    );
-  }, []);
+  const handleWebViewMessage = useCallback(
+    (event: any) => {
+      handleMapMessage(event.nativeEvent.data);
+    },
+    [handleMapMessage]
+  );
 
-  const handleAddZone = useCallback(() => {
-    Alert.alert(
-      "Desktop Required",
-      "Zone creation with boundary drawing is available in the web admin panel.",
-      [{ text: "OK" }]
-    );
-  }, []);
+  const handleOpenAdd = useCallback(() => {
+    const usedColors = zones.map((z) => z.color);
+    const nextColor = ZONE_COLORS.find((c) => !usedColors.includes(c)) || ZONE_COLORS[0];
+    setFormName("");
+    setFormType("Custom");
+    setFormColor(nextColor);
+    setShowAddModal(true);
+  }, [zones]);
 
-  const renderZoneChip = ({ item }: { item: Zone }) => {
-    const isSelected = item.id === selectedZoneId;
+  const handleSaveAdd = useCallback(() => {
+    if (!formName.trim()) return;
+    const baseLat = 25.078 + (Math.random() - 0.5) * 0.01;
+    const baseLng = 48.175 + (Math.random() - 0.5) * 0.02;
+    const offset = 0.004;
+    addZone({
+      name: formName.trim(),
+      type: formType,
+      boundaryType: "Polygon",
+      polygonPoints: [
+        { lat: baseLat + offset, lng: baseLng - offset },
+        { lat: baseLat + offset, lng: baseLng + offset },
+        { lat: baseLat - offset, lng: baseLng + offset },
+        { lat: baseLat - offset, lng: baseLng - offset },
+      ],
+      center: { lat: baseLat, lng: baseLng },
+      isActive: true,
+      color: formColor,
+    });
+    setShowAddModal(false);
+    setFormName("");
+  }, [formName, formType, formColor, addZone]);
+
+  const handleOpenEdit = useCallback(() => {
+    if (!selectedZone) return;
+    setFormName(selectedZone.name);
+    setFormType(selectedZone.type);
+    setFormColor(selectedZone.color);
+    setShowEditModal(true);
+  }, [selectedZone]);
+
+  const handleSaveEdit = useCallback(() => {
+    if (!selectedZone || !formName.trim()) return;
+    updateZone(selectedZone.id, {
+      name: formName.trim(),
+      type: formType,
+      color: formColor,
+    });
+    setShowEditModal(false);
+  }, [selectedZone, formName, formType, formColor, updateZone]);
+
+  const handleDeleteZone = useCallback(() => {
+    if (!selectedZone) return;
+    deleteZone(selectedZone.id);
+    setSelectedZoneId(null);
+    setShowEditModal(false);
+  }, [selectedZone, deleteZone]);
+
+  const renderZoneChip = (zone: Zone) => {
+    const isSelected = zone.id === selectedZoneId;
     return (
       <Pressable
+        key={zone.id}
         style={[
           styles.zoneChip,
-          isSelected && { borderColor: item.color, backgroundColor: item.color + "20" },
-          !item.isActive && styles.zoneChipInactive,
+          isSelected && { borderColor: zone.color, backgroundColor: zone.color + "20" },
+          !zone.isActive && styles.zoneChipInactive,
         ]}
-        onPress={() => setSelectedZoneId(isSelected ? null : item.id)}
+        onPress={() => setSelectedZoneId(isSelected ? null : zone.id)}
       >
-        <View style={[styles.zoneChipDot, { backgroundColor: item.isActive ? item.color : Colors.textTertiary }]} />
+        <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
         <Text
           style={[
             styles.zoneChipText,
-            isSelected && { color: item.color },
-            !item.isActive && { color: Colors.textTertiary },
+            isSelected && { color: zone.color },
+            !zone.isActive && { color: Colors.textTertiary },
           ]}
         >
-          {item.name}
+          {zone.name}
         </Text>
       </Pressable>
+    );
+  };
+
+  const renderMap = () => {
+    if (Platform.OS !== "web" && WebView) {
+      return (
+        <WebView
+          source={{ html: mapHtml }}
+          style={styles.mapWebView}
+          onMessage={handleWebViewMessage}
+          scrollEnabled={false}
+          javaScriptEnabled
+          originWhitelist={["*"]}
+        />
+      );
+    }
+
+    return (
+      <View style={styles.iframeContainer}>
+        <iframe
+          srcDoc={mapHtml}
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            borderRadius: 0,
+          }}
+          ref={(el: HTMLIFrameElement | null) => {
+            if (!el) return;
+            const handler = (event: MessageEvent) => {
+              handleMapMessage(event.data);
+            };
+            window.addEventListener("message", handler);
+            (el as any).__cleanup = () => window.removeEventListener("message", handler);
+          }}
+        />
+      </View>
     );
   };
 
@@ -188,29 +336,14 @@ export default function ZonesScreen() {
         title="Zone Map"
         showBack
         rightAction={
-          <Pressable style={styles.addBtn} onPress={handleAddZone} hitSlop={8}>
+          <Pressable style={styles.addBtn} onPress={handleOpenAdd} hitSlop={8}>
             <Feather name="plus" size={20} color={Colors.text} />
           </Pressable>
         }
       />
 
       <View style={styles.mapContainer}>
-        {Platform.OS === "web" ? (
-          <View style={styles.mapFallback}>
-            <Feather name="map" size={48} color={Colors.textSecondary} />
-            <Text style={styles.mapFallbackText}>Map view requires native device</Text>
-          </View>
-        ) : (
-          <WebView
-            ref={webViewRef}
-            source={{ html: mapHtml }}
-            style={styles.mapWebView}
-            onMessage={handleWebViewMessage}
-            scrollEnabled={false}
-            javaScriptEnabled
-            originWhitelist={["*"]}
-          />
-        )}
+        {renderMap()}
 
         <View style={styles.zoneChipBar}>
           <ScrollView
@@ -218,15 +351,13 @@ export default function ZonesScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.zoneChipBarContent}
           >
-            {zones.map((z) => (
-              <React.Fragment key={z.id}>{renderZoneChip({ item: z })}</React.Fragment>
-            ))}
+            {zones.map(renderZoneChip)}
           </ScrollView>
         </View>
       </View>
 
       {selectedZone ? (
-        <View style={styles.detailPanel}>
+        <ScrollView style={styles.detailPanel} contentContainerStyle={styles.detailPanelContent}>
           <Card style={styles.detailCard}>
             <View style={styles.detailHeader}>
               <View style={styles.detailHeaderLeft}>
@@ -266,21 +397,21 @@ export default function ZonesScreen() {
                 style={{ flex: 1 }}
               />
               <Button
-                title="Edit on Web"
-                onPress={handleEditZone}
+                title="Edit Zone"
+                onPress={handleOpenEdit}
                 variant="secondary"
-                icon="external-link"
+                icon="edit-2"
                 size="md"
                 style={{ flex: 1 }}
               />
             </View>
           </Card>
-        </View>
+        </ScrollView>
       ) : (
         <View style={styles.detailPanel}>
           <View style={styles.hintRow}>
             <Feather name="info" size={14} color={Colors.textTertiary} />
-            <Text style={styles.hintText}>Tap a zone on the map or above to view details</Text>
+            <Text style={styles.hintText}>Tap a zone on the map or chips to view details</Text>
           </View>
 
           <FlatList
@@ -305,6 +436,148 @@ export default function ZonesScreen() {
           />
         </View>
       )}
+
+      <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => setShowAddModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Zone</Text>
+            <Text style={styles.modalSubtitle}>Create a new zone with a default boundary near Khurais</Text>
+
+            <Input
+              label="Zone Name"
+              value={formName}
+              onChangeText={setFormName}
+              placeholder="e.g. Storage Yard, Helipad..."
+              autoFocus
+            />
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Zone Type</Text>
+              <View style={styles.typeRow}>
+                {ZONE_TYPES.map((t) => (
+                  <Pressable
+                    key={t.key}
+                    style={[styles.typeChip, formType === t.key && styles.typeChipActive]}
+                    onPress={() => setFormType(t.key)}
+                  >
+                    <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Zone Color</Text>
+              <View style={styles.colorRow}>
+                {ZONE_COLORS.map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
+                    onPress={() => setFormColor(c)}
+                  >
+                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Cancel"
+                onPress={() => { setShowAddModal(false); setFormName(""); }}
+                variant="secondary"
+                size="lg"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Add Zone"
+                onPress={handleSaveAdd}
+                variant="primary"
+                icon="plus"
+                disabled={!formName.trim()}
+                size="lg"
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Zone</Text>
+
+            <Input
+              label="Zone Name"
+              value={formName}
+              onChangeText={setFormName}
+              placeholder="Zone name"
+            />
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Zone Type</Text>
+              <View style={styles.typeRow}>
+                {ZONE_TYPES.map((t) => (
+                  <Pressable
+                    key={t.key}
+                    style={[styles.typeChip, formType === t.key && styles.typeChipActive]}
+                    onPress={() => setFormType(t.key)}
+                  >
+                    <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Zone Color</Text>
+              <View style={styles.colorRow}>
+                {ZONE_COLORS.map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
+                    onPress={() => setFormColor(c)}
+                  >
+                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Delete"
+                onPress={handleDeleteZone}
+                variant="destructive"
+                icon="trash-2"
+                size="lg"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Save"
+                onPress={handleSaveEdit}
+                variant="primary"
+                icon="check"
+                disabled={!formName.trim()}
+                size="lg"
+                style={{ flex: 1 }}
+              />
+            </View>
+            <Button
+              title="Cancel"
+              onPress={() => setShowEditModal(false)}
+              variant="ghost"
+              fullWidth
+              size="md"
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -322,17 +595,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  mapFallback: {
+  iframeContainer: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
-  },
-  mapFallbackText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
+    backgroundColor: Colors.background,
   },
   zoneChipBar: {
     position: "absolute",
@@ -370,6 +635,9 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     flex: 1,
+  },
+  detailPanelContent: {
+    paddingBottom: Spacing.xxl,
   },
   detailCard: {
     margin: Spacing.lg,
@@ -480,5 +748,84 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    width: "100%",
+    maxWidth: 420,
+    gap: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+  },
+  modalSubtitle: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+    marginTop: -Spacing.sm,
+  },
+  formSection: {
+    gap: Spacing.sm,
+  },
+  formLabel: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  typeRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  typeChip: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  typeChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  typeChipText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  typeChipTextActive: {
+    color: Colors.white,
+  },
+  colorRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  colorSwatch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  colorSwatchActive: {
+    borderWidth: 3,
+    borderColor: Colors.white,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: Spacing.md,
   },
 });
