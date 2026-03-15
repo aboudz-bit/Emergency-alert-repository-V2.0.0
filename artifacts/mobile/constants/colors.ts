@@ -1,11 +1,12 @@
-const tintColorLight = "#2f95dc";
+// Re-export from theme for backward compatibility
+import { Colors } from "./theme";
 
 export default {
   light: {
-    text: "#000",
-    background: "#fff",
-    tint: tintColorLight,
-    tabIconDefault: "#ccc",
-    tabIconSelected: tintColorLight,
+    text: Colors.text,
+    background: Colors.background,
+    tint: Colors.primary,
+    tabIconDefault: Colors.textTertiary,
+    tabIconSelected: Colors.primary,
   },
 };

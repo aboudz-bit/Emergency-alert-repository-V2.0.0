@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { ShieldAlert, AlertCircle } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore } from '@/store';
@@ -126,12 +126,12 @@ export default function Login() {
             </button>
 
             <div className="text-center">
-              <a
+              <Link
                 href="/mobile/register"
                 className="text-sm text-primary hover:underline font-medium"
               >
                 New user? Register here
-              </a>
+              </Link>
             </div>
           </form>
         </div>
