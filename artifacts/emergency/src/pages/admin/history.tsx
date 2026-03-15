@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { useStore, selectAlertHistory } from '@/store';
+import { useStore, useShallow } from '@/store';
 import { AlertTypeBadge, cn } from '@/components/shared/Badges';
 import { FileText, RotateCcw, X, CheckCircle2, AlertTriangle, Clock, Users } from 'lucide-react';
 import type { Alert, AlertType } from '@/types';
@@ -90,9 +90,12 @@ function AlertReportModal({ alert, onClose }: { alert: Alert; onClose: () => voi
 const filterOptions: (AlertType | 'All')[] = ['All', 'Blackout', 'Security Alert', 'Shelter-in', 'Drill', 'Restricted Movement', 'All Clear'];
 
 export default function HistoryPage() {
-  const historyAlerts = useStore(selectAlertHistory);
-  const createAlert = useStore(s => s.createAlert);
-  const currentUser = useStore(s => s.currentUser);
+  const { alerts, createAlert, currentUser } = useStore(useShallow(s => ({
+    alerts: s.alerts,
+    createAlert: s.createAlert,
+    currentUser: s.currentUser,
+  })));
+  const historyAlerts = alerts.filter(a => !a.isActive);
   const [filter, setFilter] = useState<AlertType | 'All'>('All');
   const [reportAlert, setReportAlert] = useState<Alert | null>(null);
 
@@ -116,8 +119,8 @@ export default function HistoryPage() {
     <AdminLayout title="Alert Audit History">
       {reportAlert && <AlertReportModal alert={reportAlert} onClose={() => setReportAlert(null)} />}
 
-      <div className="bg-card border border-border rounded-xl flex flex-col h-[calc(100vh-140px)] overflow-hidden">
-        <div className="p-6 border-b border-border bg-background/30 flex flex-wrap gap-2">
+      <div className="bg-card border border-border rounded-xl flex flex-col h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] overflow-hidden">
+        <div className="p-3 lg:p-6 border-b border-border bg-background/30 flex flex-wrap gap-2 shrink-0">
           {filterOptions.map(f => (
             <button
               key={f}
@@ -135,7 +138,7 @@ export default function HistoryPage() {
           <span className="ml-auto text-sm text-muted-foreground self-center">{filtered.length} records</span>
         </div>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-3 lg:p-6">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
               <Clock className="w-12 h-12 mb-3 opacity-30" />

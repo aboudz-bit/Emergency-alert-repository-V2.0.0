@@ -67,3 +67,55 @@ workspace/
 ## Categories
 
 abayas, jalabiyas, dresses, bridal, kids, gifts
+
+---
+
+# Khurais Emergency Alert System (KEAS)
+
+## Overview
+
+Emergency alert and personnel tracking system for Khurais industrial facility. React + Vite SPA with Zustand state management, dark theme, responsive layout. Demo/prototype — all data in Zustand store with localStorage persistence.
+
+## Architecture
+
+```
+artifacts/emergency/
+├── src/
+│   ├── pages/
+│   │   ├── login.tsx              # Badge + password login
+│   │   ├── admin/
+│   │   │   ├── dashboard.tsx      # Command center with KPIs, quick actions
+│   │   │   ├── users.tsx          # Personnel directory (table + mobile cards)
+│   │   │   ├── alert-monitor.tsx  # Live alert tracking
+│   │   │   ├── send-alert.tsx     # Broadcast alert form + mobile preview
+│   │   │   ├── history.tsx        # Alert audit history
+│   │   │   ├── zones.tsx          # Leaflet map with zone polygons
+│   │   │   ├── locations.tsx      # Location management cards
+│   │   │   └── settings.tsx       # System settings
+│   │   ├── it/index.tsx           # IT admin panel
+│   │   └── mobile/                # Mobile user pages
+│   ├── store/index.ts             # Zustand v5 store (persisted to keas-store-v3)
+│   ├── types/index.ts             # All TypeScript types
+│   ├── lib/mock-data.ts           # Seed data with real Khurais coordinates
+│   ├── components/
+│   │   ├── layout/AdminLayout.tsx # Responsive sidebar (mobile drawer + desktop collapse)
+│   │   ├── shared/                # Badges, KPICard, etc.
+│   │   └── ui/                    # shadcn/ui components
+│   └── index.css                  # Global CSS + Leaflet dark theme overrides
+```
+
+## Key Technical Details
+
+- **Zustand v5**: Always use `useShallow` from `@/store` when selecting multiple values or using selectors that return new arrays/objects (`.filter()`, `.map()`). Single-value/function selectors are safe without `useShallow`.
+- **Store version**: `keas-store-v3` — bump version when changing Zone/User type shapes to force fresh seed data
+- **Leaflet**: `react-leaflet` with CartoDB dark tiles (`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`), no API key needed
+- **Zone coordinates**: Real Khurais lat/lng (~25.08°N, 48.18°E)
+- **Responsive**: Desktop table → mobile card layout at `lg` (1024px) breakpoint. Sidebar auto-collapses on mobile with drawer overlay.
+- **Routing**: Wouter with `base={import.meta.env.BASE_URL}` (base is `/emergency/`)
+- **Demo login**: Badge 102934 (Super Admin), 110001 (IT), 123456 (User); password `demo1234`
+
+## Workflow
+
+| Workflow | Command |
+|---|---|
+| `artifacts/emergency: web` | `pnpm --filter @workspace/emergency run dev` |

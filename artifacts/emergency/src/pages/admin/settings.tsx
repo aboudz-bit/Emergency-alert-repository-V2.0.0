@@ -41,7 +41,7 @@ function SettingsCard({ icon: Icon, title, description, children, onSave }: {
 
 function SettingRow({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 py-1">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
   return (
     <AdminLayout breadcrumbs={[{ label: 'Settings' }]}>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="p-3 sm:p-6 max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <Settings className="w-6 h-6 text-primary" />
           <div>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
             <Input
               value={settings.systemName}
               onChange={e => updateSettings({ systemName: e.target.value })}
-              className="w-64 h-8 text-sm"
+              className="w-full sm:w-64 h-8 text-sm"
             />
           </SettingRow>
           <SettingRow label="Timezone">

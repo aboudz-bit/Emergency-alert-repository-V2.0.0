@@ -19,12 +19,21 @@ export interface ZonePoint {
   y: number;
 }
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
 export interface Zone {
   id: number;
   name: string;
   type: ZoneType;
+  parentZoneId?: number | null;
   boundaryType: ZoneBoundaryType;
   points: ZonePoint[];
+  polygonPoints: LatLng[];
+  center?: LatLng;
+  radius?: number;
   isActive: boolean;
   color: string;
 }

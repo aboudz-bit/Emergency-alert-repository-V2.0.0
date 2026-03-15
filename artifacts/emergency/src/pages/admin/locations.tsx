@@ -62,14 +62,14 @@ export default function Locations() {
     <AdminLayout title="Location Management">
       {showModal && <AddLocationModal zone={activeTab} onClose={() => setShowModal(false)} />}
 
-      <div className="flex justify-between items-end mb-6">
-        <div className="flex bg-card p-1 rounded-lg border border-border">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-4 lg:mb-6">
+        <div className="flex bg-card p-1 rounded-lg border border-border w-full sm:w-auto">
           {(['CPF', 'Camp'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'px-6 py-2 rounded-md text-sm font-bold transition-all',
+                'flex-1 sm:flex-none px-4 lg:px-6 py-2 rounded-md text-sm font-bold transition-all',
                 activeTab === tab ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -79,21 +79,21 @@ export default function Locations() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-background border border-border text-foreground hover:bg-muted px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+          className="bg-background border border-border text-foreground hover:bg-muted px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" /> Add Location
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
         {tabLocations.map(loc => {
           const count = getUserCount(loc.name);
           return (
-            <div key={loc.id} className="bg-card border border-border rounded-xl p-5 hover:border-primary/50 transition-colors group relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-24 h-24 bg-primary/5 rounded-bl-[100px] pointer-events-none" />
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2.5 bg-background rounded-lg border border-border text-primary group-hover:scale-110 transition-transform">
-                  <MapPin className="w-5 h-5" />
+            <div key={loc.id} className="bg-card border border-border rounded-xl p-4 lg:p-5 hover:border-primary/50 transition-colors group relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-20 h-20 lg:w-24 lg:h-24 bg-primary/5 rounded-bl-[100px] pointer-events-none" />
+              <div className="flex justify-between items-start mb-3 lg:mb-4">
+                <div className="p-2 lg:p-2.5 bg-background rounded-lg border border-border text-primary group-hover:scale-110 transition-transform">
+                  <MapPin className="w-4 h-4 lg:w-5 lg:h-5" />
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button className="p-1.5 text-muted-foreground hover:text-foreground bg-background rounded border border-transparent hover:border-border">
@@ -109,9 +109,9 @@ export default function Locations() {
                   </button>
                 </div>
               </div>
-              <h3 className="font-bold text-lg text-foreground mb-1">{loc.name}</h3>
+              <h3 className="font-bold text-base lg:text-lg text-foreground mb-1 truncate">{loc.name}</h3>
               <p className="text-xs text-muted-foreground">{count} {count === 1 ? 'person' : 'personnel'} assigned</p>
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2 mt-3 lg:mt-4">
                 <span className={cn('w-2 h-2 rounded-full', activeTab === 'CPF' ? 'bg-primary' : 'bg-blue-500')} />
                 <span className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">{activeTab} Zone</span>
               </div>

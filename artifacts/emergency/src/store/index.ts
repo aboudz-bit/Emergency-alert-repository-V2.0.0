@@ -371,7 +371,7 @@ export const useStore = create<AppState>()(
       getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
     }),
     {
-      name: 'keas-store-v2',
+      name: 'keas-store-v3',
       storage: createJSONStorage(() => localStorage),
       // Only persist auth + mobileResponse; data is always re-seeded unless already stored
       partialize: (state) => ({

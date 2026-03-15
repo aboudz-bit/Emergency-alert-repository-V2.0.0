@@ -64,27 +64,27 @@ export default function SendAlert() {
 
   return (
     <AdminLayout title="Broadcast Emergency Alert">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
 
         {/* Form Column */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        <div className="lg:col-span-2 space-y-6 lg:space-y-8">
+          <div className="bg-card border border-border rounded-xl p-4 lg:p-6 shadow-sm">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2 mb-6">
               <ShieldAlert className="w-5 h-5 text-primary" />
               Alert Configuration
             </h2>
 
-            <div className="space-y-6">
+            <div className="space-y-5 lg:space-y-6">
               {/* Alert Type */}
               <div>
-                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">1. Select Emergency Type</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 block">1. Select Emergency Type</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 lg:gap-3">
                   {alertTypes.map(at => (
                     <button
                       key={at.type}
                       onClick={() => handleTypeChange(at.type)}
                       className={cn(
-                        'p-4 rounded-lg border text-left transition-all',
+                        'p-3 lg:p-4 rounded-lg border text-left transition-all',
                         type === at.type
                           ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(239,68,68,0.15)]'
                           : 'bg-background border-border hover:border-muted-foreground',
@@ -102,8 +102,8 @@ export default function SendAlert() {
 
               {/* Zone */}
               <div>
-                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">2. Target Zone</label>
-                <div className="flex gap-3">
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 block">2. Target Zone</label>
+                <div className="flex gap-2 lg:gap-3">
                   {(['CPF', 'Camp', 'Both'] as ZoneType[]).map(z => (
                     <button
                       key={z}
@@ -124,8 +124,8 @@ export default function SendAlert() {
 
               {/* Priority */}
               <div>
-                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">3. Priority Level</label>
-                <div className="flex gap-3">
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 block">3. Priority Level</label>
+                <div className="flex gap-2 lg:gap-3">
                   {(['High', 'Medium', 'Low'] as const).map(p => (
                     <button
                       key={p}
@@ -147,7 +147,7 @@ export default function SendAlert() {
 
               {/* Message */}
               <div>
-                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex justify-between">
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 flex justify-between">
                   <span>4. Alert Message</span>
                   <span className="text-xs font-normal">Auto-generated based on type</span>
                 </label>
@@ -162,8 +162,8 @@ export default function SendAlert() {
           </div>
         </div>
 
-        {/* Preview Column */}
-        <div className="lg:col-span-1">
+        {/* Preview Column — hidden on small screens, shown on lg+ */}
+        <div className="hidden lg:block lg:col-span-1">
           <div className="sticky top-6 space-y-6">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-muted-foreground" />
@@ -210,6 +210,18 @@ export default function SendAlert() {
               <Send className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        {/* Mobile broadcast button */}
+        <div className="lg:hidden">
+          <button
+            onClick={handleSend}
+            disabled={isSending || !message.trim()}
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSending ? 'BROADCASTING...' : 'BROADCAST ALERT'}
+            <Send className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </AdminLayout>

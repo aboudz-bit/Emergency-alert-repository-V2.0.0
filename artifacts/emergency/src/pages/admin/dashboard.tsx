@@ -42,7 +42,7 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title="Command Center Dashboard">
       {activeAlert && (
-        <div className="mb-8 bg-destructive/10 border-2 border-destructive shadow-lg shadow-destructive/10 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+        <div className="mb-6 lg:mb-8 bg-destructive/10 border-2 border-destructive shadow-lg shadow-destructive/10 rounded-2xl p-4 lg:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="absolute top-0 right-0 w-64 h-64 bg-destructive/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
           <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center relative z-10">
@@ -75,7 +75,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4 relative z-10">
+          <div className="mt-4 lg:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative z-10">
             <div className="bg-background/50 border border-border rounded-xl p-4 flex flex-col">
               <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Confirmed Safe</span>
               <span className="text-3xl font-bold text-safe">{activeAlert.stats.confirmed}</span>
@@ -106,18 +106,18 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-6 lg:mb-8">
         {kpis.map((kpi, i) => (
           <KPICard key={i} {...kpi} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
             <button onClick={() => setLocation('/admin/send-alert')} className="p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all text-left group">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
                 <Bell className="w-6 h-6" />
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <div className="bg-card border border-border rounded-xl p-6 h-full flex flex-col">
             <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary" />

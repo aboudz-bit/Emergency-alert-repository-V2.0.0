@@ -165,8 +165,15 @@ export const seedZones: Zone[] = [
     points: [
       { x: 10, y: 10 }, { x: 55, y: 8 }, { x: 60, y: 45 }, { x: 50, y: 58 }, { x: 15, y: 55 }, { x: 8, y: 35 },
     ],
+    polygonPoints: [
+      { lat: 25.084, lng: 48.155 },
+      { lat: 25.084, lng: 48.175 },
+      { lat: 25.072, lng: 48.175 },
+      { lat: 25.072, lng: 48.155 },
+    ],
+    center: { lat: 25.078, lng: 48.165 },
     isActive: true,
-    color: 'border-primary',
+    color: '#EF4444',
   },
   {
     id: 2,
@@ -176,8 +183,15 @@ export const seedZones: Zone[] = [
     points: [
       { x: 65, y: 15 }, { x: 92, y: 12 }, { x: 95, y: 55 }, { x: 70, y: 60 }, { x: 62, y: 40 },
     ],
+    polygonPoints: [
+      { lat: 25.090, lng: 48.185 },
+      { lat: 25.090, lng: 48.200 },
+      { lat: 25.080, lng: 48.200 },
+      { lat: 25.080, lng: 48.185 },
+    ],
+    center: { lat: 25.085, lng: 48.1925 },
     isActive: true,
-    color: 'border-blue-500',
+    color: '#3B82F6',
   },
 ];
 

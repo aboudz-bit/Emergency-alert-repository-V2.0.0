@@ -113,3 +113,55 @@
     @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-xl;
   }
 }
+
+.leaflet-container {
+  background: #0a0c10 !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid hsl(218 23% 23%) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background: hsl(225 28% 14%) !important;
+  color: hsl(210 40% 96%) !important;
+  border-bottom: 1px solid hsl(218 23% 23%) !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 16px !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: hsl(215 32% 17%) !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.zone-label {
+  background: hsl(225 28% 14% / 0.9) !important;
+  border: 1px solid hsl(218 23% 23%) !important;
+  color: hsl(210 40% 96%) !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+
+.zone-label::before {
+  border-top-color: hsl(218 23% 23%) !important;
+}
+
+.leaflet-tooltip-top::before,
+.leaflet-tooltip-bottom::before,
+.leaflet-tooltip-left::before,
+.leaflet-tooltip-right::before {
+  border-color: transparent !important;
+}

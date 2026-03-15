@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Shield, Plus, KeyRound, Power, LogOut, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
-import { useStore, useShallow, selectAdmins } from '@/store';
+import { useStore, useShallow } from '@/store';
 
 function CreateAdminModal({ onClose }: { onClose: () => void }) {
   const createSuperAdmin = useStore(s => s.createSuperAdmin);
@@ -98,12 +98,13 @@ function CreateAdminModal({ onClose }: { onClose: () => void }) {
 export default function ItDashboard() {
   const [, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
-  const { logout, toggleAccountStatus, resetPassword } = useStore(useShallow(s => ({
+  const { logout, toggleAccountStatus, resetPassword, users } = useStore(useShallow(s => ({
     logout: s.logout,
     toggleAccountStatus: s.toggleAccountStatus,
     resetPassword: s.resetPassword,
+    users: s.users,
   })));
-  const admins = useStore(selectAdmins);
+  const admins = users.filter(u => u.role === 'Super Admin' || u.role === 'IT');
 
   const handleLogout = () => {
     logout();

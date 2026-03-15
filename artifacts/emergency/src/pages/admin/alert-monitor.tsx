@@ -102,9 +102,9 @@ export default function AlertMonitor() {
       </div>
 
       {/* Main Table Area */}
-      <div className="bg-card border border-border rounded-xl flex flex-col h-[600px] relative overflow-hidden">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-card/50">
-          <div className="relative w-64">
+      <div className="bg-card border border-border rounded-xl flex flex-col h-[calc(100vh-420px)] lg:h-[600px] relative overflow-hidden">
+        <div className="p-3 lg:p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-card/50">
+          <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -114,13 +114,14 @@ export default function AlertMonitor() {
               className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm bg-background border border-border hover:bg-muted text-foreground rounded-lg transition-colors">
+          <button className="flex items-center gap-2 px-3 py-2 text-sm bg-background border border-border hover:bg-muted text-foreground rounded-lg transition-colors shrink-0">
             <Download className="w-4 h-4" /> Export
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left border-collapse">
+        {/* Desktop Table */}
+        <div className="flex-1 overflow-auto hidden lg:block">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-background/50 border-b border-border text-xs uppercase tracking-wider text-muted-foreground sticky top-0 z-10 backdrop-blur">
                 <th className="p-4 font-semibold">Personnel</th>
@@ -171,32 +172,63 @@ export default function AlertMonitor() {
           </table>
         </div>
 
+        {/* Mobile Card List */}
+        <div className="flex-1 overflow-auto p-3 space-y-2 lg:hidden">
+          {filteredUsers.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No personnel found in this category.</div>
+          ) : (
+            filteredUsers.map(u => (
+              <button
+                key={u.id}
+                onClick={() => setSelectedUser(u)}
+                className="w-full text-left bg-background border border-border rounded-xl p-3 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                    {u.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-foreground text-sm truncate">{u.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{u.badge}</p>
+                  </div>
+                  <StatusBadge status={u.status} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className={cn('w-2 h-2 rounded-full', u.zone === 'CPF' ? 'bg-primary' : 'bg-blue-500')} />
+                    {u.zone} / {u.location}
+                  </span>
+                  <span>{new Date(u.lastActivity).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
         {/* User Details Drawer */}
-        <div className={cn(
-          'absolute top-0 right-0 w-[400px] h-full bg-card border-l border-border shadow-2xl transition-transform duration-300 flex flex-col z-20',
-          selectedUser ? 'translate-x-0' : 'translate-x-full',
-        )}>
-          {selectedUser && (
-            <>
+        {selectedUser && (
+          <div className="fixed inset-0 z-50 flex justify-end lg:absolute lg:inset-auto lg:top-0 lg:right-0 lg:w-[400px] lg:h-full lg:z-20">
+            <div className="absolute inset-0 bg-black/40 lg:hidden" onClick={() => setSelectedUser(null)} />
+            <div className="relative w-full max-w-[420px] lg:max-w-none h-full bg-card border-l border-border shadow-2xl flex flex-col">
               <div className="p-4 border-b border-border flex justify-between items-center bg-background/50">
                 <h3 className="font-bold text-foreground">Personnel Details</h3>
                 <button onClick={() => setSelectedUser(null)} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 flex-1 overflow-y-auto">
+              <div className="p-5 lg:p-6 flex-1 overflow-y-auto">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl border border-primary/20">
+                  <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg lg:text-xl border border-primary/20 shrink-0">
                     {selectedUser.name.split(' ').map(n => n[0]).join('')}
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground leading-tight">{selectedUser.name}</h2>
-                    <p className="text-muted-foreground font-mono mt-1">Badge: {selectedUser.badge}</p>
+                  <div className="min-w-0">
+                    <h2 className="text-lg lg:text-xl font-bold text-foreground leading-tight truncate">{selectedUser.name}</h2>
+                    <p className="text-muted-foreground font-mono mt-1 text-sm">Badge: {selectedUser.badge}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{selectedUser.role}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 gap-3 lg:gap-4 mb-6 lg:mb-8">
                   <div className="bg-background p-3 rounded-lg border border-border">
                     <span className="text-xs text-muted-foreground uppercase block mb-1">Current Status</span>
                     <StatusBadge status={selectedUser.status} />
@@ -252,9 +284,9 @@ export default function AlertMonitor() {
                   Ping Device
                 </button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

@@ -1,0 +1,193 @@
+Continue from the existing Khurais Emergency Alert System codebase exactly as it is now.
+
+Do NOT rebuild from scratch.
+Do NOT change the current premium dark industrial design direction.
+This task is a focused FIX + IMPROVEMENT pass.
+
+MAIN GOAL:
+Fix the real map problem, fix the runtime error page, and fix all responsive/layout issues visible across admin pages and mobile/tablet widths.
+
+==================================================
+TASK 1 — REPLACE PLACEHOLDER MAP WITH REAL MAP
+==================================================
+
+The current Zones page uses a visual placeholder/grid map only.
+This is not enough, because we cannot accurately define CPF and Camp zones unless we see a real map.
+
+Replace the current fake/placeholder map on the zone management page with a real map integration.
+
+Preferred option:
+- Google Maps integration
+
+If Google Maps setup is difficult in this environment, use Mapbox as fallback.
+But priority is:
+- Google Maps
+
+Requirements:
+- Show a real interactive map on /admin/zones
+- Display CPF and Camp on a real map canvas
+- Support real polygon rendering
+- Support drawing a new polygon zone
+- Support editing polygon points
+- Support saving polygon points into app state
+- Support circle mode too for future zones
+- Show polygon handles / editable points
+- Show zoom and pan controls
+- Keep the current premium dark UI around the map
+
+Important:
+- Keep zone data structure compatible with future backend saving
+- Zone must store:
+  - id
+  - name
+  - type
+  - parentZoneId
+  - boundaryType
+  - polygonPoints
+  - center/radius if circle
+  - isActive
+
+UI requirements:
+- Left side = zone list + controls
+- Right side = real map
+- Keep CPF and Camp visible as real polygons
+- Add map legend
+- Add selected zone info card
+- Add controls:
+  - Draw Polygon
+  - Edit Polygon
+  - Undo Last Point
+  - Clear Draft
+  - Save Zone
+
+If API keys are needed, structure the code cleanly with environment variable placeholders.
+
+==================================================
+TASK 2 — FIX RUNTIME ERROR PAGE
+==================================================
+
+There is still a page producing this React error:
+
+“Maximum update depth exceeded”
+
+You must find the exact page/component causing it and fix it properly.
+
+Do not hide the error.
+Actually fix the root cause.
+
+Check carefully for:
+- setState inside render flow
+- useEffect loops with unstable dependencies
+- object selectors causing repeated re-renders
+- derived state that updates state again
+- local state syncing incorrectly with Zustand store
+- repeated route redirects
+- selectors returning new objects/arrays every render
+- effects depending on state they mutate
+
+Requirements:
+- Identify the exact source of the infinite update loop
+- Fix it permanently
+- Ensure all pages navigate without runtime overlay
+- Verify login → admin → users → zones → locations → mobile routes all work cleanly
+
+==================================================
+TASK 3 — RESPONSIVE + LAYOUT FIXES
+==================================================
+
+Several layout issues are visible and must be fixed.
+
+Observed problems:
+1) Personnel Directory table is cut off / cropped on smaller screens
+2) Sidebar takes too much width on narrow screens
+3) Some pages are using desktop layout squeezed into mobile width
+4) Location Management has clipping / overflow issues
+5) Some tabs/buttons/cards are not adapting properly on smaller widths
+6) Zone page map layout is not comfortable on phone/tablet
+7) Some tables should convert to cards on smaller widths
+8) Some pages need proper horizontal scroll containers
+9) Some content is too close to screen edges
+
+Fix all responsive issues across:
+- /admin
+- /admin/send-alert
+- /admin/alert-monitor
+- /admin/zones
+- /admin/locations
+- /admin/users
+- /admin/history
+- /admin/settings
+- mobile preview pages too
+
+Requirements:
+- Desktop stays premium
+- Tablet layout must be clean
+- Mobile layout must not be broken
+- Sidebar should collapse better on smaller widths
+- Tables should either:
+  - get proper horizontal scrolling
+  - or adapt into stacked cards on smaller screens
+- Buttons/tabs should wrap or stack gracefully
+- No text clipping
+- No right-side overflow
+- No cropped controls
+- No broken spacing
+
+Specific improvements:
+- Make admin sidebar collapsible and narrower on medium widths
+- Improve table container responsiveness
+- Use overflow-x-auto where needed
+- Use mobile card layouts for dense data when width is too small
+- Ensure page headers and action buttons wrap cleanly
+- Fix tab controls on Location Management
+- Fix Users page table so columns remain readable
+- Make Zones page usable on tablet/mobile:
+  - zone list stacked above map on smaller widths
+  - desktop split layout only on larger screens
+
+==================================================
+TASK 4 — QA PASS
+==================================================
+
+After fixes, do a proper QA pass:
+
+Check:
+- login page
+- IT page
+- dashboard
+- send alert
+- alert monitor
+- zones page with real map
+- locations page
+- users page
+- history page
+- settings page
+- mobile register
+- mobile home
+- mobile alert
+- mobile history
+- mobile profile
+
+Verify:
+- no runtime errors
+- no infinite loops
+- no broken imports
+- no clipped content
+- no obvious overflow
+- no broken responsive layout
+- map works visually and structurally
+
+==================================================
+OUTPUT EXPECTATION
+==================================================
+
+Actually implement the fixes in code.
+
+Priority order:
+1) Real map integration on Zones page
+2) Fix the runtime error page
+3) Fix all responsive/layout issues
+4) Final QA pass
+
+Do not just summarize.
+Do the implementation and leave the app cleaner, more stable, and more usable than before.
