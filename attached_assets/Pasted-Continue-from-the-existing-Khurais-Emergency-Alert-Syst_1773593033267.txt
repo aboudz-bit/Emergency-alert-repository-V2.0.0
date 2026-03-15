@@ -1,0 +1,236 @@
+Continue from the existing Khurais Emergency Alert System codebase exactly as it is now.
+
+Do NOT rebuild from scratch.
+Do NOT change the overall premium dark design language of the system.
+This task is a focused UX + usability fix for the Zone Management page only.
+
+MAIN GOAL:
+Make Zone Management much easier, clearer, brighter, and more usable for a real user.
+Right now the zone drawing/editing experience is confusing and hard to control.
+
+==================================================
+PROBLEMS TO FIX
+==================================================
+
+Current issues:
+1) Resizing / controlling the zone shape is difficult
+2) Adding a new zone is not clear enough
+3) Editing zone name is not obvious
+4) The map is too dark and unclear
+5) The drawing workflow feels too technical and not user-friendly
+6) The page should feel more like a real admin mapping tool, not a developer demo
+
+==================================================
+TASK 1 — IMPROVE MAP VISIBILITY
+==================================================
+
+The current map area is too dark.
+Improve the map visual clarity while keeping the app in dark mode.
+
+Requirements:
+- Brighten the map background significantly
+- Increase contrast between roads/background and polygons
+- Make polygon borders much clearer
+- Make polygon fill slightly transparent but still visible
+- Make labels (CPF / Camp) easier to read
+- Improve visibility of map controls
+- Improve visibility of legend
+- Use a more readable dark map style, not nearly-black
+- If using a placeholder map, make it look more like a real clear satellite/street-dark map
+- If real map exists, apply a lighter/dimmer-dark map style that still shows roads and land clearly
+
+==================================================
+TASK 2 — MAKE ADD ZONE FLOW CLEAR
+==================================================
+
+The “Add Zone” experience must be very obvious and simple.
+
+Redesign the Add Zone flow like this:
+
+Step 1:
+User clicks “Add Zone”
+
+Step 2:
+A clear modal or sheet opens with:
+- Zone Name
+- Zone Type:
+  - Main Zone
+  - Sub Zone
+- Parent Zone:
+  - None
+  - CPF
+  - Camp
+- Boundary Type:
+  - Polygon
+  - Circle
+- Zone Color
+- Buttons:
+  - Cancel
+  - Continue to Draw
+
+Step 3:
+After user clicks “Continue to Draw”
+show a very clear drawing state on the map with:
+- big instruction banner:
+  - “Tap on the map to place points”
+  - or
+  - “Drag to set circle size”
+- clear action buttons:
+  - Undo
+  - Reset
+  - Save Zone
+  - Cancel
+
+This flow must feel guided and easy, not hidden or confusing.
+
+==================================================
+TASK 3 — MAKE ZONE EDITING MUCH EASIER
+==================================================
+
+Editing an existing zone must be simple and visible.
+
+For every zone card, add clear visible actions:
+- Edit Name
+- Edit Boundary
+- Change Color
+- Disable Zone
+
+Do NOT hide these important actions too deeply.
+
+When user clicks a zone card:
+- highlight that zone on the map
+- show a floating “Selected Zone” card with:
+  - Zone Name
+  - Type
+  - Boundary Type
+  - Personnel Count
+  - Vertex Count
+  - Action buttons:
+    - Rename
+    - Edit Shape
+    - Change Color
+    - Disable
+
+Rename flow:
+- clear rename modal
+- current name visible
+- easy save/cancel
+
+==================================================
+TASK 4 — IMPROVE SHAPE CONTROL / RESIZE UX
+==================================================
+
+This is the most important issue.
+
+Right now adjusting zone size/shape is hard.
+
+Requirements:
+- Make polygon points clearly visible as drag handles
+- Increase handle size
+- Increase spacing clarity
+- Add hover/selected state to vertices
+- Show boundary lines more clearly
+- Show a selected vertex style
+- Make circle resizing easier with a visible radius handle
+- If circle mode is selected, allow:
+  - drag center
+  - drag radius handle
+- If polygon mode is selected, allow:
+  - drag existing points
+  - add point
+  - remove point
+- Add small helper text:
+  - “Drag points to adjust boundary”
+- Make editing feel visual and direct, not abstract
+
+==================================================
+TASK 5 — BETTER PAGE LAYOUT FOR ZONES
+==================================================
+
+Rework the layout of the Zones page for better usability.
+
+Desktop:
+- Left column:
+  - zone list
+  - add zone button
+  - selected zone details
+- Right column:
+  - large map area
+
+Tablet / Mobile:
+- Map first
+- Zone list below
+- Sticky selected-zone actions if useful
+
+Make sure:
+- zone cards are clear
+- action buttons are obvious
+- no cramped controls
+- no overlapping awkwardly
+- no tiny text
+- no confusing drawing state
+
+==================================================
+TASK 6 — UX IMPROVEMENTS
+==================================================
+
+Add the following UX improvements:
+
+- Strong selected zone highlight
+- Better instructions during draw/edit mode
+- Empty state when no zone selected
+- Better CTA labels:
+  - Add Zone
+  - Continue to Draw
+  - Save Zone
+  - Edit Shape
+  - Rename Zone
+  - Reset Shape
+- Confirmation before discarding edits
+- Success toast after saving zone
+- Better legend styling
+- Show zone color next to zone name
+- Show whether zone is Polygon or Circle clearly
+
+==================================================
+TASK 7 — KEEP EXISTING ZONES WORKING
+==================================================
+
+Keep CPF and Camp zones working and visible.
+Do not break current zone data/state.
+
+Make sure:
+- CPF and Camp remain visible
+- Selecting either one updates the side details
+- Personnel counts remain shown
+- Editing a zone updates local state correctly
+
+==================================================
+TASK 8 — FINAL QA FOR ZONES PAGE
+==================================================
+
+After the redesign/fix, verify:
+- map is easier to read
+- zone size/shape is easier to control
+- adding zone is clear
+- renaming zone is obvious
+- editing boundary is obvious
+- desktop works
+- tablet works
+- mobile works better than before
+- no overlapping controls
+- no confusing hidden actions
+
+==================================================
+OUTPUT EXPECTATION
+==================================================
+
+Actually improve the Zone Management page code.
+
+Do not just summarize.
+Implement a real usability fix focused on:
+- clearer map
+- easier add zone flow
+- obvious rename/edit actions
+- much easier zone resizing/editing
+- better responsive layout
