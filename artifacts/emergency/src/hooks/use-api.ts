@@ -69,16 +69,17 @@ export function useUpdateUserStatus() {
 export function useSendAlert() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (newAlert: Omit<Alert, 'id' | 'stats' | 'isActive'>) => {
+    mutationFn: async (newAlert: Omit<Alert, 'id' | 'stats' | 'isActive' | 'status'>) => {
       await delay(800);
       // Deactivate current
-      store.alerts.forEach(a => a.isActive = false);
+      store.alerts.forEach(a => { a.isActive = false; a.status = 'closed'; });
       // Reset all user statuses to no_reply
       store.users.forEach(u => u.status = 'no_reply');
-      
+
       const alert: Alert = {
         ...newAlert,
         id: Date.now(),
+        status: 'active',
         isActive: true,
         stats: { confirmed: 0, missing: 0, noReply: store.users.length, needHelp: 0, total: store.users.length }
       };
@@ -108,6 +109,8 @@ export function useSendAllClear() {
         message: 'The emergency condition has been resolved. Return to normal operations.',
         timestamp: new Date().toISOString(),
         sentBy: 'System Auto',
+        priority: 'High',
+        status: 'closed',
         isActive: false,
         stats: { confirmed: store.users.length, missing: 0, noReply: 0, needHelp: 0, total: store.users.length }
       };
