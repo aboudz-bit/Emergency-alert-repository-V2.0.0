@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import {
   Plus, Trash2, X, Pencil, Undo2, Save, Layers, Users,
   MapPin, Palette, Type, ChevronRight, CheckCircle2,
   Circle as CircleIcon, Hexagon, RotateCcw, MousePointer2,
-  GripVertical, Info, AlertTriangle,
+  GripVertical, Info,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore, useShallow } from '@/store';
@@ -32,19 +32,11 @@ function makeVertexIcon(color: string, isDraft = false) {
 }
 
 function makeCenterIcon() {
-  return L.divIcon({
-    className: 'circle-center-handle',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-  });
+  return L.divIcon({ className: 'circle-center-handle', iconSize: [16, 16], iconAnchor: [8, 8] });
 }
 
 function makeRadiusIcon() {
-  return L.divIcon({
-    className: 'circle-radius-handle',
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
-  });
+  return L.divIcon({ className: 'circle-radius-handle', iconSize: [12, 12], iconAnchor: [6, 6] });
 }
 
 function FitBoundsControl({ zones }: { zones: Zone[] }) {
@@ -70,13 +62,7 @@ function FitBoundsControl({ zones }: { zones: Zone[] }) {
   return null;
 }
 
-function ClickToAddPoints({
-  active,
-  onAdd,
-}: {
-  active: boolean;
-  onAdd: (latlng: LatLng) => void;
-}) {
+function ClickToAddPoints({ active, onAdd }: { active: boolean; onAdd: (latlng: LatLng) => void }) {
   useMapEvents({
     click(e) {
       if (!active) return;
@@ -86,23 +72,8 @@ function ClickToAddPoints({
   return null;
 }
 
-function makeDeleteVertexIcon(color: string) {
-  return L.divIcon({
-    className: '',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);cursor:grab;display:flex;align-items:center;justify-content:center;position:relative;">
-      <div style="position:absolute;top:-8px;right:-8px;width:14px;height:14px;background:#ef4444;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;font-weight:bold;color:#fff;line-height:1;">×</div>
-    </div>`,
-  });
-}
-
 function DraggableVertices({
-  points,
-  color,
-  onChange,
-  onRemove,
-  canRemove,
+  points, color, onChange, onRemove, canRemove,
 }: {
   points: LatLng[];
   color: string;
@@ -136,17 +107,10 @@ function DraggableVertices({
 }
 
 function CircleEditHandles({
-  center,
-  radius,
-  color,
-  onCenterChange,
-  onRadiusChange,
+  center, radius, color, onCenterChange, onRadiusChange,
 }: {
-  center: LatLng;
-  radius: number;
-  color: string;
-  onCenterChange: (c: LatLng) => void;
-  onRadiusChange: (r: number) => void;
+  center: LatLng; radius: number; color: string;
+  onCenterChange: (c: LatLng) => void; onRadiusChange: (r: number) => void;
 }) {
   const map = useMap();
   const radiusPoint = useMemo(() => {
@@ -154,52 +118,29 @@ function CircleEditHandles({
     const metersPerPixel = 40075016.686 * Math.abs(Math.cos(center.lat * Math.PI / 180)) / Math.pow(2, map.getZoom() + 8);
     const radiusInPixels = radius / metersPerPixel;
     const rPoint = L.point(point.x + radiusInPixels, point.y);
-    const rLatLng = map.layerPointToLatLng(rPoint);
-    return rLatLng;
+    return map.layerPointToLatLng(rPoint);
   }, [center, radius, map]);
 
   return (
     <>
-      <Circle
-        center={[center.lat, center.lng]}
-        radius={radius}
-        pathOptions={{ color, weight: 3, fillOpacity: 0.2, fillColor: color, dashArray: '8 4' }}
-      />
-      <Marker
-        position={[center.lat, center.lng]}
-        icon={makeCenterIcon()}
-        draggable
-        eventHandlers={{
-          dragend: (e: any) => {
-            const ll = e.target.getLatLng();
-            onCenterChange({ lat: ll.lat, lng: ll.lng });
-          },
-        }}
-      />
-      <Marker
-        position={radiusPoint}
-        icon={makeRadiusIcon()}
-        draggable
-        eventHandlers={{
-          dragend: (e: any) => {
-            const ll = e.target.getLatLng();
-            const dist = L.latLng(center.lat, center.lng).distanceTo(L.latLng(ll.lat, ll.lng));
-            onRadiusChange(Math.max(50, dist));
-          },
-        }}
-      />
+      <Circle center={[center.lat, center.lng]} radius={radius}
+        pathOptions={{ color, weight: 3, fillOpacity: 0.15, fillColor: color, dashArray: '8 4' }} />
+      <Marker position={[center.lat, center.lng]} icon={makeCenterIcon()} draggable
+        eventHandlers={{ dragend: (e: any) => { const ll = e.target.getLatLng(); onCenterChange({ lat: ll.lat, lng: ll.lng }); } }} />
+      <Marker position={radiusPoint} icon={makeRadiusIcon()} draggable
+        eventHandlers={{ dragend: (e: any) => {
+          const ll = e.target.getLatLng();
+          onRadiusChange(Math.max(50, L.latLng(center.lat, center.lng).distanceTo(L.latLng(ll.lat, ll.lng))));
+        } }} />
     </>
   );
 }
 
 function Toast({ message, onDone }: { message: string; onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3000);
-    return () => clearTimeout(t);
-  }, []);
+  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] toast-animate">
-      <div className="flex items-center gap-2.5 bg-safe text-white px-5 py-3 rounded-xl shadow-2xl shadow-safe/30 font-semibold text-sm">
+      <div className="flex items-center gap-2.5 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl font-semibold text-sm">
         <CheckCircle2 className="w-5 h-5 shrink-0" />
         {message}
       </div>
@@ -208,19 +149,10 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
 }
 
 function AddZoneModal({
-  onClose,
-  onSave,
-  existingZones,
+  onClose, onSave, existingZones,
 }: {
   onClose: () => void;
-  onSave: (data: {
-    name: string;
-    zoneCategory: 'main' | 'sub';
-    parentZoneId: number | null;
-    type: 'CPF' | 'Camp';
-    boundaryType: ZoneBoundaryType;
-    color: string;
-  }) => void;
+  onSave: (data: { name: string; zoneCategory: 'main' | 'sub'; parentZoneId: number | null; type: 'CPF' | 'Camp'; boundaryType: ZoneBoundaryType; color: string }) => void;
   existingZones: Zone[];
 }) {
   const [name, setName] = useState('');
@@ -229,62 +161,40 @@ function AddZoneModal({
   const [type, setType] = useState<'CPF' | 'Camp'>('CPF');
   const [boundary, setBoundary] = useState<ZoneBoundaryType>('Polygon');
   const [color, setColor] = useState('#10B981');
-
   const mainZones = existingZones.filter(z => z.isActive);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ name, zoneCategory, parentZoneId: zoneCategory === 'sub' ? parentZoneId : null, type, boundaryType: boundary, color });
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="p-5 border-b border-border flex justify-between items-center bg-background/50 rounded-t-2xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200">
+        <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
           <div>
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              Add New Zone
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" /> Add New Zone
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Configure zone properties, then draw on the map</p>
+            <p className="text-xs text-slate-500 mt-0.5">Configure zone properties, then draw on the map</p>
           </div>
-          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <form onSubmit={e => { e.preventDefault(); onSave({ name, zoneCategory, parentZoneId: zoneCategory === 'sub' ? parentZoneId : null, type, boundaryType: boundary, color }); }} className="p-5 space-y-5">
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Zone Name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-              placeholder="e.g. Substation Alpha"
-              className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-            />
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Substation Alpha"
+              className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30" />
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Zone Level</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Level</label>
             <div className="grid grid-cols-2 gap-2">
               {([
                 { id: 'main' as const, label: 'Main Zone', icon: Hexagon, desc: 'Top-level zone' },
                 { id: 'sub' as const, label: 'Sub Zone', icon: MapPin, desc: 'Nested inside another' },
               ]).map(opt => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setZoneCategory(opt.id)}
-                  className={cn(
-                    'p-3 rounded-xl border text-left transition-all',
-                    zoneCategory === opt.id
-                      ? 'bg-primary/10 border-primary/50 shadow-sm'
-                      : 'bg-background border-border hover:border-muted-foreground/50',
-                  )}
-                >
-                  <opt.icon className={cn('w-4 h-4 mb-1', zoneCategory === opt.id ? 'text-primary' : 'text-muted-foreground')} />
-                  <p className={cn('text-sm font-bold', zoneCategory === opt.id ? 'text-foreground' : 'text-muted-foreground')}>{opt.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                <button key={opt.id} type="button" onClick={() => setZoneCategory(opt.id)}
+                  className={cn('p-3 rounded-xl border text-left transition-all',
+                    zoneCategory === opt.id ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300')}>
+                  <opt.icon className={cn('w-4 h-4 mb-1', zoneCategory === opt.id ? 'text-blue-600' : 'text-slate-400')} />
+                  <p className={cn('text-sm font-bold', zoneCategory === opt.id ? 'text-slate-900' : 'text-slate-500')}>{opt.label}</p>
+                  <p className="text-[10px] text-slate-400">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -292,35 +202,22 @@ function AddZoneModal({
 
           {zoneCategory === 'sub' && (
             <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Parent Zone</label>
-              <select
-                value={parentZoneId ?? ''}
-                onChange={e => setParentZoneId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
-              >
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Parent Zone</label>
+              <select value={parentZoneId ?? ''} onChange={e => setParentZoneId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
                 <option value="">None</option>
-                {mainZones.map(z => (
-                  <option key={z.id} value={z.id}>{z.name}</option>
-                ))}
+                {mainZones.map(z => (<option key={z.id} value={z.id}>{z.name}</option>))}
               </select>
             </div>
           )}
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Zone Type</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Type</label>
             <div className="grid grid-cols-2 gap-2">
               {(['CPF', 'Camp'] as const).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
-                  className={cn(
-                    'py-2.5 rounded-xl border text-sm font-bold transition-all',
-                    type === t
-                      ? 'bg-primary text-white border-primary shadow-sm'
-                      : 'bg-background text-muted-foreground border-border hover:border-primary/40',
-                  )}
-                >
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={cn('py-2.5 rounded-xl border text-sm font-bold transition-all',
+                    type === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300')}>
                   {t === 'CPF' ? 'CPF (Processing)' : 'Camp (Residential)'}
                 </button>
               ))}
@@ -328,63 +225,34 @@ function AddZoneModal({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Boundary Shape</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Boundary Shape</label>
             <div className="grid grid-cols-2 gap-2">
-              {([
-                { id: 'Polygon' as const, icon: Hexagon, label: 'Polygon' },
-                { id: 'Circle' as const, icon: CircleIcon, label: 'Circle' },
-              ]).map(b => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => setBoundary(b.id)}
-                  className={cn(
-                    'py-2.5 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2',
-                    boundary === b.id
-                      ? 'bg-primary text-white border-primary shadow-sm'
-                      : 'bg-background text-muted-foreground border-border hover:border-primary/40',
-                  )}
-                >
-                  <b.icon className="w-4 h-4" />
-                  {b.label}
+              {([{ id: 'Polygon' as const, icon: Hexagon, label: 'Polygon' }, { id: 'Circle' as const, icon: CircleIcon, label: 'Circle' }]).map(b => (
+                <button key={b.id} type="button" onClick={() => setBoundary(b.id)}
+                  className={cn('py-2.5 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2',
+                    boundary === b.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300')}>
+                  <b.icon className="w-4 h-4" /> {b.label}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Zone Color</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Zone Color</label>
             <div className="flex gap-2 flex-wrap">
               {ZONE_COLORS.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    'w-9 h-9 rounded-full border-2 transition-all',
-                    color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:scale-105',
-                  )}
-                  style={{ backgroundColor: c }}
-                />
+                <button key={c} type="button" onClick={() => setColor(c)}
+                  className={cn('w-9 h-9 rounded-full border-2 transition-all', color === c ? 'border-slate-900 scale-110 shadow-lg' : 'border-transparent hover:scale-105')}
+                  style={{ backgroundColor: c }} />
               ))}
             </div>
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 border border-border text-foreground rounded-xl text-sm font-semibold hover:bg-muted transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="flex-1 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-            >
-              Continue to Draw
-              <ChevronRight className="w-4 h-4" />
+            <button type="button" onClick={onClose} className="flex-1 py-3 border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={!name.trim()}
+              className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+              Continue to Draw <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </form>
@@ -396,40 +264,26 @@ function AddZoneModal({
 function RenameModal({ zone, onClose, onSave }: { zone: Zone; onClose: () => void; onSave: (name: string) => void }) {
   const [name, setName] = useState(zone.name);
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="p-5 border-b border-border flex justify-between items-center">
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <Type className="w-4 h-4 text-primary" />
-            Rename Zone
-          </h2>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted">
-            <X className="w-4 h-4" />
-          </button>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200">
+        <div className="p-5 border-b border-slate-200 flex justify-between items-center">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2"><Type className="w-4 h-4 text-blue-600" /> Rename Zone</h2>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Current Name</label>
-            <p className="text-sm text-foreground/60 bg-background rounded-lg px-3 py-2 border border-border">{zone.name}</p>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Current Name</label>
+            <p className="text-sm text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">{zone.name}</p>
           </div>
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">New Name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              autoFocus
-              className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-            />
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">New Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} autoFocus
+              className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30" />
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-border text-foreground rounded-xl text-sm font-semibold hover:bg-muted">Cancel</button>
-            <button
-              onClick={() => { onSave(name); onClose(); }}
-              disabled={!name.trim() || name === zone.name}
-              className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Save Name
-            </button>
+            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50">Cancel</button>
+            <button onClick={() => { onSave(name); onClose(); }} disabled={!name.trim() || name === zone.name}
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">Save Name</button>
           </div>
         </div>
       </div>
@@ -440,40 +294,24 @@ function RenameModal({ zone, onClose, onSave }: { zone: Zone; onClose: () => voi
 function ChangeColorModal({ zone, onClose, onSave }: { zone: Zone; onClose: () => void; onSave: (color: string) => void }) {
   const [color, setColor] = useState(zone.color);
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-xs">
-        <div className="p-5 border-b border-border flex justify-between items-center">
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <Palette className="w-4 h-4 text-primary" />
-            Change Color
-          </h2>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted">
-            <X className="w-4 h-4" />
-          </button>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs border border-slate-200">
+        <div className="p-5 border-b border-slate-200 flex justify-between items-center">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2"><Palette className="w-4 h-4 text-blue-600" /> Change Color</h2>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm text-muted-foreground">Select a new color for <span className="text-foreground font-bold">{zone.name}</span></p>
+          <p className="text-sm text-slate-500">Select a new color for <span className="text-slate-900 font-bold">{zone.name}</span></p>
           <div className="flex gap-3 flex-wrap justify-center">
             {ZONE_COLORS.map(c => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                className={cn(
-                  'w-11 h-11 rounded-full border-2 transition-all',
-                  color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:scale-105',
-                )}
-                style={{ backgroundColor: c }}
-              />
+              <button key={c} onClick={() => setColor(c)}
+                className={cn('w-11 h-11 rounded-full border-2 transition-all', color === c ? 'border-slate-900 scale-110 shadow-lg' : 'border-transparent hover:scale-105')}
+                style={{ backgroundColor: c }} />
             ))}
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-border text-foreground rounded-xl text-sm font-semibold hover:bg-muted">Cancel</button>
-            <button
-              onClick={() => { onSave(color); onClose(); }}
-              className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90"
-            >
-              Apply
-            </button>
+            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50">Cancel</button>
+            <button onClick={() => { onSave(color); onClose(); }} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700">Apply</button>
           </div>
         </div>
       </div>
@@ -483,11 +321,7 @@ function ChangeColorModal({ zone, onClose, onSave }: { zone: Zone; onClose: () =
 
 export default function Zones() {
   const { zones, disableZone, addZone, updateZone, users } = useStore(useShallow(s => ({
-    zones: s.zones,
-    disableZone: s.disableZone,
-    addZone: s.addZone,
-    updateZone: s.updateZone,
-    users: s.users,
+    zones: s.zones, disableZone: s.disableZone, addZone: s.addZone, updateZone: s.updateZone, users: s.users,
   })));
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -505,77 +339,57 @@ export default function Zones() {
 
   const activeZones = zones.filter(z => z.isActive);
   const selectedZone = zones.find(z => z.id === selectedZoneId);
+  const isEditing = editMode !== 'idle';
+  const canSave = editingBoundary === 'Circle' || draftPoints.length >= 3;
 
   const getUserCount = (zoneName: string) =>
     users.filter(u => u.zone === zoneName && u.accountStatus === 'active').length;
 
+  const isSystemZone = (zone: Zone) => zone.name === 'CPF' || zone.name === 'Camp';
+
   const handleCreateZone = (data: {
-    name: string;
-    zoneCategory: 'main' | 'sub';
-    parentZoneId: number | null;
-    type: 'CPF' | 'Camp';
-    boundaryType: ZoneBoundaryType;
-    color: string;
+    name: string; zoneCategory: 'main' | 'sub'; parentZoneId: number | null;
+    type: 'CPF' | 'Camp'; boundaryType: ZoneBoundaryType; color: string;
   }) => {
     addZone({
-      name: data.name,
-      type: data.type,
-      parentZoneId: data.parentZoneId,
-      boundaryType: data.boundaryType,
-      points: [],
-      polygonPoints: [],
+      name: data.name, type: data.type, parentZoneId: data.parentZoneId,
+      boundaryType: data.boundaryType, points: [], polygonPoints: [],
       center: data.boundaryType === 'Circle' ? { lat: 25.082, lng: 48.178 } : undefined,
       radius: data.boundaryType === 'Circle' ? 500 : undefined,
-      isActive: true,
-      color: data.color,
+      isActive: true, color: data.color,
     });
-
     const newZone = useStore.getState().zones[useStore.getState().zones.length - 1];
     setEditingZoneId(newZone.id);
     setEditingColor(data.color);
     setEditingBoundary(data.boundaryType);
     setSelectedZoneId(newZone.id);
     setShowAddModal(false);
-
     if (data.boundaryType === 'Circle') {
       setCircleCenter({ lat: 25.082, lng: 48.178 });
       setCircleRadius(500);
-      setEditMode('drawing');
     } else {
       setDraftPoints([]);
-      setEditMode('drawing');
     }
+    setEditMode('drawing');
   };
 
   const handleSaveDrawing = () => {
     if (!editingZoneId) return;
-
     if (editingBoundary === 'Circle') {
       updateZone(editingZoneId, { center: circleCenter, radius: circleRadius, polygonPoints: [] });
     } else if (draftPoints.length >= 3) {
       updateZone(editingZoneId, { polygonPoints: draftPoints });
-    } else {
-      return;
-    }
-
-    setEditMode('idle');
-    setDraftPoints([]);
-    setEditingZoneId(null);
+    } else { return; }
+    setEditMode('idle'); setDraftPoints([]); setEditingZoneId(null);
     setToast('Zone boundary saved successfully');
   };
 
   const handleStartEdit = (zone: Zone) => {
-    setEditingZoneId(zone.id);
-    setEditingColor(zone.color);
-    setEditingBoundary(zone.boundaryType);
-    setSelectedZoneId(zone.id);
-
+    setEditingZoneId(zone.id); setEditingColor(zone.color);
+    setEditingBoundary(zone.boundaryType); setSelectedZoneId(zone.id);
     if (zone.boundaryType === 'Circle' && zone.center) {
-      setCircleCenter(zone.center);
-      setCircleRadius(zone.radius || 500);
-    } else {
-      setDraftPoints([...zone.polygonPoints]);
-    }
+      setCircleCenter(zone.center); setCircleRadius(zone.radius || 500);
+    } else { setDraftPoints([...zone.polygonPoints]); }
     setEditMode('editing');
   };
 
@@ -583,9 +397,7 @@ export default function Zones() {
     if (editMode !== 'idle' && (draftPoints.length > 0 || editingBoundary === 'Circle')) {
       if (!confirm('Discard unsaved changes to this zone boundary?')) return;
     }
-    setEditMode('idle');
-    setDraftPoints([]);
-    setEditingZoneId(null);
+    setEditMode('idle'); setDraftPoints([]); setEditingZoneId(null);
   };
 
   const handleVertexDrag = (idx: number, pos: LatLng) => {
@@ -600,20 +412,12 @@ export default function Zones() {
     setDraftPoints(prev => [...prev, latlng]);
   };
 
-  const isSystemZone = (zone: Zone) => zone.name === 'CPF' || zone.name === 'Camp';
-
   const handleRename = (name: string) => {
-    if (renameZone) {
-      updateZone(renameZone.id, { name });
-      setToast(`Zone renamed to "${name}"`);
-    }
+    if (renameZone) { updateZone(renameZone.id, { name }); setToast(`Zone renamed to "${name}"`); }
   };
 
   const handleColorChange = (color: string) => {
-    if (colorZone) {
-      updateZone(colorZone.id, { color });
-      setToast('Zone color updated');
-    }
+    if (colorZone) { updateZone(colorZone.id, { color }); setToast('Zone color updated'); }
   };
 
   const handleDisable = (zone: Zone) => {
@@ -624,39 +428,27 @@ export default function Zones() {
     }
   };
 
-  const isEditing = editMode !== 'idle';
-  const canSave = editingBoundary === 'Circle' || draftPoints.length >= 3;
-
   return (
     <AdminLayout title="Zone Management">
-      {showAddModal && (
-        <AddZoneModal
-          onClose={() => setShowAddModal(false)}
-          onSave={handleCreateZone}
-          existingZones={activeZones}
-        />
-      )}
-      {renameZone && (
-        <RenameModal zone={renameZone} onClose={() => setRenameZone(null)} onSave={handleRename} />
-      )}
-      {colorZone && (
-        <ChangeColorModal zone={colorZone} onClose={() => setColorZone(null)} onSave={handleColorChange} />
-      )}
+      {showAddModal && <AddZoneModal onClose={() => setShowAddModal(false)} onSave={handleCreateZone} existingZones={activeZones} />}
+      {renameZone && <RenameModal zone={renameZone} onClose={() => setRenameZone(null)} onSave={handleRename} />}
+      {colorZone && <ChangeColorModal zone={colorZone} onClose={() => setColorZone(null)} onSave={handleColorChange} />}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
+      {/* Light professional wrapper — overrides the dark theme for this page only */}
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)]">
-        {/* ═══ Left Panel ═══ */}
+
+        {/* ═══ Left Panel — Zone List ═══ */}
         <div className="w-full lg:w-80 xl:w-96 flex flex-col shrink-0 order-2 lg:order-1 min-h-0 lg:h-full h-72">
+
           {/* Header + Add */}
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-primary" /> Zones ({activeZones.length})
+          <div className="flex justify-between items-center mb-3 bg-white/90 backdrop-blur rounded-xl border border-slate-200 px-4 py-3 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-600" /> Zones
+              <span className="text-slate-400 font-normal">({activeZones.length})</span>
             </h2>
-            <button
-              onClick={() => setShowAddModal(true)}
-              disabled={isEditing}
-              className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
+            <button onClick={() => setShowAddModal(true)} disabled={isEditing}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus className="w-3.5 h-3.5" /> Add Zone
             </button>
           </div>
@@ -664,10 +456,10 @@ export default function Zones() {
           {/* Zone List */}
           <div className="flex-1 space-y-2 overflow-y-auto pr-1 min-h-0">
             {activeZones.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <MapPin className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                <p className="text-sm font-medium">No zones configured</p>
-                <p className="text-xs mt-1">Click "Add Zone" to get started</p>
+              <div className="text-center py-8 bg-white/80 rounded-xl border border-slate-200">
+                <MapPin className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                <p className="text-sm font-medium text-slate-500">No zones configured</p>
+                <p className="text-xs text-slate-400 mt-1">Click "Add Zone" to get started</p>
               </div>
             )}
             {activeZones.map(zone => {
@@ -675,26 +467,24 @@ export default function Zones() {
               const isSelected = selectedZoneId === zone.id;
               const isBeingEdited = editingZoneId === zone.id;
               return (
-                <div
-                  key={zone.id}
+                <div key={zone.id}
                   onClick={() => !isEditing && setSelectedZoneId(isSelected ? null : zone.id)}
                   className={cn(
                     'rounded-xl border p-3.5 transition-all',
                     isEditing && !isBeingEdited ? 'opacity-40 pointer-events-none' : 'cursor-pointer',
                     isSelected
-                      ? 'bg-card border-primary/50 shadow-lg shadow-primary/5 ring-1 ring-primary/20'
-                      : 'bg-card/50 border-border hover:border-border/80 hover:bg-card',
-                    isBeingEdited && 'ring-2 ring-primary/40 bg-card',
-                  )}
-                >
+                      ? 'bg-white border-blue-300 shadow-md ring-1 ring-blue-200'
+                      : 'bg-white/80 border-slate-200 hover:border-slate-300 hover:bg-white hover:shadow-sm',
+                    isBeingEdited && 'ring-2 ring-blue-400 bg-blue-50',
+                  )}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-4 h-4 rounded-full shrink-0 ring-2 ring-white/20" style={{ backgroundColor: zone.color }} />
+                      <div className="w-4 h-4 rounded-full shrink-0 ring-2 ring-slate-200" style={{ backgroundColor: zone.color }} />
                       <div className="min-w-0">
-                        <p className="font-bold text-foreground text-sm truncate">{zone.name}</p>
+                        <p className="font-bold text-slate-800 text-sm truncate">{zone.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-border">{zone.type}</span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{zone.type}</span>
+                          <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
                             {zone.boundaryType === 'Polygon' ? <Hexagon className="w-2.5 h-2.5" /> : <CircleIcon className="w-2.5 h-2.5" />}
                             {zone.boundaryType}
                           </span>
@@ -702,47 +492,30 @@ export default function Zones() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-bold text-foreground">{count}</p>
-                      <p className="text-[10px] text-muted-foreground">people</p>
+                      <p className="text-xs font-bold text-slate-700">{count}</p>
+                      <p className="text-[10px] text-slate-400">people</p>
                     </div>
                   </div>
 
-                  {/* Action buttons — always visible */}
                   {isSelected && !isEditing && (
-                    <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-4 gap-1.5">
-                      <button
-                        onClick={e => { e.stopPropagation(); if (!isSystemZone(zone)) setRenameZone(zone); }}
-                        className={cn(
-                          "flex flex-col items-center gap-1 py-2 rounded-lg transition-colors",
-                          isSystemZone(zone)
-                            ? "text-muted-foreground/30 cursor-not-allowed"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background",
-                        )}
-                        title={isSystemZone(zone) ? "System zones cannot be renamed" : "Rename zone"}
-                      >
-                        <Type className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-semibold">Rename</span>
+                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-4 gap-1.5">
+                      <button onClick={e => { e.stopPropagation(); if (!isSystemZone(zone)) setRenameZone(zone); }}
+                        className={cn('flex flex-col items-center gap-1 py-2 rounded-lg transition-colors',
+                          isSystemZone(zone) ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100')}
+                        title={isSystemZone(zone) ? 'System zones cannot be renamed' : 'Rename zone'}>
+                        <Type className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Rename</span>
                       </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleStartEdit(zone); }}
-                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-semibold">Shape</span>
+                      <button onClick={e => { e.stopPropagation(); handleStartEdit(zone); }}
+                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                        <Pencil className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Shape</span>
                       </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); setColorZone(zone); }}
-                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
-                      >
-                        <Palette className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-semibold">Color</span>
+                      <button onClick={e => { e.stopPropagation(); setColorZone(zone); }}
+                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                        <Palette className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Color</span>
                       </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleDisable(zone); }}
-                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="text-[9px] font-semibold">Disable</span>
+                      <button onClick={e => { e.stopPropagation(); handleDisable(zone); }}
+                        className="flex flex-col items-center gap-1 py-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" /><span className="text-[9px] font-semibold">Disable</span>
                       </button>
                     </div>
                   )}
@@ -751,35 +524,33 @@ export default function Zones() {
             })}
           </div>
 
-          {/* Selected Zone Details Panel */}
+          {/* Selected Zone Details */}
           {selectedZone && !isEditing && (
-            <div className="mt-3 bg-card border border-border rounded-xl p-4 shrink-0">
+            <div className="mt-3 bg-white border border-slate-200 rounded-xl p-4 shrink-0 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-3.5 h-3.5 rounded-full ring-2 ring-white/20" style={{ backgroundColor: selectedZone.color }} />
-                <span className="font-bold text-sm text-foreground flex-1 truncate">{selectedZone.name}</span>
-                <span className="text-[10px] text-muted-foreground bg-background px-2 py-0.5 rounded border border-border">
-                  {selectedZone.boundaryType}
-                </span>
+                <div className="w-3.5 h-3.5 rounded-full ring-2 ring-slate-200" style={{ backgroundColor: selectedZone.color }} />
+                <span className="font-bold text-sm text-slate-800 flex-1 truncate">{selectedZone.name}</span>
+                <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{selectedZone.boundaryType}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-background rounded-lg p-2 border border-border">
-                  <Users className="w-3.5 h-3.5 text-primary mx-auto mb-0.5" />
-                  <p className="text-xs font-bold text-foreground">{getUserCount(selectedZone.name)}</p>
-                  <p className="text-[9px] text-muted-foreground">Personnel</p>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                  <Users className="w-3.5 h-3.5 text-blue-600 mx-auto mb-0.5" />
+                  <p className="text-xs font-bold text-slate-800">{getUserCount(selectedZone.name)}</p>
+                  <p className="text-[9px] text-slate-400">Personnel</p>
                 </div>
-                <div className="bg-background rounded-lg p-2 border border-border">
-                  <GripVertical className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-0.5" />
-                  <p className="text-xs font-bold text-foreground">{selectedZone.polygonPoints.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Vertices</p>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                  <GripVertical className="w-3.5 h-3.5 text-slate-400 mx-auto mb-0.5" />
+                  <p className="text-xs font-bold text-slate-800">{selectedZone.polygonPoints.length}</p>
+                  <p className="text-[9px] text-slate-400">Vertices</p>
                 </div>
-                <div className="bg-background rounded-lg p-2 border border-border">
-                  <Hexagon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-0.5" />
-                  <p className="text-xs font-bold text-foreground">{selectedZone.type}</p>
-                  <p className="text-[9px] text-muted-foreground">Type</p>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                  <Hexagon className="w-3.5 h-3.5 text-slate-400 mx-auto mb-0.5" />
+                  <p className="text-xs font-bold text-slate-800">{selectedZone.type}</p>
+                  <p className="text-[9px] text-slate-400">Type</p>
                 </div>
               </div>
               {selectedZone.center && (
-                <p className="text-[10px] text-muted-foreground mt-2 font-mono text-center">
+                <p className="text-[10px] text-slate-400 mt-2 font-mono text-center">
                   {selectedZone.center.lat.toFixed(4)}°N, {selectedZone.center.lng.toFixed(4)}°E
                 </p>
               )}
@@ -787,13 +558,13 @@ export default function Zones() {
           )}
 
           {/* Legend */}
-          <div className="mt-3 bg-card/80 border border-border rounded-xl p-3 shrink-0">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Map Legend</p>
+          <div className="mt-3 bg-white/90 border border-slate-200 rounded-xl p-3 shrink-0 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Map Legend</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {activeZones.map(z => (
-                <div key={z.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div key={z.id} className="flex items-center gap-1.5 text-xs text-slate-500">
                   <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: z.color }} />
-                  <span className={cn(selectedZoneId === z.id && 'text-foreground font-semibold')}>{z.name}</span>
+                  <span className={cn(selectedZoneId === z.id && 'text-slate-800 font-semibold')}>{z.name}</span>
                 </div>
               ))}
             </div>
@@ -801,25 +572,25 @@ export default function Zones() {
         </div>
 
         {/* ═══ Right Panel — Map ═══ */}
-        <div className="flex-1 bg-card border border-border rounded-2xl overflow-hidden relative order-1 lg:order-2 min-h-[320px] lg:min-h-0">
+        <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden relative order-1 lg:order-2 min-h-[320px] lg:min-h-0 shadow-sm isolate">
 
-          {/* Drawing / Editing Instruction Banner */}
+          {/* Drawing / Editing Banner */}
           {isEditing && (
             <div className="absolute top-3 left-3 right-3 z-[1000]">
-              <div className="bg-card/95 backdrop-blur-xl border border-primary/30 rounded-xl px-4 py-3 shadow-2xl shadow-primary/10">
+              <div className="bg-white/95 backdrop-blur-xl border border-blue-200 rounded-xl px-4 py-3 shadow-lg">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                       {editingBoundary === 'Polygon'
-                        ? <MousePointer2 className="w-4 h-4 text-primary" />
-                        : <CircleIcon className="w-4 h-4 text-primary" />
+                        ? <MousePointer2 className="w-4 h-4 text-blue-600" />
+                        : <CircleIcon className="w-4 h-4 text-blue-600" />
                       }
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-foreground">
+                      <p className="text-sm font-bold text-slate-800">
                         {editMode === 'drawing' ? 'Drawing Mode' : 'Editing Mode'}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500">
                         {editingBoundary === 'Polygon'
                           ? editMode === 'drawing'
                             ? `Tap on the map to place points (${draftPoints.length} placed)`
@@ -829,39 +600,25 @@ export default function Zones() {
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-2 shrink-0">
                     {editingBoundary === 'Polygon' && (
                       <>
-                        <button
-                          onClick={() => setDraftPoints(prev => prev.slice(0, -1))}
-                          disabled={draftPoints.length === 0}
-                          className="p-2 text-muted-foreground hover:text-foreground bg-background rounded-lg border border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="Undo last point"
-                        >
+                        <button onClick={() => setDraftPoints(prev => prev.slice(0, -1))} disabled={draftPoints.length === 0}
+                          className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 rounded-lg border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed" title="Undo">
                           <Undo2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setDraftPoints([])}
-                          disabled={draftPoints.length === 0}
-                          className="p-2 text-muted-foreground hover:text-destructive bg-background rounded-lg border border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="Reset all points"
-                        >
+                        <button onClick={() => setDraftPoints([])} disabled={draftPoints.length === 0}
+                          className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded-lg border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed" title="Reset">
                           <RotateCcw className="w-4 h-4" />
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={handleSaveDrawing}
-                      disabled={!canSave}
-                      className="px-4 py-2 bg-safe text-white rounded-lg text-xs font-bold hover:bg-safe/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors shadow-lg shadow-safe/20"
-                    >
+                    <button onClick={handleSaveDrawing} disabled={!canSave}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm">
                       <Save className="w-3.5 h-3.5" /> Save Zone
                     </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="px-3 py-2 text-muted-foreground hover:text-foreground bg-background rounded-lg border border-border text-xs font-semibold transition-colors"
-                    >
+                    <button onClick={handleCancelEdit}
+                      className="px-3 py-2 text-slate-600 hover:text-slate-800 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold">
                       Cancel
                     </button>
                   </div>
@@ -870,12 +627,12 @@ export default function Zones() {
             </div>
           )}
 
-          {/* Helper text on map when not editing */}
+          {/* Hint when no zone selected */}
           {!isEditing && !selectedZone && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
-              <div className="bg-card/90 backdrop-blur-md border border-border rounded-lg px-4 py-2 shadow-lg flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground shrink-0" />
-                <p className="text-xs text-muted-foreground">Click a zone on the map or in the list to select it</p>
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-lg px-4 py-2 shadow-md flex items-center gap-2">
+                <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                <p className="text-xs text-slate-500">Click a zone on the map or in the list to select it</p>
               </div>
             </div>
           )}
@@ -884,122 +641,66 @@ export default function Zones() {
             center={KHURAIS_CENTER}
             zoom={DEFAULT_ZOOM}
             className="w-full h-full"
-            style={{ background: '#1a1d2e' }}
+            style={{ background: '#f1f5f9' }}
             zoomControl={true}
             attributionControl={false}
           >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            />
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
             <FitBoundsControl zones={activeZones} />
+            <ClickToAddPoints active={isEditing && editingBoundary === 'Polygon'} onAdd={handleAddPoint} />
 
-            <ClickToAddPoints
-              active={isEditing && editingBoundary === 'Polygon'}
-              onAdd={handleAddPoint}
-            />
-
-            {/* Render saved zone polygons */}
             {activeZones.map(zone => {
               if (editingZoneId === zone.id && isEditing) return null;
-
-              const isSelected = selectedZoneId === zone.id;
+              const isSel = selectedZoneId === zone.id;
 
               if (zone.boundaryType === 'Circle' && zone.center && zone.radius) {
                 return (
-                  <Circle
-                    key={zone.id}
-                    center={[zone.center.lat, zone.center.lng]}
-                    radius={zone.radius}
-                    pathOptions={{
-                      color: zone.color,
-                      weight: isSelected ? 4 : 2.5,
-                      fillOpacity: isSelected ? 0.3 : 0.15,
-                      fillColor: zone.color,
-                      ...(isSelected && { dashArray: undefined }),
-                    }}
-                    eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}
-                  >
-                    <Tooltip permanent direction="center" className={isSelected ? 'zone-label-selected' : 'zone-label'}>
-                      {zone.name}
-                    </Tooltip>
+                  <Circle key={zone.id} center={[zone.center.lat, zone.center.lng]} radius={zone.radius}
+                    pathOptions={{ color: zone.color, weight: isSel ? 4 : 2.5, fillOpacity: isSel ? 0.25 : 0.12, fillColor: zone.color }}
+                    eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}>
+                    <Tooltip permanent direction="center" className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
                   </Circle>
                 );
               }
-
               if (zone.polygonPoints.length >= 3) {
                 return (
-                  <Polygon
-                    key={zone.id}
+                  <Polygon key={zone.id}
                     positions={zone.polygonPoints.map(p => [p.lat, p.lng] as [number, number])}
-                    pathOptions={{
-                      color: zone.color,
-                      weight: isSelected ? 4 : 2.5,
-                      fillOpacity: isSelected ? 0.3 : 0.15,
-                      fillColor: zone.color,
-                    }}
-                    eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}
-                  >
-                    <Tooltip permanent direction="center" className={isSelected ? 'zone-label-selected' : 'zone-label'}>
-                      {zone.name}
-                    </Tooltip>
+                    pathOptions={{ color: zone.color, weight: isSel ? 4 : 2.5, fillOpacity: isSel ? 0.25 : 0.12, fillColor: zone.color }}
+                    eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}>
+                    <Tooltip permanent direction="center" className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
                   </Polygon>
                 );
               }
               return null;
             })}
 
-            {/* Editing: Polygon with draggable vertices */}
             {isEditing && editingBoundary === 'Polygon' && draftPoints.length >= 2 && (
-              <Polygon
-                positions={draftPoints.map(p => [p.lat, p.lng] as [number, number])}
-                pathOptions={{
-                  color: editingColor,
-                  weight: 3,
-                  dashArray: editMode === 'drawing' ? '8 4' : undefined,
-                  fillOpacity: 0.2,
-                  fillColor: editingColor,
-                }}
-              />
+              <Polygon positions={draftPoints.map(p => [p.lat, p.lng] as [number, number])}
+                pathOptions={{ color: editingColor, weight: 3, dashArray: editMode === 'drawing' ? '8 4' : undefined, fillOpacity: 0.15, fillColor: editingColor }} />
             )}
 
             {isEditing && editingBoundary === 'Polygon' && (
-              <DraggableVertices
-                points={draftPoints}
-                color={editingColor}
-                onChange={handleVertexDrag}
-                onRemove={handleRemoveVertex}
-                canRemove={draftPoints.length > 3}
-              />
+              <DraggableVertices points={draftPoints} color={editingColor}
+                onChange={handleVertexDrag} onRemove={handleRemoveVertex} canRemove={draftPoints.length > 3} />
             )}
 
-            {/* Editing: Circle with center + radius handles */}
             {isEditing && editingBoundary === 'Circle' && (
-              <CircleEditHandles
-                center={circleCenter}
-                radius={circleRadius}
-                color={editingColor}
-                onCenterChange={setCircleCenter}
-                onRadiusChange={setCircleRadius}
-              />
+              <CircleEditHandles center={circleCenter} radius={circleRadius} color={editingColor}
+                onCenterChange={setCircleCenter} onRadiusChange={setCircleRadius} />
             )}
           </MapContainer>
 
-          {/* Floating map controls — non-editing */}
+          {/* Floating map controls */}
           {!isEditing && (
             <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-primary hover:bg-primary/90 text-white rounded-xl p-3 shadow-xl shadow-primary/20 transition-all hover:scale-105"
-                title="Add new zone"
-              >
+              <button onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-3 shadow-lg transition-all hover:scale-105" title="Add new zone">
                 <Plus className="w-5 h-5" />
               </button>
               {selectedZone && (
-                <button
-                  onClick={() => handleStartEdit(selectedZone)}
-                  className="bg-card/95 backdrop-blur-md border border-primary/30 text-primary rounded-xl p-3 shadow-xl hover:bg-card transition-all hover:scale-105"
-                  title="Edit selected zone shape"
-                >
+                <button onClick={() => handleStartEdit(selectedZone)}
+                  className="bg-white border border-blue-200 text-blue-600 rounded-xl p-3 shadow-lg hover:bg-blue-50 transition-all hover:scale-105" title="Edit zone shape">
                   <Pencil className="w-5 h-5" />
                 </button>
               )}

@@ -127,15 +127,15 @@ export function AdminLayout({
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
-      {/* Mobile overlay */}
+      {/* Mobile overlay — z-[2000] ensures it covers Leaflet controls */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-[2000] lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar — desktop */}
       <aside
         className={cn(
-          'h-full bg-card border-r border-border transition-all duration-300 flex-col z-40 relative hidden lg:flex',
+          'h-full bg-card border-r border-border transition-all duration-300 flex-col z-[2001] relative hidden lg:flex',
           collapsed ? 'w-[60px]' : 'w-56 xl:w-64',
         )}
       >
@@ -143,7 +143,7 @@ export function AdminLayout({
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 bg-border text-foreground rounded-full p-1 border border-card hover:bg-muted transition-colors z-50"
+          className="absolute -right-3 top-20 bg-border text-foreground rounded-full p-1 border border-card hover:bg-muted transition-colors z-[2002]"
         >
           {collapsed ? <Menu className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
@@ -152,7 +152,7 @@ export function AdminLayout({
       {/* Sidebar — mobile drawer */}
       <aside
         className={cn(
-          'fixed top-0 left-0 h-full bg-card border-r border-border w-64 z-40 flex flex-col transition-transform duration-300 lg:hidden',
+          'fixed top-0 left-0 h-full bg-card border-r border-border w-64 z-[2001] flex flex-col transition-transform duration-300 lg:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >

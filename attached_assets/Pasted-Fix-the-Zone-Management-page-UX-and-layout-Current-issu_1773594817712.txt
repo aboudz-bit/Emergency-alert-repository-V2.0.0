@@ -1,0 +1,50 @@
+Fix the Zone Management page UX and layout.
+
+Current issues to fix:
+
+1) When the sidebar/menu opens, the map should not stay awkwardly visible behind it in a broken way.
+- On smaller screens, if the sidebar opens, the map area should either:
+  - shift correctly,
+  - resize correctly,
+  - or be properly covered with a clean overlay.
+- Do not leave the map half-visible / badly clipped behind the sidebar.
+- Make the responsive layout feel intentional and clean.
+
+2) We do NOT want the current very dark / night-style look for this page.
+- Remove the overly dark / black visual style from the Zone Management page.
+- We do NOT want a dark-night map feeling.
+- We want a more professional, lighter, eye-comfortable, formal enterprise layout.
+
+3) Change the Zone Management page visual direction:
+- Use a cleaner, lighter, more readable layout
+- Keep it professional and official
+- Make it feel like a serious operations/admin tool
+- Avoid harsh black backgrounds
+- Avoid near-black map and near-black page sections
+- Use softer dark-blue / slate / neutral tones or a light professional admin style if it fits better
+- Prioritize readability and comfort
+
+4) Improve the map style:
+- Change the map tile style from the dark/night style to a normal clear map style
+- Use a lighter and easier-to-read map
+- Keep polygons visible and clear
+- Zone labels must stay readable
+
+5) Improve the page layout structure:
+- Header, sidebar, map area, and zone list must feel balanced
+- The map should not visually dominate the page in a messy way
+- Zone list, controls, and actions should be cleaner and more structured
+- Make spacing more professional
+
+6) Keep existing functionality:
+- Do not break zone drawing
+- Do not break zone selection
+- Do not break edit / rename / add zone actions
+- Do not break current Leaflet integration unless needed for better styling
+- Only improve UX, responsiveness, map style, and layout clarity
+
+Please implement these fixes directly in the codebase.
+Focus especially on:
+- sidebar behavior over the map
+- removing the too-dark/night visual style
+- making the whole Zone Management page more comfortable, official, and professional
