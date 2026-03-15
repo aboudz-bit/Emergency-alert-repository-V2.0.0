@@ -1,15 +1,18 @@
+import { Feather } from "@expo/vector-icons";
 import { Link, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+
+import { Colors, FontSize, Spacing } from "@/constants/theme";
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn&apos;t exist.</Text>
-
+        <Feather name="alert-circle" size={48} color={Colors.textTertiary} />
+        <Text style={styles.title}>Screen not found</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text style={styles.linkText}>Go to home</Text>
         </Link>
       </View>
     </>
@@ -21,18 +24,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    padding: Spacing.xl,
+    backgroundColor: Colors.background,
+    gap: Spacing.md,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
   },
   link: {
-    marginTop: 15,
-    paddingVertical: 15,
+    marginTop: Spacing.md,
   },
   linkText: {
-    fontSize: 14,
-    color: "#2e78b7",
+    fontSize: FontSize.md,
+    fontFamily: "Inter_500Medium",
+    color: Colors.primary,
   },
 });
