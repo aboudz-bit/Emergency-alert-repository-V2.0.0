@@ -11,7 +11,7 @@ export interface AuthState {
 
 // ─── Zones ────────────────────────────────────────────────────────────────────
 
-export type ZoneType = 'CPF' | 'Camp' | 'Both' | 'Custom';
+export type ZoneType = 'CPF' | 'Camp' | 'Custom';
 export type ZoneBoundaryType = 'Polygon' | 'Circle';
 
 export interface ZonePoint {
@@ -80,12 +80,12 @@ export type AlertType =
 
 export type AlertPriority = 'High' | 'Medium' | 'Low';
 export type AlertStatus = 'active' | 'closed' | 'draft';
-export type AlertTarget = 'CPF' | 'Camp' | 'Both';
+export type AlertTarget = string;
 
 export interface Alert {
   id: number;
   type: AlertType;
-  zone: ZoneType;
+  zone: string;
   title: string;
   message: string;
   timestamp: string;

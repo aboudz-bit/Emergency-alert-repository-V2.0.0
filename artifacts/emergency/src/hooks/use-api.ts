@@ -103,7 +103,7 @@ export function useSendAllClear() {
       const alert: Alert = {
         id: Date.now(),
         type: 'All Clear',
-        zone: 'Both',
+        zone: 'All Zones',
         title: 'ALL CLEAR',
         message: 'The emergency condition has been resolved. Return to normal operations.',
         timestamp: new Date().toISOString(),

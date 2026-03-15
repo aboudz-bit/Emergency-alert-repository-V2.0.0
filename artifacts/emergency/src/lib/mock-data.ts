@@ -131,7 +131,7 @@ export const seedAlerts: Alert[] = [
   {
     id: 4,
     type: 'Drill',
-    zone: 'Both',
+    zone: 'All Zones',
     title: 'EMERGENCY EVACUATION DRILL',
     message: 'This is a drill. Proceed to muster points.',
     timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),

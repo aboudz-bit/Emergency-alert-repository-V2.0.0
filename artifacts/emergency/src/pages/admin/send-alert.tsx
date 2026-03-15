@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import type { AlertType, ZoneType } from '@/types';
+import type { AlertType } from '@/types';
 import { useStore, useShallow } from '@/store';
 import { useLocation } from 'wouter';
 import { ShieldAlert, Send, Clock, MapPin, Smartphone } from 'lucide-react';
@@ -27,13 +27,15 @@ const defaultMessages: Record<AlertType, string> = {
 
 export default function SendAlert() {
   const [, setLocation] = useLocation();
-  const { createAlert, currentUser } = useStore(useShallow(s => ({
+  const { createAlert, currentUser, zones } = useStore(useShallow(s => ({
     createAlert: s.createAlert,
     currentUser: s.currentUser,
+    zones: s.zones,
   })));
 
+  const activeZoneNames = zones.filter(z => z.isActive).map(z => z.name);
   const [type, setType] = useState<AlertType>('Blackout');
-  const [zone, setZone] = useState<ZoneType>('CPF');
+  const [zone, setZone] = useState(activeZoneNames[0] ?? 'All Zones');
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
   const [message, setMessage] = useState(defaultMessages['Blackout']);
   const [isSending, setIsSending] = useState(false);
@@ -103,13 +105,25 @@ export default function SendAlert() {
               {/* Zone */}
               <div>
                 <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 block">2. Target Zone</label>
-                <div className="flex gap-2 lg:gap-3">
-                  {(['CPF', 'Camp', 'Both'] as ZoneType[]).map(z => (
+                <div className="flex flex-wrap gap-2 lg:gap-3">
+                  <button
+                    onClick={() => setZone('All Zones')}
+                    className={cn(
+                      'py-3 px-4 rounded-lg border font-bold transition-all flex items-center justify-center gap-2',
+                      zone === 'All Zones'
+                        ? 'bg-card text-foreground border-foreground shadow-sm'
+                        : 'bg-background border-border text-muted-foreground hover:bg-card',
+                    )}
+                  >
+                    <MapPin className="w-4 h-4" />
+                    All Zones
+                  </button>
+                  {activeZoneNames.map(z => (
                     <button
                       key={z}
                       onClick={() => setZone(z)}
                       className={cn(
-                        'flex-1 py-3 px-4 rounded-lg border font-bold transition-all flex items-center justify-center gap-2',
+                        'py-3 px-4 rounded-lg border font-bold transition-all flex items-center justify-center gap-2',
                         zone === z
                           ? 'bg-card text-foreground border-foreground shadow-sm'
                           : 'bg-background border-border text-muted-foreground hover:bg-card',

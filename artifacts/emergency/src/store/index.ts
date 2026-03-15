@@ -274,7 +274,7 @@ export const useStore = create<AppState>()(
         const allClearAlert: Alert = {
           id: Date.now(),
           type: 'All Clear',
-          zone: 'Both',
+          zone: 'All Zones',
           title: 'ALL CLEAR',
           message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
           timestamp: new Date().toISOString(),
