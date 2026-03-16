@@ -39,12 +39,24 @@ export default function UsersScreen() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<"All" | UserResponseStatus>("All");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const statusFilterOptions: { key: "All" | UserResponseStatus; label: string }[] = [
+    { key: "All", label: "All" },
+    { key: "confirmed", label: "Confirmed" },
+    { key: "no_reply", label: "No Reply" },
+    { key: "missing", label: "Missing" },
+    { key: "need_help", label: "Need Help" },
+  ];
 
   const filteredUsers = useMemo(() => {
     let result = users;
     if (selectedFilter !== "All") {
       result = result.filter((u) => u.zone === selectedFilter);
+    }
+    if (selectedStatus !== "All") {
+      result = result.filter((u) => u.status === selectedStatus);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -56,7 +68,7 @@ export default function UsersScreen() {
       );
     }
     return result;
-  }, [users, selectedFilter, searchQuery]);
+  }, [users, selectedFilter, selectedStatus, searchQuery]);
 
   const handleStatusUpdate = useCallback(
     (userId: number, status: UserResponseStatus) => {
@@ -136,6 +148,28 @@ export default function UsersScreen() {
               ]}
             >
               {filter}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.filterRow}>
+        {statusFilterOptions.map((opt) => (
+          <Pressable
+            key={opt.key}
+            style={[
+              styles.filterChip,
+              selectedStatus === opt.key && styles.filterChipActive,
+            ]}
+            onPress={() => setSelectedStatus(opt.key)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedStatus === opt.key && styles.filterChipTextActive,
+              ]}
+            >
+              {opt.label}
             </Text>
           </Pressable>
         ))}
@@ -285,7 +319,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 5,
     gap: 6,
   },
   filterChip: {
