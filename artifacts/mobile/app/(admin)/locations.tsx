@@ -75,21 +75,26 @@ export default function LocationsScreen() {
 
   const handleSave = useCallback(() => {
     if (!locationName.trim() || !locationZone) return;
+    const matchedZone = zones.find((z) => z.name === locationZone);
+    const zoneId = matchedZone?.id || 0;
     if (editingLocation) {
       updateLocation(editingLocation.id, {
         name: locationName.trim(),
         zone: locationZone,
+        zoneId,
       });
     } else {
       addLocation({
         name: locationName.trim(),
         zone: locationZone,
+        zoneId,
         isActive: true,
         alertActive: false,
         alertType: null,
         alertPriority: null,
         alertMessage: "",
         alertUpdatedAt: null,
+        alertHistory: [],
       });
     }
     setShowModal(false);
