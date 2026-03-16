@@ -198,10 +198,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   vertexMarker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 3,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 4,
     borderColor: "#FFFFFF",
   },
 });

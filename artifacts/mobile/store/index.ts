@@ -23,7 +23,7 @@ interface AppState {
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
-  registerUser: (data: { name: string; badge: string; password: string; zone: 'CPF' | 'Camp'; location: string }) => { success: boolean; error?: string };
+  registerUser: (data: { name: string; badge: string; password: string; zone: string; location: string }) => { success: boolean; error?: string };
 
   createSuperAdmin: (data: { name: string; badge: string; password: string }) => { success: boolean; error?: string };
   toggleAccountStatus: (userId: number) => void;
@@ -211,7 +211,7 @@ export const useStore = create<AppState>()(
       getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
     }),
     {
-      name: 'keas-mobile-store-v1',
+      name: 'keas-mobile-store-v2',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,

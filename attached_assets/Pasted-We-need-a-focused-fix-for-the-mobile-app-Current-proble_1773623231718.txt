@@ -1,0 +1,124 @@
+We need a focused fix for the mobile app.
+
+Current problems:
+
+1) Zone editing on mobile is still weak
+- The current edit experience is not practical enough
+- The previous web editing workflow was more useful and easier
+- I want the mobile zone editing to become much more practical and closer to the web behavior
+
+2) Per-Zone Breakdown is still wrong
+- Right now the breakdown only shows CPF and Camp
+- This is incorrect
+- If I add a new zone, that zone must automatically appear in the per-zone breakdown
+- The breakdown must always use the real zones from state/store, not hardcoded zones
+
+==================================================
+TASK 1 — IMPROVE MOBILE ZONE EDITING
+==================================================
+
+Current issue:
+Zone editing on mobile is not good enough.
+
+Required improvements:
+- make zone editing much more practical
+- make boundary editing easier
+- make dragging points easier
+- make vertex handles clearer
+- improve touch accuracy
+- improve the edit flow
+
+I want this workflow:
+
+1) Select zone
+2) Tap Edit Zone
+3) Choose:
+   - Edit Settings
+   - Edit Boundary Shape
+4) If Edit Boundary Shape:
+   - clearly enter boundary edit mode
+   - show draggable points
+   - show clear Save Shape / Cancel buttons
+   - make the experience smooth and practical
+
+Important:
+The mobile editing flow should feel closer to the web version in usefulness.
+Do not keep it as a weak demo interaction.
+
+==================================================
+TASK 2 — PER-ZONE BREAKDOWN MUST BE DYNAMIC
+==================================================
+
+Current issue:
+Per-zone breakdown only shows:
+- CPF
+- Camp
+
+This is wrong.
+
+Required behavior:
+Any zone added in Zone Map / Zone Management must automatically appear in:
+
+- Dashboard per-zone breakdown
+- Alert Monitor per-zone breakdown
+- anywhere else zone summaries are shown
+
+Examples:
+If I add:
+- Field
+- Camp2
+- Storage Yard
+
+Then the breakdown must show:
+- CPF
+- Camp
+- Field
+- Camp2
+- Storage Yard
+
+Requirements:
+- remove any hardcoded CPF/Camp-only logic
+- use zones from the real store/state
+- if zone has users, count them correctly
+- if zone exists but no users yet, it should still be supported correctly where appropriate
+- if alert targets All Zones, all current zones must be included
+- if alert targets a single zone, only that zone should show
+
+==================================================
+TASK 3 — USE REAL ZONE RELATIONS
+==================================================
+
+Use the actual relationship between:
+- zones
+- users
+- locations
+- alerts
+
+Do not fake the breakdown with fixed labels.
+
+The logic must be:
+- users belong to zones
+- alerts target one or more zones
+- responses are counted per actual zone
+- zone cards in breakdown come from the store
+
+==================================================
+TASK 4 — KEEP CURRENT UI STYLE
+==================================================
+
+Do not redesign the whole app.
+Keep the current app style and dark theme.
+
+Just fix:
+- zone editing usability
+- dynamic zone breakdown logic
+
+==================================================
+WHEN DONE
+==================================================
+
+Tell me clearly:
+1) how mobile zone editing was improved
+2) whether new zones now appear automatically in per-zone breakdown
+3) what files changed
+4) whether CPF/Camp hardcoding was removed

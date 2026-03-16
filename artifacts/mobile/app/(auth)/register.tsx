@@ -15,25 +15,27 @@ import { useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { CPF_LOCATIONS, CAMP_LOCATIONS } from "@/constants/theme";
 import { useStore } from "@/store";
-
-type ZoneOption = "CPF" | "Camp";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const registerUser = useStore((s) => s.registerUser);
+  const storeZones = useStore((s) => s.zones);
+  const storeLocations = useStore((s) => s.locations);
 
   const [name, setName] = useState("");
   const [badge, setBadge] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [zone, setZone] = useState<ZoneOption | null>(null);
+  const [zone, setZone] = useState<string | null>(null);
   const [location, setLocation] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const locations = zone === "CPF" ? CPF_LOCATIONS : zone === "Camp" ? CAMP_LOCATIONS : [];
+  const activeZones = storeZones.filter((z) => z.isActive);
+  const locations = zone
+    ? storeLocations.filter((l) => l.zone === zone && l.isActive).map((l) => l.name)
+    : [];
 
   const validate = (): string | null => {
     if (!name.trim()) return "Full name is required.";
@@ -126,30 +128,26 @@ export default function RegisterScreen() {
             <View style={styles.sectionGap}>
               <Text style={styles.sectionLabel}>Zone</Text>
               <View style={styles.zoneRow}>
-                {(["CPF", "Camp"] as ZoneOption[]).map((z) => (
+                {activeZones.map((zoneItem) => (
                   <Pressable
-                    key={z}
+                    key={zoneItem.id}
                     style={[
                       styles.zoneCard,
-                      zone === z && styles.zoneCardSelected,
+                      zone === zoneItem.name && styles.zoneCardSelected,
                     ]}
                     onPress={() => {
-                      setZone(z);
+                      setZone(zoneItem.name);
                       setLocation("");
                     }}
                   >
-                    <Feather
-                      name={z === "CPF" ? "cpu" : "home"}
-                      size={20}
-                      color={zone === z ? Colors.primary : Colors.textSecondary}
-                    />
+                    <View style={[styles.zoneDot, { backgroundColor: zoneItem.color }]} />
                     <Text
                       style={[
                         styles.zoneCardText,
-                        zone === z && styles.zoneCardTextSelected,
+                        zone === zoneItem.name && styles.zoneCardTextSelected,
                       ]}
                     >
-                      {z}
+                      {zoneItem.name}
                     </Text>
                   </Pressable>
                 ))}
@@ -276,7 +274,8 @@ const styles = StyleSheet.create({
   /* Zone Cards */
   zoneRow: {
     flexDirection: "row",
-    gap: Spacing.md,
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
   zoneCard: {
     flex: 1,
@@ -293,6 +292,11 @@ const styles = StyleSheet.create({
   zoneCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryDim,
+  },
+  zoneDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   zoneCardText: {
     fontSize: FontSize.md,

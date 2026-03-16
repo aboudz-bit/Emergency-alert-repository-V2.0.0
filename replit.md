@@ -164,7 +164,7 @@ artifacts/mobile/
   - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
-- **Store**: `keas-mobile-store-v1` — bump when type shapes change
+- **Store**: `keas-mobile-store-v2` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`)
 - **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
 
 ## Workflow

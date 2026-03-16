@@ -2,11 +2,6 @@ import { useMemo } from "react";
 import type { User, Zone, Alert } from "@/types";
 import type { ZoneStats } from "@/components/ui/ZoneBreakdown";
 
-const DEFAULT_ZONE_COLORS: Record<string, string> = {
-  CPF: "#EF4444",
-  Camp: "#3B82F6",
-};
-
 export function useZoneBreakdown(
   users: User[],
   zones: Zone[],
@@ -17,8 +12,11 @@ export function useZoneBreakdown(
 
     const isAllZones =
       activeAlert.zone === "All Zones" || activeAlert.zone === "all";
-    const targetZones = isAllZones
-      ? [...new Set(users.map((u) => u.zone))]
+
+    const activeZones = zones.filter((z) => z.isActive);
+
+    const targetZoneNames = isAllZones
+      ? activeZones.map((z) => z.name)
       : [activeAlert.zone];
 
     const zoneColorMap = new Map<string, string>();
@@ -26,14 +24,11 @@ export function useZoneBreakdown(
       zoneColorMap.set(z.name, z.color);
     }
 
-    return targetZones.map((zoneName) => {
+    return targetZoneNames.map((zoneName) => {
       const zoneUsers = users.filter((u) => u.zone === zoneName);
       return {
         zoneName,
-        zoneColor:
-          zoneColorMap.get(zoneName) ||
-          DEFAULT_ZONE_COLORS[zoneName] ||
-          "#6B7280",
+        zoneColor: zoneColorMap.get(zoneName) || "#6B7280",
         confirmed: zoneUsers.filter((u) => u.status === "confirmed").length,
         missing: zoneUsers.filter((u) => u.status === "missing").length,
         noReply: zoneUsers.filter((u) => u.status === "no_reply").length,

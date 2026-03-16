@@ -33,10 +33,15 @@ export default function DashboardScreen() {
 
   const stats = useMemo(() => {
     const total = users.length;
-    const cpf = users.filter((u) => u.zone === "CPF").length;
-    const camp = users.filter((u) => u.zone === "Camp").length;
-    return { total, cpf, camp };
-  }, [users]);
+    const zoneCounts = zones
+      .filter((z) => z.isActive)
+      .map((z) => ({
+        name: z.name,
+        count: users.filter((u) => u.zone === z.name).length,
+        color: z.color,
+      }));
+    return { total, zoneCounts };
+  }, [users, zones]);
 
   const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
 
@@ -99,22 +104,34 @@ export default function DashboardScreen() {
               dimColor={activeAlert ? Colors.primaryDim : Colors.safeDim}
             />
           </View>
-          <View style={styles.kpiRow}>
-            <KPICard
-              title="CPF Zone"
-              value={stats.cpf}
-              icon="hard-drive"
-              color={Colors.safe}
-              dimColor={Colors.safeDim}
-            />
-            <KPICard
-              title="Camp Zone"
-              value={stats.camp}
-              icon="home"
-              color={Colors.amber}
-              dimColor={Colors.amberDim}
-            />
-          </View>
+          {stats.zoneCounts.length > 0 && (
+            <View style={styles.kpiRow}>
+              {stats.zoneCounts.slice(0, 2).map((zc) => (
+                <KPICard
+                  key={zc.name}
+                  title={`${zc.name} Zone`}
+                  value={zc.count}
+                  icon="map-pin"
+                  color={zc.color}
+                  dimColor={zc.color + "26"}
+                />
+              ))}
+            </View>
+          )}
+          {stats.zoneCounts.length > 2 && (
+            <View style={styles.kpiRow}>
+              {stats.zoneCounts.slice(2, 4).map((zc) => (
+                <KPICard
+                  key={zc.name}
+                  title={`${zc.name} Zone`}
+                  value={zc.count}
+                  icon="map-pin"
+                  color={zc.color}
+                  dimColor={zc.color + "26"}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {activeAlert && (

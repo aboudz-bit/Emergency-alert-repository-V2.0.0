@@ -87,8 +87,8 @@ function generateLeafletHtml(
           draggable: true,
           icon: L.divIcon({
             className: 'edit-vertex',
-            html: '<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:grab;"></div>',
-            iconAnchor: [9, 9],
+            html: '<div style="width:28px;height:28px;border-radius:50%;background:${color};border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);cursor:grab;"></div>',
+            iconAnchor: [14, 14],
           })
         }).addTo(map);
         m.on('drag', function(e) {
