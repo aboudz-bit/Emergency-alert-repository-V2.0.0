@@ -1,23 +1,24 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
+  Dimensions,
   FlatList,
   Modal,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { format } from "date-fns";
 
 import { Header } from "@/components/ui/Header";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { Colors, FontSize, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { User, UserResponseStatus } from "@/types";
+
+const SCREEN_H = Dimensions.get("window").height;
 
 const STATUS_OPTIONS: { key: UserResponseStatus; label: string }[] = [
   { key: "confirmed", label: "Confirmed" },
@@ -77,19 +78,19 @@ export default function UsersScreen() {
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{item.name}</Text>
-              <Text style={styles.userBadge}>Badge: {item.badge}</Text>
+              <Text style={styles.userBadge}>{item.badge}</Text>
             </View>
             <StatusBadge status={item.status} />
           </View>
           <View style={styles.userMeta}>
             <View style={styles.metaItem}>
-              <Feather name="map-pin" size={12} color={Colors.textSecondary} />
+              <Feather name="map-pin" size={11} color={Colors.textSecondary} />
               <Text style={styles.metaText}>
                 {item.zone} · {item.location}
               </Text>
             </View>
             <View style={styles.metaItem}>
-              <Feather name="clock" size={12} color={Colors.textSecondary} />
+              <Feather name="clock" size={11} color={Colors.textSecondary} />
               <Text style={styles.metaText}>
                 {format(new Date(item.lastActivity), "MMM d, HH:mm")}
               </Text>
@@ -107,11 +108,12 @@ export default function UsersScreen() {
 
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
-          <Feather name="search" size={18} color={Colors.textSecondary} />
-          <Input
+          <Feather name="search" size={15} color={Colors.textSecondary} />
+          <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by name, badge, or location..."
+            placeholder="Search name, badge, location..."
+            placeholderTextColor={Colors.textTertiary}
             style={styles.searchInput}
           />
         </View>
@@ -151,7 +153,7 @@ export default function UsersScreen() {
         renderItem={renderUserCard}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Feather name="users" size={48} color={Colors.textSecondary} />
+            <Feather name="users" size={36} color={Colors.textSecondary} />
             <Text style={styles.emptyText}>No users found</Text>
           </View>
         }
@@ -231,13 +233,12 @@ export default function UsersScreen() {
                   ))}
                 </View>
 
-                <Button
-                  title="Close"
+                <Pressable
+                  style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.8 }]}
                   onPress={() => setSelectedUser(null)}
-                  variant="secondary"
-                  fullWidth
-                  size="lg"
-                />
+                >
+                  <Text style={styles.closeBtnText}>Close</Text>
+                </Pressable>
               </>
             )}
           </View>
@@ -252,37 +253,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+
+  // ─── Search ───
   searchWrap: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: BorderRadius.md,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingLeft: Spacing.md,
-    gap: Spacing.sm,
+    paddingLeft: 12,
+    height: 40,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    paddingHorizontal: 0,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: Colors.text,
+    paddingVertical: 0,
+    paddingRight: 12,
+    height: 40,
   },
+
+  // ─── Filters ───
   filterRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
   },
   filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    paddingHorizontal: 10,
+    height: 32,
+    justifyContent: "center",
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
@@ -292,7 +302,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   filterChipText: {
-    fontSize: FontSize.sm,
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
@@ -304,122 +314,131 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   filterCountText: {
-    fontSize: FontSize.sm,
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     color: Colors.textTertiary,
   },
+
+  // ─── List ───
   listContent: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.xxxl,
+    paddingHorizontal: 12,
+    gap: 6,
+    paddingTop: 4,
+    paddingBottom: 80,
   },
   userCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
   },
   userCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: 10,
   },
   userAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   userAvatarText: {
-    fontSize: FontSize.lg,
+    fontSize: 13,
     fontFamily: "Inter_700Bold",
     color: Colors.textSecondary,
   },
   userInfo: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   userName: {
-    fontSize: FontSize.md,
+    fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
   userBadge: {
-    fontSize: FontSize.sm,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
   userMeta: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingTop: Spacing.sm,
+    paddingTop: 5,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
+    gap: 4,
   },
   metaText: {
-    fontSize: FontSize.xs,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
+
+  // ─── Empty ───
   emptyContainer: {
     alignItems: "center",
-    paddingVertical: Spacing.xxxl,
-    gap: Spacing.md,
+    paddingVertical: 40,
+    gap: 8,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
+
+  // ─── Modal ───
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "center",
     alignItems: "center",
-    padding: Spacing.xl,
+    padding: 20,
   },
   modalContent: {
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
+    borderRadius: 14,
+    padding: 16,
     width: "100%",
-    maxWidth: 400,
-    gap: Spacing.lg,
+    maxWidth: 380,
+    maxHeight: SCREEN_H * 0.7,
+    gap: 10,
   },
   modalHeader: {
     alignItems: "center",
-    gap: Spacing.sm,
+    gap: 6,
   },
   modalAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   modalAvatarText: {
-    fontSize: FontSize.xxl,
+    fontSize: 18,
     fontFamily: "Inter_700Bold",
     color: Colors.textSecondary,
   },
   modalName: {
-    fontSize: FontSize.xl,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
   modalDetails: {
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    gap: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: Colors.border,
@@ -430,43 +449,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalDetailLabel: {
-    fontSize: FontSize.sm,
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
     color: Colors.textSecondary,
   },
   modalDetailValue: {
-    fontSize: FontSize.sm,
+    fontSize: 13,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
   modalSectionTitle: {
-    fontSize: FontSize.md,
+    fontSize: 13,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
+
+  // ─── Status grid (2×2) ───
   statusGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
+    gap: 6,
   },
   statusBtn: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
+    width: "48.5%" as any,
+    height: 38,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusBtnActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
   statusBtnText: {
-    fontSize: FontSize.sm,
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   statusBtnTextActive: {
     color: Colors.white,
+  },
+
+  // ─── Close ───
+  closeBtn: {
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
   },
 });

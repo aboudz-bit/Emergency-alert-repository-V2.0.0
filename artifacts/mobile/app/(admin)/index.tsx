@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
-import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
@@ -188,22 +187,20 @@ export default function DashboardScreen() {
                 </View>
 
                 <View style={styles.alertActions}>
-                  <Button
-                    title="All Clear"
+                  <Pressable
+                    style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSafe, pressed && { opacity: 0.8 }]}
                     onPress={sendAllClear}
-                    variant="safe"
-                    icon="check-circle"
-                    size="lg"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    title="Monitor"
+                  >
+                    <Feather name="check-circle" size={14} color="#fff" />
+                    <Text style={styles.alertActionTextLight}>All Clear</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSecondary, pressed && { opacity: 0.8 }]}
                     onPress={() => router.push("/(admin)/alert-monitor")}
-                    variant="secondary"
-                    icon="eye"
-                    size="lg"
-                    style={{ flex: 1 }}
-                  />
+                  >
+                    <Feather name="eye" size={14} color={Colors.text} />
+                    <Text style={styles.alertActionTextDark}>Monitor</Text>
+                  </Pressable>
                 </View>
               </Card>
             </Pressable>
@@ -423,7 +420,34 @@ const styles = StyleSheet.create({
   },
   alertActions: {
     flexDirection: "row",
-    gap: Spacing.md,
+    gap: 8,
+  },
+  alertActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    height: 38,
+    borderRadius: 8,
+  },
+  alertActionSafe: {
+    backgroundColor: Colors.safe,
+  },
+  alertActionSecondary: {
+    backgroundColor: Colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  alertActionTextLight: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+  },
+  alertActionTextDark: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
   },
   zoneBreakdownWrap: {
     gap: Spacing.sm,
