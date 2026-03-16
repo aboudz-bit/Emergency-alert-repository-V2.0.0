@@ -42,7 +42,7 @@ export default function DashboardScreen() {
       .filter((z) => z.isActive)
       .map((z) => ({
         name: z.name,
-        count: users.filter((u) => u.zone === z.name).length,
+        count: users.filter((u) => u.zoneId === z.id).length,
         color: z.color,
       }));
     return { total, zoneCounts, affectedLocations, affectedUsers };

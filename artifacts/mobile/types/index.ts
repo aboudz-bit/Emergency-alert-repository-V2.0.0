@@ -91,7 +91,9 @@ export interface User {
   password: string;
   role: UserRole;
   zone: string;
+  zoneId: number;
   location: string;
+  locationId: number;
   status: UserResponseStatus;
   accountStatus: AccountStatus;
   lastActivity: string;

@@ -24,8 +24,12 @@ export function useZoneBreakdown(
       zoneColorMap.set(z.name, z.color);
     }
 
+    const zoneIdMap = new Map<string, number>();
+    for (const z of zones) zoneIdMap.set(z.name, z.id);
+
     return targetZoneNames.map((zoneName) => {
-      const zoneUsers = users.filter((u) => u.zone === zoneName);
+      const zId = zoneIdMap.get(zoneName);
+      const zoneUsers = users.filter((u) => zId !== undefined && u.zoneId === zId);
       return {
         zoneName,
         zoneColor: zoneColorMap.get(zoneName) || "#6B7280",

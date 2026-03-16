@@ -38,6 +38,10 @@ export const seedUsers: User[] = names.map((name, i) => {
   if (i === 0) role = 'Super Admin';
   else if (i === 1) role = 'IT';
 
+  const zoneId = isCpf ? 1 : 2;
+  // Location IDs: CPF locations are 1..15, Camp locations are 16..24
+  const locationId = isCpf ? (locIndex + 1) : (CPF_LOCATIONS.length + locIndex + 1);
+
   return {
     id: i + 1,
     name,
@@ -45,7 +49,9 @@ export const seedUsers: User[] = names.map((name, i) => {
     password: 'demo1234',
     role,
     zone: isCpf ? 'CPF' as const : 'Camp' as const,
+    zoneId,
     location: locList[locIndex],
+    locationId,
     status,
     accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
     lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),

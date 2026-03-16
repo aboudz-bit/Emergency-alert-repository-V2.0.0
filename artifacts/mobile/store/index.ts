@@ -53,6 +53,7 @@ interface AppState {
   deactivateLocationAlert: (id: number) => void;
   editLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
+  bulkActivateZoneAlerts: (zoneIds: number[], alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   deactivateZoneAlert: (zoneId: number) => void;
   editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
@@ -98,12 +99,16 @@ export const useStore = create<AppState>()(
       logout: () => set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null }),
 
       registerUser: ({ name, badge, password, zone, location }) => {
-        const { users } = get();
+        const { users, zones, locations: locs } = get();
         if (users.find(u => u.badge === badge)) {
           return { success: false, error: 'Badge number already registered.' };
         }
+        const matchedZone = zones.find(z => z.name === zone);
+        const matchedLoc = locs.find(l => l.name === location && l.zone === zone);
         const newUser: User = {
           id: Date.now(), name, badge, password, role: 'User', zone, location,
+          zoneId: matchedZone?.id ?? 0,
+          locationId: matchedLoc?.id ?? 0,
           status: 'no_reply', accountStatus: 'active',
           lastActivity: new Date().toISOString(), isActive: true,
         };
@@ -112,13 +117,17 @@ export const useStore = create<AppState>()(
       },
 
       createSuperAdmin: ({ name, badge, password }) => {
-        const { users } = get();
+        const { users, zones, locations: locs } = get();
         if (users.find(u => u.badge === badge)) {
           return { success: false, error: 'Badge number already exists.' };
         }
+        const cpfZone = zones.find(z => z.name === 'CPF');
+        const ctrlRoom = locs.find(l => l.name === 'Control Room' && l.zoneId === (cpfZone?.id ?? 1));
         const newAdmin: User = {
           id: Date.now(), name, badge, password, role: 'Super Admin',
-          zone: 'CPF', location: 'Control Room', status: 'no_reply',
+          zone: 'CPF', zoneId: cpfZone?.id ?? 1,
+          location: 'Control Room', locationId: ctrlRoom?.id ?? 1,
+          status: 'no_reply',
           accountStatus: 'active', lastActivity: new Date().toISOString(), isActive: true,
         };
         set(s => ({ users: [...s.users, newAdmin] }));
@@ -289,6 +298,49 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      bulkActivateZoneAlerts: (zoneIds, alertType, priority, message) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const idSet = new Set(zoneIds);
+        set(s => ({
+          zones: s.zones.map(z => idSet.has(z.id) ? {
+            ...z,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(),
+              zoneId: z.id,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+          locations: s.locations.map(l => idSet.has(l.zoneId) ? {
+            ...l,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+        }));
+      },
       activateZoneAlert: (zoneId, alertType, priority, message) => {
         const now = new Date().toISOString();
         const user = get().currentUser?.name || null;
@@ -429,13 +481,14 @@ export const useStore = create<AppState>()(
       getActiveAlert: () => get().alerts.find(a => a.isActive) || null,
       getLocationsByZone: (zone) => {
         const z = get().zones.find(zn => zn.name === zone);
-        if (!z) return get().locations.filter(l => l.zone === zone && l.isActive);
-        return get().locations.filter(l => l.zoneId === z.id && l.isActive);
+        return get().locations.filter(l =>
+          z ? l.zoneId === z.id && l.isActive : l.zone === zone && l.isActive
+        );
       },
     }),
     {
-      name: 'keas-mobile-store-v2',
-      version: 2,
+      name: 'keas-mobile-store-v3',
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -474,6 +527,25 @@ export const useStore = create<AppState>()(
                 ? loc.zoneId
                 : (zoneNameToId.get(loc.zone) ?? 0),
             }));
+          }
+        }
+        if (version < 3) {
+          // Backfill zoneId / locationId on users
+          const zoneNameToId = new Map<string, number>();
+          if (Array.isArray(state?.zones)) {
+            for (const z of state.zones) zoneNameToId.set(z.name, z.id);
+          }
+          const locKey = (name: string, zoneId: number) => `${zoneId}:${name}`;
+          const locNameToId = new Map<string, number>();
+          if (Array.isArray(state?.locations)) {
+            for (const l of state.locations) locNameToId.set(locKey(l.name, l.zoneId), l.id);
+          }
+          if (Array.isArray(state?.users)) {
+            state.users = state.users.map((u: any) => {
+              const zid = u.zoneId ?? zoneNameToId.get(u.zone) ?? 0;
+              const lid = u.locationId ?? locNameToId.get(locKey(u.location, zid)) ?? 0;
+              return { ...u, zoneId: zid, locationId: lid };
+            });
           }
         }
         return persisted as AppState;
