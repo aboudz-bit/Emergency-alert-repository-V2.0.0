@@ -14,24 +14,30 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert } from "@/store";
-import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
+import { useStore } from "@/store";
 
 export default function DashboardScreen() {
   const router = useRouter();
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
   const activityLogs = useStore((s) => s.activityLogs);
-  const activeAlert = useStore(selectActiveAlert);
-  const sendAllClear = useStore((s) => s.sendAllClear);
   const logout = useStore((s) => s.logout);
 
-  const zoneStats = useZoneBreakdown(users, zones, activeAlert);
+  const alertZones = useMemo(
+    () => zones.filter((z) => z.isActive && z.alertActive),
+    [zones]
+  );
+  const activeAlertCount = alertZones.length;
+  const hasActiveAlerts = activeAlertCount > 0;
 
   const stats = useMemo(() => {
     const total = users.length;
+    const affectedLocations = locations.filter((l) => l.alertActive && l.isActive).length;
+    const affectedUsers = hasActiveAlerts
+      ? users.filter((u) => alertZones.some((z) => z.name === u.zone)).length
+      : 0;
     const zoneCounts = zones
       .filter((z) => z.isActive)
       .map((z) => ({
@@ -39,8 +45,8 @@ export default function DashboardScreen() {
         count: users.filter((u) => u.zone === z.name).length,
         color: z.color,
       }));
-    return { total, zoneCounts };
-  }, [users, zones]);
+    return { total, zoneCounts, affectedLocations, affectedUsers };
+  }, [users, zones, locations, alertZones, hasActiveAlerts]);
 
   const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
 
@@ -72,7 +78,7 @@ export default function DashboardScreen() {
               hitSlop={8}
             >
               <Feather name="bell" size={20} color={Colors.text} />
-              {activeAlert && <View style={styles.notifDot} />}
+              {hasActiveAlerts && <View style={styles.notifDot} />}
             </Pressable>
             <Pressable onPress={handleLogout} style={styles.iconBtn} hitSlop={8}>
               <Feather name="log-out" size={20} color={Colors.textSecondary} />
@@ -97,10 +103,10 @@ export default function DashboardScreen() {
             />
             <KPICard
               title="Active Alerts"
-              value={activeAlert ? 1 : 0}
+              value={activeAlertCount}
               icon="alert-triangle"
-              color={activeAlert ? Colors.primary : Colors.safe}
-              dimColor={activeAlert ? Colors.primaryDim : Colors.safeDim}
+              color={hasActiveAlerts ? Colors.primary : Colors.safe}
+              dimColor={hasActiveAlerts ? Colors.primaryDim : Colors.safeDim}
             />
           </View>
           {stats.zoneCounts.length > 0 && (
@@ -133,87 +139,73 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {activeAlert && (
-          <>
-            <Pressable onPress={() => router.push("/(admin)/alert-monitor")}>
-              <Card style={styles.alertBanner}>
-                <View style={styles.alertBannerHeader}>
-                  <View style={styles.alertBannerLeft}>
-                    <View style={styles.alertIconCircle}>
-                      <Feather name="alert-triangle" size={18} color={Colors.primary} />
-                    </View>
-                    <View style={styles.alertBannerTitleWrap}>
-                      <Text style={styles.alertBannerTitle}>{activeAlert.type}</Text>
-                      <Text style={styles.alertBannerMeta}>
-                        {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "HH:mm:ss")}
-                      </Text>
-                    </View>
+        {hasActiveAlerts && (
+          <Pressable onPress={() => router.push("/(admin)/send-alert")}>
+            <Card style={styles.alertBanner}>
+              <View style={styles.alertBannerHeader}>
+                <View style={styles.alertBannerLeft}>
+                  <View style={styles.alertIconCircle}>
+                    <Feather name="alert-triangle" size={18} color={Colors.primary} />
                   </View>
-                  <StatusBadge status="active" />
-                </View>
-
-                <Text style={styles.alertMessage} numberOfLines={2}>
-                  {activeAlert.message}
-                </Text>
-
-                <View style={styles.alertStats}>
-                  <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: Colors.safe }]}>
-                      {activeAlert.stats.confirmed}
+                  <View style={styles.alertBannerTitleWrap}>
+                    <Text style={styles.alertBannerTitle}>
+                      {activeAlertCount} Active Alert{activeAlertCount !== 1 ? "s" : ""}
                     </Text>
-                    <Text style={styles.statLabel}>Safe</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: Colors.missing }]}>
-                      {activeAlert.stats.missing}
+                    <Text style={styles.alertBannerMeta}>
+                      {alertZones.map((z) => z.name).join(", ")}
                     </Text>
-                    <Text style={styles.statLabel}>Missing</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: Colors.noreply }]}>
-                      {activeAlert.stats.noReply}
-                    </Text>
-                    <Text style={styles.statLabel}>No Reply</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: Colors.primary }]}>
-                      {activeAlert.stats.needHelp}
-                    </Text>
-                    <Text style={styles.statLabel}>Help</Text>
                   </View>
                 </View>
-
-                <View style={styles.alertActions}>
-                  <Pressable
-                    style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSafe, pressed && { opacity: 0.8 }]}
-                    onPress={sendAllClear}
-                  >
-                    <Feather name="check-circle" size={14} color="#fff" />
-                    <Text style={styles.alertActionTextLight}>All Clear</Text>
-                  </Pressable>
-                  <Pressable
-                    style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSecondary, pressed && { opacity: 0.8 }]}
-                    onPress={() => router.push("/(admin)/alert-monitor")}
-                  >
-                    <Feather name="eye" size={14} color={Colors.text} />
-                    <Text style={styles.alertActionTextDark}>Monitor</Text>
-                  </Pressable>
-                </View>
-              </Card>
-            </Pressable>
-
-            {zoneStats.length > 0 && (
-              <View style={styles.zoneBreakdownWrap}>
-                <Text style={styles.zoneBreakdownTitle}>
-                  {zoneStats.length > 1 ? "Per-Zone Breakdown" : `${zoneStats[0].zoneName} Zone`}
-                </Text>
-                <ZoneBreakdown zoneStats={zoneStats} />
+                <StatusBadge status="active" />
               </View>
-            )}
-          </>
+
+              {alertZones.map((zone) => (
+                <View key={zone.id} style={styles.zoneAlertRow}>
+                  <View style={[styles.zoneAlertDot, { backgroundColor: zone.color }]} />
+                  <Text style={styles.zoneAlertName}>{zone.name}</Text>
+                  <View style={[styles.zoneAlertTag, { backgroundColor: (zone.alertPriority === "High" ? Colors.primary : zone.alertPriority === "Medium" ? Colors.amber : Colors.info) + "1A" }]}>
+                    <Text style={[styles.zoneAlertTagText, { color: zone.alertPriority === "High" ? Colors.primary : zone.alertPriority === "Medium" ? Colors.amber : Colors.info }]}>
+                      {zone.alertPriority}
+                    </Text>
+                  </View>
+                  <Text style={styles.zoneAlertType}>{zone.alertType}</Text>
+                </View>
+              ))}
+
+              <View style={styles.alertStats}>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: Colors.primary }]}>
+                    {activeAlertCount}
+                  </Text>
+                  <Text style={styles.statLabel}>Zones</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: Colors.info }]}>
+                    {stats.affectedLocations}
+                  </Text>
+                  <Text style={styles.statLabel}>Locations</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: Colors.amber }]}>
+                    {stats.affectedUsers}
+                  </Text>
+                  <Text style={styles.statLabel}>Users</Text>
+                </View>
+              </View>
+
+              <View style={styles.alertActions}>
+                <Pressable
+                  style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSecondary, pressed && { opacity: 0.8 }]}
+                  onPress={() => router.push("/(admin)/send-alert")}
+                >
+                  <Feather name="settings" size={14} color={Colors.text} />
+                  <Text style={styles.alertActionTextDark}>Manage</Text>
+                </Pressable>
+              </View>
+            </Card>
+          </Pressable>
         )}
 
         <View style={styles.section}>
@@ -431,33 +423,47 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 8,
   },
-  alertActionSafe: {
-    backgroundColor: Colors.safe,
-  },
   alertActionSecondary: {
     backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  alertActionTextLight: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
   },
   alertActionTextDark: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
-  zoneBreakdownWrap: {
-    gap: Spacing.sm,
+  zoneAlertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.primaryBorder,
   },
-  zoneBreakdownTitle: {
-    fontSize: FontSize.sm,
+  zoneAlertDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  zoneAlertName: {
+    fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    color: Colors.text,
+  },
+  zoneAlertTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  zoneAlertTagText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+  },
+  zoneAlertType: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
   },
   section: {
     gap: Spacing.md,
