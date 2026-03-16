@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
-  User, Alert, Zone, Location, AppSettings,
-  ActivityLog, UserRole, UserResponseStatus,
+  User, Alert, Zone, Location, LocationAlertType, AppSettings,
+  ActivityLog, UserRole, UserResponseStatus, AlertPriority,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -42,6 +42,9 @@ interface AppState {
   addLocation: (location: Omit<Location, 'id'>) => void;
   updateLocation: (id: number, partial: Partial<Location>) => void;
   deleteLocation: (id: number) => void;
+
+  activateLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  deactivateLocationAlert: (id: number) => void;
 
   updateSettings: (partial: Partial<AppSettings>) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id'>) => void;
@@ -200,6 +203,27 @@ export const useStore = create<AppState>()(
       addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now() }] })),
       updateLocation: (id, partial) => set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, ...partial } : l) })),
       deleteLocation: (id) => set(s => ({ locations: s.locations.filter(l => l.id !== id) })),
+
+      activateLocationAlert: (id, alertType, priority, message) => set(s => ({
+        locations: s.locations.map(l => l.id === id ? {
+          ...l,
+          alertActive: true,
+          alertType,
+          alertPriority: priority,
+          alertMessage: message,
+          alertUpdatedAt: new Date().toISOString(),
+        } : l),
+      })),
+      deactivateLocationAlert: (id) => set(s => ({
+        locations: s.locations.map(l => l.id === id ? {
+          ...l,
+          alertActive: false,
+          alertType: null,
+          alertPriority: null,
+          alertMessage: '',
+          alertUpdatedAt: new Date().toISOString(),
+        } : l),
+      })),
 
       updateSettings: (partial) => set(s => ({ settings: { ...s.settings, ...partial } })),
 
