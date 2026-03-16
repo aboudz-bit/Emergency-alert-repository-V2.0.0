@@ -1,30 +1,25 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   Dimensions,
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Header } from "@/components/ui/Header";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Zone, ZoneType, LatLng } from "@/types";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.42;
+const { height: SCREEN_H } = Dimensions.get("window");
 
 const ZONE_COLORS = [
   "#EF4444", "#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6",
@@ -37,109 +32,93 @@ const ZONE_TYPES: { key: ZoneType; label: string }[] = [
   { key: "Custom", label: "Custom" },
 ];
 
-// ─── Mode system ───
-type AppMode = "view" | "pick_shape" | "draw_tap" | "draw_rect" | "edit_shape";
+type Mode = "view" | "pick_shape" | "draw" | "edit";
 
 export default function ZonesScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const zones = useStore((s) => s.zones);
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
 
-  // ─── Core state ───
-  const [mode, setMode] = useState<AppMode>("view");
+  const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [flyToZoneId, setFlyToZoneId] = useState<number | null>(null);
-
-  // ─── Drawing state ───
   const [tapPoints, setTapPoints] = useState<LatLng[]>([]);
   const [editingPoints, setEditingPoints] = useState<LatLng[]>([]);
 
-  // ─── Form state (used after drawing is complete) ───
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  // Save modal
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<ZoneType>("Custom");
   const [formColor, setFormColor] = useState(ZONE_COLORS[0]);
 
-  // ─── Pending points waiting for name/save ───
   const pendingPointsRef = useRef<LatLng[]>([]);
   const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
+  const originalPointsRef = useRef<LatLng[]>([]);
 
   const selectedZone = useMemo(
     () => zones.find((z) => z.id === selectedZoneId) || null,
     [zones, selectedZoneId]
   );
 
-  const isDrawing = mode === "draw_tap" || mode === "draw_rect" || mode === "pick_shape";
-  const isEditing = mode === "edit_shape";
-  const isMapMode = isDrawing || isEditing;
-
-  // ─── Map event handlers ───
-  const handleMapCenterChange = useCallback((center: LatLng) => {
-    mapCenterRef.current = center;
+  // ─── Map handlers ───
+  const handleMapCenterChange = useCallback((c: LatLng) => {
+    mapCenterRef.current = c;
   }, []);
 
-  const handleZonePress = useCallback((zoneId: number) => {
-    if (isMapMode) return;
+  const handleZonePress = useCallback((id: number) => {
+    if (mode !== "view") return;
     setSelectedZoneId((prev) => {
-      const newId = prev === zoneId ? null : zoneId;
-      if (newId != null) setFlyToZoneId(newId);
-      return newId;
+      const next = prev === id ? null : id;
+      if (next != null) setFlyToZoneId(next);
+      return next;
     });
-  }, [isMapMode]);
-
-  const handleMapTap = useCallback((point: LatLng) => {
-    if (mode !== "draw_tap") return;
-    setTapPoints((prev) => [...prev, point]);
   }, [mode]);
 
-  // ─── Zone CRUD ───
-  const handleToggleZone = useCallback(
-    (zone: Zone) => updateZone(zone.id, { isActive: !zone.isActive }),
-    [updateZone]
-  );
+  const handleMapTap = useCallback((pt: LatLng) => {
+    if (mode !== "draw") return;
+    setTapPoints((p) => [...p, pt]);
+  }, [mode]);
 
-  // ─── New zone: map-first flow ───
+  // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {
-    const usedColors = zones.map((z) => z.color);
-    const nextColor = ZONE_COLORS.find((c) => !usedColors.includes(c)) || ZONE_COLORS[0];
-    setFormColor(nextColor);
+    const used = zones.map((z) => z.color);
+    setFormColor(ZONE_COLORS.find((c) => !used.includes(c)) || ZONE_COLORS[0]);
     setFormName("");
     setFormType("Custom");
     setSelectedZoneId(null);
     setMode("pick_shape");
   }, [zones]);
 
-  const handlePickShape = useCallback((shape: "rectangle" | "tap") => {
-    if (shape === "tap") {
-      setTapPoints([]);
-      setMode("draw_tap");
-    } else {
-      // Rectangle: create at current map center immediately, then ask for name
-      const center = mapCenterRef.current;
-      const offset = 0.004;
-      const points: LatLng[] = [
-        { lat: center.lat + offset, lng: center.lng - offset },
-        { lat: center.lat + offset, lng: center.lng + offset },
-        { lat: center.lat - offset, lng: center.lng + offset },
-        { lat: center.lat - offset, lng: center.lng - offset },
-      ];
-      pendingPointsRef.current = points;
-      setMode("view");
-      setShowSaveModal(true);
-    }
+  const handlePickRect = useCallback(() => {
+    const c = mapCenterRef.current;
+    const d = 0.004;
+    pendingPointsRef.current = [
+      { lat: c.lat + d, lng: c.lng - d },
+      { lat: c.lat + d, lng: c.lng + d },
+      { lat: c.lat - d, lng: c.lng + d },
+      { lat: c.lat - d, lng: c.lng - d },
+    ];
+    setMode("view");
+    setShowSaveSheet(true);
+  }, []);
+
+  const handlePickDraw = useCallback(() => {
+    setTapPoints([]);
+    setMode("draw");
   }, []);
 
   const handleUndoTap = useCallback(() => {
-    setTapPoints((prev) => prev.slice(0, -1));
+    setTapPoints((p) => p.slice(0, -1));
   }, []);
 
-  const handleFinishTapDraw = useCallback(() => {
+  const handleFinishDraw = useCallback(() => {
     if (tapPoints.length < 3) return;
     pendingPointsRef.current = [...tapPoints];
     setMode("view");
-    setShowSaveModal(true);
+    setShowSaveSheet(true);
   }, [tapPoints]);
 
   const handleCancelDraw = useCallback(() => {
@@ -147,518 +126,322 @@ export default function ZonesScreen() {
     setTapPoints([]);
   }, []);
 
-  // ─── Save new zone (after drawing) ───
   const handleSaveNewZone = useCallback(() => {
     if (!formName.trim()) return;
-    const points = pendingPointsRef.current;
-    if (points.length < 3) return;
-
-    const lats = points.map((p) => p.lat);
-    const lngs = points.map((p) => p.lng);
-    const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-    const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
-
+    const pts = pendingPointsRef.current;
+    if (pts.length < 3) return;
+    const lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+    const lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
     addZone({
-      name: formName.trim(),
-      type: formType,
-      boundaryType: "Polygon",
-      polygonPoints: points,
-      center: { lat: centerLat, lng: centerLng },
-      isActive: true,
-      color: formColor,
+      name: formName.trim(), type: formType, boundaryType: "Polygon",
+      polygonPoints: pts, center: { lat, lng }, isActive: true, color: formColor,
     });
-    setShowSaveModal(false);
+    setShowSaveSheet(false);
     setTapPoints([]);
     pendingPointsRef.current = [];
-    setFormName("");
   }, [formName, formType, formColor, addZone]);
 
-  const handleCancelSave = useCallback(() => {
-    setShowSaveModal(false);
+  const handleDiscardSave = useCallback(() => {
+    setShowSaveSheet(false);
     pendingPointsRef.current = [];
     setTapPoints([]);
-    setFormName("");
   }, []);
 
-  // ─── Edit zone ───
-  const handleOpenEdit = useCallback(() => {
+  // ─── EDIT flow — direct to boundary ───
+  const handleEditZone = useCallback(() => {
     if (!selectedZone) return;
-    setFormName(selectedZone.name);
-    setFormType(selectedZone.type);
-    setFormColor(selectedZone.color);
-    setShowEditModal(true);
+    originalPointsRef.current = [...selectedZone.polygonPoints];
+    setEditingPoints([...selectedZone.polygonPoints]);
+    setMode("edit");
   }, [selectedZone]);
+
+  const handleResetEdit = useCallback(() => {
+    setEditingPoints([...originalPointsRef.current]);
+  }, []);
 
   const handleSaveEdit = useCallback(() => {
-    if (!selectedZone || !formName.trim()) return;
-    updateZone(selectedZone.id, {
-      name: formName.trim(),
-      type: formType,
-      color: formColor,
-    });
-    setShowEditModal(false);
-  }, [selectedZone, formName, formType, formColor, updateZone]);
-
-  const handleDeleteZone = useCallback(() => {
-    if (!selectedZone) return;
-    deleteZone(selectedZone.id);
-    setSelectedZoneId(null);
-    setShowEditModal(false);
-  }, [selectedZone, deleteZone]);
-
-  // ─── Edit boundary shape ───
-  const handleEnterShapeEdit = useCallback(() => {
-    if (!selectedZone) return;
-    setEditingPoints([...selectedZone.polygonPoints]);
-    setShowEditModal(false);
-    setMode("edit_shape");
-  }, [selectedZone]);
-
-  const handleSaveShape = useCallback(() => {
     if (!selectedZone || editingPoints.length < 3) return;
-    const lats = editingPoints.map((p) => p.lat);
-    const lngs = editingPoints.map((p) => p.lng);
+    const lat = editingPoints.reduce((s, p) => s + p.lat, 0) / editingPoints.length;
+    const lng = editingPoints.reduce((s, p) => s + p.lng, 0) / editingPoints.length;
     updateZone(selectedZone.id, {
       polygonPoints: editingPoints,
-      center: {
-        lat: lats.reduce((a, b) => a + b, 0) / lats.length,
-        lng: lngs.reduce((a, b) => a + b, 0) / lngs.length,
-      },
+      center: { lat, lng },
     });
     setMode("view");
     setEditingPoints([]);
   }, [selectedZone, editingPoints, updateZone]);
 
-  const handleCancelShapeEdit = useCallback(() => {
+  const handleCancelEdit = useCallback(() => {
     setMode("view");
     setEditingPoints([]);
   }, []);
 
-  const handleEditingPointsChange = useCallback((points: LatLng[]) => {
-    setEditingPoints(points);
-  }, []);
+  const handleToggleZone = useCallback(
+    (z: Zone) => updateZone(z.id, { isActive: !z.isActive }),
+    [updateZone]
+  );
+
+  const handleDeleteZone = useCallback(() => {
+    if (!selectedZone) return;
+    deleteZone(selectedZone.id);
+    setSelectedZoneId(null);
+  }, [selectedZone, deleteZone]);
+
+  const handleFocusZone = useCallback(() => {
+    if (selectedZoneId) setFlyToZoneId(selectedZoneId);
+  }, [selectedZoneId]);
 
   // ─── Derived ───
-  const drawMode: DrawMode = mode === "draw_tap" ? "tap" : "none";
-  const mapHeight = isMapMode ? SCREEN_HEIGHT * 0.7 : MAP_HEIGHT;
-
-  // ─── Mode label ───
-  const modeLabel = (() => {
-    switch (mode) {
-      case "pick_shape": return "NEW ZONE";
-      case "draw_tap": return "DRAW MODE";
-      case "draw_rect": return "DRAW MODE";
-      case "edit_shape": return "EDIT MODE";
-      default: return null;
-    }
-  })();
-
-  const modeColor = mode === "edit_shape" ? "#F59E0B" : "#3B82F6";
+  const drawMode: DrawMode = mode === "draw" ? "tap" : "none";
+  const showCrosshair = mode === "pick_shape";
 
   return (
-    <View style={styles.container}>
-      {/* ─── Header ─── */}
-      {mode === "view" && (
-        <Header
-          title="Zone Map"
-          showBack
-          rightAction={
-            <Pressable style={styles.addBtn} onPress={handlePressAdd} hitSlop={8}>
-              <Feather name="plus" size={20} color={Colors.text} />
-            </Pressable>
-          }
-        />
-      )}
+    <View style={styles.root}>
+      {/* ═══ FULL-SCREEN MAP ═══ */}
+      <ZoneMap
+        zones={zones}
+        selectedZoneId={selectedZoneId}
+        onZonePress={handleZonePress}
+        height={SCREEN_H}
+        editingZoneId={mode === "edit" ? selectedZoneId : null}
+        editingPoints={mode === "edit" ? editingPoints : undefined}
+        onEditingPointsChange={setEditingPoints}
+        drawMode={drawMode}
+        onMapTap={handleMapTap}
+        onMapCenterChange={handleMapCenterChange}
+        showLocationButton={mode === "view"}
+        tapPointCount={tapPoints.length}
+        flyToZoneId={flyToZoneId}
+        showCenterCrosshair={showCrosshair}
+      />
 
-      {/* ─── Mode indicator bar ─── */}
-      {modeLabel && (
-        <View style={[styles.modeBar, { backgroundColor: modeColor }]}>
-          <View style={styles.modeBarLeft}>
-            <View style={styles.modeDot} />
-            <Text style={styles.modeBarText}>{modeLabel}</Text>
+      {/* ═══ FLOATING HEADER — VIEW ═══ */}
+      {mode === "view" && (
+        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
+          <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
+            <Feather name="chevron-left" size={20} color="#fff" />
+          </Pressable>
+          <View style={styles.fhTitle}>
+            <Text style={styles.fhTitleText}>Zones</Text>
+            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""}</Text>
           </View>
-          {mode === "pick_shape" && (
-            <Pressable onPress={handleCancelDraw} hitSlop={8} style={styles.modeBarClose}>
-              <Feather name="x" size={18} color="#fff" />
-            </Pressable>
-          )}
+          <Pressable style={styles.fhBtnAccent} onPress={handlePressAdd} hitSlop={8}>
+            <Feather name="plus" size={20} color="#fff" />
+          </Pressable>
         </View>
       )}
 
-      {/* ─── Map ─── */}
-      <View style={[styles.mapContainer, { height: mapHeight }]}>
-        <ZoneMap
-          zones={zones}
-          selectedZoneId={selectedZoneId}
-          onZonePress={handleZonePress}
-          height={mapHeight}
-          editingZoneId={isEditing ? selectedZoneId : null}
-          editingPoints={isEditing ? editingPoints : undefined}
-          onEditingPointsChange={handleEditingPointsChange}
-          drawMode={drawMode}
-          onMapTap={handleMapTap}
-          onMapCenterChange={handleMapCenterChange}
-          showLocationButton={mode === "view"}
-          tapPointCount={tapPoints.length}
-          flyToZoneId={flyToZoneId}
-          showCenterCrosshair={mode === "pick_shape" || mode === "draw_rect"}
-        />
-
-        {/* ─── Shape picker overlay (step 1 of new zone) ─── */}
-        {mode === "pick_shape" && (
-          <View style={styles.shapePickerOverlay}>
-            <Text style={styles.shapePickerTitle}>How do you want to draw?</Text>
-            <View style={styles.shapePickerRow}>
-              <Pressable
-                style={styles.shapePickerBtn}
-                onPress={() => handlePickShape("rectangle")}
-              >
-                <View style={styles.shapePickerIcon}>
-                  <Feather name="square" size={24} color={Colors.info} />
-                </View>
-                <Text style={styles.shapePickerLabel}>Rectangle</Text>
-                <Text style={styles.shapePickerDesc}>At map center</Text>
-              </Pressable>
-              <Pressable
-                style={styles.shapePickerBtn}
-                onPress={() => handlePickShape("tap")}
-              >
-                <View style={styles.shapePickerIcon}>
-                  <Feather name="edit-3" size={24} color={Colors.info} />
-                </View>
-                <Text style={styles.shapePickerLabel}>Free Draw</Text>
-                <Text style={styles.shapePickerDesc}>Tap vertices</Text>
-              </Pressable>
-            </View>
+      {/* ═══ FLOATING HEADER — PICK SHAPE ═══ */}
+      {mode === "pick_shape" && (
+        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
+          <Pressable style={styles.fhBtn} onPress={handleCancelDraw} hitSlop={8}>
+            <Feather name="x" size={20} color="#fff" />
+          </Pressable>
+          <View style={styles.fhTitle}>
+            <Text style={styles.fhTitleText}>New Zone</Text>
+            <Text style={styles.fhSubtext}>Choose a drawing method</Text>
           </View>
-        )}
+        </View>
+      )}
 
-        {/* ─── Tap draw controls ─── */}
-        {mode === "draw_tap" && (
-          <View style={styles.drawControlsBottom}>
-            <View style={styles.drawControlsRow}>
-              <Pressable style={styles.controlBtn} onPress={handleCancelDraw}>
-                <Feather name="x" size={18} color="#6B7280" />
-                <Text style={styles.controlBtnText}>Cancel</Text>
-              </Pressable>
-              {tapPoints.length > 0 && (
-                <Pressable style={styles.controlBtn} onPress={handleUndoTap}>
-                  <Feather name="corner-up-left" size={18} color="#6B7280" />
-                  <Text style={styles.controlBtnText}>Undo</Text>
-                </Pressable>
-              )}
-              <View style={styles.controlSpacer} />
-              <View style={styles.pointCounter}>
-                <Text style={styles.pointCounterText}>
-                  {tapPoints.length} point{tapPoints.length !== 1 ? "s" : ""}
-                </Text>
+      {/* ═══ FLOATING HEADER — DRAW ═══ */}
+      {mode === "draw" && (
+        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: Colors.info }]}>
+            <View style={styles.modePillDot} />
+            <Text style={styles.modePillText}>DRAW MODE</Text>
+          </View>
+          <View style={styles.modeCount}>
+            <Text style={styles.modeCountText}>{tapPoints.length} pts</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ FLOATING HEADER — EDIT ═══ */}
+      {mode === "edit" && (
+        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#F59E0B" }]}>
+            <View style={styles.modePillDot} />
+            <Text style={styles.modePillText}>EDIT MODE</Text>
+          </View>
+          <View style={styles.modeCount}>
+            <Text style={styles.modeCountText}>{editingPoints.length} vertices</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ SHAPE PICKER — bottom action bar ═══ */}
+      {mode === "pick_shape" && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.shapeRow}>
+            <Pressable style={styles.shapeBtn} onPress={handlePickRect}>
+              <View style={[styles.shapeBtnIcon, { backgroundColor: Colors.infoDim }]}>
+                <Feather name="square" size={22} color={Colors.info} />
               </View>
-              <Pressable
-                style={[styles.controlBtnPrimary, tapPoints.length < 3 && styles.controlBtnDisabled]}
-                onPress={handleFinishTapDraw}
-                disabled={tapPoints.length < 3}
-              >
-                <Feather name="check" size={18} color="#fff" />
-                <Text style={styles.controlBtnPrimaryText}>
-                  Done
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {/* ─── Edit shape controls ─── */}
-        {isEditing && (
-          <View style={styles.drawControlsBottom}>
-            <View style={styles.drawControlsRow}>
-              <Pressable style={styles.controlBtn} onPress={handleCancelShapeEdit}>
-                <Feather name="x" size={18} color="#6B7280" />
-                <Text style={styles.controlBtnText}>Cancel</Text>
-              </Pressable>
-              <View style={styles.controlSpacer} />
-              <View style={styles.pointCounter}>
-                <Text style={styles.pointCounterText}>
-                  {editingPoints.length} vertices
-                </Text>
+              <Text style={styles.shapeBtnLabel}>Rectangle</Text>
+              <Text style={styles.shapeBtnHint}>At center</Text>
+            </Pressable>
+            <Pressable style={styles.shapeBtn} onPress={handlePickDraw}>
+              <View style={[styles.shapeBtnIcon, { backgroundColor: Colors.infoDim }]}>
+                <Feather name="edit-3" size={22} color={Colors.info} />
               </View>
-              <Pressable style={styles.controlBtnPrimary} onPress={handleSaveShape}>
-                <Feather name="check" size={18} color="#fff" />
-                <Text style={styles.controlBtnPrimaryText}>Save</Text>
-              </Pressable>
-            </View>
+              <Text style={styles.shapeBtnLabel}>Free Draw</Text>
+              <Text style={styles.shapeBtnHint}>Tap points</Text>
+            </Pressable>
           </View>
-        )}
+        </View>
+      )}
 
-        {/* ─── Zone chips (view mode only) ─── */}
-        {mode === "view" && zones.length > 0 && (
-          <View style={styles.zoneChipBar}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.zoneChipBarContent}
-            >
-              {zones.map((zone) => {
-                const isSelected = zone.id === selectedZoneId;
-                return (
-                  <Pressable
-                    key={zone.id}
-                    style={[
-                      styles.zoneChip,
-                      isSelected && { borderColor: zone.color, backgroundColor: zone.color + "22" },
-                      !zone.isActive && styles.zoneChipInactive,
-                    ]}
-                    onPress={() => handleZonePress(zone.id)}
-                  >
-                    <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
-                    <Text
-                      style={[
-                        styles.zoneChipText,
-                        isSelected && { color: zone.color, fontFamily: "Inter_700Bold" },
-                        !zone.isActive && { color: Colors.textTertiary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {zone.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-      </View>
-
-      {/* ─── Detail panel (view mode) ─── */}
-      {mode === "view" && selectedZone ? (
-        <ScrollView style={styles.detailPanel} contentContainerStyle={styles.detailPanelContent}>
-          <Card style={styles.detailCard}>
-            <View style={styles.detailHeader}>
-              <View style={styles.detailHeaderLeft}>
-                <View style={[styles.colorBar, { backgroundColor: selectedZone.color }]} />
-                <View style={styles.detailNameWrap}>
-                  <Text style={styles.detailName}>{selectedZone.name}</Text>
-                  <Text style={styles.detailType}>{selectedZone.type} Zone</Text>
-                </View>
-              </View>
-              <StatusBadge status={selectedZone.isActive ? "enabled" : "disabled"} />
-            </View>
-
-            <View style={styles.detailStats}>
-              <View style={styles.detailStatItem}>
-                <Feather name="map-pin" size={14} color={Colors.textSecondary} />
-                <Text style={styles.detailStatText}>
-                  {selectedZone.polygonPoints.length} boundary points
-                </Text>
-              </View>
-              {selectedZone.center && (
-                <View style={styles.detailStatItem}>
-                  <Feather name="crosshair" size={14} color={Colors.textSecondary} />
-                  <Text style={styles.detailStatText}>
-                    {selectedZone.center.lat.toFixed(4)}, {selectedZone.center.lng.toFixed(4)}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.detailActions}>
-              <Button
-                title={selectedZone.isActive ? "Disable" : "Enable"}
-                onPress={() => handleToggleZone(selectedZone)}
-                variant={selectedZone.isActive ? "ghost" : "safe"}
-                icon={selectedZone.isActive ? "eye-off" : "eye"}
-                size="md"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="Edit"
-                onPress={handleOpenEdit}
-                variant="secondary"
-                icon="edit-2"
-                size="md"
-                style={{ flex: 1 }}
-              />
-            </View>
-          </Card>
-        </ScrollView>
-      ) : mode === "view" ? (
-        <View style={styles.detailPanel}>
-          <View style={styles.hintRow}>
-            <Feather name="info" size={14} color={Colors.textTertiary} />
-            <Text style={styles.hintText}>Tap a zone to view details</Text>
-          </View>
-          <FlatList
-            data={zones}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <Pressable
-                style={({ pressed }) => [styles.zoneListItem, pressed && styles.pressed]}
-                onPress={() => handleZonePress(item.id)}
-              >
-                <View style={[styles.listColorBar, { backgroundColor: item.color }]} />
-                <View style={styles.zoneListInfo}>
-                  <Text style={styles.zoneListName}>{item.name}</Text>
-                  <Text style={styles.zoneListMeta}>
-                    {item.type} · {item.polygonPoints.length} pts
-                  </Text>
-                </View>
-                <StatusBadge status={item.isActive ? "enabled" : "disabled"} />
+      {/* ═══ DRAW CONTROLS — bottom action bar ═══ */}
+      {mode === "draw" && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.drawBar}>
+            <Pressable style={styles.actionBtn} onPress={handleCancelDraw}>
+              <Feather name="x" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            {tapPoints.length > 0 && (
+              <Pressable style={styles.actionBtn} onPress={handleUndoTap}>
+                <Feather name="corner-up-left" size={18} color={Colors.textSecondary} />
               </Pressable>
             )}
-          />
+            <View style={{ flex: 1 }} />
+            <Pressable
+              style={[styles.actionBtnPrimary, tapPoints.length < 3 && { opacity: 0.3 }]}
+              onPress={handleFinishDraw}
+              disabled={tapPoints.length < 3}
+            >
+              <Feather name="check" size={18} color="#fff" />
+              <Text style={styles.actionBtnPrimaryText}>Done</Text>
+            </Pressable>
+          </View>
         </View>
-      ) : null}
+      )}
 
-      {/* ─── Save New Zone Modal (after drawing) ─── */}
-      <Modal visible={showSaveModal} transparent animationType="slide" onRequestClose={handleCancelSave}>
+      {/* ═══ EDIT CONTROLS — bottom action bar ═══ */}
+      {mode === "edit" && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.drawBar}>
+            <Pressable style={styles.actionBtn} onPress={handleCancelEdit}>
+              <Feather name="x" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={handleResetEdit}>
+              <Feather name="rotate-ccw" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Pressable style={styles.actionBtnPrimary} onPress={handleSaveEdit}>
+              <Feather name="check" size={18} color="#fff" />
+              <Text style={styles.actionBtnPrimaryText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ SELECTED ZONE — compact bottom sheet ═══ */}
+      {mode === "view" && selectedZone && (
+        <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsRow}>
+            <View style={[styles.bsDot, { backgroundColor: selectedZone.color }]} />
+            <View style={styles.bsInfo}>
+              <Text style={styles.bsName} numberOfLines={1}>{selectedZone.name}</Text>
+              <Text style={styles.bsMeta}>
+                {selectedZone.type} · {selectedZone.polygonPoints.length} pts · {selectedZone.isActive ? "Active" : "Off"}
+              </Text>
+            </View>
+            <Pressable style={styles.bsClose} onPress={() => setSelectedZoneId(null)} hitSlop={8}>
+              <Feather name="x" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          </View>
+          <View style={styles.bsActions}>
+            <Pressable style={styles.bsActionBtn} onPress={handleFocusZone}>
+              <Feather name="crosshair" size={16} color={Colors.info} />
+              <Text style={[styles.bsActionText, { color: Colors.info }]}>Focus</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleEditZone}>
+              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={() => handleToggleZone(selectedZone)}>
+              <Feather name={selectedZone.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>{selectedZone.isActive ? "Disable" : "Enable"}</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleDeleteZone}>
+              <Feather name="trash-2" size={16} color={Colors.primary} />
+              <Text style={[styles.bsActionText, { color: Colors.primary }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ ZONE LIST — small floating chips when nothing selected ═══ */}
+      {mode === "view" && !selectedZone && zones.length > 0 && (
+        <View style={[styles.chipBar, { bottom: insets.bottom + 12 }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
+            {zones.map((z) => (
+              <Pressable
+                key={z.id}
+                style={[styles.chip, !z.isActive && { opacity: 0.45 }]}
+                onPress={() => handleZonePress(z.id)}
+              >
+                <View style={[styles.chipDot, { backgroundColor: z.color }]} />
+                <Text style={styles.chipText} numberOfLines={1}>{z.name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ═══ SAVE NEW ZONE — compact bottom sheet modal ═══ */}
+      <Modal visible={showSaveSheet} transparent animationType="slide" onRequestClose={handleDiscardSave}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Save New Zone</Text>
-            <Text style={styles.modalSubtitle}>
-              {pendingPointsRef.current.length} boundary points drawn
-            </Text>
+          <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.saveSheetHandle} />
+            <View style={styles.saveSheetHeader}>
+              <Text style={styles.saveSheetTitle}>Save Zone</Text>
+              <Pressable onPress={handleDiscardSave} hitSlop={8}>
+                <Feather name="x" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
 
-            <Input
-              label="Zone Name"
+            <TextInput
+              style={styles.nameInput}
               value={formName}
               onChangeText={setFormName}
-              placeholder="e.g. Storage Yard, Helipad..."
+              placeholder="Zone name..."
+              placeholderTextColor={Colors.textTertiary}
               autoFocus
             />
 
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Type</Text>
-              <View style={styles.typeRow}>
-                {ZONE_TYPES.map((t) => (
-                  <Pressable
-                    key={t.key}
-                    style={[styles.typeChip, formType === t.key && styles.typeChipActive]}
-                    onPress={() => setFormType(t.key)}
-                  >
-                    <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+            <View style={styles.inlineRow}>
+              {ZONE_TYPES.map((t) => (
+                <Pressable
+                  key={t.key}
+                  style={[styles.typeBtn, formType === t.key && styles.typeBtnActive]}
+                  onPress={() => setFormType(t.key)}
+                >
+                  <Text style={[styles.typeBtnText, formType === t.key && { color: "#fff" }]}>{t.label}</Text>
+                </Pressable>
+              ))}
+              <View style={styles.inlineDivider} />
+              {ZONE_COLORS.slice(0, 6).map((c) => (
+                <Pressable
+                  key={c}
+                  style={[styles.colorDot, { backgroundColor: c }, formColor === c && styles.colorDotActive]}
+                  onPress={() => setFormColor(c)}
+                />
+              ))}
             </View>
 
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Color</Text>
-              <View style={styles.colorRow}>
-                {ZONE_COLORS.map((c) => (
-                  <Pressable
-                    key={c}
-                    style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
-                    onPress={() => setFormColor(c)}
-                  >
-                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.modalBtnRow}>
-              <Pressable style={styles.modalBtnSecondary} onPress={handleCancelSave}>
-                <Text style={styles.modalBtnSecondaryText}>Discard</Text>
+            <View style={styles.saveBtnRow}>
+              <Pressable style={styles.discardBtn} onPress={handleDiscardSave}>
+                <Text style={styles.discardBtnText}>Discard</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalBtnPrimary, !formName.trim() && styles.modalBtnDisabled]}
+                style={[styles.saveBtn, !formName.trim() && { opacity: 0.3 }]}
                 onPress={handleSaveNewZone}
                 disabled={!formName.trim()}
               >
                 <Feather name="check" size={16} color="#fff" />
-                <Text style={styles.modalBtnPrimaryText}>Save Zone</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ─── Edit Zone Modal ─── */}
-      <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-
-            <View style={styles.editModalHeader}>
-              <Text style={styles.modalTitle}>Edit Zone</Text>
-              <Pressable
-                style={styles.editModalClose}
-                onPress={() => setShowEditModal(false)}
-                hitSlop={8}
-              >
-                <Feather name="x" size={18} color={Colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <Input
-              label="Zone Name"
-              value={formName}
-              onChangeText={setFormName}
-              placeholder="Zone name"
-            />
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Type</Text>
-              <View style={styles.typeRow}>
-                {ZONE_TYPES.map((t) => (
-                  <Pressable
-                    key={t.key}
-                    style={[styles.typeChip, formType === t.key && styles.typeChipActive]}
-                    onPress={() => setFormType(t.key)}
-                  >
-                    <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Color</Text>
-              <View style={styles.colorRow}>
-                {ZONE_COLORS.map((c) => (
-                  <Pressable
-                    key={c}
-                    style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
-                    onPress={() => setFormColor(c)}
-                  >
-                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.editModalDivider} />
-
-            <Pressable style={styles.editShapeBtn} onPress={handleEnterShapeEdit}>
-              <View style={styles.editShapeBtnIcon}>
-                <Feather name="maximize" size={18} color={Colors.info} />
-              </View>
-              <View style={styles.editShapeBtnTextWrap}>
-                <Text style={styles.editShapeBtnTitle}>Edit Boundary</Text>
-                <Text style={styles.editShapeBtnDesc}>Drag vertices to reshape area</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={Colors.textTertiary} />
-            </Pressable>
-
-            <View style={styles.editModalDivider} />
-
-            <View style={styles.editModalActions}>
-              <Pressable
-                style={[styles.modalBtnPrimary, { flex: undefined }, !formName.trim() && styles.modalBtnDisabled]}
-                onPress={handleSaveEdit}
-                disabled={!formName.trim()}
-              >
-                <Feather name="check" size={16} color="#fff" />
-                <Text style={styles.modalBtnPrimaryText}>Save</Text>
-              </Pressable>
-              <Pressable style={styles.deleteBtn} onPress={handleDeleteZone}>
-                <Feather name="trash-2" size={14} color={Colors.primary} />
-                <Text style={styles.deleteBtnText}>Delete Zone</Text>
+                <Text style={styles.saveBtnText}>Save</Text>
               </Pressable>
             </View>
           </View>
@@ -668,522 +451,152 @@ export default function ZonesScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  root: { flex: 1, backgroundColor: "#000" },
+
+  // ─── Floating header ───
+  floatingHeader: {
+    position: "absolute", left: 12, right: 12, flexDirection: "row",
+    alignItems: "center", gap: 10, zIndex: 20,
+  },
+  fhBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center",
+  },
+  fhBtnAccent: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.info, alignItems: "center", justifyContent: "center",
+  },
+  fhTitle: { flex: 1, gap: 1 },
+  fhTitleText: {
+    fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: "#fff",
+    textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
+  fhSubtext: {
+    fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)",
+    textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
 
-  // ─── Mode bar ───
-  modeBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
+  // ─── Mode header ───
+  modeHeader: {
+    position: "absolute", left: 12, right: 12, flexDirection: "row",
+    alignItems: "center", gap: 8, zIndex: 20,
   },
-  modeBarLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+  modePill: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
   },
-  modeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#fff",
+  modePillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
+  modePillText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 1 },
+  modeCount: {
+    backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 4,
   },
-  modeBarText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-    letterSpacing: 1,
-  },
-  modeBarClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  modeCountText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  // ─── Map ───
-  mapContainer: {
-    position: "relative",
+  // ─── Bottom bar (shape picker, draw, edit) ───
+  bottomBar: {
+    position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, zIndex: 20,
   },
+  shapeRow: { flexDirection: "row", gap: 10 },
+  shapeBtn: {
+    flex: 1, alignItems: "center", gap: 6, paddingVertical: 16,
+    backgroundColor: "rgba(15,17,23,0.88)", borderRadius: 16,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+  },
+  shapeBtnIcon: {
+    width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center",
+  },
+  shapeBtnLabel: { fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  shapeBtnHint: { fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
+  drawBar: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "rgba(15,17,23,0.88)", borderRadius: 16, padding: 8,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
+  },
+  actionBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center",
+  },
+  actionBtnPrimary: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.info, borderRadius: 12,
+    paddingHorizontal: 20, height: 44,
+  },
+  actionBtnPrimaryText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
 
-  // ─── Shape picker ───
-  shapePickerOverlay: {
-    position: "absolute",
-    bottom: Spacing.lg,
-    left: Spacing.lg,
-    right: Spacing.lg,
-    backgroundColor: "rgba(15,17,23,0.92)",
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    gap: Spacing.md,
+  // ─── Zone chips (view, no selection) ───
+  chipBar: { position: "absolute", left: 0, right: 0, zIndex: 15 },
+  chipBarContent: { paddingHorizontal: 12, gap: 6 },
+  chip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: "rgba(15,17,23,0.75)", borderRadius: 20,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
   },
-  shapePickerTitle: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
-    textAlign: "center",
-  },
-  shapePickerRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  shapePickerBtn: {
-    flex: 1,
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  shapePickerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.infoDim,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shapePickerLabel: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
-  },
-  shapePickerDesc: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-  },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
+  chipText: { fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: "#fff", maxWidth: 100 },
 
-  // ─── Draw controls ───
-  drawControlsBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.md,
-    zIndex: 10,
+  // ─── Selected zone bottom sheet ───
+  bottomSheet: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 16, gap: 12, zIndex: 20,
+    borderTopWidth: 1, borderTopColor: Colors.border,
   },
-  drawControlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+  bsRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  bsDot: { width: 12, height: 12, borderRadius: 6 },
+  bsInfo: { flex: 1, gap: 1 },
+  bsName: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: Colors.text },
+  bsMeta: { fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
+  bsClose: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
   },
-  controlBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    minHeight: 44,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+  bsActions: { flexDirection: "row", gap: 6 },
+  bsActionBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    backgroundColor: Colors.surfaceElevated, borderRadius: 10,
+    paddingVertical: 10, minHeight: 44,
   },
-  controlBtnText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: "#6B7280",
-  },
-  controlSpacer: {
-    flex: 1,
-  },
-  pointCounter: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-  },
-  pointCounterText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
-  },
-  controlBtnPrimary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: Colors.info,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.xl,
-    minHeight: 44,
-    shadowColor: Colors.info,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  controlBtnPrimaryText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-  },
-  controlBtnDisabled: {
-    opacity: 0.35,
-  },
+  bsActionText: { fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.text },
 
-  // ─── Zone chips ───
-  zoneChipBar: {
-    position: "absolute",
-    bottom: Spacing.sm,
-    left: 0,
-    right: 0,
+  // ─── Save sheet modal ───
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  saveSheet: {
+    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 16, gap: 14,
   },
-  zoneChipBarContent: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
+  saveSheetHandle: {
+    width: 32, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center",
   },
-  zoneChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    maxWidth: 140,
+  saveSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  saveSheetTitle: { fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text },
+  nameInput: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 10, borderWidth: 1,
+    borderColor: Colors.border, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text,
   },
-  zoneChipInactive: {
-    opacity: 0.5,
+  inlineRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  typeBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: Colors.surfaceElevated, borderWidth: 1, borderColor: Colors.border,
+    minHeight: 36,
   },
-  zoneChipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  typeBtnActive: { backgroundColor: Colors.info, borderColor: Colors.info },
+  typeBtnText: { fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
+  inlineDivider: { width: 1, height: 24, backgroundColor: Colors.border, marginHorizontal: 4 },
+  colorDot: { width: 28, height: 28, borderRadius: 14 },
+  colorDotActive: { borderWidth: 2.5, borderColor: "#fff" },
+  saveBtnRow: { flexDirection: "row", gap: 8 },
+  discardBtn: {
+    flex: 1, alignItems: "center", justifyContent: "center", minHeight: 48,
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surfaceElevated,
   },
-  zoneChipText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: "#1F2937",
+  discardBtnText: { fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
+  saveBtn: {
+    flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    minHeight: 48, borderRadius: 10, backgroundColor: Colors.info,
   },
-
-  // ─── Detail panel ───
-  detailPanel: {
-    flex: 1,
-  },
-  detailPanelContent: {
-    paddingBottom: Spacing.xxl,
-  },
-  detailCard: {
-    margin: Spacing.lg,
-    gap: Spacing.md,
-  },
-  detailHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  detailHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    flex: 1,
-  },
-  colorBar: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-  },
-  detailNameWrap: {
-    gap: 2,
-  },
-  detailName: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-  },
-  detailType: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  detailStats: {
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  detailStatItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  detailStatText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  detailActions: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  hintRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  hintText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-  },
-  listContent: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.xxxl,
-  },
-  zoneListItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    minHeight: 60,
-  },
-  listColorBar: {
-    width: 4,
-    height: 32,
-    borderRadius: 2,
-  },
-  zoneListInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  zoneListName: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  zoneListMeta: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // ─── Modals ───
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  modalSheet: {
-    backgroundColor: Colors.surfaceElevated,
-    borderTopLeftRadius: BorderRadius.xxl,
-    borderTopRightRadius: BorderRadius.xxl,
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
-    paddingTop: Spacing.md,
-    gap: Spacing.md,
-    maxHeight: "85%",
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    alignSelf: "center",
-    marginBottom: Spacing.xs,
-  },
-  modalTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-  },
-  modalSubtitle: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-    marginTop: -Spacing.xs,
-  },
-  formSection: {
-    gap: Spacing.sm,
-  },
-  formLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  typeRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  typeChip: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: Spacing.sm + 4,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  typeChipActive: {
-    backgroundColor: Colors.info,
-    borderColor: Colors.info,
-  },
-  typeChipText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
-  },
-  typeChipTextActive: {
-    color: Colors.white,
-  },
-  colorRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  colorSwatch: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  colorSwatchActive: {
-    borderWidth: 3,
-    borderColor: Colors.white,
-  },
-  modalBtnRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  modalBtnSecondary: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  modalBtnSecondaryText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
-  },
-  modalBtnPrimary: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 48,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.info,
-  },
-  modalBtnPrimaryText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-  },
-  modalBtnDisabled: {
-    opacity: 0.35,
-  },
-
-  // ─── Edit modal ───
-  editModalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  editModalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editModalDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.xs,
-  },
-  editShapeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 56,
-  },
-  editShapeBtnIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.infoDim,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editShapeBtnTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  editShapeBtnTitle: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  editShapeBtnDesc: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-  },
-  editModalActions: {
-    gap: Spacing.sm,
-  },
-  deleteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 44,
-  },
-  deleteBtnText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
-    color: Colors.primary,
-  },
+  saveBtnText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
 });

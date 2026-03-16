@@ -7,18 +7,20 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Header } from "@/components/ui/Header";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Location } from "@/types";
 
 export default function LocationsScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const locations = useStore((s) => s.locations);
   const zones = useStore((s) => s.zones);
   const addLocation = useStore((s) => s.addLocation);
@@ -108,53 +110,50 @@ export default function LocationsScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Header
-        title="Locations"
-        showBack
-        rightAction={
-          <Pressable style={styles.addBtn} onPress={handleOpenAdd} hitSlop={8}>
-            <Feather name="plus" size={20} color={Colors.text} />
-          </Pressable>
-        }
-      />
+    <View style={styles.root}>
+      {/* ─── Header ─── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
+          <Feather name="chevron-left" size={20} color={Colors.text} />
+        </Pressable>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Locations</Text>
+          <Text style={styles.headerSub}>
+            {locations.length} total · {zones.length} zone{zones.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
+        <Pressable style={styles.headerBtnAccent} onPress={handleOpenAdd} hitSlop={8}>
+          <Feather name="plus" size={20} color="#fff" />
+        </Pressable>
+      </View>
 
       {/* ─── Zone tabs ─── */}
       {zones.length > 0 ? (
-        <View style={styles.tabBarOuter}>
+        <View style={styles.tabBar}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabBarScroll}
+            contentContainerStyle={styles.tabBarContent}
           >
             {zones.map((zone) => {
               const isActive = selectedTab === zone.name;
               const count = locations.filter((l) => l.zone === zone.name).length;
-              const color = zone.isActive ? zone.color : Colors.textTertiary;
               return (
                 <Pressable
                   key={zone.id}
                   style={[styles.tab, isActive && styles.tabActive]}
                   onPress={() => setSelectedTab(zone.name)}
                 >
-                  <View style={[styles.tabIndicator, { backgroundColor: isActive ? color : "transparent" }]} />
-                  <View style={styles.tabContent}>
-                    <Text
-                      style={[
-                        styles.tabText,
-                        isActive && { color: Colors.text },
-                        !zone.isActive && { color: Colors.textTertiary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {zone.name}
-                    </Text>
-                    <View style={[styles.tabBadge, isActive && { backgroundColor: color + "25" }]}>
-                      <Text style={[styles.tabBadgeText, isActive && { color }]}>
-                        {count}
-                      </Text>
-                    </View>
-                  </View>
+                  <View style={[styles.tabDot, { backgroundColor: isActive ? zone.color : Colors.textTertiary }]} />
+                  <Text
+                    style={[styles.tabText, isActive && styles.tabTextActive]}
+                    numberOfLines={1}
+                  >
+                    {zone.name}
+                  </Text>
+                  <Text style={[styles.tabCount, isActive && { color: zone.color }]}>
+                    {count}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -162,24 +161,22 @@ export default function LocationsScreen() {
         </View>
       ) : (
         <View style={styles.noZonesBar}>
-          <Feather name="alert-circle" size={16} color={Colors.textTertiary} />
-          <Text style={styles.noZonesText}>Create zones first to manage locations</Text>
+          <Feather name="alert-circle" size={14} color={Colors.textTertiary} />
+          <Text style={styles.noZonesText}>Create zones first</Text>
         </View>
       )}
 
-      {/* ─── Zone info bar ─── */}
+      {/* ─── Zone info strip ─── */}
       {selectedZone && (
-        <View style={styles.zoneInfoBar}>
-          <View style={[styles.zoneInfoDot, { backgroundColor: selectedZone.color }]} />
-          <Text style={styles.zoneInfoText}>
-            {selectedZone.name}
-          </Text>
-          <Text style={styles.zoneInfoCount}>
+        <View style={styles.infoStrip}>
+          <View style={[styles.infoDot, { backgroundColor: selectedZone.color }]} />
+          <Text style={styles.infoLabel}>{selectedZone.name}</Text>
+          <Text style={styles.infoCount}>
             {filteredLocations.length} location{filteredLocations.length !== 1 ? "s" : ""}
           </Text>
           {!selectedZone.isActive && (
-            <View style={styles.zoneOffBadge}>
-              <Text style={styles.zoneOffText}>Zone Off</Text>
+            <View style={styles.offBadge}>
+              <Text style={styles.offText}>OFF</Text>
             </View>
           )}
         </View>
@@ -189,59 +186,49 @@ export default function LocationsScreen() {
       <FlatList
         data={filteredLocations}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
         renderItem={({ item }) => (
           <Pressable
-            style={({ pressed }) => [styles.locationRow, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             onPress={() => handleOpenEdit(item)}
           >
-            <View style={styles.locationIconWrap}>
-              <Feather name="map-pin" size={16} color={selectedZone?.color || Colors.textSecondary} />
-            </View>
-            <View style={styles.locationInfo}>
-              <Text style={[styles.locationName, !item.isActive && { color: Colors.textTertiary }]}>
-                {item.name}
-              </Text>
-            </View>
+            <Feather
+              name="map-pin"
+              size={14}
+              color={item.isActive ? (selectedZone?.color || Colors.textSecondary) : Colors.textTertiary}
+            />
+            <Text
+              style={[styles.rowName, !item.isActive && { color: Colors.textTertiary }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
             <Switch
               value={item.isActive}
               onValueChange={() => handleToggleActive(item)}
               trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
               thumbColor={item.isActive ? Colors.safe : Colors.textSecondary}
+              style={styles.rowSwitch}
             />
           </Pressable>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-              <Feather name="map-pin" size={36} color={Colors.textTertiary} />
-            </View>
+          <View style={styles.emptyState}>
+            <Feather name="map-pin" size={32} color={Colors.textTertiary} />
             <Text style={styles.emptyTitle}>No Locations</Text>
             <Text style={styles.emptyText}>
-              {selectedTab
-                ? `Add locations to ${selectedTab}`
-                : "Select a zone to manage locations"}
+              {selectedTab ? `Tap + to add locations to ${selectedTab}` : "Select a zone first"}
             </Text>
-            {selectedTab && (
-              <Pressable style={styles.emptyAddBtn} onPress={handleOpenAdd}>
-                <Feather name="plus" size={16} color={Colors.info} />
-                <Text style={styles.emptyAddText}>Add Location</Text>
-              </Pressable>
-            )}
           </View>
         }
       />
 
       {/* ─── Add / Edit modal ─── */}
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="slide"
-        onRequestClose={handleCloseModal}
-      >
+      <Modal visible={showModal} transparent animationType="slide" onRequestClose={handleCloseModal}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 20 }]}>
             <View style={styles.modalHandle} />
+
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingLocation ? "Edit Location" : "New Location"}
@@ -251,16 +238,17 @@ export default function LocationsScreen() {
               </Pressable>
             </View>
 
-            <Input
-              label="Location Name"
+            <TextInput
+              style={styles.nameInput}
               value={locationName}
               onChangeText={setLocationName}
-              placeholder="e.g. Control Room, Helipad..."
+              placeholder="Location name..."
+              placeholderTextColor={Colors.textTertiary}
               autoFocus
             />
 
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Assign to Zone</Text>
+            <View style={styles.zonePickerSection}>
+              <Text style={styles.zonePickerLabel}>Zone</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -272,17 +260,14 @@ export default function LocationsScreen() {
                     <Pressable
                       key={z.id}
                       style={[
-                        styles.zonePickerChip,
+                        styles.zoneChip,
                         isSelected && { borderColor: z.color, backgroundColor: z.color + "18" },
                       ]}
                       onPress={() => setLocationZone(z.name)}
                     >
-                      <View style={[styles.zonePickerDot, { backgroundColor: z.color }]} />
+                      <View style={[styles.zoneChipDot, { backgroundColor: z.color }]} />
                       <Text
-                        style={[
-                          styles.zonePickerText,
-                          isSelected && { color: z.color, fontFamily: "Inter_700Bold" },
-                        ]}
+                        style={[styles.zoneChipText, isSelected && { color: z.color }]}
                         numberOfLines={1}
                       >
                         {z.name}
@@ -295,21 +280,21 @@ export default function LocationsScreen() {
 
             <View style={styles.modalActions}>
               {editingLocation && (
-                <Pressable style={styles.deleteLocationBtn} onPress={handleDelete}>
+                <Pressable style={styles.deleteBtn} onPress={handleDelete}>
                   <Feather name="trash-2" size={16} color={Colors.primary} />
                 </Pressable>
               )}
-              <View style={styles.modalActionsSpacer} />
-              <Pressable style={styles.modalCancelBtn} onPress={handleCloseModal}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+              <View style={{ flex: 1 }} />
+              <Pressable style={styles.cancelBtn} onPress={handleCloseModal}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalSaveBtn, (!locationName.trim() || !locationZone) && styles.modalSaveBtnDisabled]}
+                style={[styles.saveBtn, (!locationName.trim() || !locationZone) && { opacity: 0.3 }]}
                 onPress={handleSave}
                 disabled={!locationName.trim() || !locationZone}
               >
                 <Feather name="check" size={16} color="#fff" />
-                <Text style={styles.modalSaveText}>
+                <Text style={styles.saveBtnText}>
                   {editingLocation ? "Save" : "Add"}
                 </Text>
               </Pressable>
@@ -322,321 +307,173 @@ export default function LocationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  root: { flex: 1, backgroundColor: Colors.background },
 
-  // ─── Tabs ───
-  tabBarOuter: {
+  // ─── Header ───
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  tabBarScroll: {
-    paddingHorizontal: Spacing.md,
-    gap: 2,
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
   },
+  headerCenter: { flex: 1, gap: 1 },
+  headerTitle: {
+    fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text,
+  },
+  headerSub: {
+    fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary,
+  },
+  headerBtnAccent: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.info, alignItems: "center", justifyContent: "center",
+  },
+
+  // ─── Tabs ───
+  tabBar: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  tabBarContent: { paddingHorizontal: 12, gap: 2 },
   tab: {
-    paddingBottom: 2,
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderBottomWidth: 2, borderBottomColor: "transparent",
+    minHeight: 44,
   },
-  tabActive: {},
-  tabIndicator: {
-    height: 3,
-    borderRadius: 1.5,
-    marginBottom: Spacing.xs,
-  },
-  tabContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 40,
-  },
+  tabActive: { borderBottomColor: Colors.text },
+  tabDot: { width: 7, height: 7, borderRadius: 3.5 },
   tabText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+    fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary,
   },
-  tabBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-  },
-  tabBadgeText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_700Bold",
-    color: Colors.textSecondary,
+  tabTextActive: { color: Colors.text },
+  tabCount: {
+    fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.textTertiary,
   },
 
   // ─── No zones ───
   noZonesBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   noZonesText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
+    fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
   },
 
-  // ─── Zone info ───
-  zoneInfoBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
+  // ─── Info strip ───
+  infoStrip: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 8,
     backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  zoneInfoDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  infoDot: { width: 8, height: 8, borderRadius: 4 },
+  infoLabel: {
+    fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: Colors.text,
   },
-  zoneInfoText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+  infoCount: {
+    fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textTertiary, flex: 1,
   },
-  zoneInfoCount: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-    flex: 1,
+  offBadge: {
+    backgroundColor: Colors.primaryDim, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
   },
-  zoneOffBadge: {
-    backgroundColor: Colors.primaryDim,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  zoneOffText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.primary,
+  offText: {
+    fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.primary, letterSpacing: 0.5,
   },
 
   // ─── List ───
-  listContent: {
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: 100,
+  listContent: { padding: 14, gap: 6 },
+  row: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 14, paddingVertical: 12,
+    minHeight: 48,
   },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    paddingVertical: Spacing.md + 2,
-    gap: Spacing.md,
-    minHeight: 56,
+  rowPressed: { backgroundColor: Colors.surfaceElevated },
+  rowName: {
+    flex: 1, fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text,
   },
-  pressed: {
-    backgroundColor: Colors.surfaceElevated,
-  },
-  locationIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationName: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
+  rowSwitch: { transform: [{ scale: 0.85 }] },
 
   // ─── Empty ───
-  emptyContainer: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxxl * 1.5,
-    gap: Spacing.sm,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
+  emptyState: {
+    alignItems: "center", paddingVertical: 60, gap: 8,
   },
   emptyTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text, marginTop: 4,
   },
   emptyText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  emptyAddBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.infoDim,
-    minHeight: 44,
-  },
-  emptyAddText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.info,
+    fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.textSecondary, textAlign: "center",
   },
 
   // ─── Modal ───
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: Colors.surfaceElevated,
-    borderTopLeftRadius: BorderRadius.xxl,
-    borderTopRightRadius: BorderRadius.xxl,
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
-    paddingTop: Spacing.md,
-    gap: Spacing.lg,
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalSheet: {
+    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 16, gap: 14,
   },
   modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    alignSelf: "center",
-    marginBottom: Spacing.xs,
+    width: 32, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center",
   },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-  },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  modalTitle: { fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text },
   modalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
   },
-  formSection: {
-    gap: Spacing.sm,
+  nameInput: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text,
   },
-  formLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  zonePickerSection: { gap: 8 },
+  zonePickerLabel: {
+    fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold",
+    color: Colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.5,
   },
-  zonePickerRow: {
-    gap: Spacing.sm,
+  zonePickerRow: { gap: 8 },
+  zoneChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 20, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated, minHeight: 44,
   },
-  zonePickerChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 4,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    minHeight: 44,
-  },
-  zonePickerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  zonePickerText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+  zoneChipDot: { width: 8, height: 8, borderRadius: 4 },
+  zoneChipText: {
+    fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary,
   },
 
   // ─── Modal actions ───
-  modalActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+  modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  deleteBtn: {
+    width: 44, height: 44, borderRadius: 10,
+    backgroundColor: Colors.primaryDim, alignItems: "center", justifyContent: "center",
   },
-  deleteLocationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryDim,
-    alignItems: "center",
-    justifyContent: "center",
+  cancelBtn: {
+    paddingHorizontal: 18, minHeight: 44,
+    justifyContent: "center", alignItems: "center",
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated,
   },
-  modalActionsSpacer: {
-    flex: 1,
+  cancelBtnText: {
+    fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary,
   },
-  modalCancelBtn: {
-    paddingHorizontal: Spacing.lg,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+  saveBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 20, minHeight: 44,
+    borderRadius: 10, backgroundColor: Colors.info,
   },
-  modalCancelText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
-  },
-  modalSaveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.xl,
-    minHeight: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.info,
-  },
-  modalSaveBtnDisabled: {
-    opacity: 0.35,
-  },
-  modalSaveText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-  },
+  saveBtnText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
 });
