@@ -13,7 +13,9 @@ function generateLeafletHtml(
   zones: Zone[],
   selectedZoneId: number | null,
   editingZoneId: number | null | undefined,
-  editingPoints: LatLng[] | undefined
+  editingPoints: LatLng[] | undefined,
+  drawMode: string,
+  showLocationButton: boolean
 ): string {
   const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
@@ -25,6 +27,7 @@ function generateLeafletHtml(
 
   const isEditing = editingZoneId != null;
   const editZone = isEditing ? zones.find((z) => z.id === editingZoneId) : null;
+  const isTapMode = drawMode === "tap";
 
   const zonePolygons = zones
     .filter((z) => z.polygonPoints.length > 0)
@@ -142,6 +145,53 @@ function generateLeafletHtml(
     return parts.join("\n");
   })();
 
+  const tapModeCode = isTapMode
+    ? `
+      map.on('click', function(e) {
+        window.parent.postMessage(JSON.stringify({type:'map_tap', lat: e.latlng.lat, lng: e.latlng.lng}), '*');
+      });
+    `
+    : "";
+
+  const mapCenterReportCode = `
+    function reportCenter() {
+      var c = map.getCenter();
+      window.parent.postMessage(JSON.stringify({type:'map_center', lat: c.lat, lng: c.lng}), '*');
+    }
+    map.on('moveend', reportCenter);
+    setTimeout(reportCenter, 300);
+  `;
+
+  const locationButtonCode = showLocationButton
+    ? `
+      var locBtn = L.control({position: 'bottomright'});
+      locBtn.onAdd = function() {
+        var div = L.DomUtil.create('div', 'loc-btn');
+        div.innerHTML = '<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);cursor:pointer;border:1px solid #ddd;" onclick="doLocate()"><svg width=\\"20\\" height=\\"20\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#3B82F6\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"10\\"/><line x1=\\"12\\" y1=\\"8\\" x2=\\"12\\" y2=\\"12\\"/><line x1=\\"12\\" y1=\\"16\\" x2=\\"12.01\\" y2=\\"16\\"/></svg></div>';
+        return div;
+      };
+      locBtn.addTo(map);
+      var locMarker = null;
+      function doLocate() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            map.setView([lat, lng], 15);
+            if (locMarker) map.removeLayer(locMarker);
+            locMarker = L.circleMarker([lat, lng], {
+              radius: 8, color: '#3B82F6', fillColor: '#3B82F6',
+              fillOpacity: 0.8, weight: 3,
+            }).addTo(map);
+            window.parent.postMessage(JSON.stringify({type:'current_location', lat: lat, lng: lng}), '*');
+          }, function() {
+            window.parent.postMessage(JSON.stringify({type:'location_error', message: 'Could not get location'}), '*');
+          }, {enableHighAccuracy: true, timeout: 10000});
+        }
+      }
+    `
+    : "";
+
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -151,8 +201,10 @@ function generateLeafletHtml(
   html,body,#map{width:100%;height:100%}
   .zone-label{background:none!important;border:none!important}
   .edit-vertex{background:none!important;border:none!important}
+  .loc-btn{background:none!important;border:none!important}
   .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important}
   .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:10px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
+  ${isTapMode ? `#map{cursor:crosshair!important}` : ""}
 </style></head><body>
 <div id="map"></div>
 <script>
@@ -161,6 +213,9 @@ function generateLeafletHtml(
   ${zonePolygons}
   ${circleMarkers}
   ${editPolygonCode}
+  ${tapModeCode}
+  ${mapCenterReportCode}
+  ${locationButtonCode}
   ${
     !isEditing
       ? `setTimeout(function(){
@@ -181,12 +236,16 @@ export function LeafletPreviewFallback({
   editingZoneId,
   editingPoints,
   onEditingPointsChange,
+  drawMode = "none",
+  onMapTap,
+  onMapCenterChange,
+  showLocationButton = false,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints),
-    [zones, selectedZoneId, editingZoneId, editingPoints]
+    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton),
+    [zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton]
   );
 
   useEffect(() => {
@@ -199,11 +258,17 @@ export function LeafletPreviewFallback({
         if (data.type === "edit_points" && Array.isArray(data.points) && onEditingPointsChange) {
           onEditingPointsChange(data.points);
         }
+        if (data.type === "map_tap" && typeof data.lat === "number" && onMapTap) {
+          onMapTap({ lat: data.lat, lng: data.lng });
+        }
+        if (data.type === "map_center" && typeof data.lat === "number" && onMapCenterChange) {
+          onMapCenterChange({ lat: data.lat, lng: data.lng });
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress, onEditingPointsChange]);
+  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange]);
 
   return (
     <View style={[styles.container, { height }]}>

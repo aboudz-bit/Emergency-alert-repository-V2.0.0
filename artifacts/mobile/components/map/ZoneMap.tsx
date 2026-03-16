@@ -92,4 +92,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export { ZoneMapProps } from "./types";
+export { ZoneMapProps, type DrawMode } from "./types";
