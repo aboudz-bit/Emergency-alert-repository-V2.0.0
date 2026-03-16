@@ -17,6 +17,8 @@ export interface ZonePolygon {
   isSelected: boolean;
 }
 
+export type DrawMode = "none" | "polygon" | "rectangle" | "tap";
+
 export interface ZoneMapProps {
   zones: Zone[];
   selectedZoneId: number | null;
@@ -26,6 +28,10 @@ export interface ZoneMapProps {
   editingZoneId?: number | null;
   editingPoints?: LatLng[];
   onEditingPointsChange?: (points: LatLng[]) => void;
+  drawMode?: DrawMode;
+  onMapTap?: (point: LatLng) => void;
+  onMapCenterChange?: (center: LatLng) => void;
+  showLocationButton?: boolean;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

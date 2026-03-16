@@ -25,22 +25,15 @@ export default function LocationsScreen() {
   const updateLocation = useStore((s) => s.updateLocation);
   const deleteLocation = useStore((s) => s.deleteLocation);
 
-  const activeZones = useMemo(
-    () => zones.filter((z) => z.isActive),
-    [zones]
-  );
-
-  const allZones = useMemo(() => zones, [zones]);
-
   const [selectedTab, setSelectedTab] = useState(() =>
-    activeZones.length > 0 ? activeZones[0].name : ""
+    zones.length > 0 ? zones[0].name : ""
   );
 
   useEffect(() => {
-    if (activeZones.length > 0 && !activeZones.find((z) => z.name === selectedTab)) {
-      setSelectedTab(activeZones[0].name);
+    if (zones.length > 0 && !zones.find((z) => z.name === selectedTab)) {
+      setSelectedTab(zones[0].name);
     }
-  }, [activeZones, selectedTab]);
+  }, [zones, selectedTab]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -121,36 +114,40 @@ export default function LocationsScreen() {
         }
       />
 
-      {activeZones.length > 0 ? (
+      {zones.length > 0 ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabBarScroll}
           style={styles.tabBarContainer}
         >
-          {activeZones.map((zone) => {
-            const isActive = selectedTab === zone.name;
+          {zones.map((zone) => {
+            const isSelected = selectedTab === zone.name;
             const count = locations.filter((l) => l.zone === zone.name).length;
             return (
               <Pressable
                 key={zone.id}
-                style={[styles.tab, isActive && { borderBottomColor: zone.color }]}
+                style={[
+                  styles.tab,
+                  isSelected && { borderBottomColor: zone.color },
+                  !zone.isActive && styles.tabInactive,
+                ]}
                 onPress={() => setSelectedTab(zone.name)}
               >
-                <View style={[styles.tabDot, { backgroundColor: zone.color }]} />
-                <Text style={[styles.tabText, isActive && { color: Colors.text }]}>
+                <View style={[styles.tabDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
+                <Text style={[styles.tabText, isSelected && { color: Colors.text }, !zone.isActive && { color: Colors.textTertiary }]}>
                   {zone.name}
                 </Text>
                 <View
                   style={[
                     styles.tabBadge,
-                    { backgroundColor: isActive ? zone.color + "20" : Colors.surfaceElevated },
+                    { backgroundColor: isSelected ? zone.color + "20" : Colors.surfaceElevated },
                   ]}
                 >
                   <Text
                     style={[
                       styles.tabBadgeText,
-                      { color: isActive ? zone.color : Colors.textSecondary },
+                      { color: isSelected ? zone.color : Colors.textSecondary },
                     ]}
                   >
                     {count}
@@ -162,7 +159,7 @@ export default function LocationsScreen() {
         </ScrollView>
       ) : (
         <View style={styles.noZonesBar}>
-          <Text style={styles.noZonesText}>No active zones. Create zones first.</Text>
+          <Text style={styles.noZonesText}>No zones. Create zones first.</Text>
         </View>
       )}
 
@@ -244,7 +241,7 @@ export default function LocationsScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.zonePickerRow}
               >
-                {allZones.map((z) => {
+                {zones.map((z) => {
                   const isSelected = locationZone === z.name;
                   return (
                     <Pressable
@@ -339,6 +336,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
     marginRight: Spacing.sm,
+  },
+  tabInactive: {
+    opacity: 0.6,
   },
   tabDot: {
     width: 8,

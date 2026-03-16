@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   Dimensions,
   FlatList,
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
+import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Zone, ZoneType, LatLng } from "@/types";
@@ -35,6 +36,14 @@ const ZONE_TYPES: { key: ZoneType; label: string }[] = [
   { key: "Custom", label: "Custom" },
 ];
 
+type ShapeMode = "rectangle" | "polygon" | "tap";
+
+const SHAPE_MODES: { key: ShapeMode; label: string; icon: string; desc: string }[] = [
+  { key: "rectangle", label: "Rectangle", icon: "square", desc: "Auto-create around map center" },
+  { key: "polygon", label: "Polygon", icon: "hexagon", desc: "Default 4-point polygon" },
+  { key: "tap", label: "Tap Points", icon: "crosshair", desc: "Tap map to place vertices" },
+];
+
 export default function ZonesScreen() {
   const zones = useStore((s) => s.zones);
   const addZone = useStore((s) => s.addZone);
@@ -46,20 +55,29 @@ export default function ZonesScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isEditingShape, setIsEditingShape] = useState(false);
   const [editingPoints, setEditingPoints] = useState<LatLng[]>([]);
+  const [isTapDrawing, setIsTapDrawing] = useState(false);
+  const [tapPoints, setTapPoints] = useState<LatLng[]>([]);
 
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<ZoneType>("Custom");
   const [formColor, setFormColor] = useState(ZONE_COLORS[0]);
+  const [formShape, setFormShape] = useState<ShapeMode>("rectangle");
+
+  const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
 
   const selectedZone = useMemo(
     () => zones.find((z) => z.id === selectedZoneId) || null,
     [zones, selectedZoneId]
   );
 
+  const handleMapCenterChange = useCallback((center: LatLng) => {
+    mapCenterRef.current = center;
+  }, []);
+
   const handleZonePress = useCallback((zoneId: number) => {
-    if (isEditingShape) return;
+    if (isEditingShape || isTapDrawing) return;
     setSelectedZoneId((prev) => (prev === zoneId ? null : zoneId));
-  }, [isEditingShape]);
+  }, [isEditingShape, isTapDrawing]);
 
   const handleToggleZone = useCallback(
     (zone: Zone) => {
@@ -74,31 +92,89 @@ export default function ZonesScreen() {
     setFormName("");
     setFormType("Custom");
     setFormColor(nextColor);
+    setFormShape("rectangle");
     setShowAddModal(true);
   }, [zones]);
 
   const handleSaveAdd = useCallback(() => {
     if (!formName.trim()) return;
-    const baseLat = 25.078 + (Math.random() - 0.5) * 0.01;
-    const baseLng = 48.175 + (Math.random() - 0.5) * 0.02;
-    const offset = 0.004;
+    const center = mapCenterRef.current;
+
+    if (formShape === "tap") {
+      // Enter tap drawing mode — close modal and let user tap on map
+      setShowAddModal(false);
+      setTapPoints([]);
+      setIsTapDrawing(true);
+      return;
+    }
+
+    let points: LatLng[];
+    if (formShape === "rectangle") {
+      const offset = 0.003;
+      points = [
+        { lat: center.lat + offset, lng: center.lng - offset },
+        { lat: center.lat + offset, lng: center.lng + offset },
+        { lat: center.lat - offset, lng: center.lng + offset },
+        { lat: center.lat - offset, lng: center.lng - offset },
+      ];
+    } else {
+      // polygon — default 4-point shape at map center
+      const offset = 0.004;
+      points = [
+        { lat: center.lat + offset, lng: center.lng - offset * 0.5 },
+        { lat: center.lat + offset * 0.3, lng: center.lng + offset },
+        { lat: center.lat - offset, lng: center.lng + offset * 0.5 },
+        { lat: center.lat - offset * 0.3, lng: center.lng - offset },
+      ];
+    }
+
     addZone({
       name: formName.trim(),
       type: formType,
       boundaryType: "Polygon",
-      polygonPoints: [
-        { lat: baseLat + offset, lng: baseLng - offset },
-        { lat: baseLat + offset, lng: baseLng + offset },
-        { lat: baseLat - offset, lng: baseLng + offset },
-        { lat: baseLat - offset, lng: baseLng - offset },
-      ],
-      center: { lat: baseLat, lng: baseLng },
+      polygonPoints: points,
+      center: { lat: center.lat, lng: center.lng },
       isActive: true,
       color: formColor,
     });
     setShowAddModal(false);
     setFormName("");
-  }, [formName, formType, formColor, addZone]);
+  }, [formName, formType, formColor, formShape, addZone]);
+
+  const handleMapTap = useCallback((point: LatLng) => {
+    if (!isTapDrawing) return;
+    setTapPoints((prev) => [...prev, point]);
+  }, [isTapDrawing]);
+
+  const handleFinishTapDraw = useCallback(() => {
+    if (tapPoints.length < 3) return;
+    const lats = tapPoints.map((p) => p.lat);
+    const lngs = tapPoints.map((p) => p.lng);
+    const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+    const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+
+    addZone({
+      name: formName.trim(),
+      type: formType,
+      boundaryType: "Polygon",
+      polygonPoints: tapPoints,
+      center: { lat: centerLat, lng: centerLng },
+      isActive: true,
+      color: formColor,
+    });
+    setIsTapDrawing(false);
+    setTapPoints([]);
+    setFormName("");
+  }, [tapPoints, formName, formType, formColor, addZone]);
+
+  const handleCancelTapDraw = useCallback(() => {
+    setIsTapDrawing(false);
+    setTapPoints([]);
+  }, []);
+
+  const handleUndoTapPoint = useCallback(() => {
+    setTapPoints((prev) => prev.slice(0, -1));
+  }, []);
 
   const handleOpenEdit = useCallback(() => {
     if (!selectedZone) return;
@@ -155,9 +231,11 @@ export default function ZonesScreen() {
     setEditingPoints(points);
   }, []);
 
+  const drawMode: DrawMode = isTapDrawing ? "tap" : "none";
+
   return (
     <View style={styles.container}>
-      {!isEditingShape && (
+      {!isEditingShape && !isTapDrawing && (
         <Header
           title="Zone Map"
           showBack
@@ -169,16 +247,64 @@ export default function ZonesScreen() {
         />
       )}
 
-      <View style={[styles.mapContainer, isEditingShape && styles.mapContainerEditing]}>
+      <View style={[styles.mapContainer, (isEditingShape || isTapDrawing) && styles.mapContainerEditing]}>
         <ZoneMap
           zones={zones}
           selectedZoneId={selectedZoneId}
           onZonePress={handleZonePress}
-          height={isEditingShape ? SCREEN_HEIGHT * 0.65 : MAP_HEIGHT}
+          height={isEditingShape || isTapDrawing ? SCREEN_HEIGHT * 0.65 : MAP_HEIGHT}
           editingZoneId={isEditingShape ? selectedZoneId : null}
           editingPoints={isEditingShape ? editingPoints : undefined}
           onEditingPointsChange={handleEditingPointsChange}
+          drawMode={drawMode}
+          onMapTap={handleMapTap}
+          onMapCenterChange={handleMapCenterChange}
+          showLocationButton={!isEditingShape && !isTapDrawing}
         />
+
+        {isTapDrawing && (
+          <View style={styles.editOverlay}>
+            <View style={styles.editBanner}>
+              <View style={styles.editBannerLeft}>
+                <Feather name="crosshair" size={16} color={Colors.info} />
+                <Text style={styles.editBannerText}>
+                  Tap map to place vertices
+                </Text>
+              </View>
+              <Text style={styles.editBannerCount}>
+                {tapPoints.length} pts
+              </Text>
+            </View>
+            <View style={styles.editActions}>
+              <Pressable
+                style={styles.editCancelBtn}
+                onPress={handleCancelTapDraw}
+              >
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </Pressable>
+              {tapPoints.length > 0 && (
+                <Pressable
+                  style={styles.editCancelBtn}
+                  onPress={handleUndoTapPoint}
+                >
+                  <Feather name="corner-up-left" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.editCancelText}>Undo</Text>
+                </Pressable>
+              )}
+              <Pressable
+                style={[styles.editSaveBtn, tapPoints.length < 3 && { opacity: 0.4 }]}
+                onPress={handleFinishTapDraw}
+                disabled={tapPoints.length < 3}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.editSaveText}>
+                  Done ({tapPoints.length}/3+)
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {isEditingShape && (
           <View style={styles.editOverlay}>
@@ -212,7 +338,7 @@ export default function ZonesScreen() {
           </View>
         )}
 
-        {!isEditingShape && (
+        {!isEditingShape && !isTapDrawing && (
           <View style={styles.zoneChipBar}>
             <ScrollView
               horizontal
@@ -249,7 +375,7 @@ export default function ZonesScreen() {
         )}
       </View>
 
-      {!isEditingShape && selectedZone ? (
+      {!isEditingShape && !isTapDrawing && selectedZone ? (
         <ScrollView style={styles.detailPanel} contentContainerStyle={styles.detailPanelContent}>
           <Card style={styles.detailCard}>
             <View style={styles.detailHeader}>
@@ -300,7 +426,7 @@ export default function ZonesScreen() {
             </View>
           </Card>
         </ScrollView>
-      ) : !isEditingShape ? (
+      ) : !isEditingShape && !isTapDrawing ? (
         <View style={styles.detailPanel}>
           <View style={styles.hintRow}>
             <Feather name="info" size={14} color={Colors.textTertiary} />
@@ -329,13 +455,14 @@ export default function ZonesScreen() {
         </View>
       ) : null}
 
+      {/* ─── Add Zone Modal ─── */}
       <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => setShowAddModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>New Zone</Text>
             <Text style={styles.modalSubtitle}>
-              A default boundary will be created near Khurais
+              Zone will be placed at current map position
             </Text>
 
             <Input
@@ -358,6 +485,29 @@ export default function ZonesScreen() {
                     <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
                       {t.label}
                     </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Shape</Text>
+              <View style={styles.shapeRow}>
+                {SHAPE_MODES.map((s) => (
+                  <Pressable
+                    key={s.key}
+                    style={[styles.shapeCard, formShape === s.key && styles.shapeCardActive]}
+                    onPress={() => setFormShape(s.key)}
+                  >
+                    <Feather
+                      name={s.icon as any}
+                      size={18}
+                      color={formShape === s.key ? Colors.info : Colors.textSecondary}
+                    />
+                    <Text style={[styles.shapeCardLabel, formShape === s.key && styles.shapeCardLabelActive]}>
+                      {s.label}
+                    </Text>
+                    <Text style={styles.shapeCardDesc}>{s.desc}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -390,14 +540,17 @@ export default function ZonesScreen() {
                 onPress={handleSaveAdd}
                 disabled={!formName.trim()}
               >
-                <Feather name="plus" size={15} color="#fff" />
-                <Text style={styles.modalBtnPrimaryText}>Create Zone</Text>
+                <Feather name={formShape === "tap" ? "crosshair" : "plus"} size={15} color="#fff" />
+                <Text style={styles.modalBtnPrimaryText}>
+                  {formShape === "tap" ? "Start Drawing" : "Create Zone"}
+                </Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
 
+      {/* ─── Edit Zone Modal ─── */}
       <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
@@ -760,7 +913,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl,
     paddingTop: Spacing.md,
     gap: Spacing.md,
-    maxHeight: "85%",
+    maxHeight: "90%",
   },
   modalHandle: {
     width: 36,
@@ -836,6 +989,39 @@ const styles = StyleSheet.create({
   },
   typeChipSmallTextActive: {
     color: Colors.white,
+  },
+  shapeRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  shapeCard: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  shapeCardActive: {
+    borderColor: Colors.info,
+    backgroundColor: Colors.infoDim,
+  },
+  shapeCardLabel: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  shapeCardLabelActive: {
+    color: Colors.info,
+  },
+  shapeCardDesc: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+    textAlign: "center",
   },
   colorRow: {
     flexDirection: "row",
