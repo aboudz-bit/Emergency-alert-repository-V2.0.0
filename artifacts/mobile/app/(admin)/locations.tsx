@@ -40,6 +40,11 @@ export default function LocationsScreen() {
   const [locationName, setLocationName] = useState("");
   const [locationZone, setLocationZone] = useState("");
 
+  const selectedZone = useMemo(
+    () => zones.find((z) => z.name === selectedTab),
+    [zones, selectedTab]
+  );
+
   const filteredLocations = useMemo(
     () => locations.filter((l) => l.zone === selectedTab),
     [locations, selectedTab]
@@ -114,55 +119,73 @@ export default function LocationsScreen() {
         }
       />
 
+      {/* ─── Zone tabs ─── */}
       {zones.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabBarScroll}
-          style={styles.tabBarContainer}
-        >
-          {zones.map((zone) => {
-            const isSelected = selectedTab === zone.name;
-            const count = locations.filter((l) => l.zone === zone.name).length;
-            return (
-              <Pressable
-                key={zone.id}
-                style={[
-                  styles.tab,
-                  isSelected && { borderBottomColor: zone.color },
-                  !zone.isActive && styles.tabInactive,
-                ]}
-                onPress={() => setSelectedTab(zone.name)}
-              >
-                <View style={[styles.tabDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
-                <Text style={[styles.tabText, isSelected && { color: Colors.text }, !zone.isActive && { color: Colors.textTertiary }]}>
-                  {zone.name}
-                </Text>
-                <View
-                  style={[
-                    styles.tabBadge,
-                    { backgroundColor: isSelected ? zone.color + "20" : Colors.surfaceElevated },
-                  ]}
+        <View style={styles.tabBarOuter}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarScroll}
+          >
+            {zones.map((zone) => {
+              const isActive = selectedTab === zone.name;
+              const count = locations.filter((l) => l.zone === zone.name).length;
+              const color = zone.isActive ? zone.color : Colors.textTertiary;
+              return (
+                <Pressable
+                  key={zone.id}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                  onPress={() => setSelectedTab(zone.name)}
                 >
-                  <Text
-                    style={[
-                      styles.tabBadgeText,
-                      { color: isSelected ? zone.color : Colors.textSecondary },
-                    ]}
-                  >
-                    {count}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                  <View style={[styles.tabIndicator, { backgroundColor: isActive ? color : "transparent" }]} />
+                  <View style={styles.tabContent}>
+                    <Text
+                      style={[
+                        styles.tabText,
+                        isActive && { color: Colors.text },
+                        !zone.isActive && { color: Colors.textTertiary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {zone.name}
+                    </Text>
+                    <View style={[styles.tabBadge, isActive && { backgroundColor: color + "25" }]}>
+                      <Text style={[styles.tabBadgeText, isActive && { color }]}>
+                        {count}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
       ) : (
         <View style={styles.noZonesBar}>
-          <Text style={styles.noZonesText}>No zones. Create zones first.</Text>
+          <Feather name="alert-circle" size={16} color={Colors.textTertiary} />
+          <Text style={styles.noZonesText}>Create zones first to manage locations</Text>
         </View>
       )}
 
+      {/* ─── Zone info bar ─── */}
+      {selectedZone && (
+        <View style={styles.zoneInfoBar}>
+          <View style={[styles.zoneInfoDot, { backgroundColor: selectedZone.color }]} />
+          <Text style={styles.zoneInfoText}>
+            {selectedZone.name}
+          </Text>
+          <Text style={styles.zoneInfoCount}>
+            {filteredLocations.length} location{filteredLocations.length !== 1 ? "s" : ""}
+          </Text>
+          {!selectedZone.isActive && (
+            <View style={styles.zoneOffBadge}>
+              <Text style={styles.zoneOffText}>Zone Off</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ─── Location list ─── */}
       <FlatList
         data={filteredLocations}
         keyExtractor={(item) => item.id.toString()}
@@ -173,13 +196,12 @@ export default function LocationsScreen() {
             onPress={() => handleOpenEdit(item)}
           >
             <View style={styles.locationIconWrap}>
-              <Feather name="map-pin" size={16} color={Colors.textSecondary} />
+              <Feather name="map-pin" size={16} color={selectedZone?.color || Colors.textSecondary} />
             </View>
             <View style={styles.locationInfo}>
               <Text style={[styles.locationName, !item.isActive && { color: Colors.textTertiary }]}>
                 {item.name}
               </Text>
-              <Text style={styles.locationZoneLabel}>{item.zone}</Text>
             </View>
             <Switch
               value={item.isActive}
@@ -192,50 +214,53 @@ export default function LocationsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIcon}>
-              <Feather name="map-pin" size={40} color={Colors.textSecondary} />
+              <Feather name="map-pin" size={36} color={Colors.textTertiary} />
             </View>
             <Text style={styles.emptyTitle}>No Locations</Text>
             <Text style={styles.emptyText}>
               {selectedTab
-                ? `No locations in ${selectedTab} zone yet`
-                : "Select a zone to view locations"}
+                ? `Add locations to ${selectedTab}`
+                : "Select a zone to manage locations"}
             </Text>
             {selectedTab && (
-              <Button
-                title="Add Location"
-                onPress={handleOpenAdd}
-                variant="primary"
-                icon="plus"
-                size="md"
-                style={{ marginTop: Spacing.md }}
-              />
+              <Pressable style={styles.emptyAddBtn} onPress={handleOpenAdd}>
+                <Feather name="plus" size={16} color={Colors.info} />
+                <Text style={styles.emptyAddText}>Add Location</Text>
+              </Pressable>
             )}
           </View>
         }
       />
 
+      {/* ─── Add / Edit modal ─── */}
       <Modal
         visible={showModal}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingLocation ? "Edit Location" : "Add Location"}
-            </Text>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingLocation ? "Edit Location" : "New Location"}
+              </Text>
+              <Pressable style={styles.modalClose} onPress={handleCloseModal} hitSlop={8}>
+                <Feather name="x" size={18} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
 
             <Input
               label="Location Name"
               value={locationName}
               onChangeText={setLocationName}
-              placeholder="Enter location name"
+              placeholder="e.g. Control Room, Helipad..."
               autoFocus
             />
 
             <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Parent Zone</Text>
+              <Text style={styles.formLabel}>Assign to Zone</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -248,8 +273,7 @@ export default function LocationsScreen() {
                       key={z.id}
                       style={[
                         styles.zonePickerChip,
-                        isSelected && { borderColor: z.color, backgroundColor: z.color + "20" },
-                        !z.isActive && styles.zonePickerChipInactive,
+                        isSelected && { borderColor: z.color, backgroundColor: z.color + "18" },
                       ]}
                       onPress={() => setLocationZone(z.name)}
                     >
@@ -257,14 +281,12 @@ export default function LocationsScreen() {
                       <Text
                         style={[
                           styles.zonePickerText,
-                          isSelected && { color: z.color },
+                          isSelected && { color: z.color, fontFamily: "Inter_700Bold" },
                         ]}
+                        numberOfLines={1}
                       >
                         {z.name}
                       </Text>
-                      {!z.isActive && (
-                        <Text style={styles.inactiveLabel}>(off)</Text>
-                      )}
                     </Pressable>
                   );
                 })}
@@ -273,30 +295,24 @@ export default function LocationsScreen() {
 
             <View style={styles.modalActions}>
               {editingLocation && (
-                <Button
-                  title="Delete"
-                  onPress={handleDelete}
-                  variant="destructive"
-                  icon="trash-2"
-                  size="lg"
-                  style={{ flex: 1 }}
-                />
+                <Pressable style={styles.deleteLocationBtn} onPress={handleDelete}>
+                  <Feather name="trash-2" size={16} color={Colors.primary} />
+                </Pressable>
               )}
-              <Button
-                title="Cancel"
-                onPress={handleCloseModal}
-                variant="secondary"
-                size="lg"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title={editingLocation ? "Save" : "Add"}
+              <View style={styles.modalActionsSpacer} />
+              <Pressable style={styles.modalCancelBtn} onPress={handleCloseModal}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSaveBtn, (!locationName.trim() || !locationZone) && styles.modalSaveBtnDisabled]}
                 onPress={handleSave}
-                variant="primary"
                 disabled={!locationName.trim() || !locationZone}
-                size="lg"
-                style={{ flex: 1 }}
-              />
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.modalSaveText}>
+                  {editingLocation ? "Save" : "Add"}
+                </Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -311,39 +327,39 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabBarContainer: {
-    maxHeight: 52,
+
+  // ─── Tabs ───
+  tabBarOuter: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   tabBarScroll: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: 2,
   },
   tab: {
+    paddingBottom: 2,
+  },
+  tabActive: {},
+  tabIndicator: {
+    height: 3,
+    borderRadius: 1.5,
+    marginBottom: Spacing.xs,
+  },
+  tabContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-    marginRight: Spacing.sm,
-  },
-  tabInactive: {
-    opacity: 0.6,
-  },
-  tabDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    paddingVertical: Spacing.sm,
+    minHeight: 40,
   },
   tabText: {
     fontSize: FontSize.md,
@@ -351,15 +367,22 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   tabBadge: {
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
   },
   tabBadgeText: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_700Bold",
+    color: Colors.textSecondary,
   },
+
+  // ─── No zones ───
   noZonesBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
     padding: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -368,8 +391,48 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textTertiary,
-    textAlign: "center",
   },
+
+  // ─── Zone info ───
+  zoneInfoBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  zoneInfoDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  zoneInfoText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  zoneInfoCount: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+    flex: 1,
+  },
+  zoneOffBadge: {
+    backgroundColor: Colors.primaryDim,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  zoneOffText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.primary,
+  },
+
+  // ─── List ───
   listContent: {
     padding: Spacing.lg,
     gap: Spacing.sm,
@@ -382,8 +445,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.lg,
+    padding: Spacing.md,
+    paddingVertical: Spacing.md + 2,
     gap: Spacing.md,
+    minHeight: 56,
   },
   pressed: {
     backgroundColor: Colors.surfaceElevated,
@@ -398,27 +463,23 @@ const styles = StyleSheet.create({
   },
   locationInfo: {
     flex: 1,
-    gap: 2,
   },
   locationName: {
     fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
-  locationZoneLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-  },
+
+  // ─── Empty ───
   emptyContainer: {
     alignItems: "center",
-    paddingVertical: Spacing.xxxl,
+    paddingVertical: Spacing.xxxl * 1.5,
     gap: Spacing.sm,
   },
   emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -430,38 +491,78 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
     textAlign: "center",
   },
+  emptyAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 4,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.infoDim,
+    minHeight: 44,
+  },
+  emptyAddText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.info,
+  },
+
+  // ─── Modal ───
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    width: "100%",
-    maxWidth: 420,
+    borderTopLeftRadius: BorderRadius.xxl,
+    borderTopRightRadius: BorderRadius.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+    paddingTop: Spacing.md,
     gap: Spacing.lg,
   },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: Spacing.xs,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   modalTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
+  },
+  modalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
   },
   formSection: {
     gap: Spacing.sm,
   },
   formLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   zonePickerRow: {
     gap: Spacing.sm,
@@ -471,32 +572,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingVertical: Spacing.sm + 4,
     borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    minHeight: 44,
+  },
+  zonePickerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  zonePickerText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+
+  // ─── Modal actions ───
+  modalActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  deleteLocationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalActionsSpacer: {
+    flex: 1,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: Spacing.lg,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },
-  zonePickerChipInactive: {
-    opacity: 0.6,
-  },
-  zonePickerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  zonePickerText: {
-    fontSize: FontSize.sm,
+  modalCancelText: {
+    fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
-  inactiveLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-  },
-  modalActions: {
+  modalSaveBtn: {
     flexDirection: "row",
-    gap: Spacing.md,
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: Spacing.xl,
+    minHeight: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.info,
+  },
+  modalSaveBtnDisabled: {
+    opacity: 0.35,
+  },
+  modalSaveText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
   },
 });

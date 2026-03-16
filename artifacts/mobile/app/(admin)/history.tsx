@@ -51,6 +51,14 @@ export default function HistoryScreen() {
     return result;
   }, [alerts, selectedType]);
 
+  const alertCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: alerts.length };
+    for (const type of ALERT_TYPES) {
+      counts[type] = alerts.filter((a) => a.type === type).length;
+    }
+    return counts;
+  }, [alerts]);
+
   const renderAlertCard = useCallback(
     ({ item }: { item: Alert }) => {
       const iconName = alertTypeIcons[item.type] || "alert-triangle";
@@ -63,9 +71,9 @@ export default function HistoryScreen() {
               <Feather name={iconName} size={18} color={iconColor} />
             </View>
             <View style={styles.alertInfo}>
-              <Text style={styles.alertTitle}>{item.title}</Text>
+              <Text style={styles.alertTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.alertMeta}>
-                {item.zone} · {format(new Date(item.timestamp), "MMM d, yyyy HH:mm")}
+                {item.zone} · {format(new Date(item.timestamp), "MMM d, HH:mm")}
               </Text>
             </View>
             <StatusBadge status={item.status} />
@@ -102,9 +110,12 @@ export default function HistoryScreen() {
           </View>
 
           {item.closedAt && (
-            <Text style={styles.closedAt}>
-              Closed: {format(new Date(item.closedAt), "MMM d, yyyy HH:mm")}
-            </Text>
+            <View style={styles.closedRow}>
+              <Feather name="check-circle" size={12} color={Colors.textTertiary} />
+              <Text style={styles.closedAt}>
+                Closed {format(new Date(item.closedAt), "MMM d, HH:mm")}
+              </Text>
+            </View>
           )}
         </Card>
       );
@@ -114,50 +125,81 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ─── Fixed header ─── */}
       <Header title="Alert History" />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        <Pressable
-          style={[styles.filterChip, selectedType === null && styles.filterChipActive]}
-          onPress={() => setSelectedType(null)}
+      {/* ─── Fixed filter tabs ─── */}
+      <View style={styles.tabBarOuter}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabBarScroll}
         >
-          <Text
-            style={[styles.filterChipText, selectedType === null && styles.filterChipTextActive]}
-          >
-            All
-          </Text>
-        </Pressable>
-        {ALERT_TYPES.map((type) => (
           <Pressable
-            key={type}
-            style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
-            onPress={() => setSelectedType(selectedType === type ? null : type)}
+            style={[styles.tab, selectedType === null && styles.tabActive]}
+            onPress={() => setSelectedType(null)}
           >
-            <Text
-              style={[
-                styles.filterChipText,
-                selectedType === type && styles.filterChipTextActive,
-              ]}
-            >
-              {type}
+            <Text style={[styles.tabText, selectedType === null && styles.tabTextActive]}>
+              All
             </Text>
+            <View style={[styles.tabBadge, selectedType === null && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, selectedType === null && styles.tabBadgeTextActive]}>
+                {alertCounts.All}
+              </Text>
+            </View>
           </Pressable>
-        ))}
-      </ScrollView>
+          {ALERT_TYPES.map((type) => {
+            const isActive = selectedType === type;
+            const count = alertCounts[type] || 0;
+            const isEmpty = count === 0;
+            const color = alertTypeColors[type] || Colors.textSecondary;
+            return (
+              <Pressable
+                key={type}
+                style={[styles.tab, isActive && styles.tabActive, isEmpty && styles.tabEmpty]}
+                onPress={() => setSelectedType(isActive ? null : type)}
+              >
+                <View style={[styles.tabDot, { backgroundColor: isEmpty ? Colors.textTertiary : color }]} />
+                <Text
+                  style={[
+                    styles.tabText,
+                    isActive && styles.tabTextActive,
+                    isEmpty && styles.tabTextEmpty,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {type}
+                </Text>
+                <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
+      {/* ─── Result count ─── */}
+      <View style={styles.resultBar}>
+        <Text style={styles.resultText}>
+          {sortedAlerts.length} alert{sortedAlerts.length !== 1 ? "s" : ""}
+          {selectedType ? ` · ${selectedType}` : ""}
+        </Text>
+      </View>
+
+      {/* ─── Scrollable content ─── */}
       <FlatList
         data={sortedAlerts}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         renderItem={renderAlertCard}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIcon}>
-              <Feather name="inbox" size={48} color={Colors.textSecondary} />
+              <Feather name="inbox" size={40} color={Colors.textTertiary} />
             </View>
             <Text style={styles.emptyTitle}>No Alerts</Text>
             <Text style={styles.emptyText}>
@@ -177,39 +219,90 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  filterRow: {
+
+  // ─── Tab bar ───
+  tabBarOuter: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  tabBarScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: 2,
+  },
+  tab: {
     flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 4,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+    minHeight: 44,
   },
-  filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+  tabActive: {
+    borderBottomColor: Colors.primary,
   },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  tabEmpty: {
+    opacity: 0.45,
   },
-  filterChipText: {
+  tabDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  tabText: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
-  filterChipTextActive: {
-    color: Colors.white,
+  tabTextActive: {
+    color: Colors.text,
   },
+  tabTextEmpty: {
+    color: Colors.textTertiary,
+  },
+  tabBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+  },
+  tabBadgeActive: {
+    backgroundColor: Colors.primaryDim,
+  },
+  tabBadgeText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    color: Colors.textTertiary,
+  },
+  tabBadgeTextActive: {
+    color: Colors.primary,
+  },
+
+  // ─── Result bar ───
+  resultBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  resultText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
+  },
+
+  // ─── List ───
   listContent: {
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
     paddingBottom: Spacing.xxxl,
   },
   alertCard: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   alertHeader: {
     flexDirection: "row",
@@ -217,8 +310,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   alertIconWrap: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
@@ -240,9 +333,12 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.sm,
   },
   statItem: {
     alignItems: "center",
@@ -250,11 +346,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.md,
     fontFamily: "Inter_700Bold",
   },
   statLabel: {
-    fontSize: FontSize.xs,
+    fontSize: 10,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
@@ -262,28 +358,35 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: Colors.border,
   },
+  closedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    justifyContent: "flex-end",
+  },
   closedAt: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    textAlign: "right",
+    color: Colors.textTertiary,
   },
+
+  // ─── Empty ───
   emptyContainer: {
     alignItems: "center",
     paddingVertical: Spacing.xxxl * 2,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   emptyIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.surface,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
   },

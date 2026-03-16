@@ -33,6 +33,8 @@ export interface ZoneMapProps {
   onMapCenterChange?: (center: LatLng) => void;
   showLocationButton?: boolean;
   tapPointCount?: number;
+  flyToZoneId?: number | null;
+  showCenterCrosshair?: boolean;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";
