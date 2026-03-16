@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { Header } from "@/components/ui/Header";
 import { Colors, FontSize, DEFAULT_MESSAGES } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Location, LocationAlertType, AlertPriority } from "@/types";
+import type { Location, LocationAlertType, AlertPriority, AlertHistoryEntry } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
   "Blackout",
@@ -41,6 +41,7 @@ export default function AlertManagementScreen() {
   const zones = useStore((s) => s.zones);
   const activateLocationAlert = useStore((s) => s.activateLocationAlert);
   const deactivateLocationAlert = useStore((s) => s.deactivateLocationAlert);
+  const editLocationAlert = useStore((s) => s.editLocationAlert);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +60,9 @@ export default function AlertManagementScreen() {
   const [editType, setEditType] = useState<LocationAlertType>("Blackout");
   const [editPriority, setEditPriority] = useState<AlertPriority>("High");
   const [editMessage, setEditMessage] = useState("");
+
+  // History modal
+  const [historyTarget, setHistoryTarget] = useState<Location | null>(null);
 
   const activeLocations = useMemo(
     () => locations.filter((l) => l.isActive),
@@ -128,10 +132,10 @@ export default function AlertManagementScreen() {
   const handleSaveEdit = useCallback(() => {
     if (!editTarget) return;
     if (editTarget.alertActive) {
-      activateLocationAlert(editTarget.id, editType, editPriority, editMessage.trim());
+      editLocationAlert(editTarget.id, editType, editPriority, editMessage.trim());
     }
     setEditTarget(null);
-  }, [editTarget, editType, editPriority, editMessage, activateLocationAlert]);
+  }, [editTarget, editType, editPriority, editMessage, editLocationAlert]);
 
   // ─── Time ago helper ───
   const timeAgo = useCallback((iso: string | null) => {
@@ -221,6 +225,13 @@ export default function AlertManagementScreen() {
                 hitSlop={4}
               >
                 <Feather name="settings" size={15} color={Colors.textSecondary} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.historyBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                onPress={() => setHistoryTarget(item)}
+                hitSlop={4}
+              >
+                <Feather name="clock" size={15} color={Colors.textTertiary} />
               </Pressable>
             </View>
           </View>
@@ -531,6 +542,88 @@ export default function AlertManagementScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ═══ HISTORY MODAL ═══ */}
+      <Modal
+        visible={historyTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setHistoryTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: "75%" }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalTitleIcon, { backgroundColor: Colors.surfaceElevated }]}>
+                  <Feather name="clock" size={14} color={Colors.textSecondary} />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>Alert History</Text>
+                  <Text style={styles.historySubtitle}>{historyTarget?.name}</Text>
+                </View>
+              </View>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setHistoryTarget(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <FlatList
+              data={[...(historyTarget?.alertHistory || [])].reverse()}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.historyList}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: entry }: { item: AlertHistoryEntry }) => {
+                const actionColor =
+                  entry.action === "activated" ? Colors.primary :
+                  entry.action === "edited" ? Colors.info :
+                  Colors.textTertiary;
+                const actionLabel = entry.action.toUpperCase();
+                return (
+                  <View style={styles.historyRow}>
+                    <View style={[styles.historyDot, { backgroundColor: actionColor }]} />
+                    <View style={styles.historyContent}>
+                      <View style={styles.historyTopLine}>
+                        <View style={[styles.historyActionBadge, { backgroundColor: actionColor + "18" }]}>
+                          <Text style={[styles.historyActionText, { color: actionColor }]}>{actionLabel}</Text>
+                        </View>
+                        {entry.alertType && entry.action !== "deactivated" && (
+                          <>
+                            <Text style={styles.historySep}>{"\u00B7"}</Text>
+                            {entry.priority && (
+                              <Text style={[styles.historyPriority, { color: priorityColors[entry.priority] || Colors.textSecondary }]}>
+                                {entry.priority}
+                              </Text>
+                            )}
+                            <Text style={styles.historySep}>{"\u00B7"}</Text>
+                            <Text style={styles.historyType}>{entry.alertType}</Text>
+                          </>
+                        )}
+                      </View>
+                      <View style={styles.historyBottomLine}>
+                        <Text style={styles.historyTime}>{timeAgo(entry.timestamp)}</Text>
+                        {entry.user && (
+                          <Text style={styles.historyUser}>by {entry.user}</Text>
+                        )}
+                      </View>
+                      {entry.message && entry.action !== "deactivated" ? (
+                        <Text style={styles.historyMessage} numberOfLines={2}>{entry.message}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.historyEmpty}>
+                  <Feather name="inbox" size={24} color={Colors.textTertiary} />
+                  <Text style={styles.historyEmptyText}>No history yet</Text>
+                  <Text style={styles.historyEmptyHint}>Actions will be recorded here</Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -640,6 +733,12 @@ const styles = StyleSheet.create({
   activeBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold", color: Colors.primary, letterSpacing: 0.6 },
   rowSwitch: { transform: [{ scale: 0.78 }], marginHorizontal: -2 },
   editBtn: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  historyBtn: {
     width: 40, height: 40, borderRadius: 10,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center", justifyContent: "center",
@@ -763,4 +862,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.amber, alignItems: "center", justifyContent: "center", gap: 6,
   },
   deactivateConfirmText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
+
+  // ─── History modal ───
+  historySubtitle: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary, marginTop: 1 },
+  historyList: { gap: 0, paddingBottom: 8 },
+  historyRow: {
+    flexDirection: "row", gap: 10, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  historyDot: { width: 8, height: 8, borderRadius: 4, marginTop: 4 },
+  historyContent: { flex: 1, gap: 3 },
+  historyTopLine: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  historyActionBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  historyActionText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.4 },
+  historySep: { fontSize: 10, color: Colors.textTertiary },
+  historyPriority: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  historyType: { fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.textSecondary },
+  historyBottomLine: { flexDirection: "row", alignItems: "center", gap: 6 },
+  historyTime: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+  historyUser: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+  historyMessage: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginTop: 2 },
+  historyEmpty: { alignItems: "center", paddingVertical: 40, gap: 6 },
+  historyEmptyText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
+  historyEmptyHint: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
 });

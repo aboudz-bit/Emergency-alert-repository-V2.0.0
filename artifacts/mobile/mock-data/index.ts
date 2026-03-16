@@ -111,8 +111,8 @@ export const seedZones: Zone[] = [
 ];
 
 export const seedLocations: Location[] = [
-  ...CPF_LOCATIONS.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null })),
-  ...CAMP_LOCATIONS.map((name, i) => ({ id: CPF_LOCATIONS.length + i + 1, name, zone: 'Camp' as const, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null })),
+  ...CPF_LOCATIONS.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [] })),
+  ...CAMP_LOCATIONS.map((name, i) => ({ id: CPF_LOCATIONS.length + i + 1, name, zone: 'Camp' as const, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [] })),
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
