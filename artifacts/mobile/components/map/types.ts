@@ -32,6 +32,7 @@ export interface ZoneMapProps {
   onMapTap?: (point: LatLng) => void;
   onMapCenterChange?: (center: LatLng) => void;
   showLocationButton?: boolean;
+  tapPointCount?: number;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

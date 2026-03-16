@@ -90,8 +90,8 @@ function generateLeafletHtml(
           draggable: true,
           icon: L.divIcon({
             className: 'edit-vertex',
-            html: '<div style="width:28px;height:28px;border-radius:50%;background:${color};border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);cursor:grab;"></div>',
-            iconAnchor: [14, 14],
+            html: '<div style="width:44px;height:44px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;cursor:grab;"><div style="width:22px;height:22px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.4);"></div></div>',
+            iconAnchor: [22, 22],
           })
         }).addTo(map);
         m.on('drag', function(e) {
@@ -147,8 +147,50 @@ function generateLeafletHtml(
 
   const tapModeCode = isTapMode
     ? `
+      var tapMarkers = [];
+      var tapPoly = null;
+      var tapColor = '#3B82F6';
+      function addTapPoint(lat, lng) {
+        var idx = tapMarkers.length + 1;
+        var m = L.circleMarker([lat, lng], {
+          radius: 10, color: '#fff', fillColor: tapColor,
+          fillOpacity: 1, weight: 3,
+        }).addTo(map);
+        var label = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'zone-label',
+            html: '<div style="background:'+tapColor+';color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,0.25);min-width:20px;text-align:center;">' + idx + '</div>',
+            iconAnchor: [14, -12],
+          })
+        }).addTo(map);
+        tapMarkers.push({marker: m, label: label, lat: lat, lng: lng});
+        updateTapPoly();
+      }
+      function updateTapPoly() {
+        if (tapPoly) map.removeLayer(tapPoly);
+        if (tapMarkers.length >= 2) {
+          var coords = tapMarkers.map(function(t){return [t.lat, t.lng]});
+          tapPoly = L.polygon(coords, {
+            color: tapColor, fillColor: tapColor,
+            fillOpacity: 0.15, weight: 2, dashArray: '6,4',
+          }).addTo(map);
+        }
+      }
       map.on('click', function(e) {
+        addTapPoint(e.latlng.lat, e.latlng.lng);
         window.parent.postMessage(JSON.stringify({type:'map_tap', lat: e.latlng.lat, lng: e.latlng.lng}), '*');
+      });
+      // Listen for undo from parent
+      window.addEventListener('message', function(evt) {
+        try {
+          var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
+          if (d.type === 'undo_tap' && tapMarkers.length > 0) {
+            var last = tapMarkers.pop();
+            map.removeLayer(last.marker);
+            map.removeLayer(last.label);
+            updateTapPoly();
+          }
+        } catch(ex) {}
       });
     `
     : "";
@@ -164,10 +206,10 @@ function generateLeafletHtml(
 
   const locationButtonCode = showLocationButton
     ? `
-      var locBtn = L.control({position: 'bottomright'});
+      var locBtn = L.control({position: 'topright'});
       locBtn.onAdd = function() {
         var div = L.DomUtil.create('div', 'loc-btn');
-        div.innerHTML = '<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);cursor:pointer;border:1px solid #ddd;" onclick="doLocate()"><svg width=\\"20\\" height=\\"20\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#3B82F6\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"10\\"/><line x1=\\"12\\" y1=\\"8\\" x2=\\"12\\" y2=\\"12\\"/><line x1=\\"12\\" y1=\\"16\\" x2=\\"12.01\\" y2=\\"16\\"/></svg></div>';
+        div.innerHTML = '<div style="width:44px;height:44px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.18);cursor:pointer;border:1px solid #e0e0e0;" onclick="doLocate()"><svg width=\\"22\\" height=\\"22\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#3B82F6\\" stroke-width=\\"2.5\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"4\\"/><line x1=\\"12\\" y1=\\"2\\" x2=\\"12\\" y2=\\"6\\"/><line x1=\\"12\\" y1=\\"18\\" x2=\\"12\\" y2=\\"22\\"/><line x1=\\"2\\" y1=\\"12\\" x2=\\"6\\" y2=\\"12\\"/><line x1=\\"18\\" y1=\\"12\\" x2=\\"22\\" y2=\\"12\\"/></svg></div>';
         return div;
       };
       locBtn.addTo(map);
@@ -202,8 +244,9 @@ function generateLeafletHtml(
   .zone-label{background:none!important;border:none!important}
   .edit-vertex{background:none!important;border:none!important}
   .loc-btn{background:none!important;border:none!important}
-  .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important}
-  .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:10px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
+  .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:40px!important;height:40px!important;line-height:40px!important;font-size:18px!important}
+  .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:12px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
+  .leaflet-touch .leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:44px!important;font-size:20px!important}
   ${isTapMode ? `#map{cursor:crosshair!important}` : ""}
 </style></head><body>
 <div id="map"></div>
@@ -240,13 +283,26 @@ export function LeafletPreviewFallback({
   onMapTap,
   onMapCenterChange,
   showLocationButton = false,
+  tapPointCount = 0,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const prevTapCountRef = useRef(0);
 
   const mapHtml = useMemo(
     () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton),
     [zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton]
   );
+
+  // Send undo message to iframe when tapPointCount decreases
+  useEffect(() => {
+    if (tapPointCount < prevTapCountRef.current && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ type: "undo_tap" }),
+        "*"
+      );
+    }
+    prevTapCountRef.current = tapPointCount;
+  }, [tapPointCount]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
