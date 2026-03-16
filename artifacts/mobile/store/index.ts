@@ -427,23 +427,19 @@ export const useStore = create<AppState>()(
       },
 
       getActiveAlert: () => get().alerts.find(a => a.isActive) || null,
-      getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
+      getLocationsByZone: (zone) => {
+        const z = get().zones.find(zn => zn.name === zone);
+        if (!z) return get().locations.filter(l => l.zone === zone && l.isActive);
+        return get().locations.filter(l => l.zoneId === z.id && l.isActive);
+      },
     }),
     {
       name: 'keas-mobile-store-v2',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
-        if (version === 0 || !version) {
-          // Backfill zoneId and alertHistory on locations from pre-v1 data
-          if (Array.isArray(state?.locations)) {
-            state.locations = state.locations.map((loc: any) => ({
-              ...loc,
-              zoneId: loc.zoneId ?? 0,
-              alertHistory: loc.alertHistory ?? [],
-            }));
-          }
+        if (version < 1) {
           // Backfill zone alert fields
           if (Array.isArray(state?.zones)) {
             state.zones = state.zones.map((z: any) => ({
@@ -454,6 +450,29 @@ export const useStore = create<AppState>()(
               alertMessage: z.alertMessage ?? '',
               alertUpdatedAt: z.alertUpdatedAt ?? null,
               alertHistory: z.alertHistory ?? [],
+            }));
+          }
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              alertHistory: loc.alertHistory ?? [],
+            }));
+          }
+        }
+        if (version < 2) {
+          // Fix zoneId mapping: resolve from zone name → zone.id
+          const zoneNameToId = new Map<string, number>();
+          if (Array.isArray(state?.zones)) {
+            for (const z of state.zones) {
+              zoneNameToId.set(z.name, z.id);
+            }
+          }
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              zoneId: (loc.zoneId && loc.zoneId !== 0)
+                ? loc.zoneId
+                : (zoneNameToId.get(loc.zone) ?? 0),
             }));
           }
         }
