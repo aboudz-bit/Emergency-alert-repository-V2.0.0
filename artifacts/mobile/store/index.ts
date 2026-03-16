@@ -202,7 +202,7 @@ export const useStore = create<AppState>()(
       updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
       deleteZone: (id) => set(s => ({ zones: s.zones.filter(z => z.id !== id) })),
 
-      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now() }] })),
+      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), alertHistory: location.alertHistory || [] }] })),
       updateLocation: (id, partial) => set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, ...partial } : l) })),
       deleteLocation: (id) => set(s => ({ locations: s.locations.filter(l => l.id !== id) })),
 
@@ -255,6 +255,8 @@ export const useStore = create<AppState>()(
         }));
       },
       editLocationAlert: (id, alertType, priority, message) => {
+        const loc = get().locations.find(l => l.id === id);
+        if (!loc || !loc.alertActive) return;
         const now = new Date().toISOString();
         const user = get().currentUser?.name || null;
         set(s => ({

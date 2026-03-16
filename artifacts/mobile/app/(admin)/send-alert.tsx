@@ -558,10 +558,7 @@ export default function AlertManagementScreen() {
                 <View style={[styles.modalTitleIcon, { backgroundColor: Colors.surfaceElevated }]}>
                   <Feather name="clock" size={14} color={Colors.textSecondary} />
                 </View>
-                <View>
-                  <Text style={styles.modalTitle}>Alert History</Text>
-                  <Text style={styles.historySubtitle}>{historyTarget?.name}</Text>
-                </View>
+                <Text style={styles.modalTitle}>Location History {"\u2013"} {historyTarget?.name}</Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setHistoryTarget(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textSecondary} />
@@ -573,6 +570,7 @@ export default function AlertManagementScreen() {
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={styles.historyList}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item: entry }: { item: AlertHistoryEntry }) => {
                 const actionColor =
                   entry.action === "activated" ? Colors.primary :
@@ -587,7 +585,7 @@ export default function AlertManagementScreen() {
                         <View style={[styles.historyActionBadge, { backgroundColor: actionColor + "18" }]}>
                           <Text style={[styles.historyActionText, { color: actionColor }]}>{actionLabel}</Text>
                         </View>
-                        {entry.alertType && entry.action !== "deactivated" && (
+                        {entry.alertType && (
                           <>
                             <Text style={styles.historySep}>{"\u00B7"}</Text>
                             {entry.priority && (
@@ -864,7 +862,6 @@ const styles = StyleSheet.create({
   deactivateConfirmText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
 
   // ─── History modal ───
-  historySubtitle: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary, marginTop: 1 },
   historyList: { gap: 0, paddingBottom: 8 },
   historyRow: {
     flexDirection: "row", gap: 10, paddingVertical: 10,
