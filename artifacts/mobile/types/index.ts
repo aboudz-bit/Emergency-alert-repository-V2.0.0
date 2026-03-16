@@ -45,7 +45,7 @@ export interface User {
   badge: string;
   password: string;
   role: UserRole;
-  zone: 'CPF' | 'Camp';
+  zone: string;
   location: string;
   status: UserResponseStatus;
   accountStatus: AccountStatus;

@@ -33,11 +33,11 @@ export function Input({ label, error, style, ...props }: InputProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.xs,
+    gap: Spacing.xs + 2,
   },
   label: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   input: {
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
     color: Colors.text,
-    minHeight: 48,
+    minHeight: 50,
   },
   focused: {
     borderColor: Colors.primary,

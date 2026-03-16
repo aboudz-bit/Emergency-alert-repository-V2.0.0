@@ -21,10 +21,12 @@ export function KPICard({
 }: KPICardProps) {
   return (
     <View style={styles.card}>
-      <View style={[styles.iconWrap, { backgroundColor: dimColor }]}>
-        <Feather name={icon} size={18} color={color} />
+      <View style={styles.topRow}>
+        <View style={[styles.iconWrap, { backgroundColor: dimColor }]}>
+          <Feather name={icon} size={18} color={color} />
+        </View>
+        <Text style={[styles.value, { color }]}>{value}</Text>
       </View>
-      <Text style={styles.value}>{value}</Text>
       <Text style={styles.title}>{title}</Text>
     </View>
   );
@@ -37,24 +39,27 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
-    gap: Spacing.xs,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.xs,
   },
   value: {
     fontSize: FontSize.xxl,
     fontFamily: "Inter_700Bold",
-    color: Colors.text,
   },
   title: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontFamily: "Inter_500Medium",
     color: Colors.textSecondary,
   },

@@ -4,9 +4,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type ViewStyle,
   type TextStyle,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 
@@ -21,6 +23,8 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   fullWidth?: boolean;
+  icon?: keyof typeof Feather.glyphMap;
+  size?: "sm" | "md" | "lg";
 }
 
 const variantStyles: Record<Variant, { bg: string; text: string; border?: string }> = {
@@ -29,6 +33,12 @@ const variantStyles: Record<Variant, { bg: string; text: string; border?: string
   destructive: { bg: Colors.destructive, text: Colors.white },
   ghost: { bg: "transparent", text: Colors.textSecondary },
   safe: { bg: Colors.safe, text: Colors.white },
+};
+
+const sizeStyles = {
+  sm: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, minHeight: 36, fontSize: FontSize.sm, iconSize: 14 },
+  md: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, minHeight: 48, fontSize: FontSize.md, iconSize: 16 },
+  lg: { paddingVertical: Spacing.lg, paddingHorizontal: Spacing.xxl, minHeight: 56, fontSize: FontSize.lg, iconSize: 18 },
 };
 
 export function Button({
@@ -40,8 +50,11 @@ export function Button({
   style,
   textStyle,
   fullWidth = false,
+  icon,
+  size = "md",
 }: ButtonProps) {
   const v = variantStyles[variant];
+  const s = sizeStyles[size];
 
   return (
     <Pressable
@@ -54,15 +67,21 @@ export function Button({
           borderColor: v.border || "transparent",
           borderWidth: v.border ? 1 : 0,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          paddingVertical: s.paddingVertical,
+          paddingHorizontal: s.paddingHorizontal,
+          minHeight: s.minHeight,
         },
-        fullWidth && { width: "100%" },
+        fullWidth && { width: "100%" as any },
         style,
       ]}
     >
       {loading ? (
         <ActivityIndicator color={v.text} size="small" />
       ) : (
-        <Text style={[styles.text, { color: v.text }, textStyle]}>{title}</Text>
+        <View style={styles.content}>
+          {icon && <Feather name={icon} size={s.iconSize} color={v.text} />}
+          <Text style={[styles.text, { color: v.text, fontSize: s.fontSize }, textStyle]}>{title}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -70,15 +89,16 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 48,
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
   text: {
-    fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
   },
 });

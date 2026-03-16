@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   FlatList,
   Modal,
@@ -19,9 +19,6 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { User, UserResponseStatus } from "@/types";
 
-type FilterKey = "All" | "CPF" | "Camp";
-const FILTERS: FilterKey[] = ["All", "CPF", "Camp"];
-
 const STATUS_OPTIONS: { key: UserResponseStatus; label: string }[] = [
   { key: "confirmed", label: "Confirmed" },
   { key: "missing", label: "Missing" },
@@ -31,10 +28,16 @@ const STATUS_OPTIONS: { key: UserResponseStatus; label: string }[] = [
 
 export default function UsersScreen() {
   const users = useStore((s) => s.users);
+  const zones = useStore((s) => s.zones);
   const updateUserResponse = useStore((s) => s.updateUserResponse);
 
+  const filterOptions = useMemo(() => {
+    const zoneNames = zones.filter((z) => z.isActive).map((z) => z.name);
+    return ["All", ...zoneNames];
+  }, [zones]);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<FilterKey>("All");
+  const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const filteredUsers = useMemo(() => {
@@ -54,49 +57,54 @@ export default function UsersScreen() {
     return result;
   }, [users, selectedFilter, searchQuery]);
 
-  const handleStatusUpdate = (userId: number, status: UserResponseStatus) => {
-    updateUserResponse(userId, status);
-    setSelectedUser(null);
-  };
+  const handleStatusUpdate = useCallback(
+    (userId: number, status: UserResponseStatus) => {
+      updateUserResponse(userId, status);
+      setSelectedUser(null);
+    },
+    [updateUserResponse]
+  );
 
-  const renderUserCard = ({ item }: { item: User }) => (
-    <Pressable onPress={() => setSelectedUser(item)}>
-      <Card style={styles.userCard}>
-        <View style={styles.userCardHeader}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
+  const renderUserCard = useCallback(
+    ({ item }: { item: User }) => (
+      <Pressable onPress={() => setSelectedUser(item)}>
+        <View style={styles.userCard}>
+          <View style={styles.userCardHeader}>
+            <View style={styles.userAvatar}>
+              <Text style={styles.userAvatarText}>
+                {item.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{item.name}</Text>
+              <Text style={styles.userBadge}>Badge: {item.badge}</Text>
+            </View>
+            <StatusBadge status={item.status} />
           </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{item.name}</Text>
-            <Text style={styles.userBadge}>Badge: {item.badge}</Text>
+          <View style={styles.userMeta}>
+            <View style={styles.metaItem}>
+              <Feather name="map-pin" size={12} color={Colors.textSecondary} />
+              <Text style={styles.metaText}>
+                {item.zone} · {item.location}
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Feather name="clock" size={12} color={Colors.textSecondary} />
+              <Text style={styles.metaText}>
+                {format(new Date(item.lastActivity), "MMM d, HH:mm")}
+              </Text>
+            </View>
           </View>
-          <StatusBadge status={item.status} />
         </View>
-        <View style={styles.userMeta}>
-          <View style={styles.metaItem}>
-            <Feather name="map-pin" size={12} color={Colors.textSecondary} />
-            <Text style={styles.metaText}>
-              {item.zone} · {item.location}
-            </Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Feather name="clock" size={12} color={Colors.textSecondary} />
-            <Text style={styles.metaText}>
-              {format(new Date(item.lastActivity), "MMM d, HH:mm")}
-            </Text>
-          </View>
-        </View>
-      </Card>
-    </Pressable>
+      </Pressable>
+    ),
+    []
   );
 
   return (
     <View style={styles.container}>
       <Header title="Users" />
 
-      {/* Search Bar */}
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
           <Feather name="search" size={18} color={Colors.textSecondary} />
@@ -109,9 +117,8 @@ export default function UsersScreen() {
         </View>
       </View>
 
-      {/* Filter Chips */}
       <View style={styles.filterRow}>
-        {FILTERS.map((filter) => (
+        {filterOptions.map((filter) => (
           <Pressable
             key={filter}
             style={[
@@ -132,12 +139,11 @@ export default function UsersScreen() {
         ))}
         <View style={styles.filterCount}>
           <Text style={styles.filterCountText}>
-            {filteredUsers.length} users
+            {filteredUsers.length}
           </Text>
         </View>
       </View>
 
-      {/* User List */}
       <FlatList
         data={filteredUsers}
         keyExtractor={(item) => item.id.toString()}
@@ -151,7 +157,6 @@ export default function UsersScreen() {
         }
       />
 
-      {/* User Detail Modal */}
       <Modal
         visible={selectedUser !== null}
         transparent
@@ -175,45 +180,30 @@ export default function UsersScreen() {
                 <View style={styles.modalDetails}>
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Badge</Text>
-                    <Text style={styles.modalDetailValue}>
-                      {selectedUser.badge}
-                    </Text>
+                    <Text style={styles.modalDetailValue}>{selectedUser.badge}</Text>
                   </View>
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Role</Text>
-                    <Text style={styles.modalDetailValue}>
-                      {selectedUser.role}
-                    </Text>
+                    <Text style={styles.modalDetailValue}>{selectedUser.role}</Text>
                   </View>
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Zone</Text>
-                    <Text style={styles.modalDetailValue}>
-                      {selectedUser.zone}
-                    </Text>
+                    <Text style={styles.modalDetailValue}>{selectedUser.zone}</Text>
                   </View>
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Location</Text>
-                    <Text style={styles.modalDetailValue}>
-                      {selectedUser.location}
-                    </Text>
+                    <Text style={styles.modalDetailValue}>{selectedUser.location}</Text>
                   </View>
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Account</Text>
                     <StatusBadge
-                      status={
-                        selectedUser.accountStatus === "active"
-                          ? "enabled"
-                          : "disabled"
-                      }
+                      status={selectedUser.accountStatus === "active" ? "enabled" : "disabled"}
                     />
                   </View>
                   <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailLabel}>Last Activity</Text>
+                    <Text style={styles.modalDetailLabel}>Last Active</Text>
                     <Text style={styles.modalDetailValue}>
-                      {format(
-                        new Date(selectedUser.lastActivity),
-                        "MMM d, yyyy HH:mm"
-                      )}
+                      {format(new Date(selectedUser.lastActivity), "MMM d, HH:mm")}
                     </Text>
                   </View>
                 </View>
@@ -227,15 +217,12 @@ export default function UsersScreen() {
                         styles.statusBtn,
                         selectedUser.status === opt.key && styles.statusBtnActive,
                       ]}
-                      onPress={() =>
-                        handleStatusUpdate(selectedUser.id, opt.key)
-                      }
+                      onPress={() => handleStatusUpdate(selectedUser.id, opt.key)}
                     >
                       <Text
                         style={[
                           styles.statusBtnText,
-                          selectedUser.status === opt.key &&
-                            styles.statusBtnTextActive,
+                          selectedUser.status === opt.key && styles.statusBtnTextActive,
                         ]}
                       >
                         {opt.label}
@@ -249,6 +236,7 @@ export default function UsersScreen() {
                   onPress={() => setSelectedUser(null)}
                   variant="secondary"
                   fullWidth
+                  size="lg"
                 />
               </>
             )}
@@ -305,7 +293,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   filterChipTextActive: {
@@ -317,8 +305,8 @@ const styles = StyleSheet.create({
   },
   filterCountText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textTertiary,
   },
   listContent: {
     paddingHorizontal: Spacing.lg,
@@ -326,7 +314,12 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl,
   },
   userCard: {
-    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   userCardHeader: {
     flexDirection: "row",
@@ -334,9 +327,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
@@ -356,7 +349,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   userBadge: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
@@ -425,7 +418,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   modalDetails: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -448,7 +441,7 @@ const styles = StyleSheet.create({
   },
   modalSectionTitle: {
     fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
   statusGrid: {
@@ -458,7 +451,7 @@ const styles = StyleSheet.create({
   },
   statusBtn: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -470,7 +463,7 @@ const styles = StyleSheet.create({
   },
   statusBtnText: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.textSecondary,
   },
   statusBtnTextActive: {

@@ -1,0 +1,176 @@
+We need a serious mobile polish pass for the iOS app.
+The app works, but the UX, map, and zone management are not production-level yet.
+
+You must act as a senior mobile engineer + UX designer + map/GIS developer.
+
+Goal:
+Make the mobile app feel like a real professional emergency system, not a demo.
+
+IMPORTANT RULES
+- Do not break existing logic
+- Do not remove features
+- Only improve UX, layout, map, and mobile behavior
+- Mobile must feel native, not web-like
+- Optimize for iPhone usage
+
+========================
+1. MOBILE UX POLISH
+========================
+
+Fix layout and spacing across all screens:
+- dashboard
+- alert screen
+- zone screen
+- users
+- history
+- more/settings
+
+Requirements:
+- proper padding
+- proper SafeArea
+- correct tab bar spacing
+- consistent card sizes
+- consistent font hierarchy
+- buttons should be thumb-friendly
+- no cramped UI
+
+Dashboard:
+- make cards cleaner
+- better spacing
+- clearer hierarchy
+- active alert card should be more readable
+- CTA buttons more visible
+
+Bottom tabs:
+- improve icon alignment
+- improve label spacing
+- make active tab clearer
+
+Headers:
+- consistent back button
+- consistent title
+- proper spacing for notch
+
+========================
+2. MAP + ZONE SYSTEM REDESIGN
+========================
+
+Current zone screen is weak.
+We need a real map-based zone system.
+
+Implement proper map usage:
+
+Use:
+- expo-maps or react-native-maps
+
+Requirements:
+- show map full width
+- show zone polygons
+- show zone colors
+- show zone name on map
+- show current location
+
+Zone screen should support:
+
+View mode:
+- show all zones
+- show polygon boundaries
+- show zone name
+- show zone status
+
+Admin mode:
+- select zone
+- highlight selected zone
+- edit button
+- disable button
+
+Edit mode:
+- move points
+- add points
+- remove points
+- save polygon
+
+If full editing is too complex for mobile:
+- allow only simple edit
+- keep full editing for web
+- but mobile must still display polygons correctly
+
+IMPORTANT:
+Zones must look like real GIS polygons, not text cards.
+
+========================
+3. ROLE-BASED MOBILE UX
+========================
+
+User:
+- see alert
+- confirm / missing / safe
+- see zone
+- see location
+
+Admin:
+- send alert
+- monitor alert
+- view zones
+- quick edit zone
+
+IT:
+- manage accounts
+- create admin
+
+Super Admin:
+- full dashboard
+- all zones
+- all users
+- system control
+
+Make navigation clean for each role.
+
+========================
+4. MOBILE PERFORMANCE
+========================
+
+Optimize:
+- avoid heavy re-renders
+- avoid unnecessary state updates
+- lazy load heavy screens
+- keep map fast
+- keep tabs fast
+
+No freezing
+No flicker
+No layout jump
+
+========================
+5. VISUAL QUALITY
+========================
+
+Make UI look like:
+
+real emergency system
+real industrial app
+real Aramco-level UI
+
+Use:
+- dark theme consistency
+- proper colors
+- readable text
+- clean cards
+- modern buttons
+
+No demo look.
+
+========================
+6. DO NOT JUST EXPLAIN
+========================
+
+Actually modify the code.
+
+Change components.
+Change layouts.
+Change map screen.
+Improve zone screen.
+Improve dashboard.
+Improve navigation.
+
+Then tell me what you changed.

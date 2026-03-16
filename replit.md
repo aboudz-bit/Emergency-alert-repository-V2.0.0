@@ -114,8 +114,62 @@ artifacts/emergency/
 - **Routing**: Wouter with `base={import.meta.env.BASE_URL}` (base is `/emergency/`)
 - **Demo login**: Badge 102934 (Super Admin), 110001 (IT), 123456 (User); password `demo1234`
 
+## Mobile App (KEAS)
+
+```
+artifacts/mobile/
+├── app/
+│   ├── (auth)/login.tsx           # Badge + password login
+│   ├── (admin)/
+│   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
+│   │   ├── index.tsx              # Dashboard: KPIs, alert banner + per-zone breakdown, quick actions, activity feed
+│   │   ├── send-alert.tsx         # Alert form with type/zone/priority/preview
+│   │   ├── users.tsx              # Personnel list with search + zone filter
+│   │   ├── alert-monitor.tsx      # Live alert tracking with total + per-zone breakdown + personnel list
+│   │   ├── history.tsx            # Alert history with type filter chips
+│   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
+│   │   ├── locations.tsx          # Location management with zone tabs
+│   │   └── settings.tsx           # System settings with steppers and toggles
+│   └── (user)/
+│       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
+│       ├── index.tsx              # User home: alert banner, response buttons, status
+│       ├── alert.tsx              # Active alert detail
+│       ├── history.tsx            # User alert history
+│       └── profile.tsx            # User profile
+├── components/ui/
+│   ├── Header.tsx                 # Chevron back, pill back button
+│   ├── Card.tsx                   # Base card with border + optional elevated style
+│   ├── KPICard.tsx                # Icon+value top row, label below
+│   ├── Button.tsx                 # Variant/size/icon props
+│   ├── StatusBadge.tsx            # Dot+label pill badge
+│   ├── Input.tsx                  # Input with bold label + focus border
+│   └── ZoneBreakdown.tsx          # Per-zone response stats cards (Safe/Missing/NoReply/Help per zone)
+├── constants/theme.ts             # Colors, Spacing, FontSize, BorderRadius
+├── hooks/useZoneBreakdown.ts       # Computes per-zone response counts from users+zones+activeAlert
+├── store/index.ts                 # Zustand store (keas-mobile-store-v1)
+└── types/index.ts                 # TypeScript types
+```
+
+### Mobile Key Details
+
+- **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
+- **Zone Map Architecture (Google Maps target)**:
+  - `components/map/` — unified map abstraction layer
+    - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
+    - `ZoneMap.tsx` — provider router: Google Maps on native (FINAL), Leaflet iframe on web preview (TEMPORARY fallback)
+    - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, light styled map, zone polygons, labels, selection + vertex drag editing
+    - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB Voyager light tiles + vertex drag editing). Will be removed when shipping native.
+    - `index.ts` — barrel export
+  - **To activate Google Maps**: Set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` env var, keys configured in app.json for both iOS and Android
+  - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
+  - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
+- **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
+- **Store**: `keas-mobile-store-v2` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`)
+- **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
+
 ## Workflow
 
 | Workflow | Command |
 |---|---|
 | `artifacts/emergency: web` | `pnpm --filter @workspace/emergency run dev` |
+| `artifacts/mobile: expo` | `pnpm --filter @workspace/mobile run dev` |

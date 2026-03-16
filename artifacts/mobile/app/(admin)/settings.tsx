@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Pressable,
   ScrollView,
@@ -22,17 +22,17 @@ export default function SettingsScreen() {
   const updateSettings = useStore((s) => s.updateSettings);
   const logout = useStore((s) => s.logout);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     router.replace("/(auth)/login");
-  };
+  }, [logout, router]);
 
   return (
     <View style={styles.container}>
       <Header
         title="Settings"
         rightAction={
-          <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+          <Pressable onPress={handleLogout} style={styles.logoutBtn} hitSlop={8}>
             <Feather name="log-out" size={20} color={Colors.textSecondary} />
           </Pressable>
         }
@@ -43,41 +43,19 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* General */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General</Text>
           <Card>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>System Name</Text>
-                <Text style={styles.settingValue}>{settings.systemName}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Version</Text>
-                <Text style={styles.settingValue}>{settings.systemVersion}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Language</Text>
-                <Text style={styles.settingValue}>{settings.language}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Timezone</Text>
-                <Text style={styles.settingValue}>{settings.timezone}</Text>
-              </View>
-            </View>
+            <SettingRow label="System Name" value={settings.systemName} />
+            <Divider />
+            <SettingRow label="Version" value={settings.systemVersion} />
+            <Divider />
+            <SettingRow label="Language" value={settings.language.toUpperCase()} />
+            <Divider />
+            <SettingRow label="Timezone" value={settings.timezone.toUpperCase()} />
           </Card>
         </View>
 
-        {/* Zone Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Zone Settings</Text>
           <Card>
@@ -85,19 +63,17 @@ export default function SettingsScreen() {
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Auto-Detect Zone</Text>
                 <Text style={styles.settingDescription}>
-                  Automatically detect user zone based on GPS
+                  Detect user zone based on GPS
                 </Text>
               </View>
               <Switch
                 value={settings.autoDetectZone}
-                onValueChange={(value) =>
-                  updateSettings({ autoDetectZone: value })
-                }
+                onValueChange={(value) => updateSettings({ autoDetectZone: value })}
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
                 thumbColor={settings.autoDetectZone ? Colors.safe : Colors.textSecondary}
               />
             </View>
-            <View style={styles.divider} />
+            <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>GPS Accuracy</Text>
@@ -105,248 +81,190 @@ export default function SettingsScreen() {
                   Current: {settings.gpsAccuracyMeters}m
                 </Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      gpsAccuracyMeters: Math.max(5, settings.gpsAccuracyMeters - 5),
-                    })
-                  }
-                >
-                  <Feather name="minus" size={16} color={Colors.text} />
-                </Pressable>
-                <Text style={styles.stepperValue}>
-                  {settings.gpsAccuracyMeters}m
-                </Text>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      gpsAccuracyMeters: settings.gpsAccuracyMeters + 5,
-                    })
-                  }
-                >
-                  <Feather name="plus" size={16} color={Colors.text} />
-                </Pressable>
-              </View>
+              <Stepper
+                value={settings.gpsAccuracyMeters}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({ gpsAccuracyMeters: Math.max(5, settings.gpsAccuracyMeters - 5) })
+                }
+                onIncrement={() =>
+                  updateSettings({ gpsAccuracyMeters: settings.gpsAccuracyMeters + 5 })
+                }
+              />
             </View>
           </Card>
         </View>
 
-        {/* Notifications */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Alert Sound</Text>
-                <Text style={styles.settingDescription}>
-                  Play sound when alert is received
-                </Text>
+                <Text style={styles.settingDescription}>Play sound for alerts</Text>
               </View>
               <Switch
                 value={settings.notifications.alertSound}
                 onValueChange={(value) =>
-                  updateSettings({
-                    notifications: {
-                      ...settings.notifications,
-                      alertSound: value,
-                    },
-                  })
+                  updateSettings({ notifications: { ...settings.notifications, alertSound: value } })
                 }
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={
-                  settings.notifications.alertSound
-                    ? Colors.safe
-                    : Colors.textSecondary
-                }
+                thumbColor={settings.notifications.alertSound ? Colors.safe : Colors.textSecondary}
               />
             </View>
-            <View style={styles.divider} />
+            <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Receive push notifications for alerts
-                </Text>
+                <Text style={styles.settingDescription}>Receive push for alerts</Text>
               </View>
               <Switch
                 value={settings.notifications.pushNotifications}
                 onValueChange={(value) =>
                   updateSettings({
-                    notifications: {
-                      ...settings.notifications,
-                      pushNotifications: value,
-                    },
+                    notifications: { ...settings.notifications, pushNotifications: value },
                   })
                 }
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
                 thumbColor={
-                  settings.notifications.pushNotifications
-                    ? Colors.safe
-                    : Colors.textSecondary
+                  settings.notifications.pushNotifications ? Colors.safe : Colors.textSecondary
                 }
               />
             </View>
-            <View style={styles.divider} />
+            <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Escalation Timeout</Text>
-                <Text style={styles.settingDescription}>
-                  Minutes before escalating unresponsive users
-                </Text>
+                <Text style={styles.settingDescription}>Minutes before escalation</Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      notifications: {
-                        ...settings.notifications,
-                        escalationTimeoutMinutes: Math.max(
-                          1,
-                          settings.notifications.escalationTimeoutMinutes - 1
-                        ),
-                      },
-                    })
-                  }
-                >
-                  <Feather name="minus" size={16} color={Colors.text} />
-                </Pressable>
-                <Text style={styles.stepperValue}>
-                  {settings.notifications.escalationTimeoutMinutes}m
-                </Text>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      notifications: {
-                        ...settings.notifications,
-                        escalationTimeoutMinutes:
-                          settings.notifications.escalationTimeoutMinutes + 1,
-                      },
-                    })
-                  }
-                >
-                  <Feather name="plus" size={16} color={Colors.text} />
-                </Pressable>
-              </View>
+              <Stepper
+                value={settings.notifications.escalationTimeoutMinutes}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({
+                    notifications: {
+                      ...settings.notifications,
+                      escalationTimeoutMinutes: Math.max(
+                        1,
+                        settings.notifications.escalationTimeoutMinutes - 1
+                      ),
+                    },
+                  })
+                }
+                onIncrement={() =>
+                  updateSettings({
+                    notifications: {
+                      ...settings.notifications,
+                      escalationTimeoutMinutes: settings.notifications.escalationTimeoutMinutes + 1,
+                    },
+                  })
+                }
+              />
             </View>
           </Card>
         </View>
 
-        {/* Security */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Security</Text>
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Session Timeout</Text>
-                <Text style={styles.settingDescription}>
-                  Auto logout after inactivity (minutes)
-                </Text>
+                <Text style={styles.settingDescription}>Auto logout after inactivity</Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      sessionTimeoutMinutes: Math.max(
-                        5,
-                        settings.sessionTimeoutMinutes - 5
-                      ),
-                    })
-                  }
-                >
-                  <Feather name="minus" size={16} color={Colors.text} />
-                </Pressable>
-                <Text style={styles.stepperValue}>
-                  {settings.sessionTimeoutMinutes}m
-                </Text>
-                <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    updateSettings({
-                      sessionTimeoutMinutes: settings.sessionTimeoutMinutes + 5,
-                    })
-                  }
-                >
-                  <Feather name="plus" size={16} color={Colors.text} />
-                </Pressable>
-              </View>
+              <Stepper
+                value={settings.sessionTimeoutMinutes}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({
+                    sessionTimeoutMinutes: Math.max(5, settings.sessionTimeoutMinutes - 5),
+                  })
+                }
+                onIncrement={() =>
+                  updateSettings({ sessionTimeoutMinutes: settings.sessionTimeoutMinutes + 5 })
+                }
+              />
             </View>
-            <View style={styles.divider} />
+            <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Badge as Username</Text>
-                <Text style={styles.settingDescription}>
-                  Use badge number as login identifier
-                </Text>
+                <Text style={styles.settingDescription}>Use badge number to login</Text>
               </View>
               <Switch
                 value={settings.badgeAsUsername}
-                onValueChange={(value) =>
-                  updateSettings({ badgeAsUsername: value })
-                }
+                onValueChange={(value) => updateSettings({ badgeAsUsername: value })}
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={
-                  settings.badgeAsUsername ? Colors.safe : Colors.textSecondary
-                }
+                thumbColor={settings.badgeAsUsername ? Colors.safe : Colors.textSecondary}
               />
             </View>
           </Card>
         </View>
 
-        {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <Card>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Application</Text>
-                <Text style={styles.settingValue}>
-                  Khurais Emergency Alert System
-                </Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Version</Text>
-                <Text style={styles.settingValue}>{settings.systemVersion}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Support</Text>
-                <Text style={styles.settingValue}>
-                  IT Department - Emergency Systems
-                </Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Contact</Text>
-                <Text style={styles.settingValue}>it-support@khurais.sa</Text>
-              </View>
-            </View>
+            <SettingRow label="Application" value="KEAS" />
+            <Divider />
+            <SettingRow label="Version" value={settings.systemVersion} />
+            <Divider />
+            <SettingRow label="Support" value="IT - Emergency Systems" />
+            <Divider />
+            <SettingRow label="Contact" value="it-support@khurais.sa" />
           </Card>
         </View>
 
-        {/* Logout Button */}
         <Button
           title="Logout"
           onPress={handleLogout}
           variant="destructive"
           fullWidth
-          style={{ marginTop: Spacing.md }}
+          icon="log-out"
+          size="lg"
+          style={{ marginTop: Spacing.sm }}
         />
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
+    </View>
+  );
+}
+
+function SettingRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.settingRow}>
+      <Text style={styles.settingLabel}>{label}</Text>
+      <Text style={styles.settingValue}>{value}</Text>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function Stepper({
+  value,
+  suffix,
+  onDecrement,
+  onIncrement,
+}: {
+  value: number;
+  suffix: string;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) {
+  return (
+    <View style={styles.stepper}>
+      <Pressable style={styles.stepperBtn} onPress={onDecrement} hitSlop={4}>
+        <Feather name="minus" size={16} color={Colors.text} />
+      </Pressable>
+      <Text style={styles.stepperValue}>
+        {value}{suffix}
+      </Text>
+      <Pressable style={styles.stepperBtn} onPress={onIncrement} hitSlop={4}>
+        <Feather name="plus" size={16} color={Colors.text} />
+      </Pressable>
     </View>
   );
 }
@@ -357,21 +275,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   logoutBtn: {
-    padding: Spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
+    gap: Spacing.xl,
   },
   section: {
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_700Bold",
     color: Colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -380,7 +303,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
+    minHeight: 48,
   },
   settingInfo: {
     flex: 1,
@@ -396,11 +320,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+    flexShrink: 1,
   },
   settingDescription: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
   },
   divider: {
     height: 1,
@@ -418,8 +343,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   stepperBtn: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: BorderRadius.sm,
     alignItems: "center",
     justifyContent: "center",

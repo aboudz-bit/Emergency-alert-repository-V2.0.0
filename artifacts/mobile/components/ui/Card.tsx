@@ -33,5 +33,6 @@ const styles = StyleSheet.create({
   },
   elevated: {
     backgroundColor: Colors.surfaceElevated,
+    borderColor: Colors.borderLight,
   },
 });
