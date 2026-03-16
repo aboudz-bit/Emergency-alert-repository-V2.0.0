@@ -44,6 +44,7 @@ export default function AlertManagementScreen() {
   const deactivateZoneAlert = useStore((s) => s.deactivateZoneAlert);
   const editZoneAlert = useStore((s) => s.editZoneAlert);
   const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
+  const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -169,6 +170,12 @@ export default function AlertManagementScreen() {
     setBulkActivateVisible(false);
     exitSelectionMode();
   }, [selectedZoneIds, bulkType, bulkPriority, bulkMessage, bulkActivateZoneAlerts, exitSelectionMode]);
+
+  const handleBulkClear = useCallback(() => {
+    if (selectedZoneIds.size === 0) return;
+    bulkDeactivateZoneAlerts(Array.from(selectedZoneIds));
+    exitSelectionMode();
+  }, [selectedZoneIds, bulkDeactivateZoneAlerts, exitSelectionMode]);
 
   // ─── Deactivate confirm ───
   const handleConfirmDeactivate = useCallback(() => {
@@ -526,18 +533,32 @@ export default function AlertManagementScreen() {
               {selectedZoneIds.size > 0 ? `${selectedZoneIds.size} selected` : "Select all"}
             </Text>
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.bulkActivateBtn,
-              selectedZoneIds.size === 0 && { opacity: 0.4 },
-              pressed && selectedZoneIds.size > 0 && { opacity: 0.8 },
-            ]}
-            onPress={handleOpenBulkActivate}
-            disabled={selectedZoneIds.size === 0}
-          >
-            <Feather name="zap" size={13} color="#fff" />
-            <Text style={styles.bulkActivateBtnText}>Activate Alert</Text>
-          </Pressable>
+          <View style={styles.bulkBtnGroup}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.bulkActivateBtn,
+                selectedZoneIds.size === 0 && { opacity: 0.4 },
+                pressed && selectedZoneIds.size > 0 && { opacity: 0.8 },
+              ]}
+              onPress={handleOpenBulkActivate}
+              disabled={selectedZoneIds.size === 0}
+            >
+              <Feather name="zap" size={13} color="#fff" />
+              <Text style={styles.bulkActivateBtnText}>Activate</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.bulkClearBtn,
+                selectedZoneIds.size === 0 && { opacity: 0.4 },
+                pressed && selectedZoneIds.size > 0 && { opacity: 0.8 },
+              ]}
+              onPress={handleBulkClear}
+              disabled={selectedZoneIds.size === 0}
+            >
+              <Feather name="check-circle" size={13} color={Colors.safe} />
+              <Text style={styles.bulkClearBtnText}>All Clear</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -940,7 +961,7 @@ export default function AlertManagementScreen() {
             <TextInput
               value={bulkMessage}
               onChangeText={setBulkMessage}
-              style={styles.modalInput}
+              style={styles.messageInput}
               multiline
               numberOfLines={3}
               placeholder="Alert message..."
@@ -1289,13 +1310,22 @@ const styles = StyleSheet.create({
   bulkSelectAllText: {
     fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.textSecondary,
   },
+  bulkBtnGroup: { flexDirection: "row", gap: 8 },
   bulkActivateBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
     backgroundColor: Colors.primary,
   },
   bulkActivateBtnText: {
     fontSize: 12, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+  bulkClearBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: Colors.safeDim, borderWidth: 1, borderColor: Colors.safeBorder,
+  },
+  bulkClearBtnText: {
+    fontSize: 12, fontFamily: "Inter_700Bold", color: Colors.safe,
   },
 
   // ─── Bulk modal extras ───

@@ -54,6 +54,7 @@ interface AppState {
   editLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
   bulkActivateZoneAlerts: (zoneIds: number[], alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  bulkDeactivateZoneAlerts: (zoneIds: number[]) => void;
   activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   deactivateZoneAlert: (zoneId: number) => void;
   editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
@@ -335,6 +336,49 @@ export const useStore = create<AppState>()(
               alertType,
               priority,
               message,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+        }));
+      },
+      bulkDeactivateZoneAlerts: (zoneIds) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const idSet = new Set(zoneIds);
+        set(s => ({
+          zones: s.zones.map(z => idSet.has(z.id) ? {
+            ...z,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(),
+              zoneId: z.id,
+              action: 'deactivated' as const,
+              alertType: z.alertType,
+              priority: z.alertPriority,
+              message: z.alertMessage,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+          locations: s.locations.map(l => idSet.has(l.zoneId) ? {
+            ...l,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'deactivated' as const,
+              alertType: l.alertType,
+              priority: l.alertPriority,
+              message: l.alertMessage,
               timestamp: now,
               user,
             }],
