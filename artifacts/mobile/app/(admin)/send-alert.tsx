@@ -43,9 +43,20 @@ export default function AlertManagementScreen() {
   const activateZoneAlert = useStore((s) => s.activateZoneAlert);
   const deactivateZoneAlert = useStore((s) => s.deactivateZoneAlert);
   const editZoneAlert = useStore((s) => s.editZoneAlert);
+  const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Multi-select mode
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedZoneIds, setSelectedZoneIds] = useState<Set<number>>(new Set());
+
+  // Bulk activate modal
+  const [bulkActivateVisible, setBulkActivateVisible] = useState(false);
+  const [bulkType, setBulkType] = useState<LocationAlertType>("Blackout");
+  const [bulkPriority, setBulkPriority] = useState<AlertPriority>("High");
+  const [bulkMessage, setBulkMessage] = useState("");
 
   // Activate modal
   const [activateTarget, setActivateTarget] = useState<Zone | null>(null);
@@ -73,7 +84,7 @@ export default function AlertManagementScreen() {
     const map = new Map<number, { locationCount: number; userCount: number }>();
     for (const z of zones) {
       const zoneLocs = locations.filter((l) => l.zoneId === z.id && l.isActive);
-      const zoneUsers = users.filter((u) => u.zone === z.name && u.isActive);
+      const zoneUsers = users.filter((u) => u.zoneId === z.id && u.isActive);
       map.set(z.id, { locationCount: zoneLocs.length, userCount: zoneUsers.length });
     }
     return map;
@@ -129,6 +140,36 @@ export default function AlertManagementScreen() {
     setActivateTarget(null);
   }, [activateTarget, activateType, activatePriority, activateMessage, activateZoneAlert]);
 
+  // ─── Multi-select helpers ───
+  const toggleZoneSelection = useCallback((zoneId: number) => {
+    setSelectedZoneIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(zoneId)) next.delete(zoneId);
+      else next.add(zoneId);
+      return next;
+    });
+  }, []);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedZoneIds(new Set());
+  }, []);
+
+  const handleOpenBulkActivate = useCallback(() => {
+    if (selectedZoneIds.size === 0) return;
+    setBulkType("Blackout");
+    setBulkPriority("High");
+    setBulkMessage(DEFAULT_MESSAGES["Blackout"] || "");
+    setBulkActivateVisible(true);
+  }, [selectedZoneIds]);
+
+  const handleConfirmBulkActivate = useCallback(() => {
+    if (selectedZoneIds.size === 0) return;
+    bulkActivateZoneAlerts(Array.from(selectedZoneIds), bulkType, bulkPriority, bulkMessage.trim());
+    setBulkActivateVisible(false);
+    exitSelectionMode();
+  }, [selectedZoneIds, bulkType, bulkPriority, bulkMessage, bulkActivateZoneAlerts, exitSelectionMode]);
+
   // ─── Deactivate confirm ───
   const handleConfirmDeactivate = useCallback(() => {
     if (!deactivateTarget) return;
@@ -179,21 +220,37 @@ export default function AlertManagementScreen() {
 
   const detailsUsers = useMemo(() => {
     if (!detailsTarget) return [];
-    return users.filter((u) => u.zone === detailsTarget.name && u.isActive);
+    return users.filter((u) => u.zoneId === detailsTarget.id && u.isActive);
   }, [detailsTarget, users]);
 
   // ─── Zone row renderer ───
   const renderZoneRow = useCallback(
     ({ item: zone }: { item: Zone }) => {
       const isAlert = zone.alertActive;
+      const isSelected = selectedZoneIds.has(zone.id);
       const stats = zoneStats.get(zone.id) || { locationCount: 0, userCount: 0 };
       return (
-        <View style={[styles.row, isAlert && styles.rowActive]}>
-          {isAlert && (
+        <Pressable
+          style={[styles.row, isAlert && styles.rowActive, selectionMode && isSelected && styles.rowSelected]}
+          onPress={selectionMode ? () => toggleZoneSelection(zone.id) : undefined}
+        >
+          {isAlert && !selectionMode && (
             <View style={[styles.rowAccent, { backgroundColor: priorityColors[zone.alertPriority!] }]} />
           )}
 
-          <View style={[styles.rowBody, isAlert && { paddingLeft: 10 }]}>
+          {selectionMode && (
+            <Pressable
+              style={styles.checkboxArea}
+              onPress={() => toggleZoneSelection(zone.id)}
+              hitSlop={8}
+            >
+              <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                {isSelected && <Feather name="check" size={12} color="#fff" />}
+              </View>
+            </Pressable>
+          )}
+
+          <View style={[styles.rowBody, !selectionMode && isAlert && { paddingLeft: 10 }]}>
             <View style={styles.rowLeft}>
               {/* Zone name line */}
               <View style={styles.rowNameRow}>
@@ -233,47 +290,49 @@ export default function AlertManagementScreen() {
             </View>
 
             {/* Right controls */}
-            <View style={styles.rowRight}>
-              {isAlert && (
-                <View style={styles.activeBadge}>
-                  <View style={styles.activePulse} />
-                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
-                </View>
-              )}
-              <Switch
-                value={isAlert}
-                onValueChange={() => handleToggle(zone)}
-                trackColor={{ false: Colors.border, true: Colors.primary + "55" }}
-                thumbColor={isAlert ? Colors.primary : Colors.textTertiary}
-                style={styles.rowSwitch}
-              />
-              <Pressable
-                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                onPress={() => handleOpenEdit(zone)}
-                hitSlop={4}
-              >
-                <Feather name="settings" size={15} color={Colors.textSecondary} />
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                onPress={() => setDetailsTarget(zone)}
-                hitSlop={4}
-              >
-                <Feather name="eye" size={15} color={Colors.textSecondary} />
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                onPress={() => setHistoryTarget(zone)}
-                hitSlop={4}
-              >
-                <Feather name="clock" size={15} color={Colors.textTertiary} />
-              </Pressable>
-            </View>
+            {!selectionMode && (
+              <View style={styles.rowRight}>
+                {isAlert && (
+                  <View style={styles.activeBadge}>
+                    <View style={styles.activePulse} />
+                    <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                  </View>
+                )}
+                <Switch
+                  value={isAlert}
+                  onValueChange={() => handleToggle(zone)}
+                  trackColor={{ false: Colors.border, true: Colors.primary + "55" }}
+                  thumbColor={isAlert ? Colors.primary : Colors.textTertiary}
+                  style={styles.rowSwitch}
+                />
+                <Pressable
+                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                  onPress={() => handleOpenEdit(zone)}
+                  hitSlop={4}
+                >
+                  <Feather name="settings" size={15} color={Colors.textSecondary} />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                  onPress={() => setDetailsTarget(zone)}
+                  hitSlop={4}
+                >
+                  <Feather name="eye" size={15} color={Colors.textSecondary} />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                  onPress={() => setHistoryTarget(zone)}
+                  hitSlop={4}
+                >
+                  <Feather name="clock" size={15} color={Colors.textTertiary} />
+                </Pressable>
+              </View>
+            )}
           </View>
-        </View>
+        </Pressable>
       );
     },
-    [handleToggle, handleOpenEdit, zoneStats, timeAgo]
+    [handleToggle, handleOpenEdit, zoneStats, timeAgo, selectionMode, selectedZoneIds, toggleZoneSelection]
   );
 
   // ─── Shared alert form builder ───
@@ -428,8 +487,59 @@ export default function AlertManagementScreen() {
           );
         })}
         <View style={{ flex: 1 }} />
-        <Text style={styles.resultCount}>{filteredZones.length} zone{filteredZones.length !== 1 ? "s" : ""}</Text>
+        {!selectionMode ? (
+          <Pressable
+            style={({ pressed }) => [styles.selectModeBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setSelectionMode(true)}
+          >
+            <Feather name="check-square" size={12} color={Colors.primary} />
+            <Text style={styles.selectModeBtnText}>Select</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.selectModeBtn, pressed && { opacity: 0.7 }]}
+            onPress={exitSelectionMode}
+          >
+            <Feather name="x" size={12} color={Colors.textSecondary} />
+            <Text style={[styles.selectModeBtnText, { color: Colors.textSecondary }]}>Cancel</Text>
+          </Pressable>
+        )}
       </View>
+
+      {/* ─── Bulk action bar ─── */}
+      {selectionMode && (
+        <View style={styles.bulkBar}>
+          <Pressable
+            style={styles.bulkSelectAll}
+            onPress={() => {
+              const allIds = filteredZones.map((z) => z.id);
+              const allSelected = allIds.every((id) => selectedZoneIds.has(id));
+              setSelectedZoneIds(allSelected ? new Set() : new Set(allIds));
+            }}
+          >
+            <View style={[styles.checkbox, filteredZones.length > 0 && filteredZones.every((z) => selectedZoneIds.has(z.id)) && styles.checkboxChecked]}>
+              {filteredZones.length > 0 && filteredZones.every((z) => selectedZoneIds.has(z.id)) && (
+                <Feather name="check" size={12} color="#fff" />
+              )}
+            </View>
+            <Text style={styles.bulkSelectAllText}>
+              {selectedZoneIds.size > 0 ? `${selectedZoneIds.size} selected` : "Select all"}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.bulkActivateBtn,
+              selectedZoneIds.size === 0 && { opacity: 0.4 },
+              pressed && selectedZoneIds.size > 0 && { opacity: 0.8 },
+            ]}
+            onPress={handleOpenBulkActivate}
+            disabled={selectedZoneIds.size === 0}
+          >
+            <Feather name="zap" size={13} color="#fff" />
+            <Text style={styles.bulkActivateBtnText}>Activate Alert</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* ─── Zone list ─── */}
       <FlatList
@@ -730,7 +840,7 @@ export default function AlertManagementScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item: loc }: { item: Location }) => {
-                const locUserCount = users.filter((u) => u.location === loc.name && u.zone === detailsTarget?.name).length;
+                const locUserCount = users.filter((u) => u.locationId === loc.id && u.zoneId === detailsTarget?.id && u.isActive).length;
                 return (
                   <View style={styles.detailsLocRow}>
                     <View style={[styles.detailsLocDot, loc.alertActive && { backgroundColor: priorityColors[loc.alertPriority!] || Colors.primary }]} />
@@ -757,6 +867,101 @@ export default function AlertManagementScreen() {
                 </View>
               }
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══ BULK ACTIVATE MODAL ═══ */}
+      <Modal
+        visible={bulkActivateVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBulkActivateVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalTitleIcon, { backgroundColor: Colors.primary + "18" }]}>
+                  <Feather name="zap" size={14} color={Colors.primary} />
+                </View>
+                <Text style={styles.modalTitle}>Bulk Activate Alert</Text>
+              </View>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setBulkActivateVisible(false)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {/* Selected zones summary */}
+            <View style={styles.bulkZoneSummary}>
+              <Text style={styles.bulkZoneSummaryLabel}>{selectedZoneIds.size} zone{selectedZoneIds.size !== 1 ? "s" : ""} selected:</Text>
+              <View style={styles.bulkZoneChips}>
+                {zones.filter((z) => selectedZoneIds.has(z.id)).map((z) => (
+                  <View key={z.id} style={[styles.bulkZoneChip, { borderColor: z.color }]}>
+                    <View style={[styles.zoneDot, { backgroundColor: z.color }]} />
+                    <Text style={styles.bulkZoneChipText}>{z.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <Text style={styles.modalLabel}>Alert Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {ALERT_TYPE_OPTIONS.map((t) => (
+                <Pressable
+                  key={t}
+                  style={[styles.chip, bulkType === t && styles.chipActive]}
+                  onPress={() => {
+                    setBulkType(t);
+                    if (!bulkMessage.trim() || bulkMessage === DEFAULT_MESSAGES[bulkType])
+                      setBulkMessage(DEFAULT_MESSAGES[t] || "");
+                  }}
+                >
+                  <Text style={[styles.chipText, bulkType === t && styles.chipTextActive]}>{t}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.modalLabel}>Priority</Text>
+            <View style={styles.chipRow}>
+              {PRIORITY_OPTIONS.map((p) => (
+                <Pressable
+                  key={p}
+                  style={[styles.chip, bulkPriority === p && [styles.chipActive, { borderColor: priorityColors[p], backgroundColor: priorityColors[p] + "18" }]]}
+                  onPress={() => setBulkPriority(p)}
+                >
+                  <Text style={[styles.chipText, bulkPriority === p && { color: priorityColors[p], fontWeight: "600" }]}>{p}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.modalLabel}>Message</Text>
+            <TextInput
+              value={bulkMessage}
+              onChangeText={setBulkMessage}
+              style={styles.modalInput}
+              multiline
+              numberOfLines={3}
+              placeholder="Alert message..."
+              placeholderTextColor={Colors.textTertiary}
+            />
+
+            <View style={styles.modalBtnRow}>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtnCancel, pressed && { opacity: 0.8 }]}
+                onPress={() => setBulkActivateVisible(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtnConfirm, pressed && { opacity: 0.8 }]}
+                onPress={handleConfirmBulkActivate}
+              >
+                <Feather name="zap" size={14} color="#fff" />
+                <Text style={styles.modalBtnConfirmText}>Activate {selectedZoneIds.size} Zone{selectedZoneIds.size !== 1 ? "s" : ""}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1043,4 +1248,64 @@ const styles = StyleSheet.create({
   detailsLocBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   detailsLocBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
   detailsLocInactive: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+
+  // ─── Selection mode ───
+  selectModeBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+    backgroundColor: Colors.primary + "10",
+  },
+  selectModeBtnText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: Colors.primary },
+
+  rowSelected: {
+    borderColor: Colors.primary + "50",
+    backgroundColor: Colors.primary + "0A",
+  },
+  checkboxArea: {
+    justifyContent: "center", alignItems: "center",
+    paddingLeft: 12, paddingRight: 4,
+  },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 4,
+    borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+
+  // ─── Bulk bar ───
+  bulkBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: Colors.primary + "08",
+    borderBottomWidth: 1, borderBottomColor: Colors.primary + "20",
+  },
+  bulkSelectAll: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+  },
+  bulkSelectAllText: {
+    fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.textSecondary,
+  },
+  bulkActivateBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
+  bulkActivateBtnText: {
+    fontSize: 12, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+
+  // ─── Bulk modal extras ───
+  bulkZoneSummary: { paddingHorizontal: 16, paddingVertical: 8 },
+  bulkZoneSummaryLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary, marginBottom: 6 },
+  bulkZoneChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  bulkZoneChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
+    borderWidth: 1, backgroundColor: Colors.surfaceElevated,
+  },
+  bulkZoneChipText: { fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.text },
 });

@@ -147,7 +147,7 @@ export default function LocationsScreen() {
           >
             {zones.map((zone) => {
               const isActive = selectedTab === zone.name;
-              const count = locations.filter((l) => l.zone === zone.name).length;
+              const count = locations.filter((l) => l.zoneId === zone.id).length;
               return (
                 <Pressable
                   key={zone.id}

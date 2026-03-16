@@ -53,7 +53,10 @@ export default function UsersScreen() {
   const filteredUsers = useMemo(() => {
     let result = users;
     if (selectedFilter !== "All") {
-      result = result.filter((u) => u.zone === selectedFilter);
+      const filterZone = zones.find((z) => z.name === selectedFilter);
+      result = filterZone
+        ? result.filter((u) => u.zoneId === filterZone.id)
+        : result.filter((u) => u.zone === selectedFilter);
     }
     if (selectedStatus !== "All") {
       result = result.filter((u) => u.status === selectedStatus);
@@ -68,7 +71,7 @@ export default function UsersScreen() {
       );
     }
     return result;
-  }, [users, selectedFilter, selectedStatus, searchQuery]);
+  }, [users, zones, selectedFilter, selectedStatus, searchQuery]);
 
   const handleStatusUpdate = useCallback(
     (userId: number, status: UserResponseStatus) => {
