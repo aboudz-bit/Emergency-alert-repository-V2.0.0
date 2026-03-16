@@ -28,11 +28,38 @@ export interface Zone {
 
 // ─── Locations ────────────────────────────────────────────────────────────────
 
+export type LocationAlertType =
+  | 'Blackout'
+  | 'Security Alert'
+  | 'Shelter-in'
+  | 'Drill'
+  | 'Restricted Movement'
+  | 'Custom';
+
+export type AlertHistoryAction = 'activated' | 'deactivated' | 'edited';
+
+export interface AlertHistoryEntry {
+  id: number;
+  locationId: number;
+  action: AlertHistoryAction;
+  alertType: LocationAlertType | null;
+  priority: AlertPriority | null;
+  message: string;
+  timestamp: string;
+  user: string | null;
+}
+
 export interface Location {
   id: number;
   name: string;
   zone: string;
   isActive: boolean;
+  alertActive: boolean;
+  alertType: LocationAlertType | null;
+  alertPriority: AlertPriority | null;
+  alertMessage: string;
+  alertUpdatedAt: string | null;
+  alertHistory: AlertHistoryEntry[];
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────

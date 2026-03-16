@@ -85,6 +85,11 @@ export default function LocationsScreen() {
         name: locationName.trim(),
         zone: locationZone,
         isActive: true,
+        alertActive: false,
+        alertType: null,
+        alertPriority: null,
+        alertMessage: "",
+        alertUpdatedAt: null,
       });
     }
     setShowModal(false);
