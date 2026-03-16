@@ -4,6 +4,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  SectionList,
   StyleSheet,
   Switch,
   Text,
@@ -15,7 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { Header } from "@/components/ui/Header";
 import { Colors, FontSize, DEFAULT_MESSAGES } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Location, LocationAlertType, AlertPriority, AlertHistoryEntry } from "@/types";
+import type { Location, LocationAlertType, AlertPriority, AlertHistoryEntry, Zone } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
   "Blackout",
@@ -81,6 +82,39 @@ export default function AlertManagementScreen() {
     }
     return result;
   }, [activeLocations, filter, searchQuery]);
+
+  // ─── Group filtered locations into sections by zone ───
+  const sections = useMemo(() => {
+    const zoneMap = new Map<string, { zone: Zone | undefined; locations: Location[] }>();
+    for (const loc of filteredLocations) {
+      if (!zoneMap.has(loc.zone)) {
+        zoneMap.set(loc.zone, {
+          zone: zones.find((z) => z.name === loc.zone),
+          locations: [],
+        });
+      }
+      zoneMap.get(loc.zone)!.locations.push(loc);
+    }
+    // Order sections by the zone order in the zones array
+    const zoneOrder = zones.map((z) => z.name);
+    return Array.from(zoneMap.entries())
+      .sort((a, b) => {
+        const ai = zoneOrder.indexOf(a[0]);
+        const bi = zoneOrder.indexOf(b[0]);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      })
+      .map(([zoneName, { zone, locations: locs }]) => {
+        const activeInZone = locs.filter((l) => l.alertActive).length;
+        return {
+          key: zoneName,
+          zoneName,
+          zoneColor: zone?.color || Colors.textTertiary,
+          locationCount: locs.length,
+          activeAlertCount: activeInZone,
+          data: locs,
+        };
+      });
+  }, [filteredLocations, zones]);
 
   const activeCount = useMemo(
     () => activeLocations.filter((l) => l.alertActive).length,
@@ -179,7 +213,6 @@ export default function AlertManagementScreen() {
               <View style={styles.rowNameRow}>
                 <View style={[styles.zoneDot, { backgroundColor: zoneColor }, isAlert && { width: 8, height: 8, borderRadius: 4 }]} />
                 <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.rowZone}>{item.zone}</Text>
               </View>
 
               {/* Status line */}
@@ -381,12 +414,32 @@ export default function AlertManagementScreen() {
         <Text style={styles.resultCount}>{filteredLocations.length} result{filteredLocations.length !== 1 ? "s" : ""}</Text>
       </View>
 
-      {/* ─── Location list ─── */}
-      <FlatList
-        data={filteredLocations}
+      {/* ─── Location list grouped by zone ─── */}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         renderItem={renderLocationRow}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionDot, { backgroundColor: section.zoneColor }]} />
+            <Text style={styles.sectionTitle}>{section.zoneName}</Text>
+            <View style={styles.sectionMeta}>
+              <Text style={styles.sectionCount}>
+                {section.locationCount} location{section.locationCount !== 1 ? "s" : ""}
+              </Text>
+              {section.activeAlertCount > 0 && (
+                <View style={styles.sectionAlertBadge}>
+                  <View style={styles.sectionAlertDot} />
+                  <Text style={styles.sectionAlertText}>
+                    {section.activeAlertCount} active
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
@@ -687,13 +740,29 @@ const styles = StyleSheet.create({
   resultCount: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
 
   // ─── List ───
-  listContent: { paddingHorizontal: 12, gap: 6, paddingTop: 4, paddingBottom: 80 },
+  listContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 80 },
+
+  // ─── Section header (zone) ───
+  sectionHeader: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingVertical: 10, paddingHorizontal: 4, marginTop: 8,
+  },
+  sectionDot: { width: 10, height: 10, borderRadius: 5 },
+  sectionTitle: { fontSize: 13, fontFamily: "Inter_700Bold", color: Colors.text, textTransform: "uppercase", letterSpacing: 0.6 },
+  sectionMeta: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 },
+  sectionCount: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+  sectionAlertBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: Colors.primary + "15", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+  },
+  sectionAlertDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: Colors.primary },
+  sectionAlertText: { fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.primary },
 
   row: {
     flexDirection: "row", alignItems: "stretch",
     backgroundColor: Colors.surface, borderRadius: 10,
     borderWidth: 1, borderColor: Colors.border,
-    overflow: "hidden",
+    overflow: "hidden", marginBottom: 6,
   },
   rowActive: {
     borderColor: Colors.primary + "30",
@@ -710,7 +779,6 @@ const styles = StyleSheet.create({
   rowNameRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   zoneDot: { width: 6, height: 6, borderRadius: 3 },
   rowName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text, flexShrink: 1 },
-  rowZone: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary, marginLeft: 2 },
 
   // Status line for active
   statusLine: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 1 },

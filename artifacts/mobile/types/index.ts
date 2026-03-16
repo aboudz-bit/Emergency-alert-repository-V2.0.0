@@ -53,6 +53,7 @@ export interface Location {
   id: number;
   name: string;
   zone: string;
+  zoneId: number;
   isActive: boolean;
   alertActive: boolean;
   alertType: LocationAlertType | null;
