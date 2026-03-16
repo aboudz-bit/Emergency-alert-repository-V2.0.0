@@ -4,7 +4,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  SectionList,
   StyleSheet,
   Switch,
   Text,
@@ -14,9 +13,9 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
-import { Colors, FontSize, DEFAULT_MESSAGES } from "@/constants/theme";
+import { Colors, DEFAULT_MESSAGES } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Location, LocationAlertType, AlertPriority, AlertHistoryEntry, Zone } from "@/types";
+import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
   "Blackout",
@@ -38,99 +37,86 @@ const priorityColors: Record<AlertPriority, string> = {
 type FilterMode = "all" | "active" | "inactive";
 
 export default function AlertManagementScreen() {
-  const locations = useStore((s) => s.locations);
   const zones = useStore((s) => s.zones);
-  const activateLocationAlert = useStore((s) => s.activateLocationAlert);
-  const deactivateLocationAlert = useStore((s) => s.deactivateLocationAlert);
-  const editLocationAlert = useStore((s) => s.editLocationAlert);
+  const locations = useStore((s) => s.locations);
+  const users = useStore((s) => s.users);
+  const activateZoneAlert = useStore((s) => s.activateZoneAlert);
+  const deactivateZoneAlert = useStore((s) => s.deactivateZoneAlert);
+  const editZoneAlert = useStore((s) => s.editZoneAlert);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Activate modal
-  const [activateTarget, setActivateTarget] = useState<Location | null>(null);
+  const [activateTarget, setActivateTarget] = useState<Zone | null>(null);
   const [activateType, setActivateType] = useState<LocationAlertType>("Blackout");
   const [activatePriority, setActivatePriority] = useState<AlertPriority>("High");
   const [activateMessage, setActivateMessage] = useState("");
 
   // Deactivate confirmation
-  const [deactivateTarget, setDeactivateTarget] = useState<Location | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<Zone | null>(null);
 
   // Edit modal
-  const [editTarget, setEditTarget] = useState<Location | null>(null);
+  const [editTarget, setEditTarget] = useState<Zone | null>(null);
   const [editType, setEditType] = useState<LocationAlertType>("Blackout");
   const [editPriority, setEditPriority] = useState<AlertPriority>("High");
   const [editMessage, setEditMessage] = useState("");
 
   // History modal
-  const [historyTarget, setHistoryTarget] = useState<Location | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<Zone | null>(null);
 
-  const activeLocations = useMemo(
-    () => locations.filter((l) => l.isActive),
+  // Details modal (locations inside a zone)
+  const [detailsTarget, setDetailsTarget] = useState<Zone | null>(null);
+
+  // ─── Derived counts ───
+  const zoneStats = useMemo(() => {
+    const map = new Map<number, { locationCount: number; userCount: number }>();
+    for (const z of zones) {
+      const zoneLocs = locations.filter((l) => l.zoneId === z.id && l.isActive);
+      const zoneUsers = users.filter((u) => u.zone === z.name && u.isActive);
+      map.set(z.id, { locationCount: zoneLocs.length, userCount: zoneUsers.length });
+    }
+    return map;
+  }, [zones, locations, users]);
+
+  const activeZones = useMemo(() => zones.filter((z) => z.isActive), [zones]);
+
+  const filteredZones = useMemo(() => {
+    let result = activeZones;
+    if (filter === "active") result = result.filter((z) => z.alertActive);
+    if (filter === "inactive") result = result.filter((z) => !z.alertActive);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((z) => z.name.toLowerCase().includes(q));
+    }
+    return result;
+  }, [activeZones, filter, searchQuery]);
+
+  const activeAlertCount = useMemo(
+    () => activeZones.filter((z) => z.alertActive).length,
+    [activeZones]
+  );
+
+  const totalLocations = useMemo(
+    () => locations.filter((l) => l.isActive).length,
     [locations]
   );
 
-  const filteredLocations = useMemo(() => {
-    let result = activeLocations;
-    if (filter === "active") result = result.filter((l) => l.alertActive);
-    if (filter === "inactive") result = result.filter((l) => !l.alertActive);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (l) => l.name.toLowerCase().includes(q) || l.zone.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [activeLocations, filter, searchQuery]);
-
-  // ─── Group filtered locations into sections by zone ───
-  const sections = useMemo(() => {
-    const zoneMap = new Map<string, { zone: Zone | undefined; locations: Location[] }>();
-    for (const loc of filteredLocations) {
-      if (!zoneMap.has(loc.zone)) {
-        zoneMap.set(loc.zone, {
-          zone: zones.find((z) => z.name === loc.zone),
-          locations: [],
-        });
-      }
-      zoneMap.get(loc.zone)!.locations.push(loc);
-    }
-    // Order sections by the zone order in the zones array
-    const zoneOrder = zones.map((z) => z.name);
-    return Array.from(zoneMap.entries())
-      .sort((a, b) => {
-        const ai = zoneOrder.indexOf(a[0]);
-        const bi = zoneOrder.indexOf(b[0]);
-        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-      })
-      .map(([zoneName, { zone, locations: locs }]) => {
-        const activeInZone = locs.filter((l) => l.alertActive).length;
-        return {
-          key: zoneName,
-          zoneName,
-          zoneColor: zone?.color || Colors.textTertiary,
-          locationCount: locs.length,
-          activeAlertCount: activeInZone,
-          data: locs,
-        };
-      });
-  }, [filteredLocations, zones]);
-
-  const activeCount = useMemo(
-    () => activeLocations.filter((l) => l.alertActive).length,
-    [activeLocations]
+  const totalUsers = useMemo(
+    () => users.filter((u) => u.isActive).length,
+    [users]
   );
 
   // ─── Toggle handler ───
   const handleToggle = useCallback(
-    (loc: Location) => {
-      if (loc.alertActive) {
-        setDeactivateTarget(loc);
+    (zone: Zone) => {
+      if (zone.alertActive) {
+        setDeactivateTarget(zone);
       } else {
         setActivateType("Blackout");
         setActivatePriority("High");
         setActivateMessage(DEFAULT_MESSAGES["Blackout"] || "");
-        setActivateTarget(loc);
+        setActivateTarget(zone);
       }
     },
     []
@@ -139,37 +125,32 @@ export default function AlertManagementScreen() {
   // ─── Activate confirm ───
   const handleConfirmActivate = useCallback(() => {
     if (!activateTarget) return;
-    activateLocationAlert(
-      activateTarget.id,
-      activateType,
-      activatePriority,
-      activateMessage.trim()
-    );
+    activateZoneAlert(activateTarget.id, activateType, activatePriority, activateMessage.trim());
     setActivateTarget(null);
-  }, [activateTarget, activateType, activatePriority, activateMessage, activateLocationAlert]);
+  }, [activateTarget, activateType, activatePriority, activateMessage, activateZoneAlert]);
 
   // ─── Deactivate confirm ───
   const handleConfirmDeactivate = useCallback(() => {
     if (!deactivateTarget) return;
-    deactivateLocationAlert(deactivateTarget.id);
+    deactivateZoneAlert(deactivateTarget.id);
     setDeactivateTarget(null);
-  }, [deactivateTarget, deactivateLocationAlert]);
+  }, [deactivateTarget, deactivateZoneAlert]);
 
   // ─── Edit flow ───
-  const handleOpenEdit = useCallback((loc: Location) => {
-    setEditType(loc.alertType || "Blackout");
-    setEditPriority(loc.alertPriority || "High");
-    setEditMessage(loc.alertMessage || "");
-    setEditTarget(loc);
+  const handleOpenEdit = useCallback((zone: Zone) => {
+    setEditType(zone.alertType || "Blackout");
+    setEditPriority(zone.alertPriority || "High");
+    setEditMessage(zone.alertMessage || "");
+    setEditTarget(zone);
   }, []);
 
   const handleSaveEdit = useCallback(() => {
     if (!editTarget) return;
     if (editTarget.alertActive) {
-      editLocationAlert(editTarget.id, editType, editPriority, editMessage.trim());
+      editZoneAlert(editTarget.id, editType, editPriority, editMessage.trim());
     }
     setEditTarget(null);
-  }, [editTarget, editType, editPriority, editMessage, editLocationAlert]);
+  }, [editTarget, editType, editPriority, editMessage, editZoneAlert]);
 
   // ─── Time ago helper ───
   const timeAgo = useCallback((iso: string | null) => {
@@ -182,59 +163,73 @@ export default function AlertManagementScreen() {
     return `${Math.floor(hrs / 24)}d ago`;
   }, []);
 
-  const getZoneColor = useCallback(
-    (zoneName: string) => {
-      const z = zones.find((z) => z.name === zoneName);
-      return z?.color || Colors.textTertiary;
-    },
-    [zones]
-  );
-
   // ─── Empty state message ───
   const emptyMessage = useMemo(() => {
-    if (searchQuery.trim()) return "No locations match your search";
+    if (searchQuery.trim()) return "No zones match your search";
     if (filter === "active") return "No active alerts";
-    if (filter === "inactive") return "All locations have active alerts";
-    return "No locations found";
+    if (filter === "inactive") return "All zones have active alerts";
+    return "No zones found";
   }, [filter, searchQuery]);
 
-  const renderLocationRow = useCallback(
-    ({ item }: { item: Location }) => {
-      const isAlert = item.alertActive;
-      const zoneColor = getZoneColor(item.zone);
+  // ─── Details modal: locations inside the selected zone ───
+  const detailsLocations = useMemo(() => {
+    if (!detailsTarget) return [];
+    return locations.filter((l) => l.zoneId === detailsTarget.id && l.isActive);
+  }, [detailsTarget, locations]);
+
+  const detailsUsers = useMemo(() => {
+    if (!detailsTarget) return [];
+    return users.filter((u) => u.zone === detailsTarget.name && u.isActive);
+  }, [detailsTarget, users]);
+
+  // ─── Zone row renderer ───
+  const renderZoneRow = useCallback(
+    ({ item: zone }: { item: Zone }) => {
+      const isAlert = zone.alertActive;
+      const stats = zoneStats.get(zone.id) || { locationCount: 0, userCount: 0 };
       return (
         <View style={[styles.row, isAlert && styles.rowActive]}>
-          {/* Left accent bar for active rows */}
-          {isAlert && <View style={[styles.rowAccent, { backgroundColor: priorityColors[item.alertPriority!] }]} />}
+          {isAlert && (
+            <View style={[styles.rowAccent, { backgroundColor: priorityColors[zone.alertPriority!] }]} />
+          )}
 
           <View style={[styles.rowBody, isAlert && { paddingLeft: 10 }]}>
             <View style={styles.rowLeft}>
-              {/* Name line */}
+              {/* Zone name line */}
               <View style={styles.rowNameRow}>
-                <View style={[styles.zoneDot, { backgroundColor: zoneColor }, isAlert && { width: 8, height: 8, borderRadius: 4 }]} />
-                <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
+                <View style={[styles.zoneDot, { backgroundColor: zone.color }, isAlert && { width: 8, height: 8, borderRadius: 4 }]} />
+                <Text style={styles.rowName} numberOfLines={1}>{zone.name}</Text>
               </View>
 
               {/* Status line */}
               {isAlert ? (
                 <View style={styles.statusLine}>
-                  <View style={[styles.statusTag, { backgroundColor: priorityColors[item.alertPriority!] + "1A" }]}>
-                    <Text style={[styles.statusTagText, { color: priorityColors[item.alertPriority!] }]}>
-                      {item.alertPriority}
+                  <View style={[styles.statusTag, { backgroundColor: priorityColors[zone.alertPriority!] + "1A" }]}>
+                    <Text style={[styles.statusTagText, { color: priorityColors[zone.alertPriority!] }]}>
+                      {zone.alertPriority}
                     </Text>
                   </View>
                   <Text style={styles.statusSep}>{"\u00B7"}</Text>
-                  <Text style={styles.statusType}>{item.alertType}</Text>
-                  {item.alertUpdatedAt && (
+                  <Text style={styles.statusType}>{zone.alertType}</Text>
+                  {zone.alertUpdatedAt && (
                     <>
                       <Text style={styles.statusSep}>{"\u00B7"}</Text>
-                      <Text style={styles.statusTime}>{timeAgo(item.alertUpdatedAt)}</Text>
+                      <Text style={styles.statusTime}>{timeAgo(zone.alertUpdatedAt)}</Text>
                     </>
                   )}
                 </View>
               ) : (
                 <Text style={styles.rowStatusOff}>Inactive</Text>
               )}
+
+              {/* Counts line */}
+              <View style={styles.countsLine}>
+                <Feather name="map-pin" size={10} color={Colors.textTertiary} />
+                <Text style={styles.countText}>{stats.locationCount} location{stats.locationCount !== 1 ? "s" : ""}</Text>
+                <Text style={styles.statusSep}>{"\u00B7"}</Text>
+                <Feather name="users" size={10} color={Colors.textTertiary} />
+                <Text style={styles.countText}>{stats.userCount} user{stats.userCount !== 1 ? "s" : ""}</Text>
+              </View>
             </View>
 
             {/* Right controls */}
@@ -247,21 +242,28 @@ export default function AlertManagementScreen() {
               )}
               <Switch
                 value={isAlert}
-                onValueChange={() => handleToggle(item)}
+                onValueChange={() => handleToggle(zone)}
                 trackColor={{ false: Colors.border, true: Colors.primary + "55" }}
                 thumbColor={isAlert ? Colors.primary : Colors.textTertiary}
                 style={styles.rowSwitch}
               />
               <Pressable
-                style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                onPress={() => handleOpenEdit(item)}
+                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                onPress={() => handleOpenEdit(zone)}
                 hitSlop={4}
               >
                 <Feather name="settings" size={15} color={Colors.textSecondary} />
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.historyBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                onPress={() => setHistoryTarget(item)}
+                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                onPress={() => setDetailsTarget(zone)}
+                hitSlop={4}
+              >
+                <Feather name="eye" size={15} color={Colors.textSecondary} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
+                onPress={() => setHistoryTarget(zone)}
                 hitSlop={4}
               >
                 <Feather name="clock" size={15} color={Colors.textTertiary} />
@@ -271,10 +273,10 @@ export default function AlertManagementScreen() {
         </View>
       );
     },
-    [handleToggle, handleOpenEdit, getZoneColor, timeAgo]
+    [handleToggle, handleOpenEdit, zoneStats, timeAgo]
   );
 
-  // ─── Shared modal content builder ───
+  // ─── Shared alert form builder ───
   const renderAlertForm = (
     type: LocationAlertType,
     setType: (t: LocationAlertType) => void,
@@ -282,61 +284,68 @@ export default function AlertManagementScreen() {
     setPriority: (p: AlertPriority) => void,
     message: string,
     setMessage: (m: string) => void,
-    target: Location | null,
-  ) => (
-    <>
-      <View style={styles.modalTarget}>
-        <View style={[styles.modalTargetDot, { backgroundColor: getZoneColor(target?.zone || "") }]} />
-        <Text style={styles.modalTargetText}>{target?.name}</Text>
-        <View style={styles.modalTargetZoneBadge}>
-          <Text style={styles.modalTargetZoneText}>{target?.zone}</Text>
+    target: Zone | null,
+  ) => {
+    const stats = target ? zoneStats.get(target.id) : null;
+    return (
+      <>
+        <View style={styles.modalTarget}>
+          <View style={[styles.modalTargetDot, { backgroundColor: target?.color || Colors.textTertiary }]} />
+          <Text style={styles.modalTargetText}>{target?.name}</Text>
+          {stats && (
+            <View style={styles.modalTargetZoneBadge}>
+              <Text style={styles.modalTargetZoneText}>
+                {stats.locationCount} locations · {stats.userCount} users
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
 
-      <Text style={styles.modalLabel}>Alert Type</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {ALERT_TYPE_OPTIONS.map((t) => (
-          <Pressable
-            key={t}
-            style={[styles.chip, type === t && styles.chipActive]}
-            onPress={() => {
-              setType(t);
-              if (!message.trim() || message === DEFAULT_MESSAGES[type])
-                setMessage(DEFAULT_MESSAGES[t] || "");
-            }}
-          >
-            <Text style={[styles.chipText, type === t && styles.chipTextActive]}>{t}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+        <Text style={styles.modalLabel}>Alert Type</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+          {ALERT_TYPE_OPTIONS.map((t) => (
+            <Pressable
+              key={t}
+              style={[styles.chip, type === t && styles.chipActive]}
+              onPress={() => {
+                setType(t);
+                if (!message.trim() || message === DEFAULT_MESSAGES[type])
+                  setMessage(DEFAULT_MESSAGES[t] || "");
+              }}
+            >
+              <Text style={[styles.chipText, type === t && styles.chipTextActive]}>{t}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
-      <Text style={styles.modalLabel}>Priority</Text>
-      <View style={styles.priorityRow}>
-        {PRIORITY_OPTIONS.map((p) => (
-          <Pressable
-            key={p}
-            style={[styles.priorityBtn, priority === p && { borderColor: priorityColors[p], backgroundColor: priorityColors[p] + "14" }]}
-            onPress={() => setPriority(p)}
-          >
-            <View style={[styles.priorityDot, { backgroundColor: priorityColors[p] }]} />
-            <Text style={[styles.priorityText, priority === p && { color: priorityColors[p] }]}>{p}</Text>
-          </Pressable>
-        ))}
-      </View>
+        <Text style={styles.modalLabel}>Priority</Text>
+        <View style={styles.priorityRow}>
+          {PRIORITY_OPTIONS.map((p) => (
+            <Pressable
+              key={p}
+              style={[styles.priorityBtn, priority === p && { borderColor: priorityColors[p], backgroundColor: priorityColors[p] + "14" }]}
+              onPress={() => setPriority(p)}
+            >
+              <View style={[styles.priorityDot, { backgroundColor: priorityColors[p] }]} />
+              <Text style={[styles.priorityText, priority === p && { color: priorityColors[p] }]}>{p}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-      <Text style={styles.modalLabel}>Message</Text>
-      <TextInput
-        style={styles.messageInput}
-        value={message}
-        onChangeText={setMessage}
-        placeholder="Alert message..."
-        placeholderTextColor={Colors.textTertiary}
-        multiline
-        numberOfLines={3}
-        textAlignVertical="top"
-      />
-    </>
-  );
+        <Text style={styles.modalLabel}>Message</Text>
+        <TextInput
+          style={styles.messageInput}
+          value={message}
+          onChangeText={setMessage}
+          placeholder="Alert message..."
+          placeholderTextColor={Colors.textTertiary}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+      </>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -346,28 +355,36 @@ export default function AlertManagementScreen() {
       <View style={styles.summaryStrip}>
         <View style={styles.summaryItem}>
           <View style={styles.summaryIconWrap}>
-            <Feather name="map-pin" size={13} color={Colors.textSecondary} />
+            <Feather name="layers" size={13} color={Colors.textSecondary} />
           </View>
-          <Text style={styles.summaryNum}>{activeLocations.length}</Text>
-          <Text style={styles.summaryLabel}>Locations</Text>
+          <Text style={styles.summaryNum}>{activeZones.length}</Text>
+          <Text style={styles.summaryLabel}>Zones</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <View style={[styles.summaryIconWrap, activeCount > 0 && { backgroundColor: Colors.primary + "18" }]}>
-            <Feather name="zap" size={13} color={activeCount > 0 ? Colors.primary : Colors.textSecondary} />
+          <View style={[styles.summaryIconWrap, activeAlertCount > 0 && { backgroundColor: Colors.primary + "18" }]}>
+            <Feather name="zap" size={13} color={activeAlertCount > 0 ? Colors.primary : Colors.textSecondary} />
           </View>
-          <Text style={[styles.summaryNum, activeCount > 0 && { color: Colors.primary }]}>
-            {activeCount}
+          <Text style={[styles.summaryNum, activeAlertCount > 0 && { color: Colors.primary }]}>
+            {activeAlertCount}
           </Text>
           <Text style={styles.summaryLabel}>Active</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <View style={styles.summaryIconWrap}>
-            <Feather name="shield" size={13} color={Colors.textSecondary} />
+            <Feather name="map-pin" size={13} color={Colors.textSecondary} />
           </View>
-          <Text style={styles.summaryNum}>{activeLocations.length - activeCount}</Text>
-          <Text style={styles.summaryLabel}>Clear</Text>
+          <Text style={styles.summaryNum}>{totalLocations}</Text>
+          <Text style={styles.summaryLabel}>Locations</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <View style={styles.summaryIconWrap}>
+            <Feather name="users" size={13} color={Colors.textSecondary} />
+          </View>
+          <Text style={styles.summaryNum}>{totalUsers}</Text>
+          <Text style={styles.summaryLabel}>Users</Text>
         </View>
       </View>
 
@@ -377,7 +394,7 @@ export default function AlertManagementScreen() {
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search locations or zones..."
+          placeholder="Search zones..."
           placeholderTextColor={Colors.textTertiary}
           style={styles.searchInput}
         />
@@ -391,7 +408,7 @@ export default function AlertManagementScreen() {
       {/* ─── Filter tabs ─── */}
       <View style={styles.filterRow}>
         {(["all", "active", "inactive"] as FilterMode[]).map((f) => {
-          const count = f === "all" ? activeLocations.length : f === "active" ? activeCount : activeLocations.length - activeCount;
+          const count = f === "all" ? activeZones.length : f === "active" ? activeAlertCount : activeZones.length - activeAlertCount;
           const isSelected = filter === f;
           return (
             <Pressable
@@ -411,35 +428,15 @@ export default function AlertManagementScreen() {
           );
         })}
         <View style={{ flex: 1 }} />
-        <Text style={styles.resultCount}>{filteredLocations.length} result{filteredLocations.length !== 1 ? "s" : ""}</Text>
+        <Text style={styles.resultCount}>{filteredZones.length} zone{filteredZones.length !== 1 ? "s" : ""}</Text>
       </View>
 
-      {/* ─── Location list grouped by zone ─── */}
-      <SectionList
-        sections={sections}
+      {/* ─── Zone list ─── */}
+      <FlatList
+        data={filteredZones}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        renderItem={renderLocationRow}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionDot, { backgroundColor: section.zoneColor }]} />
-            <Text style={styles.sectionTitle}>{section.zoneName}</Text>
-            <View style={styles.sectionMeta}>
-              <Text style={styles.sectionCount}>
-                {section.locationCount} location{section.locationCount !== 1 ? "s" : ""}
-              </Text>
-              {section.activeAlertCount > 0 && (
-                <View style={styles.sectionAlertBadge}>
-                  <View style={styles.sectionAlertDot} />
-                  <Text style={styles.sectionAlertText}>
-                    {section.activeAlertCount} active
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+        renderItem={renderZoneRow}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
@@ -451,7 +448,7 @@ export default function AlertManagementScreen() {
             </View>
             <Text style={styles.emptyTitle}>{emptyMessage}</Text>
             <Text style={styles.emptyHint}>
-              {searchQuery.trim() ? "Try a different search term" : "Locations will appear here"}
+              {searchQuery.trim() ? "Try a different search term" : "Zones will appear here"}
             </Text>
           </View>
         }
@@ -472,7 +469,7 @@ export default function AlertManagementScreen() {
                 <View style={[styles.modalTitleIcon, { backgroundColor: Colors.primary + "18" }]}>
                   <Feather name="zap" size={14} color={Colors.primary} />
                 </View>
-                <Text style={styles.modalTitle}>Activate Alert</Text>
+                <Text style={styles.modalTitle}>Activate Zone Alert</Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setActivateTarget(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textSecondary} />
@@ -514,13 +511,14 @@ export default function AlertManagementScreen() {
       >
         <View style={styles.deactivateOverlay}>
           <View style={styles.deactivateSheet}>
-            <View style={[styles.deactivateIconWrap]}>
+            <View style={styles.deactivateIconWrap}>
               <Feather name="power" size={20} color={Colors.amber} />
             </View>
-            <Text style={styles.deactivateTitle}>Turn Off Alert</Text>
+            <Text style={styles.deactivateTitle}>Turn Off Zone Alert</Text>
             <Text style={styles.deactivateMsg}>
-              Deactivate the active alert for{" "}
+              Deactivate the active alert for zone{" "}
               <Text style={{ fontFamily: "Inter_700Bold", color: Colors.text }}>{deactivateTarget?.name}</Text>?
+              {"\n"}This will clear alerts on all locations inside.
             </Text>
             {deactivateTarget?.alertType && (
               <View style={styles.deactivateInfo}>
@@ -563,7 +561,7 @@ export default function AlertManagementScreen() {
                 <View style={[styles.modalTitleIcon, { backgroundColor: Colors.surfaceElevated }]}>
                   <Feather name="settings" size={14} color={Colors.textSecondary} />
                 </View>
-                <Text style={styles.modalTitle}>Alert Settings</Text>
+                <Text style={styles.modalTitle}>Zone Alert Settings</Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setEditTarget(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textSecondary} />
@@ -611,7 +609,7 @@ export default function AlertManagementScreen() {
                 <View style={[styles.modalTitleIcon, { backgroundColor: Colors.surfaceElevated }]}>
                   <Feather name="clock" size={14} color={Colors.textSecondary} />
                 </View>
-                <Text style={styles.modalTitle}>Location History {"\u2013"} {historyTarget?.name}</Text>
+                <Text style={styles.modalTitle}>Zone History {"\u2013"} {historyTarget?.name}</Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setHistoryTarget(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textSecondary} />
@@ -624,7 +622,7 @@ export default function AlertManagementScreen() {
               contentContainerStyle={styles.historyList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              renderItem={({ item: entry }: { item: AlertHistoryEntry }) => {
+              renderItem={({ item: entry }: { item: ZoneAlertHistoryEntry }) => {
                 const actionColor =
                   entry.action === "activated" ? Colors.primary :
                   entry.action === "edited" ? Colors.info :
@@ -669,6 +667,86 @@ export default function AlertManagementScreen() {
                   <Feather name="inbox" size={24} color={Colors.textTertiary} />
                   <Text style={styles.historyEmptyText}>No history yet</Text>
                   <Text style={styles.historyEmptyHint}>Actions will be recorded here</Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══ DETAILS MODAL (locations + users inside zone) ═══ */}
+      <Modal
+        visible={detailsTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDetailsTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: "80%" }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalTitleIcon, { backgroundColor: detailsTarget?.color ? detailsTarget.color + "18" : Colors.surfaceElevated }]}>
+                  <Feather name="eye" size={14} color={detailsTarget?.color || Colors.textSecondary} />
+                </View>
+                <Text style={styles.modalTitle}>{detailsTarget?.name} {"\u2013"} Details</Text>
+              </View>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setDetailsTarget(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {/* Zone alert status banner */}
+            {detailsTarget?.alertActive && (
+              <View style={styles.detailsBanner}>
+                <View style={[styles.detailsBannerDot, { backgroundColor: priorityColors[detailsTarget.alertPriority!] }]} />
+                <Text style={styles.detailsBannerText}>
+                  {detailsTarget.alertPriority} · {detailsTarget.alertType}
+                </Text>
+              </View>
+            )}
+
+            {/* Counts row */}
+            <View style={styles.detailsCountsRow}>
+              <View style={styles.detailsCountItem}>
+                <Feather name="map-pin" size={12} color={Colors.textTertiary} />
+                <Text style={styles.detailsCountNum}>{detailsLocations.length}</Text>
+                <Text style={styles.detailsCountLabel}>Location{detailsLocations.length !== 1 ? "s" : ""}</Text>
+              </View>
+              <View style={styles.detailsCountItem}>
+                <Feather name="users" size={12} color={Colors.textTertiary} />
+                <Text style={styles.detailsCountNum}>{detailsUsers.length}</Text>
+                <Text style={styles.detailsCountLabel}>User{detailsUsers.length !== 1 ? "s" : ""}</Text>
+              </View>
+            </View>
+
+            {/* Locations list */}
+            <Text style={styles.modalLabel}>Locations</Text>
+            <FlatList
+              data={detailsLocations}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.detailsList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item: loc }: { item: Location }) => (
+                <View style={styles.detailsLocRow}>
+                  <View style={[styles.detailsLocDot, loc.alertActive && { backgroundColor: priorityColors[loc.alertPriority!] || Colors.primary }]} />
+                  <Text style={styles.detailsLocName} numberOfLines={1}>{loc.name}</Text>
+                  {loc.alertActive ? (
+                    <View style={[styles.detailsLocBadge, { backgroundColor: priorityColors[loc.alertPriority!] + "1A" }]}>
+                      <Text style={[styles.detailsLocBadgeText, { color: priorityColors[loc.alertPriority!] }]}>
+                        {loc.alertType}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.detailsLocInactive}>Inactive</Text>
+                  )}
+                </View>
+              )}
+              ListEmptyComponent={
+                <View style={styles.historyEmpty}>
+                  <Feather name="map-pin" size={20} color={Colors.textTertiary} />
+                  <Text style={styles.historyEmptyText}>No locations in this zone</Text>
                 </View>
               }
             />
@@ -740,29 +818,14 @@ const styles = StyleSheet.create({
   resultCount: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
 
   // ─── List ───
-  listContent: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 80 },
+  listContent: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 80 },
 
-  // ─── Section header (zone) ───
-  sectionHeader: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingVertical: 10, paddingHorizontal: 4, marginTop: 8,
-  },
-  sectionDot: { width: 10, height: 10, borderRadius: 5 },
-  sectionTitle: { fontSize: 13, fontFamily: "Inter_700Bold", color: Colors.text, textTransform: "uppercase", letterSpacing: 0.6 },
-  sectionMeta: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 },
-  sectionCount: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
-  sectionAlertBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: Colors.primary + "15", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-  },
-  sectionAlertDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: Colors.primary },
-  sectionAlertText: { fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.primary },
-
+  // ─── Zone rows ───
   row: {
     flexDirection: "row", alignItems: "stretch",
     backgroundColor: Colors.surface, borderRadius: 10,
     borderWidth: 1, borderColor: Colors.border,
-    overflow: "hidden", marginBottom: 6,
+    overflow: "hidden", marginBottom: 8,
   },
   rowActive: {
     borderColor: Colors.primary + "30",
@@ -773,24 +836,25 @@ const styles = StyleSheet.create({
   },
   rowBody: {
     flex: 1, flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 12, paddingVertical: 10,
+    paddingHorizontal: 12, paddingVertical: 12,
   },
   rowLeft: { flex: 1, gap: 4, marginRight: 10 },
   rowNameRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  zoneDot: { width: 6, height: 6, borderRadius: 3 },
-  rowName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text, flexShrink: 1 },
+  zoneDot: { width: 10, height: 10, borderRadius: 5 },
+  rowName: { fontSize: 15, fontFamily: "Inter_700Bold", color: Colors.text, flexShrink: 1 },
 
-  // Status line for active
   statusLine: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 1 },
   statusTag: { paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4 },
   statusTagText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
   statusSep: { fontSize: 10, color: Colors.textTertiary },
   statusType: { fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.textSecondary },
   statusTime: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
-
   rowStatusOff: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary, marginTop: 1 },
 
-  rowRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  countsLine: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  countText: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+
+  rowRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   activeBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: Colors.primary + "15", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
@@ -798,14 +862,8 @@ const styles = StyleSheet.create({
   activePulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary },
   activeBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold", color: Colors.primary, letterSpacing: 0.6 },
   rowSwitch: { transform: [{ scale: 0.78 }], marginHorizontal: -2 },
-  editBtn: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  historyBtn: {
-    width: 40, height: 40, borderRadius: 10,
+  actionBtn: {
+    width: 34, height: 34, borderRadius: 8,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: Colors.border,
@@ -829,12 +887,12 @@ const styles = StyleSheet.create({
   },
   modalHandle: { width: 32, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginBottom: 2 },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   modalTitleIcon: {
     width: 28, height: 28, borderRadius: 8,
     alignItems: "center", justifyContent: "center",
   },
-  modalTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: Colors.text },
+  modalTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: Colors.text, flexShrink: 1 },
   modalCloseBtn: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
@@ -950,4 +1008,31 @@ const styles = StyleSheet.create({
   historyEmpty: { alignItems: "center", paddingVertical: 40, gap: 6 },
   historyEmptyText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
   historyEmptyHint: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+
+  // ─── Details modal ───
+  detailsBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: Colors.primary + "10", borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  detailsBannerDot: { width: 8, height: 8, borderRadius: 4 },
+  detailsBannerText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.text },
+  detailsCountsRow: {
+    flexDirection: "row", gap: 12,
+    backgroundColor: Colors.surfaceElevated, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  detailsCountItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  detailsCountNum: { fontSize: 14, fontFamily: "Inter_700Bold", color: Colors.text },
+  detailsCountLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
+  detailsList: { gap: 0, paddingBottom: 8 },
+  detailsLocRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  detailsLocDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.textTertiary },
+  detailsLocName: { flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.text },
+  detailsLocBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  detailsLocBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  detailsLocInactive: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
 });

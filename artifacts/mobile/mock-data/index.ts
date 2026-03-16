@@ -99,6 +99,7 @@ export const seedZones: Zone[] = [
       { lat: 25.072, lng: 48.175 }, { lat: 25.072, lng: 48.155 },
     ],
     center: { lat: 25.078, lng: 48.165 }, isActive: true, color: '#EF4444',
+    alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
   {
     id: 2, name: 'Camp', type: 'Camp', boundaryType: 'Polygon',
@@ -107,6 +108,7 @@ export const seedZones: Zone[] = [
       { lat: 25.080, lng: 48.200 }, { lat: 25.080, lng: 48.185 },
     ],
     center: { lat: 25.085, lng: 48.1925 }, isActive: true, color: '#3B82F6',
+    alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
 ];
 

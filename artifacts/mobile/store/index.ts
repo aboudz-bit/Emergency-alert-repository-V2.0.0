@@ -4,12 +4,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
-  AlertHistoryEntry,
+  AlertHistoryEntry, ZoneAlertHistoryEntry,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings,
 } from '@/mock-data';
+
+let _historyIdCounter = 0;
+function nextHistoryId(): number {
+  return Date.now() * 1000 + (++_historyIdCounter % 1000);
+}
 
 interface AppState {
   isAuthenticated: boolean;
@@ -47,6 +52,10 @@ interface AppState {
   activateLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   deactivateLocationAlert: (id: number) => void;
   editLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+
+  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  deactivateZoneAlert: (zoneId: number) => void;
+  editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
   updateSettings: (partial: Partial<AppSettings>) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id'>) => void;
@@ -218,7 +227,7 @@ export const useStore = create<AppState>()(
             alertMessage: message,
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
               action: 'activated' as const,
               alertType,
@@ -242,7 +251,7 @@ export const useStore = create<AppState>()(
             alertMessage: '',
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
               action: 'deactivated' as const,
               alertType: l.alertType,
@@ -267,8 +276,139 @@ export const useStore = create<AppState>()(
             alertMessage: message,
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
+              action: 'edited' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+        }));
+      },
+
+      activateZoneAlert: (zoneId, alertType, priority, message) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone) return;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+          locations: s.locations.map(l => l.zoneId === zoneId ? {
+            ...l,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+        }));
+      },
+      deactivateZoneAlert: (zoneId) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone) return;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'deactivated' as const,
+              alertType: z.alertType,
+              priority: z.alertPriority,
+              message: z.alertMessage,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+          locations: s.locations.map(l => l.zoneId === zoneId ? {
+            ...l,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'deactivated' as const,
+              alertType: l.alertType,
+              priority: l.alertPriority,
+              message: l.alertMessage,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+        }));
+      },
+      editZoneAlert: (zoneId, alertType, priority, message) => {
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone || !zone.alertActive) return;
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'edited' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+          locations: s.locations.map(l => l.zoneId === zoneId ? {
+            ...l,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(),
+              locationId: l.id,
               action: 'edited' as const,
               alertType,
               priority,
@@ -291,7 +431,34 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'keas-mobile-store-v2',
+      version: 1,
       storage: createJSONStorage(() => AsyncStorage),
+      migrate: (persisted: any, version: number) => {
+        const state = persisted as any;
+        if (version === 0 || !version) {
+          // Backfill zoneId and alertHistory on locations from pre-v1 data
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              zoneId: loc.zoneId ?? 0,
+              alertHistory: loc.alertHistory ?? [],
+            }));
+          }
+          // Backfill zone alert fields
+          if (Array.isArray(state?.zones)) {
+            state.zones = state.zones.map((z: any) => ({
+              ...z,
+              alertActive: z.alertActive ?? false,
+              alertType: z.alertType ?? null,
+              alertPriority: z.alertPriority ?? null,
+              alertMessage: z.alertMessage ?? '',
+              alertUpdatedAt: z.alertUpdatedAt ?? null,
+              alertHistory: z.alertHistory ?? [],
+            }));
+          }
+        }
+        return persisted as AppState;
+      },
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,

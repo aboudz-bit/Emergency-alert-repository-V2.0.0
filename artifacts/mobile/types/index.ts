@@ -13,6 +13,17 @@ export interface LatLng {
   lng: number;
 }
 
+export interface ZoneAlertHistoryEntry {
+  id: number;
+  zoneId: number;
+  action: AlertHistoryAction;
+  alertType: LocationAlertType | null;
+  priority: AlertPriority | null;
+  message: string;
+  timestamp: string;
+  user: string | null;
+}
+
 export interface Zone {
   id: number;
   name: string;
@@ -24,6 +35,12 @@ export interface Zone {
   radius?: number;
   isActive: boolean;
   color: string;
+  alertActive: boolean;
+  alertType: LocationAlertType | null;
+  alertPriority: AlertPriority | null;
+  alertMessage: string;
+  alertUpdatedAt: string | null;
+  alertHistory: ZoneAlertHistoryEntry[];
 }
 
 // ─── Locations ────────────────────────────────────────────────────────────────
