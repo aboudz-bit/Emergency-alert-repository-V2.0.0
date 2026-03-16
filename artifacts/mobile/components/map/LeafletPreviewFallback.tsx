@@ -274,7 +274,9 @@ function generateLeafletHtml(
   .edit-vertex{background:none!important;border:none!important}
   .loc-btn{background:none!important;border:none!important}
   .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:40px!important;height:40px!important;line-height:40px!important;font-size:18px!important}
-  .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:12px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
+  .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:12px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important;margin-top:100px!important}
+  .leaflet-top.leaflet-right .loc-btn{margin-top:100px!important}
+  .leaflet-top.leaflet-right{padding-right:4px!important}
   .leaflet-touch .leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:44px!important;font-size:20px!important}
   .vertex-outer{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:grab;position:relative}
   .vertex-inner{width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.4)}
