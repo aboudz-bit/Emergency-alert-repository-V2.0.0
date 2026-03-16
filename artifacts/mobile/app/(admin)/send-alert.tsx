@@ -728,21 +728,27 @@ export default function AlertManagementScreen() {
               contentContainerStyle={styles.detailsList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              renderItem={({ item: loc }: { item: Location }) => (
-                <View style={styles.detailsLocRow}>
-                  <View style={[styles.detailsLocDot, loc.alertActive && { backgroundColor: priorityColors[loc.alertPriority!] || Colors.primary }]} />
-                  <Text style={styles.detailsLocName} numberOfLines={1}>{loc.name}</Text>
-                  {loc.alertActive ? (
-                    <View style={[styles.detailsLocBadge, { backgroundColor: priorityColors[loc.alertPriority!] + "1A" }]}>
-                      <Text style={[styles.detailsLocBadgeText, { color: priorityColors[loc.alertPriority!] }]}>
-                        {loc.alertType}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.detailsLocInactive}>Inactive</Text>
-                  )}
-                </View>
-              )}
+              renderItem={({ item: loc }: { item: Location }) => {
+                const locUserCount = users.filter((u) => u.location === loc.name && u.zone === detailsTarget?.name).length;
+                return (
+                  <View style={styles.detailsLocRow}>
+                    <View style={[styles.detailsLocDot, loc.alertActive && { backgroundColor: priorityColors[loc.alertPriority!] || Colors.primary }]} />
+                    <Text style={styles.detailsLocName} numberOfLines={1}>{loc.name}</Text>
+                    <Text style={styles.detailsLocUserCount}>
+                      {locUserCount} user{locUserCount !== 1 ? "s" : ""}
+                    </Text>
+                    {loc.alertActive ? (
+                      <View style={[styles.detailsLocBadge, { backgroundColor: priorityColors[loc.alertPriority!] + "1A" }]}>
+                        <Text style={[styles.detailsLocBadgeText, { color: priorityColors[loc.alertPriority!] }]}>
+                          {loc.alertType}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.detailsLocInactive}>Inactive</Text>
+                    )}
+                  </View>
+                );
+              }}
               ListEmptyComponent={
                 <View style={styles.historyEmpty}>
                   <Feather name="map-pin" size={20} color={Colors.textTertiary} />
@@ -1032,6 +1038,7 @@ const styles = StyleSheet.create({
   },
   detailsLocDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.textTertiary },
   detailsLocName: { flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.text },
+  detailsLocUserCount: { fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.textSecondary, marginRight: 4 },
   detailsLocBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   detailsLocBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
   detailsLocInactive: { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.textTertiary },
