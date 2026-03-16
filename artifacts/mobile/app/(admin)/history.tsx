@@ -148,25 +148,31 @@ export default function HistoryScreen() {
               </Text>
             </View>
           </Pressable>
-          {ALERT_TYPES.filter((t) => alertCounts[t] > 0).map((type) => {
+          {ALERT_TYPES.map((type) => {
             const isActive = selectedType === type;
+            const count = alertCounts[type] || 0;
+            const isEmpty = count === 0;
             const color = alertTypeColors[type] || Colors.textSecondary;
             return (
               <Pressable
                 key={type}
-                style={[styles.tab, isActive && styles.tabActive]}
+                style={[styles.tab, isActive && styles.tabActive, isEmpty && styles.tabEmpty]}
                 onPress={() => setSelectedType(isActive ? null : type)}
               >
-                <View style={[styles.tabDot, { backgroundColor: color }]} />
+                <View style={[styles.tabDot, { backgroundColor: isEmpty ? Colors.textTertiary : color }]} />
                 <Text
-                  style={[styles.tabText, isActive && styles.tabTextActive]}
+                  style={[
+                    styles.tabText,
+                    isActive && styles.tabTextActive,
+                    isEmpty && styles.tabTextEmpty,
+                  ]}
                   numberOfLines={1}
                 >
                   {type}
                 </Text>
                 <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
                   <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
-                    {alertCounts[type]}
+                    {count}
                   </Text>
                 </View>
               </Pressable>
@@ -237,6 +243,9 @@ const styles = StyleSheet.create({
   tabActive: {
     borderBottomColor: Colors.primary,
   },
+  tabEmpty: {
+    opacity: 0.45,
+  },
   tabDot: {
     width: 7,
     height: 7,
@@ -249,6 +258,9 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: Colors.text,
+  },
+  tabTextEmpty: {
+    color: Colors.textTertiary,
   },
   tabBadge: {
     paddingHorizontal: 6,
