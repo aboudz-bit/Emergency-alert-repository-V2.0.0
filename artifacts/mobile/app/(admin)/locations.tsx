@@ -74,9 +74,9 @@ export default function LocationsScreen() {
   }, []);
 
   const handleSave = useCallback(() => {
-    if (!locationName.trim() || !locationZone) return;
     const matchedZone = zones.find((z) => z.name === locationZone);
-    const zoneId = matchedZone?.id || 0;
+    if (!locationName.trim() || !matchedZone) return;
+    const zoneId = matchedZone.id;
     if (editingLocation) {
       updateLocation(editingLocation.id, {
         name: locationName.trim(),
@@ -103,7 +103,7 @@ export default function LocationsScreen() {
     if (locationZone !== selectedTab) {
       setSelectedTab(locationZone);
     }
-  }, [locationName, locationZone, editingLocation, updateLocation, addLocation, selectedTab]);
+  }, [locationName, locationZone, editingLocation, updateLocation, addLocation, selectedTab, zones]);
 
   const handleDelete = useCallback(() => {
     if (!editingLocation) return;

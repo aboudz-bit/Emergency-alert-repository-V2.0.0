@@ -37,6 +37,15 @@ const priorityColors: Record<AlertPriority, string> = {
 
 type FilterMode = "all" | "active" | "inactive";
 
+interface ZoneSection {
+  key: string;
+  zoneName: string;
+  zoneColor: string;
+  locationCount: number;
+  activeAlertCount: number;
+  data: Location[];
+}
+
 export default function AlertManagementScreen() {
   const locations = useStore((s) => s.locations);
   const zones = useStore((s) => s.zones);
@@ -84,7 +93,7 @@ export default function AlertManagementScreen() {
   }, [activeLocations, filter, searchQuery]);
 
   // ─── Group filtered locations into sections by zone ───
-  const sections = useMemo(() => {
+  const sections = useMemo((): ZoneSection[] => {
     const zoneMap = new Map<string, { zone: Zone | undefined; locations: Location[] }>();
     for (const loc of filteredLocations) {
       if (!zoneMap.has(loc.zone)) {
@@ -421,7 +430,7 @@ export default function AlertManagementScreen() {
         contentContainerStyle={styles.listContent}
         renderItem={renderLocationRow}
         stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
+        renderSectionHeader={({ section }: { section: ZoneSection }) => (
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionDot, { backgroundColor: section.zoneColor }]} />
             <Text style={styles.sectionTitle}>{section.zoneName}</Text>

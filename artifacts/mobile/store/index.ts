@@ -11,6 +11,11 @@ import {
   seedActivityLogs, seedSettings,
 } from '@/mock-data';
 
+let _historyIdCounter = 0;
+function nextHistoryId(): number {
+  return Date.now() * 1000 + (++_historyIdCounter % 1000);
+}
+
 interface AppState {
   isAuthenticated: boolean;
   currentUser: User | null;
@@ -218,7 +223,7 @@ export const useStore = create<AppState>()(
             alertMessage: message,
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
               action: 'activated' as const,
               alertType,
@@ -242,7 +247,7 @@ export const useStore = create<AppState>()(
             alertMessage: '',
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
               action: 'deactivated' as const,
               alertType: l.alertType,
@@ -267,7 +272,7 @@ export const useStore = create<AppState>()(
             alertMessage: message,
             alertUpdatedAt: now,
             alertHistory: [...(l.alertHistory || []), {
-              id: Date.now(),
+              id: nextHistoryId(),
               locationId: id,
               action: 'edited' as const,
               alertType,
@@ -291,7 +296,22 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'keas-mobile-store-v2',
+      version: 1,
       storage: createJSONStorage(() => AsyncStorage),
+      migrate: (persisted: any, version: number) => {
+        if (version === 0 || !version) {
+          // Backfill zoneId and alertHistory on locations from pre-v1 data
+          const state = persisted as any;
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              zoneId: loc.zoneId ?? 0,
+              alertHistory: loc.alertHistory ?? [],
+            }));
+          }
+        }
+        return persisted as AppState;
+      },
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
