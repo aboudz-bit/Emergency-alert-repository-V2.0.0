@@ -15,7 +15,8 @@ function generateLeafletHtml(
   editingZoneId: number | null | undefined,
   editingPoints: LatLng[] | undefined,
   drawMode: string,
-  showLocationButton: boolean
+  showLocationButton: boolean,
+  showCenterCrosshair: boolean,
 ): string {
   const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
@@ -35,7 +36,7 @@ function generateLeafletHtml(
       if (isEditing && z.id === editingZoneId) return "";
       const isSelected = z.id === selectedZoneId;
       const coords = z.polygonPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
-      const fillOpacity = isEditing ? 0.08 : isSelected ? 0.35 : z.isActive ? 0.2 : 0.08;
+      const fillOpacity = isEditing || isTapMode ? 0.08 : isSelected ? 0.35 : z.isActive ? 0.2 : 0.08;
       const weight = isSelected ? 3 : 2;
       const dashArray = z.isActive ? "" : "5,5";
       const color = z.isActive ? z.color : "#6B7280";
@@ -50,7 +51,7 @@ function generateLeafletHtml(
           ${dashArray ? `dashArray: '${dashArray}',` : ""}
         }).addTo(map);
         ${
-          !isEditing
+          !isEditing && !isTapMode
             ? `poly${z.id}.on('click', function() {
           window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
         });`
@@ -90,20 +91,21 @@ function generateLeafletHtml(
           draggable: true,
           icon: L.divIcon({
             className: 'edit-vertex',
-            html: '<div style="width:44px;height:44px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;cursor:grab;"><div style="width:22px;height:22px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.4);"></div></div>',
-            iconAnchor: [22, 22],
+            html: '<div class="vertex-outer"><div class="vertex-inner" style="background:${color};"></div><div class="vertex-num">' + (idx+1) + '</div></div>',
+            iconAnchor: [24, 24],
           })
         }).addTo(map);
+        m.on('dragstart', function() { map.dragging.disable(); });
         m.on('drag', function(e) {
           var ll = e.target.getLatLng();
           editPoints[idx] = {lat: ll.lat, lng: ll.lng};
           updateEditPoly();
         });
+        m.on('dragend', function() { map.dragging.enable(); });
         editMarkers.push(m);
       });
 
-      // fit to editing zone
-      map.fitBounds(editPoly.getBounds(), {padding: [50, 50]});
+      map.fitBounds(editPoly.getBounds(), {padding: [60, 60]});
     `;
   })();
 
@@ -117,7 +119,7 @@ function generateLeafletHtml(
           radius: ${isSelected ? 14 : 10}, color: '${z.color}',
           fillColor: '${z.color}', fillOpacity: ${isSelected ? 0.5 : 0.3},
           weight: ${isSelected ? 3 : 2},
-        }).addTo(map)${!isEditing ? `.on('click', function() {
+        }).addTo(map)${!isEditing && !isTapMode ? `.on('click', function() {
           window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
         })` : ""};
         L.marker([${z.center!.lat}, ${z.center!.lng}], {
@@ -159,8 +161,8 @@ function generateLeafletHtml(
         var label = L.marker([lat, lng], {
           icon: L.divIcon({
             className: 'zone-label',
-            html: '<div style="background:'+tapColor+';color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,0.25);min-width:20px;text-align:center;">' + idx + '</div>',
-            iconAnchor: [14, -12],
+            html: '<div style="background:'+tapColor+';color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);min-width:22px;text-align:center;">' + idx + '</div>',
+            iconAnchor: [14, -14],
           })
         }).addTo(map);
         tapMarkers.push({marker: m, label: label, lat: lat, lng: lng});
@@ -180,7 +182,6 @@ function generateLeafletHtml(
         addTapPoint(e.latlng.lat, e.latlng.lng);
         window.parent.postMessage(JSON.stringify({type:'map_tap', lat: e.latlng.lat, lng: e.latlng.lng}), '*');
       });
-      // Listen for undo from parent
       window.addEventListener('message', function(evt) {
         try {
           var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
@@ -204,6 +205,20 @@ function generateLeafletHtml(
     setTimeout(reportCenter, 300);
   `;
 
+  const flyToListenerCode = `
+    window.addEventListener('message', function(evt) {
+      try {
+        var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
+        if (d.type === 'fly_to' && typeof d.lat === 'number') {
+          map.flyTo([d.lat, d.lng], d.zoom || 15, {duration: 0.8});
+        }
+        if (d.type === 'fly_to_bounds' && Array.isArray(d.bounds)) {
+          map.flyToBounds(d.bounds, {padding: [50, 50], duration: 0.8});
+        }
+      } catch(ex) {}
+    });
+  `;
+
   const locationButtonCode = showLocationButton
     ? `
       var locBtn = L.control({position: 'topright'});
@@ -219,7 +234,7 @@ function generateLeafletHtml(
           navigator.geolocation.getCurrentPosition(function(pos) {
             var lat = pos.coords.latitude;
             var lng = pos.coords.longitude;
-            map.setView([lat, lng], 15);
+            map.flyTo([lat, lng], 15, {duration: 0.8});
             if (locMarker) map.removeLayer(locMarker);
             locMarker = L.circleMarker([lat, lng], {
               radius: 8, color: '#3B82F6', fillColor: '#3B82F6',
@@ -232,6 +247,20 @@ function generateLeafletHtml(
         }
       }
     `
+    : "";
+
+  const crosshairCss = showCenterCrosshair
+    ? `
+      .map-crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;pointer-events:none}
+      .map-crosshair::before,.map-crosshair::after{content:'';position:absolute;background:rgba(59,130,246,0.6)}
+      .map-crosshair::before{width:2px;height:28px;left:50%;top:50%;transform:translate(-50%,-50%)}
+      .map-crosshair::after{width:28px;height:2px;left:50%;top:50%;transform:translate(-50%,-50%)}
+      .crosshair-dot{position:absolute;width:8px;height:8px;border-radius:50%;border:2px solid rgba(59,130,246,0.7);background:transparent;top:50%;left:50%;transform:translate(-50%,-50%)}
+    `
+    : "";
+
+  const crosshairHtml = showCenterCrosshair
+    ? `<div class="map-crosshair"><div class="crosshair-dot"></div></div>`
     : "";
 
   return `<!DOCTYPE html><html><head>
@@ -247,17 +276,23 @@ function generateLeafletHtml(
   .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:40px!important;height:40px!important;line-height:40px!important;font-size:18px!important}
   .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:12px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
   .leaflet-touch .leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:44px!important;font-size:20px!important}
+  .vertex-outer{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:grab;position:relative}
+  .vertex-inner{width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.4)}
+  .vertex-num{position:absolute;top:-6px;right:-4px;background:#fff;color:#333;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+  ${crosshairCss}
   ${isTapMode ? `#map{cursor:crosshair!important}` : ""}
 </style></head><body>
 <div id="map"></div>
+${crosshairHtml}
 <script>
-  var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:true,attributionControl:false});
+  var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:true,attributionControl:false,tap:true,tapTolerance:30});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
   ${zonePolygons}
   ${circleMarkers}
   ${editPolygonCode}
   ${tapModeCode}
   ${mapCenterReportCode}
+  ${flyToListenerCode}
   ${locationButtonCode}
   ${
     !isEditing
@@ -284,13 +319,16 @@ export function LeafletPreviewFallback({
   onMapCenterChange,
   showLocationButton = false,
   tapPointCount = 0,
+  flyToZoneId,
+  showCenterCrosshair = false,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
+  const prevFlyToRef = useRef<number | null | undefined>(undefined);
 
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton),
-    [zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton]
+    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton, showCenterCrosshair),
+    [zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton, showCenterCrosshair]
   );
 
   // Send undo message to iframe when tapPointCount decreases
@@ -303,6 +341,31 @@ export function LeafletPreviewFallback({
     }
     prevTapCountRef.current = tapPointCount;
   }, [tapPointCount]);
+
+  // Fly to zone when flyToZoneId changes
+  useEffect(() => {
+    if (flyToZoneId == null || flyToZoneId === prevFlyToRef.current) {
+      prevFlyToRef.current = flyToZoneId;
+      return;
+    }
+    prevFlyToRef.current = flyToZoneId;
+
+    const zone = zones.find((z) => z.id === flyToZoneId);
+    if (!zone || !iframeRef.current?.contentWindow) return;
+
+    if (zone.polygonPoints.length > 0) {
+      const bounds = zone.polygonPoints.map((p) => [p.lat, p.lng]);
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ type: "fly_to_bounds", bounds }),
+        "*"
+      );
+    } else if (zone.center) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ type: "fly_to", lat: zone.center.lat, lng: zone.center.lng, zoom: 15 }),
+        "*"
+      );
+    }
+  }, [flyToZoneId, zones]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
