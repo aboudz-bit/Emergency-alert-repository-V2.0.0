@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Zone, ZoneType } from "@/types";
+import type { Zone, ZoneType, LatLng } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_HEIGHT = SCREEN_HEIGHT * 0.42;
@@ -40,9 +40,12 @@ export default function ZonesScreen() {
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
+
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isEditingShape, setIsEditingShape] = useState(false);
+  const [editingPoints, setEditingPoints] = useState<LatLng[]>([]);
 
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<ZoneType>("Custom");
@@ -54,8 +57,9 @@ export default function ZonesScreen() {
   );
 
   const handleZonePress = useCallback((zoneId: number) => {
+    if (isEditingShape) return;
     setSelectedZoneId((prev) => (prev === zoneId ? null : zoneId));
-  }, []);
+  }, [isEditingShape]);
 
   const handleToggleZone = useCallback(
     (zone: Zone) => {
@@ -121,62 +125,131 @@ export default function ZonesScreen() {
     setShowEditModal(false);
   }, [selectedZone, deleteZone]);
 
+  const handleEnterShapeEdit = useCallback(() => {
+    if (!selectedZone) return;
+    setEditingPoints([...selectedZone.polygonPoints]);
+    setShowEditModal(false);
+    setIsEditingShape(true);
+  }, [selectedZone]);
+
+  const handleSaveShape = useCallback(() => {
+    if (!selectedZone || editingPoints.length < 3) return;
+    const lats = editingPoints.map((p) => p.lat);
+    const lngs = editingPoints.map((p) => p.lng);
+    const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+    const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+    updateZone(selectedZone.id, {
+      polygonPoints: editingPoints,
+      center: { lat: centerLat, lng: centerLng },
+    });
+    setIsEditingShape(false);
+    setEditingPoints([]);
+  }, [selectedZone, editingPoints, updateZone]);
+
+  const handleCancelShapeEdit = useCallback(() => {
+    setIsEditingShape(false);
+    setEditingPoints([]);
+  }, []);
+
+  const handleEditingPointsChange = useCallback((points: LatLng[]) => {
+    setEditingPoints(points);
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Header
-        title="Zone Map"
-        showBack
-        rightAction={
-          <Pressable style={styles.addBtn} onPress={handleOpenAdd} hitSlop={8}>
-            <Feather name="plus" size={20} color={Colors.text} />
-          </Pressable>
-        }
-      />
+      {!isEditingShape && (
+        <Header
+          title="Zone Map"
+          showBack
+          rightAction={
+            <Pressable style={styles.addBtn} onPress={handleOpenAdd} hitSlop={8}>
+              <Feather name="plus" size={20} color={Colors.text} />
+            </Pressable>
+          }
+        />
+      )}
 
-      <View style={styles.mapContainer}>
+      <View style={[styles.mapContainer, isEditingShape && styles.mapContainerEditing]}>
         <ZoneMap
           zones={zones}
           selectedZoneId={selectedZoneId}
           onZonePress={handleZonePress}
-          height={MAP_HEIGHT}
+          height={isEditingShape ? SCREEN_HEIGHT * 0.65 : MAP_HEIGHT}
+          editingZoneId={isEditingShape ? selectedZoneId : null}
+          editingPoints={isEditingShape ? editingPoints : undefined}
+          onEditingPointsChange={handleEditingPointsChange}
         />
 
-        <View style={styles.zoneChipBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.zoneChipBarContent}
-          >
-            {zones.map((zone) => {
-              const isSelected = zone.id === selectedZoneId;
-              return (
-                <Pressable
-                  key={zone.id}
-                  style={[
-                    styles.zoneChip,
-                    isSelected && { borderColor: zone.color, backgroundColor: zone.color + "20" },
-                    !zone.isActive && styles.zoneChipInactive,
-                  ]}
-                  onPress={() => handleZonePress(zone.id)}
-                >
-                  <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
-                  <Text
+        {isEditingShape && (
+          <View style={styles.editOverlay}>
+            <View style={styles.editBanner}>
+              <View style={styles.editBannerLeft}>
+                <Feather name="edit-3" size={16} color={Colors.info} />
+                <Text style={styles.editBannerText}>
+                  Drag vertices to reshape
+                </Text>
+              </View>
+              <Text style={styles.editBannerCount}>
+                {editingPoints.length} pts
+              </Text>
+            </View>
+            <View style={styles.editActions}>
+              <Pressable
+                style={styles.editCancelBtn}
+                onPress={handleCancelShapeEdit}
+              >
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.editSaveBtn}
+                onPress={handleSaveShape}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.editSaveText}>Save Shape</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {!isEditingShape && (
+          <View style={styles.zoneChipBar}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.zoneChipBarContent}
+            >
+              {zones.map((zone) => {
+                const isSelected = zone.id === selectedZoneId;
+                return (
+                  <Pressable
+                    key={zone.id}
                     style={[
-                      styles.zoneChipText,
-                      isSelected && { color: zone.color },
-                      !zone.isActive && { color: Colors.textTertiary },
+                      styles.zoneChip,
+                      isSelected && { borderColor: zone.color, backgroundColor: zone.color + "20" },
+                      !zone.isActive && styles.zoneChipInactive,
                     ]}
+                    onPress={() => handleZonePress(zone.id)}
                   >
-                    {zone.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+                    <View style={[styles.zoneChipDot, { backgroundColor: zone.isActive ? zone.color : Colors.textTertiary }]} />
+                    <Text
+                      style={[
+                        styles.zoneChipText,
+                        isSelected && { color: zone.color },
+                        !zone.isActive && { color: Colors.textTertiary },
+                      ]}
+                    >
+                      {zone.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
-      {selectedZone ? (
+      {!isEditingShape && selectedZone ? (
         <ScrollView style={styles.detailPanel} contentContainerStyle={styles.detailPanelContent}>
           <Card style={styles.detailCard}>
             <View style={styles.detailHeader}>
@@ -227,13 +300,12 @@ export default function ZonesScreen() {
             </View>
           </Card>
         </ScrollView>
-      ) : (
+      ) : !isEditingShape ? (
         <View style={styles.detailPanel}>
           <View style={styles.hintRow}>
             <Feather name="info" size={14} color={Colors.textTertiary} />
             <Text style={styles.hintText}>Tap a zone on the map or chips to view details</Text>
           </View>
-
           <FlatList
             data={zones}
             keyExtractor={(item) => item.id.toString()}
@@ -255,13 +327,16 @@ export default function ZonesScreen() {
             )}
           />
         </View>
-      )}
+      ) : null}
 
       <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => setShowAddModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Zone</Text>
-            <Text style={styles.modalSubtitle}>Create a new zone with a default boundary near Khurais</Text>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>New Zone</Text>
+            <Text style={styles.modalSubtitle}>
+              A default boundary will be created near Khurais
+            </Text>
 
             <Input
               label="Zone Name"
@@ -272,7 +347,7 @@ export default function ZonesScreen() {
             />
 
             <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Zone Type</Text>
+              <Text style={styles.formLabel}>Type</Text>
               <View style={styles.typeRow}>
                 {ZONE_TYPES.map((t) => (
                   <Pressable
@@ -289,7 +364,7 @@ export default function ZonesScreen() {
             </View>
 
             <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Zone Color</Text>
+              <Text style={styles.formLabel}>Color</Text>
               <View style={styles.colorRow}>
                 {ZONE_COLORS.map((c) => (
                   <Pressable
@@ -297,29 +372,27 @@ export default function ZonesScreen() {
                     style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
                     onPress={() => setFormColor(c)}
                   >
-                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
+                    {formColor === c && <Feather name="check" size={12} color="#fff" />}
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            <View style={styles.modalActions}>
-              <Button
-                title="Cancel"
+            <View style={styles.modalBtnRow}>
+              <Pressable
+                style={styles.modalBtnSecondary}
                 onPress={() => { setShowAddModal(false); setFormName(""); }}
-                variant="secondary"
-                size="lg"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="Add Zone"
+              >
+                <Text style={styles.modalBtnSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtnPrimary, !formName.trim() && styles.modalBtnDisabled]}
                 onPress={handleSaveAdd}
-                variant="primary"
-                icon="plus"
                 disabled={!formName.trim()}
-                size="lg"
-                style={{ flex: 1 }}
-              />
+              >
+                <Feather name="plus" size={15} color="#fff" />
+                <Text style={styles.modalBtnPrimaryText}>Create Zone</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -327,8 +400,19 @@ export default function ZonesScreen() {
 
       <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Zone</Text>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+
+            <View style={styles.editModalHeader}>
+              <Text style={styles.modalTitle}>Zone Settings</Text>
+              <Pressable
+                style={styles.editModalClose}
+                onPress={() => setShowEditModal(false)}
+                hitSlop={8}
+              >
+                <Feather name="x" size={18} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
 
             <Input
               label="Zone Name"
@@ -337,64 +421,77 @@ export default function ZonesScreen() {
               placeholder="Zone name"
             />
 
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Zone Type</Text>
-              <View style={styles.typeRow}>
-                {ZONE_TYPES.map((t) => (
-                  <Pressable
-                    key={t.key}
-                    style={[styles.typeChip, formType === t.key && styles.typeChipActive]}
-                    onPress={() => setFormType(t.key)}
-                  >
-                    <Text style={[styles.typeChipText, formType === t.key && styles.typeChipTextActive]}>
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
+            <View style={styles.editSettingsRow}>
+              <View style={[styles.formSection, { flex: 1 }]}>
+                <Text style={styles.formLabel}>Type</Text>
+                <View style={styles.typeRow}>
+                  {ZONE_TYPES.map((t) => (
+                    <Pressable
+                      key={t.key}
+                      style={[styles.typeChipSmall, formType === t.key && styles.typeChipSmallActive]}
+                      onPress={() => setFormType(t.key)}
+                    >
+                      <Text style={[styles.typeChipSmallText, formType === t.key && styles.typeChipSmallTextActive]}>
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             </View>
 
             <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Zone Color</Text>
+              <Text style={styles.formLabel}>Color</Text>
               <View style={styles.colorRow}>
                 {ZONE_COLORS.map((c) => (
                   <Pressable
                     key={c}
-                    style={[styles.colorSwatch, { backgroundColor: c }, formColor === c && styles.colorSwatchActive]}
+                    style={[styles.colorSwatchSmall, { backgroundColor: c }, formColor === c && styles.colorSwatchSmallActive]}
                     onPress={() => setFormColor(c)}
                   >
-                    {formColor === c && <Feather name="check" size={14} color="#fff" />}
+                    {formColor === c && <Feather name="check" size={10} color="#fff" />}
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            <View style={styles.modalActions}>
-              <Button
-                title="Delete"
-                onPress={handleDeleteZone}
-                variant="destructive"
-                icon="trash-2"
-                size="lg"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="Save"
+            <View style={styles.editModalDivider} />
+
+            <Pressable
+              style={styles.editShapeBtn}
+              onPress={handleEnterShapeEdit}
+            >
+              <View style={styles.editShapeBtnIcon}>
+                <Feather name="maximize" size={16} color={Colors.info} />
+              </View>
+              <View style={styles.editShapeBtnText}>
+                <Text style={styles.editShapeBtnTitle}>Edit Boundary Shape</Text>
+                <Text style={styles.editShapeBtnDesc}>
+                  Drag vertices to adjust the zone area
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
+
+            <View style={styles.editModalDivider} />
+
+            <View style={styles.editModalActions}>
+              <Pressable
+                style={[styles.modalBtnPrimary, styles.editSaveSettingsBtn, !formName.trim() && styles.modalBtnDisabled]}
                 onPress={handleSaveEdit}
-                variant="primary"
-                icon="check"
                 disabled={!formName.trim()}
-                size="lg"
-                style={{ flex: 1 }}
-              />
+              >
+                <Feather name="check" size={15} color="#fff" />
+                <Text style={styles.modalBtnPrimaryText}>Save Settings</Text>
+              </Pressable>
+              <Pressable
+                style={styles.deleteBtn}
+                onPress={handleDeleteZone}
+              >
+                <Feather name="trash-2" size={14} color={Colors.primary} />
+                <Text style={styles.deleteBtnText}>Delete Zone</Text>
+              </Pressable>
             </View>
-            <Button
-              title="Cancel"
-              onPress={() => setShowEditModal(false)}
-              variant="ghost"
-              fullWidth
-              size="md"
-            />
           </View>
         </View>
       </Modal>
@@ -410,6 +507,89 @@ const styles = StyleSheet.create({
   mapContainer: {
     height: MAP_HEIGHT,
     position: "relative",
+  },
+  mapContainerEditing: {
+    height: SCREEN_HEIGHT * 0.65,
+  },
+  editOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  editBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  editBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  editBannerText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "#1F2937",
+  },
+  editBannerCount: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: "#6B7280",
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    justifyContent: "flex-end",
+  },
+  editCancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  editCancelText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "#6B7280",
+  },
+  editSaveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.info,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    shadowColor: Colors.info,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  editSaveText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
   },
   zoneChipBar: {
     position: "absolute",
@@ -428,9 +608,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface + "E6",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(0,0,0,0.08)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   zoneChipInactive: {
     opacity: 0.6,
@@ -443,7 +628,7 @@ const styles = StyleSheet.create({
   zoneChipText: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: "#1F2937",
   },
   detailPanel: {
     flex: 1,
@@ -561,39 +746,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
   },
-  modalContent: {
+  modalSheet: {
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    width: "100%",
-    maxWidth: 420,
-    gap: Spacing.lg,
+    borderTopLeftRadius: BorderRadius.xxl,
+    borderTopRightRadius: BorderRadius.xxl,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+    paddingTop: Spacing.md,
+    gap: Spacing.md,
+    maxHeight: "85%",
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: Spacing.xs,
   },
   modalTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
   modalSubtitle: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    marginTop: -Spacing.sm,
+    color: Colors.textTertiary,
+    marginTop: -Spacing.xs,
   },
   formSection: {
     gap: Spacing.sm,
   },
   formLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   typeRow: {
     flexDirection: "row",
@@ -609,8 +805,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   typeChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.info,
+    borderColor: Colors.info,
   },
   typeChipText: {
     fontSize: FontSize.sm,
@@ -620,24 +816,159 @@ const styles = StyleSheet.create({
   typeChipTextActive: {
     color: Colors.white,
   },
+  typeChipSmall: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  typeChipSmallActive: {
+    backgroundColor: Colors.info,
+    borderColor: Colors.info,
+  },
+  typeChipSmallText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  typeChipSmallTextActive: {
+    color: Colors.white,
+  },
   colorRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
   },
   colorSwatch: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
   colorSwatchActive: {
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: Colors.white,
   },
-  modalActions: {
+  colorSwatchSmall: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  colorSwatchSmallActive: {
+    borderWidth: 2.5,
+    borderColor: Colors.white,
+  },
+  modalBtnRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  modalBtnSecondary: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  modalBtnSecondaryText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  modalBtnPrimary: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.info,
+  },
+  modalBtnPrimaryText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+  },
+  modalBtnDisabled: {
+    opacity: 0.4,
+  },
+
+  editModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  editModalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editSettingsRow: {
     flexDirection: "row",
     gap: Spacing.md,
+  },
+  editModalDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.xs,
+  },
+  editShapeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  editShapeBtnIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.infoDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editShapeBtnText: {
+    flex: 1,
+    gap: 2,
+  },
+  editShapeBtnTitle: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  editShapeBtnDesc: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+  },
+  editModalActions: {
+    gap: Spacing.sm,
+  },
+  editSaveSettingsBtn: {
+    flex: undefined,
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  deleteBtnText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: Colors.primary,
   },
 });

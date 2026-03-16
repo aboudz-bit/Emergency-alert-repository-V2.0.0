@@ -23,6 +23,9 @@ export interface ZoneMapProps {
   onZonePress: (zoneId: number) => void;
   height: number;
   showLabels?: boolean;
+  editingZoneId?: number | null;
+  editingPoints?: LatLng[];
+  onEditingPointsChange?: (points: LatLng[]) => void;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

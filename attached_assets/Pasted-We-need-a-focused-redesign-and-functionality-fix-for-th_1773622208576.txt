@@ -1,0 +1,111 @@
+We need a focused redesign and functionality fix for the mobile Zone Map screen.
+
+Current problems:
+
+1) Edit Zone is incomplete
+Right now when I press Edit on a zone like CPF, it only opens a modal for:
+- zone name
+- zone type
+- zone color
+
+This is not enough.
+
+What I actually need:
+I need to edit the zone SHAPE and SIZE, like the web version.
+I need to be able to adjust the actual boundary / polygon / zone area, not just rename it.
+
+2) The map is still too dark
+I do NOT want the dark/night map style.
+The mobile map should use a normal, clear, readable map style similar to what we fixed on web.
+I want a natural, professional, readable map — not black / dark tiles.
+
+3) The edit modal UI is weak
+The current edit modal does not look professional.
+Problems:
+- buttons are too big
+- layout feels clumsy
+- spacing is off
+- colors feel too harsh
+- overall visual quality is below the rest of the app
+
+==================================================
+REQUIRED FIXES
+==================================================
+
+A) REAL ZONE SHAPE EDITING ON MOBILE
+- Add a real “Edit Shape” mode for zones
+- When I choose to edit a zone, I must be able to edit the actual boundary
+- If the zone is polygon:
+  - allow moving points
+  - allow resizing shape
+  - allow adjusting vertices
+- If the zone is circle:
+  - allow changing center
+  - allow changing radius
+- The UX should be touch-friendly for iPhone
+- If full editing is too complex, make a simplified but real shape-editing mode
+- Do NOT leave Edit limited to name/color only
+
+B) LIGHT / NORMAL MAP STYLE
+- Change the map style to a lighter, normal, readable Google-Maps-style direction
+- No dark/night tiles
+- Make roads/background clearer
+- Keep zones visible and readable
+- Make the map comfortable for the eyes and professional
+
+C) REDESIGN EDIT MODAL
+Redesign the Edit Zone modal so it looks premium and professional.
+
+Requirements:
+- cleaner spacing
+- smaller and better-sized buttons
+- more elegant typography
+- more polished layout
+- less bulky controls
+- more native iOS feel
+- proper visual hierarchy
+
+Suggested structure:
+- title
+- zone name field
+- optional color/type row
+- buttons:
+  - Edit Shape
+  - Save
+  - Delete
+  - Cancel
+
+Do NOT make the action buttons huge and clumsy.
+
+D) BETTER ACTION SPLIT
+Do not overload one modal with everything.
+
+Better flow:
+- Edit Zone → opens clean zone settings modal
+- Edit Shape → enters map editing mode
+- Save Shape → saves boundary changes
+
+This is much better than forcing all editing into one ugly modal.
+
+==================================================
+KEEP WORKING
+==================================================
+
+Do not break:
+- existing zone list
+- existing add zone flow
+- location sync
+- zone selection
+- current dashboard logic
+
+==================================================
+OUTPUT EXPECTATION
+==================================================
+
+Actually improve the mobile Zone Map code.
+
+When done, tell me:
+1) how shape editing now works
+2) what map style is used now
+3) what changed in the edit modal design
+4) what files were updated

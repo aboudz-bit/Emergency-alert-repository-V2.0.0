@@ -1,28 +1,20 @@
 /**
- * ──────────────────────────────────────────────────────────────────────────────
  * TEMPORARY FALLBACK — Web Preview Only
- * ──────────────────────────────────────────────────────────────────────────────
- *
- * This component renders a Leaflet map via iframe for the Expo web preview
- * environment where react-native-maps (Google Maps) cannot render.
- *
- * This is NOT the final map implementation. It exists solely so the web
- * preview remains usable during development.
- *
- * FINAL TARGET: Google Maps via react-native-maps (see GoogleMapsView.tsx)
- *
- * This file will be removed once the project ships on native iOS/Android
- * where Google Maps renders natively.
- * ──────────────────────────────────────────────────────────────────────────────
+ * See GoogleMapsView.tsx for the FINAL native implementation.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
 import type { ZoneMapProps } from "./types";
-import type { Zone } from "@/types";
+import type { Zone, LatLng } from "@/types";
 
-function generateLeafletHtml(zones: Zone[], selectedZoneId: number | null): string {
+function generateLeafletHtml(
+  zones: Zone[],
+  selectedZoneId: number | null,
+  editingZoneId: number | null | undefined,
+  editingPoints: LatLng[] | undefined
+): string {
   const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
   let centerLng = 48.175;
@@ -31,16 +23,19 @@ function generateLeafletHtml(zones: Zone[], selectedZoneId: number | null): stri
     centerLng = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
   }
 
+  const isEditing = editingZoneId != null;
+  const editZone = isEditing ? zones.find((z) => z.id === editingZoneId) : null;
+
   const zonePolygons = zones
     .filter((z) => z.polygonPoints.length > 0)
     .map((z) => {
+      if (isEditing && z.id === editingZoneId) return "";
       const isSelected = z.id === selectedZoneId;
       const coords = z.polygonPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
-      const fillOpacity = isSelected ? 0.35 : z.isActive ? 0.2 : 0.08;
+      const fillOpacity = isEditing ? 0.08 : isSelected ? 0.35 : z.isActive ? 0.2 : 0.08;
       const weight = isSelected ? 3 : 2;
       const dashArray = z.isActive ? "" : "5,5";
       const color = z.isActive ? z.color : "#6B7280";
-
       const labelCoord = z.center
         ? `${z.center.lat}, ${z.center.lng}`
         : `${z.polygonPoints[0].lat}, ${z.polygonPoints[0].lng}`;
@@ -51,35 +46,81 @@ function generateLeafletHtml(zones: Zone[], selectedZoneId: number | null): stri
           fillOpacity: ${fillOpacity}, weight: ${weight},
           ${dashArray ? `dashArray: '${dashArray}',` : ""}
         }).addTo(map);
-        poly${z.id}.on('click', function() {
+        ${
+          !isEditing
+            ? `poly${z.id}.on('click', function() {
           window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
-        });
+        });`
+            : ""
+        }
         L.marker([${labelCoord}], {
           icon: L.divIcon({
             className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
+            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
             iconAnchor: [30, 10],
           })
         }).addTo(map);`;
     })
     .join("\n");
 
+  const editPolygonCode = (() => {
+    if (!isEditing || !editingPoints || editingPoints.length === 0) return "";
+    const color = editZone?.color || "#3B82F6";
+    const coords = editingPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
+
+    return `
+      var editPoly = L.polygon([${coords}], {
+        color: '${color}', fillColor: '${color}',
+        fillOpacity: 0.25, weight: 3, dashArray: '',
+      }).addTo(map);
+
+      var editMarkers = [];
+      var editPoints = [${editingPoints.map((p) => `{lat:${p.lat},lng:${p.lng}}`).join(",")}];
+
+      function updateEditPoly() {
+        editPoly.setLatLngs(editPoints.map(function(p){return [p.lat,p.lng]}));
+        window.parent.postMessage(JSON.stringify({type:'edit_points', points: editPoints}), '*');
+      }
+
+      editPoints.forEach(function(pt, idx) {
+        var m = L.marker([pt.lat, pt.lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: 'edit-vertex',
+            html: '<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:grab;"></div>',
+            iconAnchor: [9, 9],
+          })
+        }).addTo(map);
+        m.on('drag', function(e) {
+          var ll = e.target.getLatLng();
+          editPoints[idx] = {lat: ll.lat, lng: ll.lng};
+          updateEditPoly();
+        });
+        editMarkers.push(m);
+      });
+
+      // fit to editing zone
+      map.fitBounds(editPoly.getBounds(), {padding: [50, 50]});
+    `;
+  })();
+
   const circleMarkers = zones
     .filter((z) => z.polygonPoints.length === 0 && z.center)
     .map((z) => {
+      if (isEditing && z.id === editingZoneId) return "";
       const isSelected = z.id === selectedZoneId;
       return `
         L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
           radius: ${isSelected ? 14 : 10}, color: '${z.color}',
           fillColor: '${z.color}', fillOpacity: ${isSelected ? 0.5 : 0.3},
           weight: ${isSelected ? 3 : 2},
-        }).addTo(map).on('click', function() {
+        }).addTo(map)${!isEditing ? `.on('click', function() {
           window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
-        });
+        })` : ""};
         L.marker([${z.center!.lat}, ${z.center!.lng}], {
           icon: L.divIcon({
             className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.4);">${z.name}</div>',
+            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);">${z.name}</div>',
             iconAnchor: [30, -12],
           })
         }).addTo(map);`;
@@ -87,6 +128,7 @@ function generateLeafletHtml(zones: Zone[], selectedZoneId: number | null): stri
     .join("\n");
 
   const fitBoundsCode = (() => {
+    if (isEditing) return "";
     const polyZones = zones.filter((z) => z.polygonPoints.length > 0);
     const centerZones = zones.filter((z) => z.polygonPoints.length === 0 && z.center);
     const parts = [
@@ -108,20 +150,26 @@ function generateLeafletHtml(zones: Zone[], selectedZoneId: number | null): stri
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%}
   .zone-label{background:none!important;border:none!important}
-  .leaflet-control-zoom a{background:#171B24!important;color:#F0F1F3!important;border-color:#2A2F3C!important;width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important}
-  .leaflet-control-zoom{border:1px solid #2A2F3C!important;border-radius:10px!important;overflow:hidden}
+  .edit-vertex{background:none!important;border:none!important}
+  .leaflet-control-zoom a{background:#fff!important;color:#333!important;border-color:#ddd!important;width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important}
+  .leaflet-control-zoom{border:1px solid #ddd!important;border-radius:10px!important;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)!important}
 </style></head><body>
 <div id="map"></div>
 <script>
   var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:true,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
   ${zonePolygons}
   ${circleMarkers}
-  setTimeout(function(){
+  ${editPolygonCode}
+  ${
+    !isEditing
+      ? `setTimeout(function(){
     var allBounds=[];
     ${fitBoundsCode}
     if(allBounds.length>0){var flat=allBounds.flat();if(flat.length>1)map.fitBounds(flat,{padding:[30,30]})}
-  },200);
+  },200);`
+      : ""
+  }
 <\/script></body></html>`;
 }
 
@@ -130,12 +178,15 @@ export function LeafletPreviewFallback({
   selectedZoneId,
   onZonePress,
   height,
+  editingZoneId,
+  editingPoints,
+  onEditingPointsChange,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, selectedZoneId),
-    [zones, selectedZoneId]
+    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints),
+    [zones, selectedZoneId, editingZoneId, editingPoints]
   );
 
   useEffect(() => {
@@ -145,11 +196,14 @@ export function LeafletPreviewFallback({
         if (data.type === "zone_select" && typeof data.id === "number") {
           onZonePress(data.id);
         }
+        if (data.type === "edit_points" && Array.isArray(data.points) && onEditingPointsChange) {
+          onEditingPointsChange(data.points);
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress]);
+  }, [onZonePress, onEditingPointsChange]);
 
   return (
     <View style={[styles.container, { height }]}>
@@ -167,6 +221,6 @@ export function LeafletPreviewFallback({
 const styles = StyleSheet.create({
   container: {
     overflow: "hidden",
-    backgroundColor: "#0F1117",
+    backgroundColor: "#F5F5F5",
   },
 });

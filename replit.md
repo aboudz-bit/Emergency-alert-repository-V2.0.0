@@ -157,11 +157,12 @@ artifacts/mobile/
   - `components/map/` — unified map abstraction layer
     - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
     - `ZoneMap.tsx` — provider router: Google Maps on native (FINAL), Leaflet iframe on web preview (TEMPORARY fallback)
-    - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, dark styled map, zone polygons, labels, selection
-    - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB dark tiles). Will be removed when shipping native.
+    - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, light styled map, zone polygons, labels, selection + vertex drag editing
+    - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB Voyager light tiles + vertex drag editing). Will be removed when shipping native.
     - `index.ts` — barrel export
   - **To activate Google Maps**: Set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` env var, keys configured in app.json for both iOS and Android
-  - Zone CRUD: Add Zone modal (name/type/color picker), Edit Zone modal (rename/recolor/delete). New zones auto-appear in Location Management tabs.
+  - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
+  - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
 - **Store**: `keas-mobile-store-v1` — bump when type shapes change
 - **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
