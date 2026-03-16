@@ -256,21 +256,19 @@ export default function SendAlertScreen() {
               {"\n\n"}This action cannot be undone.
             </Text>
             <View style={styles.modalActions}>
-              <Button
-                title="Cancel"
+              <Pressable
+                style={({ pressed }) => [styles.modalBtn, styles.modalCancelBtn, pressed && { opacity: 0.85 }]}
                 onPress={() => setShowConfirm(false)}
-                variant="secondary"
-                size="lg"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="Send Now"
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtn, styles.modalSendBtn, pressed && { opacity: 0.85 }]}
                 onPress={handleSend}
-                variant="destructive"
-                icon="send"
-                size="lg"
-                style={{ flex: 1 }}
-              />
+              >
+                <Feather name="send" size={16} color="#fff" />
+                <Text style={styles.modalSendText}>Send Now</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -458,8 +456,35 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: "row",
-    gap: Spacing.md,
-    marginTop: Spacing.md,
+    gap: 12,
+    marginTop: 16,
     width: "100%",
+  },
+  modalBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  modalCancelBtn: {
+    backgroundColor: Colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalCancelText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  modalSendBtn: {
+    backgroundColor: Colors.destructive,
+  },
+  modalSendText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
   },
 });

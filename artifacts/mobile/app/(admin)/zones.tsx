@@ -408,7 +408,6 @@ export default function ZonesScreen() {
               onChangeText={setFormName}
               placeholder="Zone name..."
               placeholderTextColor={Colors.textTertiary}
-              autoFocus
             />
 
             <View style={styles.inlineRow}>

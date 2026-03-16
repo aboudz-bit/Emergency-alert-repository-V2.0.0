@@ -188,10 +188,7 @@ export default function LocationsScreen() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
         renderItem={({ item }) => (
-          <Pressable
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-            onPress={() => handleOpenEdit(item)}
-          >
+          <View style={styles.row}>
             <Feather
               name="map-pin"
               size={14}
@@ -210,7 +207,14 @@ export default function LocationsScreen() {
               thumbColor={item.isActive ? Colors.safe : Colors.textSecondary}
               style={styles.rowSwitch}
             />
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.rowEditBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => handleOpenEdit(item)}
+              hitSlop={6}
+            >
+              <Feather name="edit-2" size={14} color={Colors.textSecondary} />
+            </Pressable>
+          </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -244,7 +248,6 @@ export default function LocationsScreen() {
               onChangeText={setLocationName}
               placeholder="Location name..."
               placeholderTextColor={Colors.textTertiary}
-              autoFocus
             />
 
             <View style={styles.zonePickerSection}>
@@ -400,7 +403,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12,
     minHeight: 48,
   },
-  rowPressed: { backgroundColor: Colors.surfaceElevated },
+  rowEditBtn: {
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
+  },
   rowName: {
     flex: 1, fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text,
   },
