@@ -264,79 +264,87 @@ export default function ZonesScreen() {
         />
 
         {isTapDrawing && (
-          <View style={styles.editOverlay}>
-            <View style={styles.editBanner}>
-              <View style={styles.editBannerLeft}>
-                <Feather name="crosshair" size={16} color={Colors.info} />
-                <Text style={styles.editBannerText}>
-                  Tap map to place vertices
+          <>
+            <View style={styles.editOverlayTop}>
+              <View style={styles.editBanner}>
+                <View style={styles.editBannerLeft}>
+                  <Feather name="crosshair" size={16} color={Colors.info} />
+                  <Text style={styles.editBannerText}>
+                    Tap map to place vertices
+                  </Text>
+                </View>
+                <Text style={styles.editBannerCount}>
+                  {tapPoints.length} pts
                 </Text>
               </View>
-              <Text style={styles.editBannerCount}>
-                {tapPoints.length} pts
-              </Text>
             </View>
-            <View style={styles.editActions}>
-              <Pressable
-                style={styles.editCancelBtn}
-                onPress={handleCancelTapDraw}
-              >
-                <Feather name="x" size={16} color={Colors.textSecondary} />
-                <Text style={styles.editCancelText}>Cancel</Text>
-              </Pressable>
-              {tapPoints.length > 0 && (
+            <View style={styles.editOverlayBottom}>
+              <View style={styles.editActions}>
                 <Pressable
                   style={styles.editCancelBtn}
-                  onPress={handleUndoTapPoint}
+                  onPress={handleCancelTapDraw}
                 >
-                  <Feather name="corner-up-left" size={16} color={Colors.textSecondary} />
-                  <Text style={styles.editCancelText}>Undo</Text>
+                  <Feather name="x" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.editCancelText}>Cancel</Text>
                 </Pressable>
-              )}
-              <Pressable
-                style={[styles.editSaveBtn, tapPoints.length < 3 && { opacity: 0.4 }]}
-                onPress={handleFinishTapDraw}
-                disabled={tapPoints.length < 3}
-              >
-                <Feather name="check" size={16} color="#fff" />
-                <Text style={styles.editSaveText}>
-                  Done ({tapPoints.length}/3+)
-                </Text>
-              </Pressable>
+                {tapPoints.length > 0 && (
+                  <Pressable
+                    style={styles.editCancelBtn}
+                    onPress={handleUndoTapPoint}
+                  >
+                    <Feather name="corner-up-left" size={16} color={Colors.textSecondary} />
+                    <Text style={styles.editCancelText}>Undo</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  style={[styles.editSaveBtn, tapPoints.length < 3 && { opacity: 0.4 }]}
+                  onPress={handleFinishTapDraw}
+                  disabled={tapPoints.length < 3}
+                >
+                  <Feather name="check" size={16} color="#fff" />
+                  <Text style={styles.editSaveText}>
+                    Done ({tapPoints.length}/3+)
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </>
         )}
 
         {isEditingShape && (
-          <View style={styles.editOverlay}>
-            <View style={styles.editBanner}>
-              <View style={styles.editBannerLeft}>
-                <Feather name="edit-3" size={16} color={Colors.info} />
-                <Text style={styles.editBannerText}>
-                  Drag vertices to reshape
+          <>
+            <View style={styles.editOverlayTop}>
+              <View style={styles.editBanner}>
+                <View style={styles.editBannerLeft}>
+                  <Feather name="edit-3" size={16} color={Colors.info} />
+                  <Text style={styles.editBannerText}>
+                    Drag vertices to reshape
+                  </Text>
+                </View>
+                <Text style={styles.editBannerCount}>
+                  {editingPoints.length} pts
                 </Text>
               </View>
-              <Text style={styles.editBannerCount}>
-                {editingPoints.length} pts
-              </Text>
             </View>
-            <View style={styles.editActions}>
-              <Pressable
-                style={styles.editCancelBtn}
-                onPress={handleCancelShapeEdit}
-              >
-                <Feather name="x" size={16} color={Colors.textSecondary} />
-                <Text style={styles.editCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={styles.editSaveBtn}
-                onPress={handleSaveShape}
-              >
-                <Feather name="check" size={16} color="#fff" />
-                <Text style={styles.editSaveText}>Save Shape</Text>
-              </Pressable>
+            <View style={styles.editOverlayBottom}>
+              <View style={styles.editActions}>
+                <Pressable
+                  style={styles.editCancelBtn}
+                  onPress={handleCancelShapeEdit}
+                >
+                  <Feather name="x" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.editCancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.editSaveBtn}
+                  onPress={handleSaveShape}
+                >
+                  <Feather name="check" size={16} color="#fff" />
+                  <Text style={styles.editSaveText}>Save Shape</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </>
         )}
 
         {!isEditingShape && !isTapDrawing && (
@@ -665,13 +673,21 @@ const styles = StyleSheet.create({
   mapContainerEditing: {
     height: SCREEN_HEIGHT * 0.65,
   },
-  editOverlay: {
+  editOverlayTop: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     padding: Spacing.md,
-    gap: Spacing.sm,
+    zIndex: 10,
+  },
+  editOverlayBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.md,
+    zIndex: 10,
   },
   editBanner: {
     flexDirection: "row",
@@ -713,8 +729,9 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    minHeight: 44,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -722,7 +739,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   editCancelText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
     color: "#6B7280",
   },
@@ -732,8 +749,9 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.info,
     borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    minHeight: 44,
     shadowColor: Colors.info,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -741,7 +759,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   editSaveText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
     color: "#fff",
   },
