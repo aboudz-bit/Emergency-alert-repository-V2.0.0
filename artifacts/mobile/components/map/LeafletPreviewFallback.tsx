@@ -147,8 +147,49 @@ function generateLeafletHtml(
 
   const tapModeCode = isTapMode
     ? `
+      var tapMarkers = [];
+      var tapPoly = null;
+      var tapColor = '#3B82F6';
+      function addTapPoint(lat, lng) {
+        var m = L.circleMarker([lat, lng], {
+          radius: 7, color: tapColor, fillColor: tapColor,
+          fillOpacity: 0.8, weight: 2,
+        }).addTo(map);
+        var label = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'zone-label',
+            html: '<div style="background:'+tapColor+';color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;">' + tapMarkers.length + '</div>',
+            iconAnchor: [10, -8],
+          })
+        }).addTo(map);
+        tapMarkers.push({marker: m, label: label, lat: lat, lng: lng});
+        updateTapPoly();
+      }
+      function updateTapPoly() {
+        if (tapPoly) map.removeLayer(tapPoly);
+        if (tapMarkers.length >= 2) {
+          var coords = tapMarkers.map(function(t){return [t.lat, t.lng]});
+          tapPoly = L.polygon(coords, {
+            color: tapColor, fillColor: tapColor,
+            fillOpacity: 0.15, weight: 2, dashArray: '6,4',
+          }).addTo(map);
+        }
+      }
       map.on('click', function(e) {
+        addTapPoint(e.latlng.lat, e.latlng.lng);
         window.parent.postMessage(JSON.stringify({type:'map_tap', lat: e.latlng.lat, lng: e.latlng.lng}), '*');
+      });
+      // Listen for undo from parent
+      window.addEventListener('message', function(evt) {
+        try {
+          var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
+          if (d.type === 'undo_tap' && tapMarkers.length > 0) {
+            var last = tapMarkers.pop();
+            map.removeLayer(last.marker);
+            map.removeLayer(last.label);
+            updateTapPoly();
+          }
+        } catch(ex) {}
       });
     `
     : "";
@@ -167,7 +208,7 @@ function generateLeafletHtml(
       var locBtn = L.control({position: 'bottomright'});
       locBtn.onAdd = function() {
         var div = L.DomUtil.create('div', 'loc-btn');
-        div.innerHTML = '<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);cursor:pointer;border:1px solid #ddd;" onclick="doLocate()"><svg width=\\"20\\" height=\\"20\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#3B82F6\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"10\\"/><line x1=\\"12\\" y1=\\"8\\" x2=\\"12\\" y2=\\"12\\"/><line x1=\\"12\\" y1=\\"16\\" x2=\\"12.01\\" y2=\\"16\\"/></svg></div>';
+        div.innerHTML = '<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);cursor:pointer;border:1px solid #ddd;" onclick="doLocate()"><svg width=\\"20\\" height=\\"20\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"#3B82F6\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"4\\"/><line x1=\\"12\\" y1=\\"2\\" x2=\\"12\\" y2=\\"6\\"/><line x1=\\"12\\" y1=\\"18\\" x2=\\"12\\" y2=\\"22\\"/><line x1=\\"2\\" y1=\\"12\\" x2=\\"6\\" y2=\\"12\\"/><line x1=\\"18\\" y1=\\"12\\" x2=\\"22\\" y2=\\"12\\"/></svg></div>';
         return div;
       };
       locBtn.addTo(map);
@@ -240,13 +281,26 @@ export function LeafletPreviewFallback({
   onMapTap,
   onMapCenterChange,
   showLocationButton = false,
+  tapPointCount = 0,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const prevTapCountRef = useRef(0);
 
   const mapHtml = useMemo(
     () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton),
     [zones, selectedZoneId, editingZoneId, editingPoints, drawMode, showLocationButton]
   );
+
+  // Send undo message to iframe when tapPointCount decreases
+  useEffect(() => {
+    if (tapPointCount < prevTapCountRef.current && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ type: "undo_tap" }),
+        "*"
+      );
+    }
+    prevTapCountRef.current = tapPointCount;
+  }, [tapPointCount]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {

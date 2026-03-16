@@ -260,6 +260,7 @@ export default function ZonesScreen() {
           onMapTap={handleMapTap}
           onMapCenterChange={handleMapCenterChange}
           showLocationButton={!isEditingShape && !isTapDrawing}
+          tapPointCount={tapPoints.length}
         />
 
         {isTapDrawing && (
