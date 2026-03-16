@@ -209,7 +209,7 @@ export default function ZonesScreen() {
         drawMode={drawMode}
         onMapTap={handleMapTap}
         onMapCenterChange={handleMapCenterChange}
-        showLocationButton={mode === "view"}
+        showLocationButton={mode === "view" || mode === "pick_shape" || mode === "draw"}
         tapPointCount={tapPoints.length}
         flyToZoneId={flyToZoneId}
         showCenterCrosshair={showCrosshair}
