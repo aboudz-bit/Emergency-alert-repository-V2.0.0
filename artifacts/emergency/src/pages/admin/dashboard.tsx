@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation } from 'wouter';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { KPICard } from '@/components/shared/KPICard';
-import { Users, Activity, Bell, Shield, ChevronRight, UserCheck, AlertCircle, RadioTower, History, Map } from 'lucide-react';
+import { Users, Activity, Bell, Shield, ChevronRight, UserCheck, AlertCircle, RadioTower, History, Map, Volume2, Radio } from 'lucide-react';
 import { useStore, useShallow, selectActiveAlert } from '@/store';
 import { AlertTypeBadge } from '@/components/shared/Badges';
 
@@ -52,9 +52,32 @@ export default function AdminDashboard() {
                 <AlertTypeBadge type={activeAlert.type} />
                 <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-border bg-background text-foreground">ZONE: {activeAlert.zone}</span>
                 <span className="text-sm text-muted-foreground font-mono">{new Date(activeAlert.timestamp).toLocaleTimeString()}</span>
+                {/* Channel indicators */}
+                {activeAlert.deliveryChannels && (
+                  <div className="flex items-center gap-1.5 ml-2">
+                    {activeAlert.deliveryChannels.includes('app') && (
+                      <span className="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center" title="App Notification">
+                        <Bell className="w-3.5 h-3.5 text-blue-500" />
+                      </span>
+                    )}
+                    {activeAlert.soundActive && (
+                      <span className="w-6 h-6 rounded bg-orange-500/10 flex items-center justify-center animate-pulse" title="Sound Active">
+                        <Volume2 className="w-3.5 h-3.5 text-orange-500" />
+                      </span>
+                    )}
+                    {activeAlert.broadcastActive && (
+                      <span className="w-6 h-6 rounded bg-amber-500/10 flex items-center justify-center" title="Broadcast Active">
+                        <Radio className="w-3.5 h-3.5 text-amber-500" />
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <h2 className="text-2xl font-display font-bold text-foreground mb-2">{activeAlert.title}</h2>
               <p className="text-muted-foreground max-w-3xl leading-relaxed">{activeAlert.message}</p>
+              {activeAlert.triggeredByName && (
+                <p className="text-xs text-muted-foreground mt-1">Triggered by <span className="font-semibold text-foreground">{activeAlert.triggeredByName}</span></p>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">

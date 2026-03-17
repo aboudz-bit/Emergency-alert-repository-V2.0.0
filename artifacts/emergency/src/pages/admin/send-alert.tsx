@@ -3,8 +3,9 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import type { AlertType } from '@/types';
 import { useStore, useShallow } from '@/store';
 import { useLocation } from 'wouter';
-import { ShieldAlert, Send, Clock, MapPin, Smartphone } from 'lucide-react';
+import { ShieldAlert, Send, Clock, MapPin, Smartphone, Bell, Volume2, Radio } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
+import type { DeliveryChannel } from '@/types';
 
 const alertTypes: { type: AlertType; desc: string; isCritical: boolean }[] = [
   { type: 'Blackout', desc: 'Total power loss in facility', isCritical: true },
@@ -39,6 +40,13 @@ export default function SendAlert() {
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
   const [message, setMessage] = useState(defaultMessages['Blackout']);
   const [isSending, setIsSending] = useState(false);
+  const [channels, setChannels] = useState<DeliveryChannel[]>(['app']);
+
+  const toggleChannel = (ch: DeliveryChannel) => {
+    setChannels(prev =>
+      prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]
+    );
+  };
 
   const handleTypeChange = (t: AlertType) => {
     setType(t);
@@ -46,7 +54,11 @@ export default function SendAlert() {
   };
 
   const handleSend = () => {
-    if (!confirm(`Are you sure you want to broadcast a ${type} alert to ${zone}?`)) return;
+    if (channels.length === 0) {
+      alert('Please select at least one delivery channel.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to broadcast a ${type} alert to ${zone}?\n\nChannels: ${channels.map(c => c === 'app' ? 'App Notification' : c === 'sound' ? 'Alarm Sound' : 'Broadcast Banner').join(', ')}`)) return;
 
     setIsSending(true);
     setTimeout(() => {
@@ -58,6 +70,7 @@ export default function SendAlert() {
         timestamp: new Date().toISOString(),
         sentBy: currentUser?.name || 'Unknown Admin',
         priority,
+        deliveryChannels: channels,
       });
       setIsSending(false);
       setLocation('/admin/alert-monitor');
@@ -171,6 +184,63 @@ export default function SendAlert() {
                   rows={5}
                   className="w-full bg-background border border-border rounded-lg p-4 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
                 />
+              </div>
+
+              {/* Delivery Channels */}
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3 block">5. Delivery Channels</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:gap-3">
+                  {([
+                    { key: 'app' as DeliveryChannel, label: 'App Notification', icon: Bell, desc: 'Push to all personnel' },
+                    { key: 'sound' as DeliveryChannel, label: 'Alarm Sound', icon: Volume2, desc: 'Trigger audible siren' },
+                    { key: 'broadcast' as DeliveryChannel, label: 'Broadcast Banner', icon: Radio, desc: 'Persistent emergency banner' },
+                  ]).map(ch => (
+                    <button
+                      key={ch.key}
+                      type="button"
+                      onClick={() => toggleChannel(ch.key)}
+                      className={cn(
+                        'p-3 lg:p-4 rounded-lg border text-left transition-all flex items-start gap-3',
+                        channels.includes(ch.key)
+                          ? 'bg-primary/10 border-primary shadow-sm'
+                          : 'bg-background border-border hover:border-muted-foreground',
+                      )}
+                    >
+                      <div className={cn(
+                        'w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors',
+                        channels.includes(ch.key) ? 'bg-primary border-primary' : 'border-muted-foreground',
+                      )}>
+                        {channels.includes(ch.key) && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-bold text-foreground text-sm flex items-center gap-2">
+                          <ch.icon className="w-4 h-4" />
+                          {ch.label}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{ch.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {channels.length === 0 && (
+                  <p className="text-xs text-destructive mt-2">Select at least one delivery channel</p>
+                )}
+              </div>
+
+              {/* Operator Info */}
+              <div className="bg-background/50 border border-border rounded-lg p-3 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Operator:</span>{' '}
+                  {currentUser?.name || 'Control Room Operator'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Target:</span>{' '}
+                  {zone}
+                </div>
               </div>
             </div>
           </div>

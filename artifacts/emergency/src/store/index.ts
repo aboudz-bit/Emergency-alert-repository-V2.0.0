@@ -4,6 +4,7 @@ export { useShallow } from 'zustand/react/shallow';
 import type {
   User, Alert, Zone, Location, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertType, ZoneType,
+  AuditLogEntry, AuditActionType, DeliveryChannel, AuditTargetType,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -28,6 +29,19 @@ interface AppState {
   // Mobile current user response (tracks logged-in user response to active alert)
   mobileUserResponse: UserResponseStatus | null;
 
+  // Audit log (system-wide operational log)
+  auditLog: AuditLogEntry[];
+
+  // Global broadcast banner state
+  activeBroadcast: {
+    alertId: number;
+    alertType: AlertType;
+    priority: string;
+    zone: string;
+    message: string;
+    timestamp: string;
+  } | null;
+
   // ── Auth actions ────────────────────────────────────────────────────────────
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -40,9 +54,15 @@ interface AppState {
   updateUserResponse: (userId: number, status: UserResponseStatus) => void;
 
   // ── Alert actions ────────────────────────────────────────────────────────────
-  createAlert: (data: Omit<Alert, 'id' | 'stats' | 'isActive' | 'status'>) => Alert;
+  createAlert: (data: Omit<Alert, 'id' | 'stats' | 'isActive' | 'status'> & { deliveryChannels?: DeliveryChannel[] }) => Alert;
   sendAllClear: () => void;
   closeAlert: (alertId: number) => void;
+
+  // ── Audit log actions ──────────────────────────────────────────────────────
+  addAuditEntry: (entry: Omit<AuditLogEntry, 'id'>) => void;
+
+  // ── Broadcast actions ──────────────────────────────────────────────────────
+  clearBroadcast: () => void;
 
   // ── Mobile response ─────────────────────────────────────────────────────────
   respondToAlert: (response: 'confirmed' | 'need_help') => void;
@@ -88,6 +108,8 @@ export const useStore = create<AppState>()(
       settings: seedSettings,
       activityLogs: seedActivityLogs,
       mobileUserResponse: null,
+      auditLog: [],
+      activeBroadcast: null,
 
       // ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -225,11 +247,17 @@ export const useStore = create<AppState>()(
       // ── Alert actions ─────────────────────────────────────────────────────────
 
       createAlert: (data) => {
-        const { users } = get();
+        const { users, currentUser } = get();
+        const channels = data.deliveryChannels || ['app'];
+        const operatorName = currentUser?.name || data.sentBy || 'Control Room Operator';
+        const operatorId = currentUser?.id || null;
+        const now = new Date().toISOString();
+
         // Close any currently active alert
         set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
+          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a),
           users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
+          activeBroadcast: null,
         }));
 
         const newAlert: Alert = {
@@ -244,31 +272,117 @@ export const useStore = create<AppState>()(
             needHelp: 0,
             total: users.length,
           },
+          deliveryChannels: channels,
+          soundActive: channels.includes('sound'),
+          broadcastActive: channels.includes('broadcast'),
+          notificationSentAt: channels.includes('app') ? now : undefined,
+          triggeredByName: operatorName,
+          triggeredByUserId: operatorId,
         };
+
+        const broadcastState = channels.includes('broadcast') ? {
+          alertId: newAlert.id,
+          alertType: newAlert.type,
+          priority: newAlert.priority,
+          zone: newAlert.zone,
+          message: newAlert.message,
+          timestamp: now,
+        } : null;
 
         set(s => ({
           alerts: [newAlert, ...s.alerts],
           mobileUserResponse: null,
+          activeBroadcast: broadcastState,
         }));
+
+        // Audit: alert activated
+        get().addAuditEntry({
+          timestamp: now,
+          actionType: 'activated',
+          zoneName: data.zone,
+          alertType: data.type,
+          priority: data.priority,
+          message: data.message,
+          triggeredByUserId: operatorId,
+          triggeredByName: operatorName,
+          targetType: 'zone',
+          targetName: data.zone,
+          channelUsed: channels,
+        });
+
+        // Audit per channel
+        if (channels.includes('app')) {
+          get().addAuditEntry({
+            timestamp: now,
+            actionType: 'notification_sent',
+            zoneName: data.zone,
+            alertType: data.type,
+            priority: data.priority,
+            message: data.message,
+            triggeredByUserId: operatorId,
+            triggeredByName: operatorName,
+            targetType: 'zone',
+            targetName: data.zone,
+            channelUsed: 'app',
+            notes: 'In-app notification sent',
+          });
+        }
+        if (channels.includes('sound')) {
+          get().addAuditEntry({
+            timestamp: now,
+            actionType: 'sound_triggered',
+            zoneName: data.zone,
+            alertType: data.type,
+            priority: data.priority,
+            message: data.message,
+            triggeredByUserId: operatorId,
+            triggeredByName: operatorName,
+            targetType: 'zone',
+            targetName: data.zone,
+            channelUsed: 'sound',
+            notes: 'Alarm sound activated',
+          });
+        }
+        if (channels.includes('broadcast')) {
+          get().addAuditEntry({
+            timestamp: now,
+            actionType: 'broadcast_sent',
+            zoneName: data.zone,
+            alertType: data.type,
+            priority: data.priority,
+            message: data.message,
+            triggeredByUserId: operatorId,
+            triggeredByName: operatorName,
+            targetType: 'broadcast',
+            targetName: data.zone,
+            channelUsed: 'broadcast',
+            notes: 'Emergency broadcast banner activated',
+          });
+        }
 
         get().addActivityLog({
           type: 'alert',
-          message: `${data.type} alert broadcast to ${data.zone} zone by ${data.sentBy}.`,
-          timestamp: new Date().toISOString(),
-          actorName: data.sentBy,
+          message: `${data.type} alert broadcast to ${data.zone} zone by ${operatorName}. Channels: ${channels.join(', ')}.`,
+          timestamp: now,
+          actorId: operatorId ?? undefined,
+          actorName: operatorName,
         });
 
         return newAlert;
       },
 
       sendAllClear: () => {
-        const { currentUser, users } = get();
+        const { currentUser, users, alerts } = get();
         const sentBy = currentUser?.name || 'System Auto';
+        const operatorId = currentUser?.id || null;
+        const now = new Date().toISOString();
+        const prevActive = alerts.find(a => a.isActive);
 
         set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
+          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a),
           users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
           mobileUserResponse: 'confirmed' as UserResponseStatus,
+          activeBroadcast: null,
         }));
 
         const allClearAlert: Alert = {
@@ -277,29 +391,72 @@ export const useStore = create<AppState>()(
           zone: 'All Zones',
           title: 'ALL CLEAR',
           message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
-          timestamp: new Date().toISOString(),
+          timestamp: now,
           sentBy,
           priority: 'High',
           status: 'closed',
           isActive: false,
           stats: { confirmed: users.length, missing: 0, noReply: 0, needHelp: 0, total: users.length },
+          triggeredByName: sentBy,
+          triggeredByUserId: operatorId,
         };
 
         set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
+
+        if (prevActive) {
+          get().addAuditEntry({
+            timestamp: now,
+            actionType: 'deactivated',
+            zoneName: prevActive.zone,
+            alertType: prevActive.type,
+            priority: prevActive.priority,
+            message: 'All Clear — emergency resolved',
+            triggeredByUserId: operatorId,
+            triggeredByName: sentBy,
+            targetType: 'zone',
+            targetName: prevActive.zone,
+            channelUsed: prevActive.deliveryChannels || ['app'],
+            notes: 'All Clear broadcast',
+          });
+        }
+
         get().addActivityLog({
           type: 'alert',
           message: `All Clear broadcast by ${sentBy}. Emergency resolved.`,
-          timestamp: new Date().toISOString(),
+          timestamp: now,
+          actorId: operatorId ?? undefined,
           actorName: sentBy,
         });
       },
 
       closeAlert: (alertId) => {
+        const { currentUser, alerts } = get();
+        const now = new Date().toISOString();
+        const alert = alerts.find(a => a.id === alertId);
+        const operatorName = currentUser?.name || 'Control Room Operator';
+
         set(s => ({
           alerts: s.alerts.map(a =>
-            a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
+            a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a,
           ),
+          activeBroadcast: s.activeBroadcast?.alertId === alertId ? null : s.activeBroadcast,
         }));
+
+        if (alert) {
+          get().addAuditEntry({
+            timestamp: now,
+            actionType: 'deactivated',
+            zoneName: alert.zone,
+            alertType: alert.type,
+            priority: alert.priority,
+            message: 'Alert deactivated',
+            triggeredByUserId: currentUser?.id || null,
+            triggeredByName: operatorName,
+            targetType: 'zone',
+            targetName: alert.zone,
+            channelUsed: alert.deliveryChannels || ['app'],
+          });
+        }
       },
 
       // ── Mobile response ───────────────────────────────────────────────────────
@@ -370,6 +527,20 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      // ── Audit log ───────────────────────────────────────────────────────────
+
+      addAuditEntry: (entry) => {
+        set(s => ({
+          auditLog: [{ ...entry, id: Date.now() + Math.random() }, ...s.auditLog],
+        }));
+      },
+
+      // ── Broadcast ─────────────────────────────────────────────────────────
+
+      clearBroadcast: () => {
+        set({ activeBroadcast: null });
+      },
+
       // ── Computed helpers ──────────────────────────────────────────────────────
 
       getActiveAlert: () => get().alerts.find(a => a.isActive) || null,
@@ -394,6 +565,8 @@ export const useStore = create<AppState>()(
         activityLogs: state.activityLogs,
         zones: state.zones,
         locations: state.locations,
+        auditLog: state.auditLog,
+        activeBroadcast: state.activeBroadcast,
       }),
     },
   ),

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import {
   LayoutDashboard, Bell, RadioTower, Map, MapPin,
   Users, History, Settings, LogOut, ShieldAlert, ChevronLeft, Menu, X,
+  ClipboardList, Volume2, Radio,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore } from '@/store';
@@ -15,6 +16,7 @@ const menuItems = [
   { path: '/admin/locations', icon: MapPin, label: 'Locations' },
   { path: '/admin/users', icon: Users, label: 'Users' },
   { path: '/admin/history', icon: History, label: 'History' },
+  { path: '/admin/audit-log', icon: ClipboardList, label: 'Audit Log' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -59,6 +61,7 @@ export function AdminLayout({
   };
 
   const activeAlert = useStore(s => s.alerts.find(a => a.isActive));
+  const activeBroadcast = useStore(s => s.activeBroadcast);
 
   const sidebarContent = (
     <>
@@ -180,6 +183,37 @@ export function AdminLayout({
             </div>
           </div>
         </header>
+        {/* Broadcast Emergency Banner */}
+        {activeBroadcast && (
+          <div className={cn(
+            'px-4 py-2.5 flex items-center gap-3 text-white font-bold text-sm shrink-0 animate-pulse',
+            activeBroadcast.priority === 'High' ? 'bg-red-600' :
+            activeBroadcast.priority === 'Medium' ? 'bg-amber-600' : 'bg-blue-600',
+          )}>
+            <Radio className="w-4 h-4 shrink-0" />
+            <span className="uppercase tracking-wider text-xs font-black">
+              {activeBroadcast.priority} PRIORITY
+            </span>
+            <span className="mx-1">•</span>
+            <span>{activeBroadcast.alertType.toUpperCase()}</span>
+            <span className="mx-1">•</span>
+            <span>ZONE {activeBroadcast.zone.toUpperCase()}</span>
+            <span className="hidden sm:inline mx-1">—</span>
+            <span className="hidden sm:inline font-medium truncate flex-1">{activeBroadcast.message}</span>
+            <span className="ml-auto text-xs font-mono opacity-80 shrink-0">
+              {new Date(activeBroadcast.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        )}
+
+        {/* Sound Active Indicator */}
+        {activeAlert?.soundActive && (
+          <div className="px-4 py-1.5 bg-orange-500/10 border-b border-orange-500/20 flex items-center gap-2 text-orange-500 text-xs font-bold shrink-0">
+            <Volume2 className="w-3.5 h-3.5 animate-pulse" />
+            ALARM SOUND ACTIVE — {activeAlert.type} — Zone {activeAlert.zone}
+          </div>
+        )}
+
         <main className="flex-1 overflow-y-auto p-3 md:p-5 lg:p-8 bg-background relative">
           <div className="max-w-[1600px] mx-auto w-full">
             {children}
