@@ -102,6 +102,14 @@ export interface Alert {
   };
   /** @deprecated use status === 'active' */
   isActive: boolean;
+
+  // Notification layer extensions
+  deliveryChannels?: DeliveryChannel[];
+  soundActive?: boolean;
+  broadcastActive?: boolean;
+  notificationSentAt?: string;
+  triggeredByName?: string;
+  triggeredByUserId?: number | null;
 }
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────
@@ -115,6 +123,41 @@ export interface ActivityLog {
   timestamp: string;
   actorId?: number;
   actorName?: string;
+}
+
+// ─── Delivery Channels & Audit ────────────────────────────────────────────
+
+export type DeliveryChannel = 'app' | 'sound' | 'broadcast';
+
+export type AuditActionType =
+  | 'activated'
+  | 'deactivated'
+  | 'edited'
+  | 'broadcast_sent'
+  | 'notification_sent'
+  | 'sound_triggered'
+  | 'sound_stopped'
+  | 'acknowledgment_received';
+
+export type AuditTargetType = 'location' | 'zone' | 'broadcast';
+
+export interface AuditLogEntry {
+  id: number;
+  timestamp: string;
+  actionType: AuditActionType;
+  zoneId?: number | null;
+  zoneName: string;
+  locationId?: number | null;
+  locationName?: string | null;
+  alertType: AlertType;
+  priority: AlertPriority;
+  message: string;
+  triggeredByUserId?: number | null;
+  triggeredByName: string;
+  targetType: AuditTargetType;
+  targetName: string;
+  channelUsed: DeliveryChannel | DeliveryChannel[] | string;
+  notes?: string;
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

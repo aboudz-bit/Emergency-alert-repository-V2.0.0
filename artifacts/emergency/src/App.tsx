@@ -16,6 +16,7 @@ import ZonesPage from '@/pages/admin/zones';
 import LocationsPage from '@/pages/admin/locations';
 import UsersPage from '@/pages/admin/users';
 import HistoryPage from '@/pages/admin/history';
+import AuditLogPage from '@/pages/admin/audit-log';
 import SettingsPage from '@/pages/admin/settings';
 import MobileHome from '@/pages/mobile/home';
 import MobileRegister from '@/pages/mobile/register';
@@ -94,6 +95,11 @@ function Router() {
       <Route path="/admin/history">
         <Guard allowedRoles={['Super Admin']} redirectTo="/login">
           <HistoryPage />
+        </Guard>
+      </Route>
+      <Route path="/admin/audit-log">
+        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
+          <AuditLogPage />
         </Guard>
       </Route>
       <Route path="/admin/settings">
