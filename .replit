@@ -8,11 +8,8 @@ id = "artifacts/mockup-sandbox"
 
 [deployment]
 router = "application"
-deploymentTarget = "autoscale"
-
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
+deploymentTarget = "vm"
+run = ["npx", "tsx", "artifacts/boutique-server/server/index.ts"]
 
 [workflows]
 runButton = "Project"
