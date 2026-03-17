@@ -13,6 +13,10 @@ const SessionStore = MemoryStore(session);
 const app = express();
 const httpServer = createServer(app);
 
+app.get("/", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 declare module "express-session" {
   interface SessionData {
     id: string;
@@ -99,18 +103,6 @@ app.use((req, res, next) => {
     });
     log("Serving Flutter web build");
   } else {
-    app.get("/", (_req, res) => {
-      res.json({
-        message: "Masah Boutique API - بوتيك ماسـة",
-        instagram: "@masahboutique",
-        endpoints: {
-          products: "/api/products",
-          cart: "/api/cart",
-          orders: "/api/orders",
-          stores: "/api/stores",
-        }
-      });
-    });
     log("Flutter build not found, serving API only");
   }
 
