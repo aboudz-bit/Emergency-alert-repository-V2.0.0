@@ -35,8 +35,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd /home/runner/workspace/artifacts/boutique-server && NODE_ENV=development ./node_modules/.bin/tsx server/index.ts"
-waitForPort = 5000
+args = "cd /home/runner/workspace/artifacts/boutique-server && NODE_ENV=production npx tsx server/index.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"
