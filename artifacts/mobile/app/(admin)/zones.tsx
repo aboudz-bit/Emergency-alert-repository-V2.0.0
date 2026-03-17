@@ -70,11 +70,7 @@ export default function ZonesScreen() {
 
   const handleZonePress = useCallback((id: number) => {
     if (mode !== "view") return;
-    setSelectedZoneId((prev) => {
-      const next = prev === id ? null : id;
-      if (next != null) setFlyToZoneId(next);
-      return next;
-    });
+    setSelectedZoneId((prev) => (prev === id ? null : id));
   }, [mode]);
 
   const handleMapTap = useCallback((pt: LatLng) => {
@@ -380,7 +376,7 @@ export default function ZonesScreen() {
               <Pressable
                 key={z.id}
                 style={[styles.chip, !z.isActive && { opacity: 0.45 }]}
-                onPress={() => handleZonePress(z.id)}
+                onPress={() => { handleZonePress(z.id); setFlyToZoneId(z.id); }}
               >
                 <View style={[styles.chipDot, { backgroundColor: z.color }]} />
                 <Text style={styles.chipText} numberOfLines={1}>{z.name}</Text>
