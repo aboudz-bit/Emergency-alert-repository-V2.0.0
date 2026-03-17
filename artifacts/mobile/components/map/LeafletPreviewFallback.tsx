@@ -10,16 +10,16 @@ import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
 /**
- * Generate the Leaflet HTML. This is only called when zone DATA changes
- * (zones added/removed, selection, editing). UI-mode flags (draw mode,
- * crosshair, location button) are always baked in and toggled via
- * postMessage so that mode switches never cause an iframe reload.
+ * Generate the Leaflet HTML. Called when zone DATA changes (zones
+ * added/removed, selection) or when entering/exiting edit mode
+ * (editingZoneId changes). NOT called on every vertex drag — editing
+ * point updates are handled inside the iframe via drag events.
  */
 function generateLeafletHtml(
   zones: Zone[],
   selectedZoneId: number | null,
   editingZoneId: number | null | undefined,
-  editingPoints: LatLng[] | undefined,
+  initialEditPoints: LatLng[] | undefined,
 ): string {
   const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
@@ -69,9 +69,9 @@ function generateLeafletHtml(
     .join("\n");
 
   const editPolygonCode = (() => {
-    if (!isEditing || !editingPoints || editingPoints.length === 0) return "";
+    if (!isEditing || !initialEditPoints || initialEditPoints.length === 0) return "";
     const color = editZone?.color || "#3B82F6";
-    const coords = editingPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
+    const coords = initialEditPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
 
     return `
       var editPoly = L.polygon([${coords}], {
@@ -80,7 +80,8 @@ function generateLeafletHtml(
       }).addTo(map);
 
       var editMarkers = [];
-      var editPoints = [${editingPoints.map((p) => `{lat:${p.lat},lng:${p.lng}}`).join(",")}];
+      var editPoints = [${initialEditPoints.map((p) => `{lat:${p.lat},lng:${p.lng}}`).join(",")}];
+      var vertexDragging = false;
 
       function updateEditPoly() {
         editPoly.setLatLngs(editPoints.map(function(p){return [p.lat,p.lng]}));
@@ -96,16 +97,24 @@ function generateLeafletHtml(
             iconAnchor: [24, 24],
           })
         }).addTo(map);
-        m.on('dragstart', function() { map.dragging.disable(); });
+        m.on('dragstart', function() {
+          vertexDragging = true;
+          map.dragging.disable();
+        });
         m.on('drag', function(e) {
           var ll = e.target.getLatLng();
           editPoints[idx] = {lat: ll.lat, lng: ll.lng};
           updateEditPoly();
         });
-        m.on('dragend', function() { map.dragging.enable(); });
+        m.on('dragend', function() {
+          map.dragging.enable();
+          vertexDragging = false;
+        });
         editMarkers.push(m);
       });
 
+      // Suspend location auto-centering in edit mode
+      editModeActive = true;
       map.fitBounds(editPoly.getBounds(), {padding: [60, 60]});
     `;
   })();
@@ -181,8 +190,10 @@ function generateLeafletHtml(
   var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:true,attributionControl:false,tap:true,tapTolerance:30});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
 
-  // ── Track all zone polygon layers for opacity dimming ──
+  // ── Global mode flags ──
   var allZonePolygons = [];
+  var editModeActive = false;
+  var vertexDragging = false;
 
   ${zonePolygons}
   ${circleMarkers}
@@ -282,9 +293,12 @@ function generateLeafletHtml(
           radius: 8, color: '#3B82F6', fillColor: '#3B82F6',
           fillOpacity: 0.8, weight: 3,
         }).addTo(map);
-        // Only fly on first fix
-        map.flyTo([lat, lng], 15, {duration: 0.8});
+        // Only fly on first fix, and never during edit mode
+        if (!editModeActive && !vertexDragging) {
+          map.flyTo([lat, lng], 15, {duration: 0.8});
+        }
       } else {
+        // Always update marker position (no camera move)
         locMarker.setLatLng([lat, lng]);
       }
       window.parent.postMessage(JSON.stringify({type:'current_location', lat: lat, lng: lng}), '*');
@@ -298,11 +312,14 @@ function generateLeafletHtml(
     try {
       var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
 
-      if (d.type === 'fly_to' && typeof d.lat === 'number') {
+      if (d.type === 'fly_to' && typeof d.lat === 'number' && !vertexDragging) {
         map.flyTo([d.lat, d.lng], d.zoom || 15, {duration: 0.8});
       }
-      if (d.type === 'fly_to_bounds' && Array.isArray(d.bounds)) {
+      if (d.type === 'fly_to_bounds' && Array.isArray(d.bounds) && !vertexDragging) {
         map.flyToBounds(d.bounds, {padding: [50, 50], duration: 0.8});
+      }
+      if (d.type === 'set_edit_mode') {
+        editModeActive = !!d.enabled;
       }
       if (d.type === 'undo_tap' && tapMarkers.length > 0) {
         var last = tapMarkers.pop();
@@ -356,17 +373,35 @@ export function LeafletPreviewFallback({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
   const prevFlyToRef = useRef<number | null | undefined>(undefined);
+  // Capture initial editing points when entering edit mode so that
+  // ongoing vertex drags (which update editingPoints) don't regenerate HTML
+  const initialEditPointsRef = useRef<LatLng[] | undefined>(undefined);
+  const prevEditingZoneIdRef = useRef<number | null | undefined>(undefined);
 
-  // Only regenerate HTML when zone DATA changes — never on mode switches
+  // Snapshot editing points when editingZoneId first becomes non-null
+  if (editingZoneId !== prevEditingZoneIdRef.current) {
+    prevEditingZoneIdRef.current = editingZoneId;
+    initialEditPointsRef.current = editingZoneId != null ? editingPoints : undefined;
+  }
+
+  // Only regenerate HTML when zone DATA or edit-mode entry changes — never on vertex drags
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, editingPoints),
-    [zones, selectedZoneId, editingZoneId, editingPoints]
+    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, initialEditPointsRef.current),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [zones, selectedZoneId, editingZoneId]
   );
 
   // Helper to post a message to the iframe
   const postToIframe = (msg: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify(msg), "*");
   };
+
+  // ── Toggle edit mode (suspends location auto-centering) ──
+  useEffect(() => {
+    const enabled = editingZoneId != null;
+    const t = setTimeout(() => postToIframe({ type: "set_edit_mode", enabled }), 120);
+    return () => clearTimeout(t);
+  }, [editingZoneId]);
 
   // ── Toggle tap/draw mode via message ──
   useEffect(() => {
