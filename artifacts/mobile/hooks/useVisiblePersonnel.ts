@@ -15,12 +15,14 @@ export function useVisiblePersonnel(opts: {
   locationId?: number | null;
   zoneId?: number | null;
   excludeSelf?: boolean;
+  enabled?: boolean;
 }): PersonnelMapEntry[] {
   const personnelLocations = useStore((s) => s.personnelLocations);
   const users = useStore((s) => s.users);
   const currentUser = useStore((s) => s.currentUser);
 
   return useMemo(() => {
+    if (opts.enabled === false) return [];
     if (opts.scope === "location" && opts.locationId == null) return [];
     if (opts.scope === "zone" && opts.zoneId == null) return [];
 
@@ -50,5 +52,5 @@ export function useVisiblePersonnel(opts: {
     }
 
     return entries;
-  }, [personnelLocations, users, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, opts.excludeSelf]);
+  }, [personnelLocations, users, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, opts.excludeSelf, opts.enabled]);
 }

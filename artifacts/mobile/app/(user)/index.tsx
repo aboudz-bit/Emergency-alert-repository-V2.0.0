@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert } from "@/store";
+import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
@@ -97,7 +97,8 @@ export default function UserHomeScreen() {
 
   const { detectedLocationId } = useDetectedLocation(userLocation);
 
-  usePersonnelTracking(true);
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelTracking(hasActiveAlert);
 
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
 

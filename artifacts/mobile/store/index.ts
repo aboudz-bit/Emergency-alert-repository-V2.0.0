@@ -295,6 +295,7 @@ export const useStore = create<AppState>()(
         set(s => ({
           alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
           users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
+          personnelLocations: {},
           mobileUserResponse: 'confirmed' as UserResponseStatus,
         }));
         const allClearAlert: Alert = {
@@ -307,11 +308,16 @@ export const useStore = create<AppState>()(
       },
 
       closeAlert: (alertId) => {
-        set(s => ({
-          alerts: s.alerts.map(a =>
+        set(s => {
+          const updatedAlerts = s.alerts.map(a =>
             a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
-          ),
-        }));
+          );
+          const anyStillActive = updatedAlerts.some(a => a.isActive);
+          return {
+            alerts: updatedAlerts,
+            ...(anyStillActive ? {} : { personnelLocations: {} }),
+          };
+        });
       },
 
       respondToAlert: (response) => {
@@ -975,3 +981,4 @@ export const useStore = create<AppState>()(
 );
 
 export const selectActiveAlert = (s: AppState) => s.alerts.find(a => a.isActive) || null;
+export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive);

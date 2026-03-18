@@ -19,7 +19,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectHasActiveAlert } from "@/store";
 import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 
@@ -88,10 +88,12 @@ export default function SupervisorDashboardScreen() {
     return { actual, expected, safe, pending, needHelp, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
 
-  usePersonnelSimulation(true);
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelSimulation(hasActiveAlert);
   const visiblePersonnel = useVisiblePersonnel({
     scope: "location",
     locationId: myLocation?.id ?? null,
+    enabled: hasActiveAlert,
   });
 
   const myLinkedShelters = useMemo(() => {
