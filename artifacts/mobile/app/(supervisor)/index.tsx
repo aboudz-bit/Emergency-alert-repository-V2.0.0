@@ -27,6 +27,7 @@ export default function SupervisorDashboardScreen() {
   const alerts = useStore((s) => s.alerts);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
@@ -81,8 +82,15 @@ export default function SupervisorDashboardScreen() {
     const zoneAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { actual, expected, safe, pending, needHelp, zoneAlerts };
+    return { actual, expected, safe, pending, needHelp, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
+
+  const myLinkedShelters = useMemo(() => {
+    if (!myLocation) return [];
+    return shelters.filter(
+      (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
+    );
+  }, [shelters, myLocation]);
 
   const recentLogs = useMemo(
     () => activityLogs.slice(0, 5),
@@ -236,6 +244,24 @@ export default function SupervisorDashboardScreen() {
             dimColor={Colors.missingDim}
           />
         </View>
+        {myLinkedShelters.length > 0 && (
+          <View style={styles.kpiRow}>
+            <KPICard
+              title="Linked Shelters"
+              value={myLinkedShelters.length}
+              icon="home"
+              color={Colors.info}
+              dimColor={Colors.surfaceElevated}
+            />
+            <KPICard
+              title="Need Help"
+              value={stats.needHelp}
+              icon="alert-circle"
+              color={stats.needHelp > 0 ? Colors.primary : Colors.safe}
+              dimColor={stats.needHelp > 0 ? Colors.missingDim : Colors.safeDim}
+            />
+          </View>
+        )}
 
         {/* ── Action Buttons (supervisor only, not backup) ── */}
         {!isBackup && (

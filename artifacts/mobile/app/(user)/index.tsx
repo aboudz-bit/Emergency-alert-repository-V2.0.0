@@ -19,7 +19,9 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
-import type { LatLng, Shelter } from "@/types";
+import { useDetectedLocation } from "@/hooks/useDetectedLocation";
+import { formatDistance, findBestShelter } from "@/utils/geo";
+import type { LatLng } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -43,21 +45,6 @@ function formatTimeAgo(timestamp: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.round(meters)}m`;
-  return `${(meters / 1000).toFixed(1)}km`;
-}
 
 function PulsingDot() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -98,6 +85,7 @@ export default function UserHomeScreen() {
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
@@ -106,18 +94,26 @@ export default function UserHomeScreen() {
 
   const firstName = currentUser?.name?.split(" ")[0] || "User";
 
+  const { detectedLocationId } = useDetectedLocation(userLocation);
+
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
 
   const nearestShelter = useMemo(() => {
-    if (!userLocation || activeShelters.length === 0) return null;
-    let nearest: Shelter | null = null;
-    let minDist = Infinity;
-    for (const s of activeShelters) {
-      const d = haversineDistance(userLocation.lat, userLocation.lng, s.lat, s.lng);
-      if (d < minDist) { minDist = d; nearest = s; }
-    }
-    return nearest ? { shelter: nearest, distance: minDist } : null;
-  }, [userLocation, activeShelters]);
+    if (!userLocation) return null;
+    return findBestShelter(
+      userLocation,
+      shelters,
+      detectedLocationId,
+      currentUser?.zoneId ?? null
+    );
+  }, [userLocation, shelters, detectedLocationId, currentUser?.zoneId]);
+
+  const userHighlightedLocationIds = useMemo(() => {
+    const ids: number[] = [];
+    if (detectedLocationId != null) ids.push(detectedLocationId);
+    else if (currentUser?.locationId) ids.push(currentUser.locationId);
+    return ids;
+  }, [detectedLocationId, currentUser?.locationId]);
 
   useEffect(() => {
     let sub: ExpoLocation.LocationSubscription | undefined;
@@ -332,6 +328,8 @@ export default function UserHomeScreen() {
               nearestShelterId={nearestShelter?.shelter.id ?? null}
               userLocation={userLocation}
               showLocationButton
+              locations={locations}
+              highlightedLocationIds={userHighlightedLocationIds}
             />
           </View>
 

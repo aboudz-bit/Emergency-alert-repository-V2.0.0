@@ -16,6 +16,7 @@ export default function ECODashboardScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const users = useStore((s) => s.users);
   const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
   const zones = useStore((s) => s.zones);
   const alerts = useStore((s) => s.alerts);
   const activityLogs = useStore((s) => s.activityLogs);
@@ -59,6 +60,10 @@ export default function ECODashboardScreen() {
         (u) => u.status === "pending"
       ).length;
       const needHelp = locUsers.filter((u) => u.status === "need_help").length;
+      const linkedShelterCount = shelters.filter(
+        (s) => s.isActive && (s.linkedLocationIds || []).includes(loc.id)
+      ).length;
+      const hasBoundary = (loc.polygonPoints?.length ?? 0) >= 3;
       return {
         id: loc.id,
         name: loc.name,
@@ -68,9 +73,11 @@ export default function ECODashboardScreen() {
         pending,
         needHelp,
         alertActive: loc.alertActive,
+        linkedShelterCount,
+        hasBoundary,
       };
     });
-  }, [zoneLocations, zoneUsers]);
+  }, [zoneLocations, zoneUsers, shelters]);
 
   const activeAlerts = useMemo(
     () => alerts.filter((a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")),
@@ -183,6 +190,10 @@ export default function ECODashboardScreen() {
                   <Text style={styles.locStatLabel}>Help</Text>
                 </View>
               )}
+              <View style={styles.locStat}>
+                <Text style={styles.locStatValue}>{loc.linkedShelterCount}</Text>
+                <Text style={styles.locStatLabel}>Shelters</Text>
+              </View>
             </View>
           </Card>
         ))}
