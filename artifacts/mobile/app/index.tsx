@@ -10,6 +10,14 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  if (currentUser.isECOAssigned && currentUser.ecoAssignmentActive) {
+    return <Redirect href="/(eco)" />;
+  }
+
+  if (currentUser.isSupervisorAssigned || currentUser.isBackupSupervisorAssigned) {
+    return <Redirect href="/(supervisor)" />;
+  }
+
   switch (currentUser.role) {
     case "Super Admin":
       return <Redirect href="/(admin)" />;

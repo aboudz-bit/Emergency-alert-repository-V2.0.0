@@ -24,6 +24,12 @@ const DEMO_ROLES: { label: string; role: UserRole }[] = [
   { label: "User", role: "User" },
 ];
 
+const DEMO_BADGES: { label: string; badge: string; color: string }[] = [
+  { label: "ECO (Nasser)", badge: "103618", color: Colors.info },
+  { label: "Supervisor (Mohammed)", badge: "108291", color: Colors.amber },
+  { label: "Backup Sup (Faisal)", badge: "105477", color: Colors.missing },
+];
+
 export default function LoginScreen() {
   const router = useRouter();
   const login = useStore((s) => s.login);
@@ -52,6 +58,16 @@ export default function LoginScreen() {
   const handleDemoLogin = (role: UserRole) => {
     setError("");
     const result = login("demo", "demo", role);
+    if (result.success) {
+      router.replace("/");
+    } else {
+      setError(result.error || "Demo login failed.");
+    }
+  };
+
+  const handleBadgeLogin = (badgeNum: string) => {
+    setError("");
+    const result = login(badgeNum, "demo1234");
     if (result.success) {
       router.replace("/");
     } else {
@@ -125,6 +141,22 @@ export default function LoginScreen() {
                   onPress={() => handleDemoLogin(item.role)}
                 >
                   <Text style={styles.chipText}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor</Text>
+            <View style={styles.chipRow}>
+              {DEMO_BADGES.map((item) => (
+                <Pressable
+                  key={item.badge}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    { borderColor: item.color + "40" },
+                    pressed && styles.chipPressed,
+                  ]}
+                  onPress={() => handleBadgeLogin(item.badge)}
+                >
+                  <Text style={[styles.chipText, { color: item.color }]}>{item.label}</Text>
                 </Pressable>
               ))}
             </View>

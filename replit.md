@@ -24,7 +24,7 @@ workspace/
 │   │   ├── tsconfig.json       # paths: @shared/* → ./shared/*
 │   │   └── drizzle.config.ts   # Points to ./shared/schema.ts
 │   ├── api-server/             # Thin proxy → forwards all traffic to boutique-server:5000
-│   ├── mobile/                 # Expo React Native scaffold (not yet built out)
+│   ├── mobile/                 # Expo React Native app (Admin, User, ECO, Supervisor, IT)
 │   └── mockup-sandbox/         # UI prototyping sandbox
 ├── masah_boutique/             # Flutter app (from GitHub branch)
 └── lib/                        # Shared TS libs (api-spec, api-client-react, api-zod, db)
@@ -130,6 +130,16 @@ artifacts/mobile/
 │   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
 │   │   ├── locations.tsx          # Location management with zone tabs
 │   │   └── settings.tsx           # System settings with steppers and toggles
+│   ├── (eco)/
+│   │   ├── _layout.tsx            # ECO tab bar (Dashboard, Alerts, Profile)
+│   │   ├── index.tsx              # ECO dashboard: zone-wide KPIs, location breakdown, alerts
+│   │   ├── alerts.tsx             # Zone alerts list (active + history)
+│   │   └── profile.tsx            # ECO profile with assignment info
+│   ├── (supervisor)/
+│   │   ├── _layout.tsx            # Supervisor tab bar (Dashboard, Personnel, Profile)
+│   │   ├── index.tsx              # Supervisor dashboard: location KPIs, personnel list, backup indicator
+│   │   ├── personnel.tsx          # Personnel list with status filter tabs
+│   │   └── profile.tsx            # Supervisor profile
 │   └── (user)/
 │       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
 │       ├── index.tsx              # User home: alert banner, response buttons, status
@@ -164,8 +174,9 @@ artifacts/mobile/
   - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
-- **Store**: `keas-mobile-store-v2` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`)
-- **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
+- **Store**: `keas-mobile-store-v4` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection.
+- **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user); password `demo1234`
+- **Mobile routing**: ECO/Supervisor flags checked before role switch — ECO users go to `/(eco)`, Supervisor/Backup go to `/(supervisor)`, then role-based (Super Admin→admin, IT→it, default→user)
 
 ## Workflow
 
