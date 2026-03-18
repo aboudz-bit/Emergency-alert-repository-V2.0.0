@@ -155,11 +155,11 @@ export const useStore = create<AppState>()(
           return { success: false, error: 'Badge number already exists.' };
         }
         const cpfZone = zones.find(z => z.name === 'CPF');
-        const ctrlRoom = locs.find(l => l.name === 'Control Room' && l.zoneId === (cpfZone?.id ?? 1));
+        const ccr = locs.find(l => l.name === 'CCR' && l.zoneId === (cpfZone?.id ?? 1));
         const newAdmin: User = {
           id: Date.now(), name, badge, password, role: 'Super Admin',
           zone: 'CPF', zoneId: cpfZone?.id ?? 1,
-          location: 'Control Room', locationId: ctrlRoom?.id ?? 1,
+          location: 'CCR', locationId: ccr?.id ?? 7,
           status: 'no_reply',
           accountStatus: 'active', lastActivity: new Date().toISOString(), isActive: true,
         };
@@ -563,8 +563,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v4',
-      version: 4,
+      name: 'keas-mobile-store-v5',
+      version: 5,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -631,6 +631,13 @@ export const useStore = create<AppState>()(
           if (!state.supervisorAssignments || !Array.isArray(state.supervisorAssignments) || state.supervisorAssignments.length === 0) {
             state.supervisorAssignments = seedSupervisorAssignments;
           }
+        }
+        if (version < 5) {
+          // Flatten location hierarchy: single CPF zone with 7 locations
+          state.zones = seedZones;
+          state.locations = seedLocations;
+          state.users = seedUsers;
+          state.supervisorAssignments = seedSupervisorAssignments;
         }
         return persisted as AppState;
       },

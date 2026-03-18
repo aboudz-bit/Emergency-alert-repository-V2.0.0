@@ -28,7 +28,6 @@ export default function SupervisorProfileScreen() {
     { label: "Status", value: isBackup ? "Standby" : "Active", icon: "activity" as const },
     { label: "Location", value: currentUser?.supervisorLocationName ?? "—", icon: "map-pin" as const },
     { label: "Zone", value: currentUser?.supervisorZoneName ?? currentUser?.zone ?? "—", icon: "map" as const },
-    { label: "Home Location", value: currentUser?.location ?? "—", icon: "home" as const },
   ];
 
   return (

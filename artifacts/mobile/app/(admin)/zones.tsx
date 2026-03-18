@@ -28,7 +28,6 @@ const ZONE_COLORS = [
 
 const ZONE_TYPES: { key: ZoneType; label: string }[] = [
   { key: "CPF", label: "CPF" },
-  { key: "Camp", label: "Camp" },
   { key: "Custom", label: "Custom" },
 ];
 

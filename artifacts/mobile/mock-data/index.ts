@@ -1,5 +1,5 @@
 import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
-import { CPF_LOCATIONS, CAMP_LOCATIONS } from '@/constants/theme';
+import { CPF_LOCATIONS } from '@/constants/theme';
 
 const names = [
   'Abdullah Al-Rashidi', 'Khalid Al-Mutairi', 'Fahad Al-Dosari', 'Omar Al-Shehri', 'Saeed Al-Ghamdi',
@@ -28,9 +28,7 @@ const badges = [
 ];
 
 export const seedUsers: User[] = names.map((name, i) => {
-  const isCpf = i < 30;
-  const locList = isCpf ? CPF_LOCATIONS : CAMP_LOCATIONS;
-  const locIndex = isCpf ? (i % locList.length) : ((i - 30) % locList.length);
+  const locIndex = i % CPF_LOCATIONS.length;
   const status: User['status'] =
     i < 30 ? 'confirmed' : i < 42 ? 'missing' : 'no_reply';
 
@@ -38,20 +36,16 @@ export const seedUsers: User[] = names.map((name, i) => {
   if (i === 0) role = 'Super Admin';
   else if (i === 1) role = 'IT';
 
-  const zoneId = isCpf ? 1 : 2;
-  // Location IDs: CPF locations are 1..15, Camp locations are 16..24
-  const locationId = isCpf ? (locIndex + 1) : (CPF_LOCATIONS.length + locIndex + 1);
-
   return {
     id: i + 1,
     name,
     badge: badges[i],
     password: 'demo1234',
     role,
-    zone: isCpf ? 'CPF' as const : 'Camp' as const,
-    zoneId,
-    location: locList[locIndex],
-    locationId,
+    zone: 'CPF',
+    zoneId: 1,
+    location: CPF_LOCATIONS[locIndex],
+    locationId: locIndex + 1,
     status,
     accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
     lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
@@ -68,7 +62,7 @@ export const seedAlerts: Alert[] = [
     stats: { confirmed: 30, missing: 12, noReply: 8, needHelp: 0, total: 50 },
   },
   {
-    id: 2, type: 'Security Alert', zone: 'Camp', title: 'SECURITY INCIDENT',
+    id: 2, type: 'Security Alert', zone: 'CPF', title: 'SECURITY INCIDENT',
     message: 'Please remain indoors and lock all doors until further notice.',
     timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Security Team', priority: 'High', status: 'closed', isActive: false,
@@ -107,21 +101,13 @@ export const seedZones: Zone[] = [
     center: { lat: 25.078, lng: 48.165 }, isActive: true, color: '#EF4444',
     alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
-  {
-    id: 2, name: 'Camp', type: 'Camp', boundaryType: 'Polygon',
-    polygonPoints: [
-      { lat: 25.090, lng: 48.185 }, { lat: 25.090, lng: 48.200 },
-      { lat: 25.080, lng: 48.200 }, { lat: 25.080, lng: 48.185 },
-    ],
-    center: { lat: 25.085, lng: 48.1925 }, isActive: true, color: '#3B82F6',
-    alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
-  },
 ];
 
-export const seedLocations: Location[] = [
-  ...CPF_LOCATIONS.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, zoneId: 1, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [] })),
-  ...CAMP_LOCATIONS.map((name, i) => ({ id: CPF_LOCATIONS.length + i + 1, name, zone: 'Camp' as const, zoneId: 2, isActive: true, alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [] })),
-];
+export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
+  id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
+  isActive: true, alertActive: false, alertType: null, alertPriority: null,
+  alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+}));
 
 export const seedActivityLogs: ActivityLog[] = [
   { id: 1, type: 'info', message: 'System check completed successfully.', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
@@ -166,7 +152,7 @@ export const seedEcoAssignments: EcoAssignment[] = [
 
 export const seedSupervisorAssignments: SupervisorAssignment[] = [
   {
-    locationId: 2,
+    locationId: 1,
     locationName: 'OT-1',
     zoneName: 'CPF',
     supervisorUserId: 7,
@@ -177,10 +163,10 @@ export const seedSupervisorAssignments: SupervisorAssignment[] = [
     backupSupervisorUserBadge: '105477',
     supervisorActive: true,
     backupActive: true,
-    totalManpower: 2,
+    totalManpower: 8,
   },
   {
-    locationId: 3,
+    locationId: 2,
     locationName: 'OT-2',
     zoneName: 'CPF',
     supervisorUserId: 9,
@@ -191,7 +177,7 @@ export const seedSupervisorAssignments: SupervisorAssignment[] = [
     backupSupervisorUserBadge: null,
     supervisorActive: true,
     backupActive: false,
-    totalManpower: 3,
+    totalManpower: 8,
   },
 ];
 
