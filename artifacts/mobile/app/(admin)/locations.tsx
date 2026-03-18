@@ -88,6 +88,7 @@ export default function LocationsScreen() {
         name: locationName.trim(),
         zone: locationZone,
         zoneId,
+        expectedManpower: 0,
         isActive: true,
         alertActive: false,
         alertType: null,

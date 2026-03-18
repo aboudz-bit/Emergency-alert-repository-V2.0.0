@@ -1,5 +1,14 @@
-import React, { useCallback, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Alert as RNAlert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { format } from "date-fns";
@@ -16,32 +25,89 @@ export default function SupervisorDashboardScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const users = useStore((s) => s.users);
   const alerts = useStore((s) => s.alerts);
+  const locations = useStore((s) => s.locations);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
+  const setExpectedManpower = useStore((s) => s.setExpectedManpower);
+  const startAccountability = useStore((s) => s.startAccountability);
 
-  const isBackup = currentUser?.isBackupSupervisorAssigned === true && !currentUser?.isSupervisorAssigned;
+  const isBackup =
+    currentUser?.isBackupSupervisorAssigned === true &&
+    !currentUser?.isSupervisorAssigned;
   const locName = currentUser?.supervisorLocationName ?? "";
-  const zoneName = currentUser?.supervisorZoneName ?? currentUser?.zone ?? "";
+  const zoneName =
+    currentUser?.supervisorZoneName ?? currentUser?.zone ?? "";
   const roleLabel = isBackup ? "Backup Supervisor" : "Supervisor";
   const statusLabel = isBackup ? "STANDBY" : "ACTIVE";
 
+  const myLocation = useMemo(
+    () => locations.find((l) => l.name === locName && l.zone === zoneName),
+    [locations, locName, zoneName]
+  );
+
   const locationUsers = useMemo(
-    () => users.filter((u) => u.location === locName && u.zone === zoneName && u.isActive),
+    () =>
+      users.filter(
+        (u) => u.location === locName && u.zone === zoneName && u.isActive
+      ),
     [users, locName, zoneName]
   );
 
   const stats = useMemo(() => {
-    const total = locationUsers.length;
-    const safe = locationUsers.filter((u) => u.status === "confirmed").length;
-    const pending = locationUsers.filter((u) => u.status === "no_reply" || u.status === "missing").length;
-    const needHelp = locationUsers.filter((u) => u.status === "need_help").length;
+    const actual = locationUsers.length;
+    const expected = myLocation?.expectedManpower ?? actual;
+    const safe = locationUsers.filter(
+      (u) => u.status === "confirmed"
+    ).length;
+    const pending = locationUsers.filter(
+      (u) => u.status === "no_reply" || u.status === "missing"
+    ).length;
+    const needHelp = locationUsers.filter(
+      (u) => u.status === "need_help"
+    ).length;
     const zoneAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { total, safe, pending, needHelp, zoneAlerts };
-  }, [locationUsers, alerts, zoneName]);
+    return { actual, expected, safe, pending, needHelp, zoneAlerts };
+  }, [locationUsers, alerts, zoneName, myLocation]);
 
-  const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
+  const recentLogs = useMemo(
+    () => activityLogs.slice(0, 5),
+    [activityLogs]
+  );
+
+  // ── Edit Manpower modal ──────────────────────────────────────────────
+  const [manpowerModalVisible, setManpowerModalVisible] = useState(false);
+  const [manpowerInput, setManpowerInput] = useState("");
+
+  const openManpowerModal = useCallback(() => {
+    setManpowerInput(String(myLocation?.expectedManpower ?? 0));
+    setManpowerModalVisible(true);
+  }, [myLocation]);
+
+  const saveManpower = useCallback(() => {
+    const count = parseInt(manpowerInput, 10);
+    if (isNaN(count) || count < 0 || !myLocation) return;
+    setExpectedManpower(myLocation.id, count);
+    setManpowerModalVisible(false);
+  }, [manpowerInput, myLocation, setExpectedManpower]);
+
+  // ── Start Accountability ─────────────────────────────────────────────
+  const handleStartAccountability = useCallback(() => {
+    if (!myLocation) return;
+    RNAlert.alert(
+      "Start Accountability",
+      `Reset all ${locationUsers.length} personnel at ${locName} to "No Reply" and begin accountability?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Start",
+          style: "destructive",
+          onPress: () => startAccountability(myLocation.id),
+        },
+      ]
+    );
+  }, [myLocation, locationUsers.length, locName, startAccountability]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -55,66 +121,137 @@ export default function SupervisorDashboardScreen() {
         subtitle={`${currentUser?.name} • ${zoneName} • ${locName}`}
         rightAction={
           <View style={styles.headerRight}>
-            <StatusBadge status={isBackup ? "missing" : "active"} label={statusLabel} />
-            <Pressable onPress={handleLogout} style={styles.iconBtn} hitSlop={8}>
+            <StatusBadge
+              status={isBackup ? "missing" : "active"}
+              label={statusLabel}
+            />
+            <Pressable
+              onPress={handleLogout}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
               <Feather name="log-out" size={20} color={Colors.text} />
             </Pressable>
           </View>
         }
       />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+      >
         {isBackup && (
           <View style={styles.standbyBanner}>
             <Feather name="eye" size={16} color={Colors.amber} />
             <Text style={styles.standbyText}>
-              You are viewing this location as Backup Supervisor (read-only standby mode).
+              You are viewing this location as Backup Supervisor (read-only
+              standby mode).
             </Text>
           </View>
         )}
 
+        {/* ── KPI Cards ── */}
         <View style={styles.kpiRow}>
           <KPICard
-            title="Manpower"
-            value={stats.total}
+            title="Expected"
+            value={stats.expected}
             icon="users"
             color={Colors.text}
             dimColor={Colors.surfaceElevated}
           />
-          <KPICard title="Safe" value={stats.safe} icon="check-circle" color={Colors.safe} dimColor={Colors.safeDim} />
+          <KPICard
+            title="Actual"
+            value={stats.actual}
+            icon="user-check"
+            color={
+              stats.actual >= stats.expected
+                ? Colors.safe
+                : Colors.missing
+            }
+            dimColor={
+              stats.actual >= stats.expected
+                ? Colors.safeDim
+                : Colors.missingDim
+            }
+          />
         </View>
         <View style={styles.kpiRow}>
-          <KPICard title="Pending" value={stats.pending} icon="clock" color={Colors.missing} dimColor={Colors.missingDim} />
-          {stats.needHelp > 0 ? (
-            <KPICard title="Need Help" value={stats.needHelp} icon="alert-circle" color={Colors.primary} dimColor={Colors.primaryDim} />
-          ) : (
-            <KPICard
-              title="Zone Alerts"
-              value={stats.zoneAlerts}
-              icon="alert-triangle"
-              color={stats.zoneAlerts > 0 ? Colors.primary : Colors.textSecondary}
-              dimColor={stats.zoneAlerts > 0 ? Colors.primaryDim : Colors.surfaceElevated}
-            />
-          )}
+          <KPICard
+            title="Safe"
+            value={stats.safe}
+            icon="check-circle"
+            color={Colors.safe}
+            dimColor={Colors.safeDim}
+          />
+          <KPICard
+            title="Pending"
+            value={stats.pending}
+            icon="clock"
+            color={Colors.missing}
+            dimColor={Colors.missingDim}
+          />
         </View>
 
-        <Text style={styles.sectionTitle}>Personnel — {locName}</Text>
+        {/* ── Action Buttons (supervisor only, not backup) ── */}
+        {!isBackup && (
+          <View style={styles.actionRow}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={openManpowerModal}
+            >
+              <Feather name="edit-3" size={16} color={Colors.info} />
+              <Text style={styles.actionBtnText}>Edit Manpower</Text>
+            </Pressable>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => router.push("/(supervisor)/personnel")}
+            >
+              <Feather name="users" size={16} color={Colors.safe} />
+              <Text style={styles.actionBtnTextGreen}>
+                View Personnel
+              </Text>
+            </Pressable>
+          </View>
+        )}
+        {!isBackup && (
+          <Pressable
+            style={styles.accountabilityBtn}
+            onPress={handleStartAccountability}
+          >
+            <Feather name="play-circle" size={18} color={Colors.white} />
+            <Text style={styles.accountabilityBtnText}>
+              Start Accountability
+            </Text>
+          </Pressable>
+        )}
+
+        {/* ── Personnel List ── */}
+        <Text style={styles.sectionTitle}>
+          Personnel — {locName}
+        </Text>
         <Text style={styles.sectionSub}>
-          Expected: {stats.total} • Safe: {stats.safe} • Pending: {stats.pending}
+          Expected: {stats.expected} • Actual: {stats.actual} • Safe:{" "}
+          {stats.safe} • Pending: {stats.pending}
         </Text>
         {locationUsers.map((user) => (
           <Card key={user.id} style={styles.personnelCard}>
             <View style={styles.personnelRow}>
               <View style={styles.personnelInfo}>
                 <Text style={styles.personnelName}>{user.name}</Text>
-                <Text style={styles.personnelBadge}>Badge: {user.badge}</Text>
+                <Text style={styles.personnelBadge}>
+                  Badge: {user.badge}
+                </Text>
               </View>
               <View style={styles.personnelStatus}>
                 <StatusBadge
                   status={
-                    user.status === "confirmed" ? "confirmed" :
-                    user.status === "need_help" ? "need_help" :
-                    user.status === "missing" ? "missing" : "no_reply"
+                    user.status === "confirmed"
+                      ? "confirmed"
+                      : user.status === "need_help"
+                        ? "need_help"
+                        : user.status === "missing"
+                          ? "missing"
+                          : "no_reply"
                   }
                 />
                 <Text style={styles.personnelTime}>
@@ -127,25 +264,44 @@ export default function SupervisorDashboardScreen() {
 
         {locationUsers.length === 0 && (
           <Card>
-            <Text style={styles.emptyText}>No personnel assigned to this location.</Text>
+            <Text style={styles.emptyText}>
+              No personnel assigned to this location.
+            </Text>
           </Card>
         )}
 
+        {/* ── Recent Activity ── */}
         <Text style={styles.sectionTitle}>Recent Activity</Text>
         <Card>
           {recentLogs.length === 0 ? (
             <Text style={styles.emptyText}>No recent activity.</Text>
           ) : (
             recentLogs.map((log, i) => (
-              <View key={log.id} style={[styles.logRow, i < recentLogs.length - 1 && styles.logRowBorder]}>
+              <View
+                key={log.id}
+                style={[
+                  styles.logRow,
+                  i < recentLogs.length - 1 && styles.logRowBorder,
+                ]}
+              >
                 <Feather
-                  name={log.type === "alert" ? "alert-triangle" : log.type === "action" ? "zap" : "info"}
+                  name={
+                    log.type === "alert"
+                      ? "alert-triangle"
+                      : log.type === "action"
+                        ? "zap"
+                        : "info"
+                  }
                   size={14}
                   color={Colors.textSecondary}
                 />
                 <View style={styles.logContent}>
-                  <Text style={styles.logMsg} numberOfLines={2}>{log.message}</Text>
-                  <Text style={styles.logTime}>{format(new Date(log.timestamp), "h:mm a")}</Text>
+                  <Text style={styles.logMsg} numberOfLines={2}>
+                    {log.message}
+                  </Text>
+                  <Text style={styles.logTime}>
+                    {format(new Date(log.timestamp), "h:mm a")}
+                  </Text>
                 </View>
               </View>
             ))
@@ -154,6 +310,48 @@ export default function SupervisorDashboardScreen() {
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
+
+      {/* ── Edit Manpower Modal ── */}
+      <Modal
+        visible={manpowerModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setManpowerModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Expected Manpower — {locName}
+            </Text>
+            <Text style={styles.modalSub}>
+              Set the expected number of personnel for this location.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={manpowerInput}
+              onChangeText={setManpowerInput}
+              keyboardType="number-pad"
+              placeholder="e.g. 10"
+              placeholderTextColor={Colors.textTertiary}
+              autoFocus
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.modalCancelBtn}
+                onPress={() => setManpowerModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalSaveBtn}
+                onPress={saveManpower}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -162,33 +360,195 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.md },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
   iconBtn: {
-    width: 40, height: 40, borderRadius: BorderRadius.sm,
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.surfaceElevated,
-    alignItems: "center", justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
   standbyBanner: {
-    flexDirection: "row", alignItems: "center", gap: Spacing.sm,
-    backgroundColor: Colors.amberDim, borderRadius: BorderRadius.md,
-    borderWidth: 1, borderColor: Colors.missingBorder,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.amberDim,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.missingBorder,
     padding: Spacing.md,
   },
-  standbyText: { flex: 1, fontSize: FontSize.sm, color: Colors.amber, fontFamily: "Inter_500Medium" },
+  standbyText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.amber,
+    fontFamily: "Inter_500Medium",
+  },
   kpiRow: { flexDirection: "row", gap: Spacing.md },
-  sectionTitle: { fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text, marginTop: Spacing.sm },
-  sectionSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: -Spacing.sm },
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  actionBtnText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.info,
+  },
+  actionBtnTextGreen: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.safe,
+  },
+  accountabilityBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+  },
+  accountabilityBtnText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  sectionTitle: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+    marginTop: Spacing.sm,
+  },
+  sectionSub: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: -Spacing.sm,
+  },
   personnelCard: { paddingVertical: Spacing.sm },
-  personnelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  personnelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   personnelInfo: { flex: 1 },
-  personnelName: { fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text },
-  personnelBadge: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  personnelName: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  personnelBadge: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
   personnelStatus: { alignItems: "flex-end", gap: 4 },
   personnelTime: { fontSize: FontSize.xs, color: Colors.textTertiary },
-  emptyText: { fontSize: FontSize.sm, color: Colors.textTertiary, textAlign: "center", paddingVertical: Spacing.lg },
-  logRow: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm, paddingVertical: Spacing.sm },
-  logRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  emptyText: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    textAlign: "center",
+    paddingVertical: Spacing.lg,
+  },
+  logRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  logRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
   logContent: { flex: 1 },
   logMsg: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  logTime: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
+  logTime: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginTop: 2,
+  },
+  // ── Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    width: "100%",
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+  },
+  modalSub: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+  },
+  modalInput: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+    textAlign: "center",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textSecondary,
+  },
+  modalSaveBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.info,
+    alignItems: "center",
+  },
+  modalSaveText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
 });

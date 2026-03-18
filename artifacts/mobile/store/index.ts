@@ -66,6 +66,11 @@ interface AppState {
   updateSettings: (partial: Partial<AppSettings>) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id'>) => void;
 
+  setExpectedManpower: (locationId: number, count: number) => void;
+  assignPersonnelToLocation: (userId: number, locationId: number) => void;
+  removePersonnelFromLocation: (userId: number) => void;
+  startAccountability: (locationId: number) => void;
+
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
 }
@@ -155,11 +160,11 @@ export const useStore = create<AppState>()(
           return { success: false, error: 'Badge number already exists.' };
         }
         const cpfZone = zones.find(z => z.name === 'CPF');
-        const ctrlRoom = locs.find(l => l.name === 'Control Room' && l.zoneId === (cpfZone?.id ?? 1));
+        const ccr = locs.find(l => l.name === 'CCR' && l.zoneId === (cpfZone?.id ?? 1));
         const newAdmin: User = {
           id: Date.now(), name, badge, password, role: 'Super Admin',
           zone: 'CPF', zoneId: cpfZone?.id ?? 1,
-          location: 'Control Room', locationId: ctrlRoom?.id ?? 1,
+          location: 'CCR', locationId: ccr?.id ?? 7,
           status: 'no_reply',
           accountStatus: 'active', lastActivity: new Date().toISOString(), isActive: true,
         };
@@ -548,6 +553,75 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      setExpectedManpower: (locationId, count) => {
+        set(s => ({
+          locations: s.locations.map(l =>
+            l.id === locationId ? { ...l, expectedManpower: count } : l,
+          ),
+        }));
+      },
+
+      assignPersonnelToLocation: (userId, locationId) => {
+        const { currentUser: caller, locations: locs, users: allUsers } = get();
+        const loc = locs.find(l => l.id === locationId);
+        if (!loc) return;
+        // Guard: non-admin callers can only assign to their own location
+        if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
+          const supLoc = caller.supervisorLocationName;
+          const supZone = caller.supervisorZoneName ?? caller.zone;
+          if (loc.name !== supLoc || loc.zone !== supZone) return;
+        }
+        // Guard: target user must be in same zone+location already (or unassigned)
+        const target = allUsers.find(u => u.id === userId);
+        if (!target) return;
+        if (target.location !== '' && (target.location !== loc.name || target.zone !== loc.zone)) return;
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? { ...u, location: loc.name, locationId: loc.id, zone: loc.zone, zoneId: loc.zoneId }
+              : u,
+          ),
+        }));
+      },
+
+      removePersonnelFromLocation: (userId) => {
+        const { currentUser: caller, users: allUsers } = get();
+        const target = allUsers.find(u => u.id === userId);
+        if (!target) return;
+        // Guard: non-admin callers can only remove from their own location
+        if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
+          const supLoc = caller.supervisorLocationName;
+          const supZone = caller.supervisorZoneName ?? caller.zone;
+          if (target.location !== supLoc || target.zone !== supZone) return;
+        }
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? { ...u, location: '', locationId: 0 }
+              : u,
+          ),
+        }));
+      },
+
+      startAccountability: (locationId) => {
+        const loc = get().locations.find(l => l.id === locationId);
+        if (!loc) return;
+        // Reset all personnel at this location to no_reply for fresh accountability
+        set(s => ({
+          users: s.users.map(u =>
+            u.locationId === locationId && u.isActive
+              ? { ...u, status: 'no_reply' as UserResponseStatus }
+              : u,
+          ),
+        }));
+        get().addActivityLog({
+          type: 'action',
+          message: `Accountability started for ${loc.name} by ${get().currentUser?.name ?? 'Supervisor'}.`,
+          timestamp: new Date().toISOString(),
+          actorName: get().currentUser?.name ?? undefined,
+        });
+      },
+
       updateSettings: (partial) => set(s => ({ settings: { ...s.settings, ...partial } })),
 
       addActivityLog: (log) => {
@@ -563,8 +637,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v4',
-      version: 4,
+      name: 'keas-mobile-store-v6',
+      version: 6,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -630,6 +704,22 @@ export const useStore = create<AppState>()(
           }
           if (!state.supervisorAssignments || !Array.isArray(state.supervisorAssignments) || state.supervisorAssignments.length === 0) {
             state.supervisorAssignments = seedSupervisorAssignments;
+          }
+        }
+        if (version < 5) {
+          // Flatten location hierarchy: single CPF zone with 7 locations
+          state.zones = seedZones;
+          state.locations = seedLocations;
+          state.users = seedUsers;
+          state.supervisorAssignments = seedSupervisorAssignments;
+        }
+        if (version < 6) {
+          // Backfill expectedManpower on locations
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              expectedManpower: loc.expectedManpower ?? 0,
+            }));
           }
         }
         return persisted as AppState;

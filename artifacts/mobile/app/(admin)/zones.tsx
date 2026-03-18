@@ -28,7 +28,6 @@ const ZONE_COLORS = [
 
 const ZONE_TYPES: { key: ZoneType; label: string }[] = [
   { key: "CPF", label: "CPF" },
-  { key: "Camp", label: "Camp" },
   { key: "Custom", label: "Custom" },
 ];
 
@@ -131,6 +130,8 @@ export default function ZonesScreen() {
     addZone({
       name: formName.trim(), type: formType, boundaryType: "Polygon",
       polygonPoints: pts, center: { lat, lng }, isActive: true, color: formColor,
+      alertActive: false, alertType: null, alertPriority: null,
+      alertMessage: "", alertUpdatedAt: null, alertHistory: [],
     });
     setShowSaveSheet(false);
     setTapPoints([]);

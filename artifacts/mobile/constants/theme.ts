@@ -88,12 +88,7 @@ export const DEFAULT_MESSAGES: Record<string, string> = {
 };
 
 export const CPF_LOCATIONS = [
-  'Control Room', 'OT-1', 'OT-2', 'OT-3', 'OT-4', 'OT-5',
-  'Gas Train 1', 'Gas Train 2', 'Gas Train 3', 'Shipping',
-  'Utility', 'WIP', 'Cogen', 'Central Shop', 'Lab',
-];
-
-export const CAMP_LOCATIONS = [
-  'Admin', 'Clinic', 'Field', 'IT', 'Airport',
-  'Community', 'Security', 'Contractors', 'Other',
+  'OT-1', 'OT-2', 'OT-3',
+  'Gas Train-1', 'Gas Train-2',
+  'Camp', 'CCR',
 ];

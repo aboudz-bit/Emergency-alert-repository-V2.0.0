@@ -25,8 +25,8 @@ export default function ECOProfileScreen() {
     { label: "ECO Slot", value: currentUser?.ecoSlot ?? "—", icon: "layers" as const },
     { label: "Assigned Zone", value: currentUser?.ecoZoneName ?? "—", icon: "map" as const },
     { label: "Operational Location", value: "CCR", icon: "navigation" as const },
-    { label: "Home Zone", value: currentUser?.zone ?? "—", icon: "home" as const },
-    { label: "Home Location", value: currentUser?.location ?? "—", icon: "map-pin" as const },
+    { label: "Zone", value: currentUser?.zone ?? "—", icon: "home" as const },
+    { label: "Location", value: currentUser?.location ?? "—", icon: "map-pin" as const },
   ];
 
   return (

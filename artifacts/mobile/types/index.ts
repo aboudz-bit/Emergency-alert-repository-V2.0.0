@@ -32,7 +32,7 @@ export interface SupervisorAssignment {
 
 // ─── Zones ────────────────────────────────────────────────────────────────────
 
-export type ZoneType = 'CPF' | 'Camp' | 'Custom';
+export type ZoneType = 'CPF' | 'Custom';
 export type ZoneBoundaryType = 'Polygon' | 'Circle';
 
 export interface LatLng {
@@ -98,6 +98,7 @@ export interface Location {
   name: string;
   zone: string;
   zoneId: number;
+  expectedManpower: number;
   isActive: boolean;
   alertActive: boolean;
   alertType: LocationAlertType | null;
