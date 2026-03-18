@@ -206,9 +206,9 @@ export default function SupervisorDashboardScreen() {
               style={styles.actionBtn}
               onPress={() => router.push("/(supervisor)/personnel")}
             >
-              <Feather name="user-plus" size={16} color={Colors.safe} />
+              <Feather name="users" size={16} color={Colors.safe} />
               <Text style={styles.actionBtnTextGreen}>
-                Manage Personnel
+                View Personnel
               </Text>
             </Pressable>
           </View>

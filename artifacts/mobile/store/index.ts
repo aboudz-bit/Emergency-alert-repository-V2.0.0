@@ -562,8 +562,19 @@ export const useStore = create<AppState>()(
       },
 
       assignPersonnelToLocation: (userId, locationId) => {
-        const loc = get().locations.find(l => l.id === locationId);
+        const { currentUser: caller, locations: locs, users: allUsers } = get();
+        const loc = locs.find(l => l.id === locationId);
         if (!loc) return;
+        // Guard: non-admin callers can only assign to their own location
+        if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
+          const supLoc = caller.supervisorLocationName;
+          const supZone = caller.supervisorZoneName ?? caller.zone;
+          if (loc.name !== supLoc || loc.zone !== supZone) return;
+        }
+        // Guard: target user must be in same zone+location already (or unassigned)
+        const target = allUsers.find(u => u.id === userId);
+        if (!target) return;
+        if (target.location !== '' && (target.location !== loc.name || target.zone !== loc.zone)) return;
         set(s => ({
           users: s.users.map(u =>
             u.id === userId
@@ -574,6 +585,15 @@ export const useStore = create<AppState>()(
       },
 
       removePersonnelFromLocation: (userId) => {
+        const { currentUser: caller, users: allUsers } = get();
+        const target = allUsers.find(u => u.id === userId);
+        if (!target) return;
+        // Guard: non-admin callers can only remove from their own location
+        if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
+          const supLoc = caller.supervisorLocationName;
+          const supZone = caller.supervisorZoneName ?? caller.zone;
+          if (target.location !== supLoc || target.zone !== supZone) return;
+        }
         set(s => ({
           users: s.users.map(u =>
             u.id === userId

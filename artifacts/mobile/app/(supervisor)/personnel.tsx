@@ -2,7 +2,6 @@ import React, { useMemo, useState, useCallback } from "react";
 import {
   Alert as RNAlert,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -24,11 +23,9 @@ export default function PersonnelScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const users = useStore((s) => s.users);
   const locations = useStore((s) => s.locations);
-  const assignPersonnelToLocation = useStore((s) => s.assignPersonnelToLocation);
   const removePersonnelFromLocation = useStore((s) => s.removePersonnelFromLocation);
 
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
-  const [addModalVisible, setAddModalVisible] = useState(false);
 
   const isBackup =
     currentUser?.isBackupSupervisorAssigned === true &&
@@ -41,25 +38,13 @@ export default function PersonnelScreen() {
     [locations, locName, zoneName]
   );
 
+  // Only show users matching BOTH zone AND location
   const locationUsers = useMemo(
     () =>
       users.filter(
         (u) => u.location === locName && u.zone === zoneName && u.isActive
       ),
     [users, locName, zoneName]
-  );
-
-  // Users in the same zone but NOT assigned to this location (available to add)
-  const availableUsers = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          u.zone === zoneName &&
-          u.location !== locName &&
-          u.isActive &&
-          u.accountStatus === "active"
-      ),
-    [users, zoneName, locName]
   );
 
   const counts = useMemo(
@@ -83,6 +68,8 @@ export default function PersonnelScreen() {
 
   const handleRemove = useCallback(
     (user: User) => {
+      // Guard: only allow removing users from supervisor's own location
+      if (user.location !== locName || user.zone !== zoneName) return;
       RNAlert.alert(
         "Remove Personnel",
         `Remove ${user.name} (${user.badge}) from ${locName}?`,
@@ -96,18 +83,7 @@ export default function PersonnelScreen() {
         ]
       );
     },
-    [locName, removePersonnelFromLocation]
-  );
-
-  const handleAdd = useCallback(
-    (user: User) => {
-      if (!myLocation) return;
-      assignPersonnelToLocation(user.id, myLocation.id);
-      if (availableUsers.length <= 1) {
-        setAddModalVisible(false);
-      }
-    },
-    [myLocation, assignPersonnelToLocation, availableUsers.length]
+    [locName, zoneName, removePersonnelFromLocation]
   );
 
   const tabs: { key: FilterTab; label: string; color: string }[] = [
@@ -153,24 +129,18 @@ export default function PersonnelScreen() {
     <View style={styles.container}>
       <Header title="Personnel" subtitle={`${locName} • ${zoneName}`} />
 
-      {/* ── Add Personnel button ── */}
-      {!isBackup && (
-        <View style={styles.addBarWrap}>
-          <Text style={styles.addBarLabel}>
-            {locationUsers.length} assigned
-            {myLocation
-              ? ` / ${myLocation.expectedManpower} expected`
-              : ""}
-          </Text>
-          <Pressable
-            style={styles.addBtn}
-            onPress={() => setAddModalVisible(true)}
-          >
-            <Feather name="user-plus" size={16} color={Colors.safe} />
-            <Text style={styles.addBtnText}>Add Personnel</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* ── Summary bar ── */}
+      <View style={styles.summaryBar}>
+        <Text style={styles.summaryLabel}>
+          {locationUsers.length} assigned
+          {myLocation
+            ? ` / ${myLocation.expectedManpower} expected`
+            : ""}
+        </Text>
+        <Text style={styles.summaryHint}>
+          {locName} only
+        </Text>
+      </View>
 
       {/* ── Filter tabs ── */}
       <View style={styles.tabRow}>
@@ -216,76 +186,13 @@ export default function PersonnelScreen() {
           </View>
         }
       />
-
-      {/* ── Add Personnel Modal ── */}
-      <Modal
-        visible={addModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAddModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Add Personnel to {locName}
-              </Text>
-              <Pressable
-                onPress={() => setAddModalVisible(false)}
-                hitSlop={8}
-              >
-                <Feather name="x" size={22} color={Colors.textSecondary} />
-              </Pressable>
-            </View>
-            <Text style={styles.modalSub}>
-              {availableUsers.length} available from {zoneName} zone
-            </Text>
-            <FlatList
-              data={availableUsers}
-              keyExtractor={(item) => String(item.id)}
-              style={styles.modalList}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.modalPersonRow}
-                  onPress={() => handleAdd(item)}
-                >
-                  <View style={styles.personAvatar}>
-                    <Feather
-                      name="user"
-                      size={16}
-                      color={Colors.textSecondary}
-                    />
-                  </View>
-                  <View style={styles.personInfo}>
-                    <Text style={styles.personName}>{item.name}</Text>
-                    <Text style={styles.personBadge}>
-                      Badge: {item.badge}
-                      {item.location ? ` • from ${item.location}` : " • Unassigned"}
-                    </Text>
-                  </View>
-                  <Feather
-                    name="plus-circle"
-                    size={22}
-                    color={Colors.safe}
-                  />
-                </Pressable>
-              )}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>
-                  No available personnel in this zone.
-                </Text>
-              }
-            />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  addBarWrap: {
+  summaryBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -295,26 +202,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  addBarLabel: {
+  summaryLabel: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_500Medium",
     color: Colors.textSecondary,
   },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.safeDim,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.safeBorder,
-  },
-  addBtnText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.safe,
+  summaryHint: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
   },
   tabRow: {
     flexDirection: "row",
@@ -384,47 +280,5 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     textAlign: "center",
     paddingVertical: Spacing.md,
-  },
-  // ── Modal ──
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    maxHeight: "75%",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  modalTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-  },
-  modalSub: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  modalList: {
-    maxHeight: 400,
-  },
-  modalPersonRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
 });
