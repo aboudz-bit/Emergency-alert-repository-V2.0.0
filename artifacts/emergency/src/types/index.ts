@@ -65,7 +65,45 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+
+  // ECO assignment fields (user remains role='User' with ECO overlay)
+  isECOAssigned?: boolean;
+  ecoSlot?: EcoSlot | null;
+  ecoZoneId?: number | null;
+  ecoZoneName?: string | null;
+  ecoAssignmentActive?: boolean;
+  ecoAssignedAt?: string | null;
+  ecoAssignedByUserId?: number | null;
+  ecoAssignedByName?: string | null;
+  originalLocation?: string | null;
+  currentOperationalLocation?: string | null;
 }
+
+// ─── ECO (Emergency Coordinator) ─────────────────────────────────────────────
+
+export type EcoSlot = 'A' | 'B' | 'C';
+
+export interface EcoAssignment {
+  ecoSlot: EcoSlot;
+  assignedUserId: number | null;
+  assignedUserName: string | null;
+  assignedUserBadge?: string | null;
+  assignedZoneId: number | null;
+  assignedZoneName: string | null;
+  active: boolean;
+  assignedByUserId: number | null;
+  assignedByName: string | null;
+  assignedAt: string | null;
+  expiresAt?: string | null;
+  notes?: string;
+}
+
+export type EcoAuditActionType =
+  | 'eco_assigned'
+  | 'eco_reassigned'
+  | 'eco_activated'
+  | 'eco_deactivated'
+  | 'eco_removed';
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
@@ -137,7 +175,12 @@ export type AuditActionType =
   | 'notification_sent'
   | 'sound_triggered'
   | 'sound_stopped'
-  | 'acknowledgment_received';
+  | 'acknowledgment_received'
+  | 'eco_assigned'
+  | 'eco_reassigned'
+  | 'eco_activated'
+  | 'eco_deactivated'
+  | 'eco_removed';
 
 export type AuditTargetType = 'location' | 'zone' | 'broadcast';
 

@@ -5,10 +5,11 @@ import type {
   User, Alert, Zone, Location, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertType, ZoneType,
   AuditLogEntry, AuditActionType, DeliveryChannel, AuditTargetType,
+  EcoAssignment, EcoSlot,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
-  seedActivityLogs, seedSettings,
+  seedActivityLogs, seedSettings, seedEcoAssignments,
 } from '@/lib/mock-data';
 
 // ─── State shape ──────────────────────────────────────────────────────────────
@@ -28,6 +29,9 @@ interface AppState {
 
   // Mobile current user response (tracks logged-in user response to active alert)
   mobileUserResponse: UserResponseStatus | null;
+
+  // ECO assignments
+  ecoAssignments: EcoAssignment[];
 
   // Audit log (system-wide operational log)
   auditLog: AuditLogEntry[];
@@ -63,6 +67,13 @@ interface AppState {
 
   // ── Broadcast actions ──────────────────────────────────────────────────────
   clearBroadcast: () => void;
+
+  // ── ECO actions ────────────────────────────────────────────────────────────
+  assignECO: (slot: EcoSlot, userId: number, zoneId: number, zoneName: string, notes?: string) => void;
+  removeECO: (slot: EcoSlot) => void;
+  toggleECOActive: (slot: EcoSlot) => void;
+  getEcoAssignment: (slot: EcoSlot) => EcoAssignment | undefined;
+  getCurrentUserEcoAssignment: () => EcoAssignment | null;
 
   // ── Mobile response ─────────────────────────────────────────────────────────
   respondToAlert: (response: 'confirmed' | 'need_help') => void;
@@ -108,6 +119,7 @@ export const useStore = create<AppState>()(
       settings: seedSettings,
       activityLogs: seedActivityLogs,
       mobileUserResponse: null,
+      ecoAssignments: seedEcoAssignments,
       auditLog: [],
       activeBroadcast: null,
 
@@ -541,6 +553,222 @@ export const useStore = create<AppState>()(
         set({ activeBroadcast: null });
       },
 
+      // ── ECO actions ─────────────────────────────────────────────────────────
+
+      assignECO: (slot, userId, zoneId, zoneName, notes) => {
+        const { users, currentUser, ecoAssignments } = get();
+        const targetUser = users.find(u => u.id === userId);
+        if (!targetUser) return;
+
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const prevAssignment = ecoAssignments.find(a => a.ecoSlot === slot);
+        const isReassign = prevAssignment?.assignedUserId != null && prevAssignment.assignedUserId !== userId;
+
+        // If reassigning, clear previous user's ECO flags
+        if (isReassign && prevAssignment?.assignedUserId) {
+          const prevUserId = prevAssignment.assignedUserId;
+          set(s => ({
+            users: s.users.map(u =>
+              u.id === prevUserId ? {
+                ...u,
+                isECOAssigned: false,
+                ecoSlot: null,
+                ecoZoneId: null,
+                ecoZoneName: null,
+                ecoAssignmentActive: false,
+                ecoAssignedAt: null,
+                ecoAssignedByUserId: null,
+                ecoAssignedByName: null,
+                currentOperationalLocation: null,
+              } : u,
+            ),
+          }));
+        }
+
+        // Update the assignment
+        const newAssignment: EcoAssignment = {
+          ecoSlot: slot,
+          assignedUserId: userId,
+          assignedUserName: targetUser.name,
+          assignedUserBadge: targetUser.badge,
+          assignedZoneId: zoneId,
+          assignedZoneName: zoneName,
+          active: true,
+          assignedByUserId: adminId,
+          assignedByName: adminName,
+          assignedAt: now,
+          notes,
+        };
+
+        set(s => ({
+          ecoAssignments: s.ecoAssignments.map(a =>
+            a.ecoSlot === slot ? newAssignment : a,
+          ),
+          users: s.users.map(u =>
+            u.id === userId ? {
+              ...u,
+              isECOAssigned: true,
+              ecoSlot: slot,
+              ecoZoneId: zoneId,
+              ecoZoneName: zoneName,
+              ecoAssignmentActive: true,
+              ecoAssignedAt: now,
+              ecoAssignedByUserId: adminId,
+              ecoAssignedByName: adminName,
+              originalLocation: u.originalLocation || u.location,
+              currentOperationalLocation: 'CCR',
+            } : u,
+          ),
+        }));
+
+        // Update currentUser if they're the target
+        const updated = get().users.find(u => u.id === userId);
+        if (updated && currentUser?.id === userId) {
+          set({ currentUser: updated });
+        }
+
+        get().addAuditEntry({
+          timestamp: now,
+          actionType: isReassign ? 'eco_reassigned' : 'eco_assigned',
+          zoneName,
+          alertType: 'Custom',
+          priority: 'Medium',
+          message: `ECO ${slot} ${isReassign ? 'reassigned' : 'assigned'} to ${targetUser.name} for zone ${zoneName}`,
+          triggeredByUserId: adminId,
+          triggeredByName: adminName,
+          targetType: 'zone',
+          targetName: `ECO ${slot} — ${zoneName}`,
+          channelUsed: 'app',
+          notes: notes || undefined,
+        });
+
+        get().addActivityLog({
+          type: 'action',
+          message: `ECO ${slot} ${isReassign ? 'reassigned' : 'assigned'} to ${targetUser.name} (${zoneName}) by ${adminName}.`,
+          timestamp: now,
+          actorId: adminId ?? undefined,
+          actorName: adminName,
+        });
+      },
+
+      removeECO: (slot) => {
+        const { ecoAssignments, currentUser } = get();
+        const assignment = ecoAssignments.find(a => a.ecoSlot === slot);
+        if (!assignment || !assignment.assignedUserId) return;
+
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const removedUserId = assignment.assignedUserId;
+        const removedUserName = assignment.assignedUserName || 'Unknown';
+
+        set(s => ({
+          ecoAssignments: s.ecoAssignments.map(a =>
+            a.ecoSlot === slot ? {
+              ...a,
+              assignedUserId: null,
+              assignedUserName: null,
+              assignedUserBadge: null,
+              active: false,
+              notes: '',
+            } : a,
+          ),
+          users: s.users.map(u =>
+            u.id === removedUserId ? {
+              ...u,
+              isECOAssigned: false,
+              ecoSlot: null,
+              ecoZoneId: null,
+              ecoZoneName: null,
+              ecoAssignmentActive: false,
+              ecoAssignedAt: null,
+              ecoAssignedByUserId: null,
+              ecoAssignedByName: null,
+              currentOperationalLocation: null,
+            } : u,
+          ),
+        }));
+
+        // If removed user is current user, update currentUser
+        if (currentUser?.id === removedUserId) {
+          set(s => ({ currentUser: s.users.find(u => u.id === removedUserId) || null }));
+        }
+
+        get().addAuditEntry({
+          timestamp: now,
+          actionType: 'eco_removed',
+          zoneName: assignment.assignedZoneName || '',
+          alertType: 'Custom',
+          priority: 'Medium',
+          message: `ECO ${slot} removed — ${removedUserName} unassigned`,
+          triggeredByUserId: adminId,
+          triggeredByName: adminName,
+          targetType: 'zone',
+          targetName: `ECO ${slot}`,
+          channelUsed: 'app',
+        });
+
+        get().addActivityLog({
+          type: 'action',
+          message: `ECO ${slot} removed (${removedUserName}) by ${adminName}.`,
+          timestamp: now,
+          actorId: adminId ?? undefined,
+          actorName: adminName,
+        });
+      },
+
+      toggleECOActive: (slot) => {
+        const { ecoAssignments, currentUser } = get();
+        const assignment = ecoAssignments.find(a => a.ecoSlot === slot);
+        if (!assignment || !assignment.assignedUserId) return;
+
+        const now = new Date().toISOString();
+        const newActive = !assignment.active;
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+
+        set(s => ({
+          ecoAssignments: s.ecoAssignments.map(a =>
+            a.ecoSlot === slot ? { ...a, active: newActive } : a,
+          ),
+          users: s.users.map(u =>
+            u.id === assignment.assignedUserId ? {
+              ...u,
+              ecoAssignmentActive: newActive,
+              currentOperationalLocation: newActive ? 'CCR' : null,
+            } : u,
+          ),
+        }));
+
+        if (currentUser?.id === assignment.assignedUserId) {
+          set(s => ({ currentUser: s.users.find(u => u.id === assignment.assignedUserId) || null }));
+        }
+
+        get().addAuditEntry({
+          timestamp: now,
+          actionType: newActive ? 'eco_activated' : 'eco_deactivated',
+          zoneName: assignment.assignedZoneName || '',
+          alertType: 'Custom',
+          priority: 'Medium',
+          message: `ECO ${slot} ${newActive ? 'activated' : 'deactivated'} — ${assignment.assignedUserName}`,
+          triggeredByUserId: adminId,
+          triggeredByName: adminName,
+          targetType: 'zone',
+          targetName: `ECO ${slot} — ${assignment.assignedZoneName}`,
+          channelUsed: 'app',
+        });
+      },
+
+      getEcoAssignment: (slot) => get().ecoAssignments.find(a => a.ecoSlot === slot),
+
+      getCurrentUserEcoAssignment: () => {
+        const { currentUser, ecoAssignments } = get();
+        if (!currentUser) return null;
+        return ecoAssignments.find(a => a.assignedUserId === currentUser.id && a.active) || null;
+      },
+
       // ── Computed helpers ──────────────────────────────────────────────────────
 
       getActiveAlert: () => get().alerts.find(a => a.isActive) || null,
@@ -565,6 +793,7 @@ export const useStore = create<AppState>()(
         activityLogs: state.activityLogs,
         zones: state.zones,
         locations: state.locations,
+        ecoAssignments: state.ecoAssignments,
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
       }),

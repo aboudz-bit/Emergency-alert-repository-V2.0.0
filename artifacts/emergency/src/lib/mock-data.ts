@@ -59,7 +59,7 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment } from '@/types';
 
 export const seedUsers: User[] = names.map((name, i) => {
   const isCpf = i < 30;
@@ -227,6 +227,69 @@ export const seedSettings: AppSettings = {
   wifiAndMobileData: true,
   systemVersion: '2.0.0-phase2',
 };
+
+// ─── Seed ECO assignments ────────────────────────────────────────────────────
+
+// ECO A is assigned to user index 5 (Nasser Al-Qahtani) for CPF
+// ECO B and C are empty slots
+export const seedEcoAssignments: EcoAssignment[] = [
+  {
+    ecoSlot: 'A',
+    assignedUserId: 6, // Nasser Al-Qahtani (id = index+1)
+    assignedUserName: 'Nasser Al-Qahtani',
+    assignedUserBadge: '103618',
+    assignedZoneId: 1,
+    assignedZoneName: 'CPF',
+    active: true,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    notes: 'Primary ECO for CPF operations',
+  },
+  {
+    ecoSlot: 'B',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedByUserId: null,
+    assignedByName: null,
+    assignedAt: null,
+  },
+  {
+    ecoSlot: 'C',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedByUserId: null,
+    assignedByName: null,
+    assignedAt: null,
+  },
+];
+
+// Apply ECO flags to the seed user who is assigned as ECO A
+const ecoUserId = 6; // Nasser Al-Qahtani
+const ecoUserIdx = seedUsers.findIndex(u => u.id === ecoUserId);
+if (ecoUserIdx >= 0) {
+  seedUsers[ecoUserIdx] = {
+    ...seedUsers[ecoUserIdx],
+    isECOAssigned: true,
+    ecoSlot: 'A',
+    ecoZoneId: 1,
+    ecoZoneName: 'CPF',
+    ecoAssignmentActive: true,
+    ecoAssignedAt: seedEcoAssignments[0].assignedAt,
+    ecoAssignedByUserId: 1,
+    ecoAssignedByName: 'Abdullah Al-Rashidi',
+    originalLocation: seedUsers[ecoUserIdx].location,
+    currentOperationalLocation: 'CCR',
+  };
+}
 
 // Legacy store shim — keep for any file that hasn't been updated yet
 export const store = {

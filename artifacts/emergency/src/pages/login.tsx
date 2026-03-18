@@ -22,6 +22,7 @@ export default function Login() {
     if (isAuthenticated && currentUser) {
       if (currentUser.role === 'Super Admin') setLocation('/admin');
       else if (currentUser.role === 'IT') setLocation('/it');
+      else if (currentUser.isECOAssigned && currentUser.ecoAssignmentActive) setLocation('/eco');
       else setLocation('/mobile/home');
     }
   }, [isAuthenticated, currentUser]);
@@ -40,8 +41,11 @@ export default function Login() {
         return;
       }
 
+      // Get the user from store to check ECO assignment
+      const loggedInUser = useStore.getState().currentUser;
       if (role === 'Super Admin') setLocation('/admin');
       else if (role === 'IT') setLocation('/it');
+      else if (loggedInUser?.isECOAssigned && loggedInUser.ecoAssignmentActive) setLocation('/eco');
       else setLocation('/mobile/home');
     }, 600);
   };

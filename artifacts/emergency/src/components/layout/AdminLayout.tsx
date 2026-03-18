@@ -15,6 +15,7 @@ const menuItems = [
   { path: '/admin/zones', icon: Map, label: 'Zones' },
   { path: '/admin/locations', icon: MapPin, label: 'Locations' },
   { path: '/admin/users', icon: Users, label: 'Users' },
+  { path: '/admin/eco-management', icon: ShieldAlert, label: 'ECO Mgmt' },
   { path: '/admin/history', icon: History, label: 'History' },
   { path: '/admin/audit-log', icon: ClipboardList, label: 'Audit Log' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
