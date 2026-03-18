@@ -66,6 +66,11 @@ interface AppState {
   updateSettings: (partial: Partial<AppSettings>) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id'>) => void;
 
+  setExpectedManpower: (locationId: number, count: number) => void;
+  assignPersonnelToLocation: (userId: number, locationId: number) => void;
+  removePersonnelFromLocation: (userId: number) => void;
+  startAccountability: (locationId: number) => void;
+
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
 }
@@ -548,6 +553,55 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      setExpectedManpower: (locationId, count) => {
+        set(s => ({
+          locations: s.locations.map(l =>
+            l.id === locationId ? { ...l, expectedManpower: count } : l,
+          ),
+        }));
+      },
+
+      assignPersonnelToLocation: (userId, locationId) => {
+        const loc = get().locations.find(l => l.id === locationId);
+        if (!loc) return;
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? { ...u, location: loc.name, locationId: loc.id, zone: loc.zone, zoneId: loc.zoneId }
+              : u,
+          ),
+        }));
+      },
+
+      removePersonnelFromLocation: (userId) => {
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? { ...u, location: '', locationId: 0 }
+              : u,
+          ),
+        }));
+      },
+
+      startAccountability: (locationId) => {
+        const loc = get().locations.find(l => l.id === locationId);
+        if (!loc) return;
+        // Reset all personnel at this location to no_reply for fresh accountability
+        set(s => ({
+          users: s.users.map(u =>
+            u.locationId === locationId && u.isActive
+              ? { ...u, status: 'no_reply' as UserResponseStatus }
+              : u,
+          ),
+        }));
+        get().addActivityLog({
+          type: 'action',
+          message: `Accountability started for ${loc.name} by ${get().currentUser?.name ?? 'Supervisor'}.`,
+          timestamp: new Date().toISOString(),
+          actorName: get().currentUser?.name ?? undefined,
+        });
+      },
+
       updateSettings: (partial) => set(s => ({ settings: { ...s.settings, ...partial } })),
 
       addActivityLog: (log) => {
@@ -563,8 +617,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v5',
-      version: 5,
+      name: 'keas-mobile-store-v6',
+      version: 6,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -638,6 +692,15 @@ export const useStore = create<AppState>()(
           state.locations = seedLocations;
           state.users = seedUsers;
           state.supervisorAssignments = seedSupervisorAssignments;
+        }
+        if (version < 6) {
+          // Backfill expectedManpower on locations
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((loc: any) => ({
+              ...loc,
+              expectedManpower: loc.expectedManpower ?? 0,
+            }));
+          }
         }
         return persisted as AppState;
       },

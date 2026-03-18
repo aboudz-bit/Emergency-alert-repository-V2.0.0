@@ -98,6 +98,7 @@ export interface Location {
   name: string;
   zone: string;
   zoneId: number;
+  expectedManpower: number;
   isActive: boolean;
   alertActive: boolean;
   alertType: LocationAlertType | null;

@@ -103,8 +103,11 @@ export const seedZones: Zone[] = [
   },
 ];
 
+// expectedManpower per location — 50 users across 7 locations (50/7 ≈ 7-8 each)
+const _expectedManpower = [8, 8, 8, 7, 7, 6, 6];
 export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
   id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
+  expectedManpower: _expectedManpower[i],
   isActive: true, alertActive: false, alertType: null, alertPriority: null,
   alertMessage: '', alertUpdatedAt: null, alertHistory: [],
 }));
