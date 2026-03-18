@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { useLocation, Link } from 'wouter';
-import { ShieldAlert, AlertCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle, RotateCcw, ChevronRight } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore } from '@/store';
 import type { UserRole } from '@/types';
 
+const demoAccounts = [
+  { badge: '102934', password: 'demo1234', role: 'Super Admin' as UserRole, label: 'Super Admin (Abdullah)', dest: '/admin', description: 'Full admin panel, ECO & Supervisor management' },
+  { badge: '104822', password: 'demo1234', role: 'IT' as UserRole, label: 'IT Support (Khalid)', dest: '/it', description: 'IT support dashboard' },
+  { badge: '103618', password: 'demo1234', role: 'User' as UserRole, label: 'ECO A (Nasser)', dest: '/eco', description: 'ECO dashboard — assigned to CPF zone' },
+  { badge: '108291', password: 'demo1234', role: 'User' as UserRole, label: 'Supervisor OT-1 (Mohammed)', dest: '/supervisor', description: 'Supervisor dashboard — OT-1 location' },
+  { badge: '105477', password: 'demo1234', role: 'User' as UserRole, label: 'Backup Supervisor OT-1 (Faisal)', dest: '/supervisor', description: 'Supervisor dashboard (read-only) — OT-1 backup' },
+  { badge: '107543', password: 'demo1234', role: 'User' as UserRole, label: 'Normal User (Saeed)', dest: '/mobile/home', description: 'Standard user mobile view — no special assignment' },
+];
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const login = useStore(s => s.login);
+  const resetToSeedData = useStore(s => s.resetToSeedData);
   const isAuthenticated = useStore(s => s.isAuthenticated);
   const currentUser = useStore(s => s.currentUser);
 
-  const [role, setRole] = useState<UserRole>('Super Admin');
   const [badge, setBadge] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect if already authenticated
-  // Priority: Super Admin > IT > ECO > Supervisor/Backup > normal user
   React.useEffect(() => {
     if (isAuthenticated && currentUser) {
       if (currentUser.role === 'Super Admin') setLocation('/admin');
@@ -29,37 +36,48 @@ export default function Login() {
     }
   }, [isAuthenticated, currentUser]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = (b: string, p: string, roleOverride?: UserRole) => {
     setError('');
     setIsLoading(true);
-
     setTimeout(() => {
-      const result = login(badge, password, role);
+      const result = login(b, p, roleOverride);
       setIsLoading(false);
-
       if (!result.success) {
         setError(result.error || 'Login failed.');
         return;
       }
-
-      // Get the user from store to check assignment-based routing
-      // Priority: ECO > Supervisor/Backup > normal user
       const loggedInUser = useStore.getState().currentUser;
-      if (role === 'Super Admin') setLocation('/admin');
-      else if (role === 'IT') setLocation('/it');
-      else if (loggedInUser?.isECOAssigned && loggedInUser.ecoAssignmentActive) setLocation('/eco');
-      else if ((loggedInUser?.isSupervisorAssigned || loggedInUser?.isBackupSupervisorAssigned) && loggedInUser?.supervisorAssignmentActive) setLocation('/supervisor');
+      if (!loggedInUser) return;
+      if (loggedInUser.role === 'Super Admin') setLocation('/admin');
+      else if (loggedInUser.role === 'IT') setLocation('/it');
+      else if (loggedInUser.isECOAssigned && loggedInUser.ecoAssignmentActive) setLocation('/eco');
+      else if ((loggedInUser.isSupervisorAssigned || loggedInUser.isBackupSupervisorAssigned) && loggedInUser.supervisorAssignmentActive) setLocation('/supervisor');
       else setLocation('/mobile/home');
-    }, 600);
+    }, 400);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doLogin(badge, password);
+  };
+
+  const handleQuickLogin = (account: typeof demoAccounts[0]) => {
+    doLogin(account.badge, account.password, account.role);
+  };
+
+  const handleReset = () => {
+    resetToSeedData();
+    setError('');
+    setBadge('');
+    setPassword('');
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-10">
+      <div className="w-full max-w-lg relative z-10">
+        <div className="text-center mb-8">
           <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-lg shadow-primary/10">
             <ShieldAlert className="w-10 h-10 text-primary" />
           </div>
@@ -67,9 +85,53 @@ export default function Login() {
           <p className="text-primary font-medium tracking-wide uppercase text-sm">Authorized Personnel Only</p>
         </div>
 
-        <div className="bg-card border border-border shadow-2xl rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
+        <div className="bg-card border border-border shadow-2xl rounded-2xl p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick Demo Login</h2>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Demo Data
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {demoAccounts.map(account => (
+              <button
+                key={account.badge}
+                onClick={() => handleQuickLogin(account)}
+                disabled={isLoading}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-background hover:bg-muted/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-foreground">{account.label}</span>
+                    <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{account.badge}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.description}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{account.dest}</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg px-4 py-3 mb-4">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="bg-card border border-border shadow-2xl rounded-2xl p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Manual Login</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Badge Number</label>
               <input
                 type="text"
@@ -81,56 +143,27 @@ export default function Login() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Password</label>
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="demo1234"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               />
-              <p className="text-xs text-muted-foreground">Demo password: <span className="font-mono text-foreground">demo1234</span></p>
-              <p className="text-xs text-muted-foreground">ECO demo badge: <span className="font-mono text-foreground">103618</span> | Supervisor: <span className="font-mono text-foreground">108291</span></p>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg px-4 py-3">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <div className="pt-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">Demo Role Selector</label>
-              <div className="flex bg-background rounded-lg p-1 border border-border">
-                {(['User', 'IT', 'Super Admin'] as UserRole[]).map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={cn(
-                      'flex-1 text-sm py-2 rounded-md transition-all font-medium',
-                      role === r ? 'bg-card text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-2 text-center">Role determines your destination after login</p>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                'SECURE LOGIN'
+                'LOGIN'
               )}
             </button>
 
@@ -145,7 +178,7 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-muted-foreground text-xs mt-8">
+        <p className="text-center text-muted-foreground text-xs mt-6">
           Emergency Alert System v2.0 &nbsp;|&nbsp; KPC Operations
         </p>
       </div>

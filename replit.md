@@ -107,12 +107,12 @@ artifacts/emergency/
 ## Key Technical Details
 
 - **Zustand v5**: Always use `useShallow` from `@/store` when selecting multiple values or using selectors that return new arrays/objects (`.filter()`, `.map()`). Single-value/function selectors are safe without `useShallow`.
-- **Store version**: `keas-store-v3` — bump version when changing Zone/User type shapes to force fresh seed data
+- **Store version**: `keas-store-v4` — bump version when changing Zone/User type shapes to force fresh seed data
 - **Leaflet**: `react-leaflet` with CartoDB Voyager light tiles (`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`), no API key needed. Zones page uses a light professional theme (white/slate panels, blue accents) separate from the app's dark theme.
 - **Zone coordinates**: Real Khurais lat/lng (~25.08°N, 48.18°E)
 - **Responsive**: Desktop table → mobile card layout at `lg` (1024px) breakpoint. Sidebar auto-collapses on mobile with drawer overlay.
 - **Routing**: Wouter with `base={import.meta.env.BASE_URL}` (base is `/emergency/`)
-- **Demo login**: Badge 102934 (Super Admin), 110001 (IT), 123456 (User); password `demo1234`
+- **Demo login**: Badge 102934 (Super Admin), 104822 (IT), 103618 (ECO→/eco), 108291 (Supervisor→/supervisor), 105477 (Backup→/supervisor), 107543 (Normal User→/mobile/home); password `demo1234`. Login page has one-tap quick demo buttons. "Reset Demo Data" button clears stale localStorage.
 
 ## Mobile App (KEAS)
 

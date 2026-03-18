@@ -54,6 +54,7 @@ interface AppState {
   // ── Auth actions ────────────────────────────────────────────────────────────
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
+  resetToSeedData: () => void;
   registerUser: (data: { name: string; badge: string; password: string; zone: 'CPF' | 'Camp'; location: string }) => { success: boolean; error?: string };
 
   // ── User/Admin management ────────────────────────────────────────────────────
@@ -142,12 +143,15 @@ export const useStore = create<AppState>()(
       // ── Auth ──────────────────────────────────────────────────────────────────
 
       login: (badge, password, roleOverride) => {
-        const { users } = get();
+        const { users, ecoAssignments, supervisorAssignments } = get();
 
-        // Demo shortcut: if badge is demo credential, auto-match first user of role
         let user: User | undefined;
 
-        if (roleOverride) {
+        if (badge && badge.trim()) {
+          user = users.find(u => u.badge === badge.trim());
+        }
+
+        if (!user && roleOverride) {
           if (roleOverride === 'Super Admin') {
             user = users.find(u => u.role === 'Super Admin' && u.accountStatus === 'active');
           } else if (roleOverride === 'IT') {
@@ -155,13 +159,56 @@ export const useStore = create<AppState>()(
           } else {
             user = users.find(u => u.role === 'User' && u.accountStatus === 'active');
           }
-        } else {
-          user = users.find(u => u.badge === badge);
         }
 
         if (!user) return { success: false, error: 'Badge number not found.' };
         if (user.accountStatus === 'disabled') return { success: false, error: 'Account is disabled. Contact IT.' };
         if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
+
+        const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
+        if (ecoA) {
+          user = {
+            ...user,
+            isECOAssigned: true,
+            ecoSlot: ecoA.ecoSlot,
+            ecoZoneId: ecoA.assignedZoneId ?? undefined,
+            ecoZoneName: ecoA.assignedZoneName ?? undefined,
+            ecoAssignmentActive: true,
+            ecoAssignedAt: ecoA.assignedAt ?? undefined,
+            ecoAssignedByUserId: ecoA.assignedByUserId ?? undefined,
+            ecoAssignedByName: ecoA.assignedByName ?? undefined,
+          };
+        }
+
+        const supA = supervisorAssignments.find(a => a.supervisorUserId === user!.id && a.supervisorActive);
+        if (supA) {
+          user = {
+            ...user,
+            isSupervisorAssigned: true,
+            supervisorLocationId: supA.locationId,
+            supervisorLocationName: supA.locationName,
+            supervisorZoneName: supA.zoneName,
+            supervisorAssignmentActive: true,
+            supervisorAssignedAt: supA.assignedAt ?? undefined,
+            supervisorAssignedByUserId: supA.assignedByUserId ?? undefined,
+            supervisorAssignedByName: supA.assignedByName ?? undefined,
+          };
+        }
+
+        const backA = supervisorAssignments.find(a => a.backupSupervisorUserId === user!.id && a.backupActive);
+        if (backA) {
+          user = {
+            ...user,
+            isBackupSupervisorAssigned: true,
+            supervisorLocationId: backA.locationId,
+            supervisorLocationName: backA.locationName,
+            supervisorZoneName: backA.zoneName,
+            supervisorAssignmentActive: true,
+            supervisorAssignedAt: backA.assignedAt ?? undefined,
+            supervisorAssignedByUserId: backA.assignedByUserId ?? undefined,
+            supervisorAssignedByName: backA.assignedByName ?? undefined,
+          };
+        }
 
         set({ isAuthenticated: true, currentUser: user, mobileUserResponse: null });
         get().addActivityLog({
@@ -176,6 +223,24 @@ export const useStore = create<AppState>()(
 
       logout: () => {
         set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null });
+      },
+
+      resetToSeedData: () => {
+        set({
+          isAuthenticated: false,
+          currentUser: null,
+          mobileUserResponse: null,
+          users: seedUsers,
+          alerts: seedAlerts,
+          zones: seedZones,
+          locations: seedLocations,
+          settings: seedSettings,
+          activityLogs: seedActivityLogs,
+          ecoAssignments: seedEcoAssignments,
+          supervisorAssignments: seedSupervisorAssignments,
+          auditLog: [],
+          activeBroadcast: null,
+        });
       },
 
       registerUser: ({ name, badge, password, zone, location }) => {
@@ -1089,7 +1154,7 @@ export const useStore = create<AppState>()(
       getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
     }),
     {
-      name: 'keas-store-v3',
+      name: 'keas-store-v4',
       storage: createJSONStorage(() => localStorage),
       // Only persist auth + mobileResponse; data is always re-seeded unless already stored
       partialize: (state) => ({
