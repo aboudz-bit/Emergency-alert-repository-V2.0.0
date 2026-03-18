@@ -167,7 +167,7 @@ artifacts/mobile/
 - **Zone Map Architecture (Google Maps target)**:
   - `components/map/` — unified map abstraction layer
     - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
-    - `ZoneMap.tsx` — provider router: Google Maps on native (FINAL), Leaflet iframe on web preview (TEMPORARY fallback)
+    - `ZoneMap.tsx` — provider router: Leaflet iframe on web (active fallback), placeholder on native until Google Maps API key configured
     - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, light styled map, zone polygons, labels, selection + vertex drag editing
     - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB Voyager light tiles + vertex drag editing). Will be removed when shipping native.
     - `index.ts` — barrel export

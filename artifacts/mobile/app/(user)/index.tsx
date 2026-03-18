@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import * as ExpoLocation from "expo-location";
 
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -119,16 +120,32 @@ export default function UserHomeScreen() {
   }, [userLocation, activeShelters]);
 
   useEffect(() => {
-    if (Platform.OS !== "web" || !navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGpsError(false);
-      },
-      () => setGpsError(true),
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
+    let sub: ExpoLocation.LocationSubscription | undefined;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status !== "granted" || cancelled) {
+          if (!cancelled) setGpsError(true);
+          return;
+        }
+        sub = await ExpoLocation.watchPositionAsync(
+          { accuracy: ExpoLocation.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
+          (loc) => {
+            setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+            setGpsError(false);
+          },
+        );
+      } catch {
+        if (!cancelled) setGpsError(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
   }, []);
 
   const handleShelterPress = useCallback((id: number) => {

@@ -6,6 +6,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { Colors } from "@/constants/theme";
 import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
