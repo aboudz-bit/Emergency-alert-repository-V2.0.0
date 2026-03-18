@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import {
   LayoutDashboard, Bell, RadioTower, Map, MapPin,
   Users, History, Settings, LogOut, ShieldAlert, ChevronLeft, Menu, X,
-  ClipboardList, Volume2, Radio,
+  ClipboardList, Volume2, Radio, Shield,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { useStore } from '@/store';
@@ -16,6 +16,7 @@ const menuItems = [
   { path: '/admin/locations', icon: MapPin, label: 'Locations' },
   { path: '/admin/users', icon: Users, label: 'Users' },
   { path: '/admin/eco-management', icon: ShieldAlert, label: 'ECO Mgmt' },
+  { path: '/admin/supervisor-management', icon: Shield, label: 'Supervisors' },
   { path: '/admin/history', icon: History, label: 'History' },
   { path: '/admin/audit-log', icon: ClipboardList, label: 'Audit Log' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },

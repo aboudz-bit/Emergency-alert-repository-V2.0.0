@@ -18,11 +18,13 @@ export default function Login() {
   const [error, setError] = useState('');
 
   // Redirect if already authenticated
+  // Priority: Super Admin > IT > ECO > Supervisor/Backup > normal user
   React.useEffect(() => {
     if (isAuthenticated && currentUser) {
       if (currentUser.role === 'Super Admin') setLocation('/admin');
       else if (currentUser.role === 'IT') setLocation('/it');
       else if (currentUser.isECOAssigned && currentUser.ecoAssignmentActive) setLocation('/eco');
+      else if ((currentUser.isSupervisorAssigned || currentUser.isBackupSupervisorAssigned) && currentUser.supervisorAssignmentActive) setLocation('/supervisor');
       else setLocation('/mobile/home');
     }
   }, [isAuthenticated, currentUser]);
@@ -41,11 +43,13 @@ export default function Login() {
         return;
       }
 
-      // Get the user from store to check ECO assignment
+      // Get the user from store to check assignment-based routing
+      // Priority: ECO > Supervisor/Backup > normal user
       const loggedInUser = useStore.getState().currentUser;
       if (role === 'Super Admin') setLocation('/admin');
       else if (role === 'IT') setLocation('/it');
       else if (loggedInUser?.isECOAssigned && loggedInUser.ecoAssignmentActive) setLocation('/eco');
+      else if ((loggedInUser?.isSupervisorAssigned || loggedInUser?.isBackupSupervisorAssigned) && loggedInUser?.supervisorAssignmentActive) setLocation('/supervisor');
       else setLocation('/mobile/home');
     }, 600);
   };
@@ -88,7 +92,7 @@ export default function Login() {
                 className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               />
               <p className="text-xs text-muted-foreground">Demo password: <span className="font-mono text-foreground">demo1234</span></p>
-              <p className="text-xs text-muted-foreground">ECO demo badge: <span className="font-mono text-foreground">103618</span></p>
+              <p className="text-xs text-muted-foreground">ECO demo badge: <span className="font-mono text-foreground">103618</span> | Supervisor: <span className="font-mono text-foreground">108291</span></p>
             </div>
 
             {error && (

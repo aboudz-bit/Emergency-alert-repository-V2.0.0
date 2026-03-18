@@ -6,10 +6,12 @@ import type {
   ActivityLog, UserRole, UserResponseStatus, AlertType, ZoneType,
   AuditLogEntry, AuditActionType, DeliveryChannel, AuditTargetType,
   EcoAssignment, EcoSlot,
+  SupervisorAssignment,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings, seedEcoAssignments,
+  seedSupervisorAssignments,
 } from '@/lib/mock-data';
 
 // ─── State shape ──────────────────────────────────────────────────────────────
@@ -32,6 +34,9 @@ interface AppState {
 
   // ECO assignments
   ecoAssignments: EcoAssignment[];
+
+  // Supervisor assignments (per-location)
+  supervisorAssignments: SupervisorAssignment[];
 
   // Audit log (system-wide operational log)
   auditLog: AuditLogEntry[];
@@ -74,6 +79,16 @@ interface AppState {
   toggleECOActive: (slot: EcoSlot) => void;
   getEcoAssignment: (slot: EcoSlot) => EcoAssignment | undefined;
   getCurrentUserEcoAssignment: () => EcoAssignment | null;
+
+  // ── Supervisor actions ──────────────────────────────────────────────────────
+  assignSupervisor: (locationId: number, userId: number, notes?: string) => void;
+  assignBackupSupervisor: (locationId: number, userId: number, notes?: string) => void;
+  removeSupervisor: (locationId: number) => void;
+  removeBackupSupervisor: (locationId: number) => void;
+  toggleSupervisorActive: (locationId: number) => void;
+  toggleBackupSupervisorActive: (locationId: number) => void;
+  updateLocationManpower: (locationId: number, totalManpower: number) => void;
+  getSupervisorAssignment: (locationId: number) => SupervisorAssignment | undefined;
 
   // ── Mobile response ─────────────────────────────────────────────────────────
   respondToAlert: (response: 'confirmed' | 'need_help') => void;
@@ -120,6 +135,7 @@ export const useStore = create<AppState>()(
       activityLogs: seedActivityLogs,
       mobileUserResponse: null,
       ecoAssignments: seedEcoAssignments,
+      supervisorAssignments: seedSupervisorAssignments,
       auditLog: [],
       activeBroadcast: null,
 
@@ -553,6 +569,251 @@ export const useStore = create<AppState>()(
         set({ activeBroadcast: null });
       },
 
+      // ── Supervisor actions ─────────────────────────────────────────────────
+
+      assignSupervisor: (locationId, userId, notes) => {
+        const { users, currentUser, supervisorAssignments, locations } = get();
+        const targetUser = users.find(u => u.id === userId);
+        const loc = locations.find(l => l.id === locationId);
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!targetUser || !loc) return;
+
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const prevUserId = assignment?.supervisorUserId;
+        const isReassign = prevUserId != null && prevUserId !== userId;
+
+        // Clear previous supervisor's flags if reassigning
+        if (isReassign && prevUserId) {
+          set(s => ({
+            users: s.users.map(u => u.id === prevUserId ? {
+              ...u, isSupervisorAssigned: false, supervisorLocationId: null, supervisorLocationName: null,
+              supervisorZoneName: null, supervisorAssignmentActive: false, supervisorAssignedAt: null,
+              supervisorAssignedByUserId: null, supervisorAssignedByName: null,
+            } : u),
+          }));
+        }
+
+        // Clear target user from any other supervisor slot
+        const existingAssignment = supervisorAssignments.find(a => a.supervisorUserId === userId && a.locationId !== locationId);
+        if (existingAssignment) {
+          set(s => ({
+            supervisorAssignments: s.supervisorAssignments.map(a =>
+              a.locationId === existingAssignment.locationId ? { ...a, supervisorUserId: null, supervisorUserName: null, supervisorUserBadge: null, supervisorActive: false } : a,
+            ),
+          }));
+        }
+
+        // Update or create assignment
+        const updatedAssignment: SupervisorAssignment = {
+          locationId, locationName: loc.name, zoneName: loc.zone,
+          supervisorUserId: userId, supervisorUserName: targetUser.name, supervisorUserBadge: targetUser.badge,
+          backupSupervisorUserId: assignment?.backupSupervisorUserId ?? null,
+          backupSupervisorUserName: assignment?.backupSupervisorUserName ?? null,
+          backupSupervisorUserBadge: assignment?.backupSupervisorUserBadge ?? null,
+          supervisorActive: true,
+          backupActive: assignment?.backupActive ?? false,
+          totalManpower: assignment?.totalManpower ?? loc.totalManpower ?? 0,
+          assignedByUserId: adminId, assignedByName: adminName, assignedAt: now,
+          notes: notes || assignment?.notes || '',
+        };
+
+        set(s => {
+          const exists = s.supervisorAssignments.some(a => a.locationId === locationId);
+          return {
+            supervisorAssignments: exists
+              ? s.supervisorAssignments.map(a => a.locationId === locationId ? updatedAssignment : a)
+              : [...s.supervisorAssignments, updatedAssignment],
+            users: s.users.map(u => u.id === userId ? {
+              ...u, isSupervisorAssigned: true, isBackupSupervisorAssigned: false,
+              supervisorLocationId: locationId, supervisorLocationName: loc.name, supervisorZoneName: loc.zone,
+              supervisorAssignmentActive: true, supervisorAssignedAt: now,
+              supervisorAssignedByUserId: adminId, supervisorAssignedByName: adminName,
+            } : u),
+          };
+        });
+
+        get().addAuditEntry({
+          timestamp: now, actionType: isReassign ? 'supervisor_reassigned' : 'supervisor_assigned',
+          zoneName: loc.zone, alertType: 'Custom', priority: 'Medium',
+          message: `Supervisor ${isReassign ? 'reassigned' : 'assigned'}: ${targetUser.name} → ${loc.name} (${loc.zone})`,
+          triggeredByUserId: adminId, triggeredByName: adminName,
+          targetType: 'location', targetName: loc.name, channelUsed: 'app', notes: notes || undefined,
+        });
+        get().addActivityLog({ type: 'action', message: `Supervisor ${isReassign ? 'reassigned' : 'assigned'}: ${targetUser.name} → ${loc.name} by ${adminName}.`, timestamp: now, actorId: adminId ?? undefined, actorName: adminName });
+      },
+
+      assignBackupSupervisor: (locationId, userId, notes) => {
+        const { users, currentUser, supervisorAssignments, locations } = get();
+        const targetUser = users.find(u => u.id === userId);
+        const loc = locations.find(l => l.id === locationId);
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!targetUser || !loc) return;
+
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const prevUserId = assignment?.backupSupervisorUserId;
+        const isReassign = prevUserId != null && prevUserId !== userId;
+
+        if (isReassign && prevUserId) {
+          set(s => ({
+            users: s.users.map(u => u.id === prevUserId ? {
+              ...u, isBackupSupervisorAssigned: false, supervisorLocationId: null, supervisorLocationName: null,
+              supervisorZoneName: null, supervisorAssignmentActive: false, supervisorAssignedAt: null,
+              supervisorAssignedByUserId: null, supervisorAssignedByName: null,
+            } : u),
+          }));
+        }
+
+        // Clear target user from any other backup slot
+        const existingBackup = supervisorAssignments.find(a => a.backupSupervisorUserId === userId && a.locationId !== locationId);
+        if (existingBackup) {
+          set(s => ({
+            supervisorAssignments: s.supervisorAssignments.map(a =>
+              a.locationId === existingBackup.locationId ? { ...a, backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null, backupActive: false } : a,
+            ),
+          }));
+        }
+
+        const updatedAssignment: SupervisorAssignment = {
+          locationId, locationName: loc.name, zoneName: loc.zone,
+          supervisorUserId: assignment?.supervisorUserId ?? null,
+          supervisorUserName: assignment?.supervisorUserName ?? null,
+          supervisorUserBadge: assignment?.supervisorUserBadge ?? null,
+          backupSupervisorUserId: userId, backupSupervisorUserName: targetUser.name, backupSupervisorUserBadge: targetUser.badge,
+          supervisorActive: assignment?.supervisorActive ?? false,
+          backupActive: true,
+          totalManpower: assignment?.totalManpower ?? loc.totalManpower ?? 0,
+          assignedByUserId: adminId, assignedByName: adminName, assignedAt: now,
+          notes: notes || assignment?.notes || '',
+        };
+
+        set(s => {
+          const exists = s.supervisorAssignments.some(a => a.locationId === locationId);
+          return {
+            supervisorAssignments: exists
+              ? s.supervisorAssignments.map(a => a.locationId === locationId ? updatedAssignment : a)
+              : [...s.supervisorAssignments, updatedAssignment],
+            users: s.users.map(u => u.id === userId ? {
+              ...u, isBackupSupervisorAssigned: true, isSupervisorAssigned: false,
+              supervisorLocationId: locationId, supervisorLocationName: loc.name, supervisorZoneName: loc.zone,
+              supervisorAssignmentActive: true, supervisorAssignedAt: now,
+              supervisorAssignedByUserId: adminId, supervisorAssignedByName: adminName,
+            } : u),
+          };
+        });
+
+        get().addAuditEntry({
+          timestamp: now, actionType: isReassign ? 'backup_supervisor_reassigned' : 'backup_supervisor_assigned',
+          zoneName: loc.zone, alertType: 'Custom', priority: 'Medium',
+          message: `Backup Supervisor ${isReassign ? 'reassigned' : 'assigned'}: ${targetUser.name} → ${loc.name} (${loc.zone})`,
+          triggeredByUserId: adminId, triggeredByName: adminName,
+          targetType: 'location', targetName: loc.name, channelUsed: 'app', notes: notes || undefined,
+        });
+        get().addActivityLog({ type: 'action', message: `Backup Supervisor ${isReassign ? 'reassigned' : 'assigned'}: ${targetUser.name} → ${loc.name} by ${adminName}.`, timestamp: now, actorId: adminId ?? undefined, actorName: adminName });
+      },
+
+      removeSupervisor: (locationId) => {
+        const { supervisorAssignments, currentUser } = get();
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!assignment?.supervisorUserId) return;
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const removedId = assignment.supervisorUserId;
+        const removedName = assignment.supervisorUserName || 'Unknown';
+
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a => a.locationId === locationId ? {
+            ...a, supervisorUserId: null, supervisorUserName: null, supervisorUserBadge: null, supervisorActive: false,
+          } : a),
+          users: s.users.map(u => u.id === removedId ? {
+            ...u, isSupervisorAssigned: false, supervisorLocationId: null, supervisorLocationName: null,
+            supervisorZoneName: null, supervisorAssignmentActive: false, supervisorAssignedAt: null,
+            supervisorAssignedByUserId: null, supervisorAssignedByName: null,
+          } : u),
+        }));
+        if (currentUser?.id === removedId) set(s => ({ currentUser: s.users.find(u => u.id === removedId) || null }));
+        get().addAuditEntry({ timestamp: now, actionType: 'supervisor_removed', zoneName: assignment.zoneName, alertType: 'Custom', priority: 'Medium', message: `Supervisor removed: ${removedName} from ${assignment.locationName}`, triggeredByUserId: adminId, triggeredByName: adminName, targetType: 'location', targetName: assignment.locationName, channelUsed: 'app' });
+        get().addActivityLog({ type: 'action', message: `Supervisor removed (${removedName}) from ${assignment.locationName} by ${adminName}.`, timestamp: now, actorId: adminId ?? undefined, actorName: adminName });
+      },
+
+      removeBackupSupervisor: (locationId) => {
+        const { supervisorAssignments, currentUser } = get();
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!assignment?.backupSupervisorUserId) return;
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        const removedId = assignment.backupSupervisorUserId;
+        const removedName = assignment.backupSupervisorUserName || 'Unknown';
+
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a => a.locationId === locationId ? {
+            ...a, backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null, backupActive: false,
+          } : a),
+          users: s.users.map(u => u.id === removedId ? {
+            ...u, isBackupSupervisorAssigned: false, supervisorLocationId: null, supervisorLocationName: null,
+            supervisorZoneName: null, supervisorAssignmentActive: false, supervisorAssignedAt: null,
+            supervisorAssignedByUserId: null, supervisorAssignedByName: null,
+          } : u),
+        }));
+        if (currentUser?.id === removedId) set(s => ({ currentUser: s.users.find(u => u.id === removedId) || null }));
+        get().addAuditEntry({ timestamp: now, actionType: 'backup_supervisor_removed', zoneName: assignment.zoneName, alertType: 'Custom', priority: 'Medium', message: `Backup Supervisor removed: ${removedName} from ${assignment.locationName}`, triggeredByUserId: adminId, triggeredByName: adminName, targetType: 'location', targetName: assignment.locationName, channelUsed: 'app' });
+        get().addActivityLog({ type: 'action', message: `Backup Supervisor removed (${removedName}) from ${assignment.locationName} by ${adminName}.`, timestamp: now, actorId: adminId ?? undefined, actorName: adminName });
+      },
+
+      toggleSupervisorActive: (locationId) => {
+        const { supervisorAssignments, currentUser } = get();
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!assignment?.supervisorUserId) return;
+        const now = new Date().toISOString();
+        const newActive = !assignment.supervisorActive;
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a => a.locationId === locationId ? { ...a, supervisorActive: newActive } : a),
+          users: s.users.map(u => u.id === assignment.supervisorUserId ? { ...u, supervisorAssignmentActive: newActive } : u),
+        }));
+        if (currentUser?.id === assignment.supervisorUserId) set(s => ({ currentUser: s.users.find(u => u.id === assignment.supervisorUserId) || null }));
+        get().addAuditEntry({ timestamp: now, actionType: newActive ? 'supervisor_activated' : 'supervisor_deactivated', zoneName: assignment.zoneName, alertType: 'Custom', priority: 'Medium', message: `Supervisor ${newActive ? 'activated' : 'deactivated'}: ${assignment.supervisorUserName} at ${assignment.locationName}`, triggeredByUserId: adminId, triggeredByName: adminName, targetType: 'location', targetName: assignment.locationName, channelUsed: 'app' });
+      },
+
+      toggleBackupSupervisorActive: (locationId) => {
+        const { supervisorAssignments, currentUser } = get();
+        const assignment = supervisorAssignments.find(a => a.locationId === locationId);
+        if (!assignment?.backupSupervisorUserId) return;
+        const now = new Date().toISOString();
+        const newActive = !assignment.backupActive;
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a => a.locationId === locationId ? { ...a, backupActive: newActive } : a),
+          users: s.users.map(u => u.id === assignment.backupSupervisorUserId ? { ...u, supervisorAssignmentActive: newActive } : u),
+        }));
+        if (currentUser?.id === assignment.backupSupervisorUserId) set(s => ({ currentUser: s.users.find(u => u.id === assignment.backupSupervisorUserId) || null }));
+        get().addAuditEntry({ timestamp: now, actionType: newActive ? 'backup_supervisor_activated' : 'backup_supervisor_deactivated', zoneName: assignment.zoneName, alertType: 'Custom', priority: 'Medium', message: `Backup Supervisor ${newActive ? 'activated' : 'deactivated'}: ${assignment.backupSupervisorUserName} at ${assignment.locationName}`, triggeredByUserId: adminId, triggeredByName: adminName, targetType: 'location', targetName: assignment.locationName, channelUsed: 'app' });
+      },
+
+      updateLocationManpower: (locationId, totalManpower) => {
+        const { supervisorAssignments, locations, currentUser } = get();
+        const loc = locations.find(l => l.id === locationId);
+        if (!loc) return;
+        const now = new Date().toISOString();
+        const adminName = currentUser?.name || 'System';
+        const adminId = currentUser?.id || null;
+        set(s => ({
+          locations: s.locations.map(l => l.id === locationId ? { ...l, totalManpower } : l),
+          supervisorAssignments: s.supervisorAssignments.map(a => a.locationId === locationId ? { ...a, totalManpower } : a),
+        }));
+        get().addAuditEntry({ timestamp: now, actionType: 'manpower_updated', zoneName: loc.zone, alertType: 'Custom', priority: 'Low', message: `Total manpower updated to ${totalManpower} for ${loc.name}`, triggeredByUserId: adminId, triggeredByName: adminName, targetType: 'location', targetName: loc.name, channelUsed: 'app' });
+        get().addActivityLog({ type: 'action', message: `Manpower updated: ${loc.name} → ${totalManpower} by ${adminName}.`, timestamp: now, actorId: adminId ?? undefined, actorName: adminName });
+      },
+
+      getSupervisorAssignment: (locationId) => get().supervisorAssignments.find(a => a.locationId === locationId),
+
       // ── ECO actions ─────────────────────────────────────────────────────────
 
       assignECO: (slot, userId, zoneId, zoneName, notes) => {
@@ -822,6 +1083,7 @@ export const useStore = create<AppState>()(
         zones: state.zones,
         locations: state.locations,
         ecoAssignments: state.ecoAssignments,
+        supervisorAssignments: state.supervisorAssignments,
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
       }),

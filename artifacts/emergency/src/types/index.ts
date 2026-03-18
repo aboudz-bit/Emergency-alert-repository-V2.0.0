@@ -45,6 +45,7 @@ export interface Location {
   name: string;
   zone: string;
   isActive: boolean;
+  totalManpower?: number;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -79,6 +80,17 @@ export interface User {
   ecoAssignedByName?: string | null;
   originalLocation?: string | null;
   currentOperationalLocation?: string | null;
+
+  // Supervisor / Backup Supervisor assignment fields (user remains role='User')
+  isSupervisorAssigned?: boolean;
+  isBackupSupervisorAssigned?: boolean;
+  supervisorLocationId?: number | null;
+  supervisorLocationName?: string | null;
+  supervisorZoneName?: string | null;
+  supervisorAssignmentActive?: boolean;
+  supervisorAssignedAt?: string | null;
+  supervisorAssignedByUserId?: number | null;
+  supervisorAssignedByName?: string | null;
 }
 
 // ─── ECO (Emergency Coordinator) ─────────────────────────────────────────────
@@ -106,6 +118,27 @@ export type EcoAuditActionType =
   | 'eco_activated'
   | 'eco_deactivated'
   | 'eco_removed';
+
+// ─── Supervisor ──────────────────────────────────────────────────────────────
+
+export interface SupervisorAssignment {
+  locationId: number;
+  locationName: string;
+  zoneName: string;
+  supervisorUserId: number | null;
+  supervisorUserName: string | null;
+  supervisorUserBadge: string | null;
+  backupSupervisorUserId: number | null;
+  backupSupervisorUserName: string | null;
+  backupSupervisorUserBadge: string | null;
+  supervisorActive: boolean;
+  backupActive: boolean;
+  totalManpower: number;
+  assignedByUserId: number | null;
+  assignedByName: string | null;
+  assignedAt: string | null;
+  notes: string;
+}
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
@@ -182,7 +215,18 @@ export type AuditActionType =
   | 'eco_reassigned'
   | 'eco_activated'
   | 'eco_deactivated'
-  | 'eco_removed';
+  | 'eco_removed'
+  | 'supervisor_assigned'
+  | 'supervisor_reassigned'
+  | 'supervisor_removed'
+  | 'supervisor_activated'
+  | 'supervisor_deactivated'
+  | 'backup_supervisor_assigned'
+  | 'backup_supervisor_reassigned'
+  | 'backup_supervisor_removed'
+  | 'backup_supervisor_activated'
+  | 'backup_supervisor_deactivated'
+  | 'manpower_updated';
 
 export type AuditTargetType = 'location' | 'zone' | 'broadcast';
 

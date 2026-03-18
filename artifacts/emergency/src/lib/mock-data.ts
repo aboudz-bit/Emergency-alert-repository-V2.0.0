@@ -59,7 +59,7 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
 
 export const seedUsers: User[] = names.map((name, i) => {
   const isCpf = i < 30;
@@ -195,9 +195,13 @@ export const seedZones: Zone[] = [
   },
 ];
 
+// Manpower distribution for CPF locations (30 CPF users across 15 locations)
+const cpfManpower = [4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1];
+const campManpower = [3, 2, 2, 2, 2, 2, 2, 2, 3];
+
 export const seedLocations: Location[] = [
-  ...cpfLocations.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true })),
-  ...campLocations.map((name, i) => ({ id: cpfLocations.length + i + 1, name, zone: 'Camp' as const, isActive: true })),
+  ...cpfLocations.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true, totalManpower: cpfManpower[i] || 2 })),
+  ...campLocations.map((name, i) => ({ id: cpfLocations.length + i + 1, name, zone: 'Camp' as const, isActive: true, totalManpower: campManpower[i] || 2 })),
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
@@ -289,6 +293,73 @@ if (ecoUserIdx >= 0) {
     originalLocation: seedUsers[ecoUserIdx].location,
     currentOperationalLocation: 'CCR',
   };
+}
+
+// ─── Seed Supervisor assignments ──────────────────────────────────────────────
+
+// OT-1: Supervisor = Mohammed Al-Harbi (id=7), Backup = Faisal Al-Otaibi (id=8)
+// OT-2: Supervisor = Ali Al-Zahrani (id=9), no backup
+export const seedSupervisorAssignments: SupervisorAssignment[] = [
+  {
+    locationId: 2, // OT-1
+    locationName: 'OT-1',
+    zoneName: 'CPF',
+    supervisorUserId: 7,
+    supervisorUserName: 'Mohammed Al-Harbi',
+    supervisorUserBadge: '108291',
+    backupSupervisorUserId: 8,
+    backupSupervisorUserName: 'Faisal Al-Otaibi',
+    backupSupervisorUserBadge: '105477',
+    supervisorActive: true,
+    backupActive: true,
+    totalManpower: 2,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    notes: 'Primary OT-1 supervision',
+  },
+  {
+    locationId: 3, // OT-2
+    locationName: 'OT-2',
+    zoneName: 'CPF',
+    supervisorUserId: 9,
+    supervisorUserName: 'Ali Al-Zahrani',
+    supervisorUserBadge: '106832',
+    backupSupervisorUserId: null,
+    backupSupervisorUserName: null,
+    backupSupervisorUserBadge: null,
+    supervisorActive: true,
+    backupActive: false,
+    totalManpower: 2,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    notes: '',
+  },
+];
+
+// Apply supervisor flags to seed users
+const supervisorPairs: Array<{ userId: number; locId: number; locName: string; zone: string; isSupervisor: boolean }> = [
+  { userId: 7, locId: 2, locName: 'OT-1', zone: 'CPF', isSupervisor: true },
+  { userId: 8, locId: 2, locName: 'OT-1', zone: 'CPF', isSupervisor: false },
+  { userId: 9, locId: 3, locName: 'OT-2', zone: 'CPF', isSupervisor: true },
+];
+for (const sp of supervisorPairs) {
+  const idx = seedUsers.findIndex(u => u.id === sp.userId);
+  if (idx >= 0) {
+    seedUsers[idx] = {
+      ...seedUsers[idx],
+      isSupervisorAssigned: sp.isSupervisor,
+      isBackupSupervisorAssigned: !sp.isSupervisor,
+      supervisorLocationId: sp.locId,
+      supervisorLocationName: sp.locName,
+      supervisorZoneName: sp.zone,
+      supervisorAssignmentActive: true,
+      supervisorAssignedAt: seedSupervisorAssignments[0].assignedAt,
+      supervisorAssignedByUserId: 1,
+      supervisorAssignedByName: 'Abdullah Al-Rashidi',
+    };
+  }
 }
 
 // Legacy store shim — keep for any file that hasn't been updated yet
