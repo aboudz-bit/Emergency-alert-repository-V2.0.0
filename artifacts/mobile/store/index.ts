@@ -6,6 +6,7 @@ import type {
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
   EcoAssignment, SupervisorAssignment, Shelter,
+  UserType, ApprovalStatus,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -34,7 +35,13 @@ interface AppState {
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
-  registerUser: (data: { name: string; badge: string; password: string; zone: string; location: string }) => { success: boolean; error?: string };
+  registerUser: (data: {
+    name: string; badge: string; password: string; zone: string;
+    location: string; mobileNumber: string; userType: UserType;
+    role: UserRole | null;
+  }) => { success: boolean; error?: string };
+  approveUser: (userId: number, approverName: string, finalRole?: UserRole) => void;
+  rejectUser: (userId: number, approverName: string, reason?: string) => void;
 
   createSuperAdmin: (data: { name: string; badge: string; password: string }) => { success: boolean; error?: string };
   toggleAccountStatus: (userId: number) => void;
@@ -116,6 +123,8 @@ export const useStore = create<AppState>()(
 
         if (!user) return { success: false, error: 'Badge number not found.' };
         if (user.accountStatus === 'disabled') return { success: false, error: 'Account is disabled. Contact IT.' };
+        if (!roleOverride && user.approvalStatus === 'pending') return { success: false, error: 'Your account is pending IT approval.' };
+        if (!roleOverride && user.approvalStatus === 'rejected') return { success: false, error: 'Your registration was rejected. Please contact IT.' };
         if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
 
         const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
@@ -150,22 +159,61 @@ export const useStore = create<AppState>()(
 
       logout: () => set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null }),
 
-      registerUser: ({ name, badge, password, zone, location }) => {
+      registerUser: ({ name, badge, password, zone, location, mobileNumber, userType, role }) => {
         const { users, zones, locations: locs } = get();
         if (users.find(u => u.badge === badge)) {
           return { success: false, error: 'Badge number already registered.' };
         }
         const matchedZone = zones.find(z => z.name === zone);
-        const matchedLoc = locs.find(l => l.name === location && l.zone === zone);
+        const matchedLoc = location ? locs.find(l => l.name === location && l.zone === zone) : null;
         const newUser: User = {
-          id: Date.now(), name, badge, password, role: 'User', zone, location,
+          id: Date.now(), name, badge, password,
+          role: role ?? 'User',
+          zone, location: location || '',
           zoneId: matchedZone?.id ?? 0,
           locationId: matchedLoc?.id ?? 0,
           status: 'pending', accountStatus: 'active',
           lastActivity: new Date().toISOString(), isActive: true,
+          userType,
+          mobileNumber,
+          approvalStatus: 'pending',
+          approvedBy: null, approvedAt: null, rejectionReason: null,
         };
         set(s => ({ users: [...s.users, newUser] }));
         return { success: true };
+      },
+
+      approveUser: (userId, approverName, finalRole) => {
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? {
+                  ...u,
+                  approvalStatus: 'approved' as const,
+                  approvedBy: approverName,
+                  approvedAt: new Date().toISOString(),
+                  rejectionReason: null,
+                  ...(finalRole ? { role: finalRole } : {}),
+                }
+              : u,
+          ),
+        }));
+      },
+
+      rejectUser: (userId, approverName, reason) => {
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? {
+                  ...u,
+                  approvalStatus: 'rejected' as const,
+                  approvedBy: approverName,
+                  approvedAt: new Date().toISOString(),
+                  rejectionReason: reason || null,
+                }
+              : u,
+          ),
+        }));
       },
 
       createSuperAdmin: ({ name, badge, password }) => {
@@ -738,8 +786,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v9',
-      version: 9,
+      name: 'keas-mobile-store-v10',
+      version: 10,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -856,6 +904,19 @@ export const useStore = create<AppState>()(
               status: 'confirmed', accountStatus: 'active',
               lastActivity: new Date().toISOString(), isActive: true,
             });
+          }
+        }
+        if (version < 10) {
+          if (Array.isArray(state?.users)) {
+            state.users = state.users.map((u: any) => ({
+              ...u,
+              userType: u.userType ?? (u.badge === '200001' ? 'Contract' : 'Aramco'),
+              mobileNumber: u.mobileNumber ?? '',
+              approvalStatus: u.approvalStatus ?? 'approved',
+              approvedBy: u.approvedBy ?? null,
+              approvedAt: u.approvedAt ?? null,
+              rejectionReason: u.rejectionReason ?? null,
+            }));
           }
         }
         return persisted as AppState;

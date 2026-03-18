@@ -1,8 +1,10 @@
 // ─── Roles & Auth ─────────────────────────────────────────────────────────────
 
-export type UserRole = 'User' | 'IT' | 'Super Admin';
+export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Superior';
 export type AccountStatus = 'active' | 'disabled';
 export type EcoSlot = 'A' | 'B' | 'C';
+export type UserType = 'Aramco' | 'Contract';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export interface EcoAssignment {
   ecoSlot: EcoSlot;
@@ -126,6 +128,12 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+  userType?: UserType;
+  mobileNumber?: string;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
   isECOAssigned?: boolean;
   ecoSlot?: EcoSlot;
   ecoZoneName?: string;

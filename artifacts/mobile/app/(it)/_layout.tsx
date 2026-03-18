@@ -13,6 +13,7 @@ export default function ITLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="create-admin" />
+      <Stack.Screen name="approvals" />
     </Stack>
   );
 }

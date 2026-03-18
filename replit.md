@@ -119,7 +119,8 @@ artifacts/emergency/
 ```
 artifacts/mobile/
 ├── app/
-│   ├── (auth)/login.tsx           # Badge + password login
+│   ├── (auth)/login.tsx           # Badge + password login (approval status checks)
+│   ├── (auth)/register.tsx       # Registration with User Type (Aramco/Contract), dynamic fields, approval workflow
 │   ├── (admin)/
 │   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
 │   │   ├── index.tsx              # Dashboard: KPIs, alert banner + per-zone breakdown, quick actions, activity feed
@@ -140,6 +141,11 @@ artifacts/mobile/
 │   │   ├── index.tsx              # Supervisor dashboard: location KPIs, personnel list, backup indicator
 │   │   ├── personnel.tsx          # Personnel list with status filter tabs
 │   │   └── profile.tsx            # Supervisor profile
+│   ├── (it)/
+│   │   ├── _layout.tsx            # IT stack layout
+│   │   ├── index.tsx              # IT dashboard: account management, password resets, enable/disable
+│   │   ├── create-admin.tsx       # Create Super Admin account
+│   │   └── approvals.tsx          # Registration approval panel (pending/approved/rejected, role override)
 │   └── (user)/
 │       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
 │       ├── index.tsx              # User home: alert banner, response buttons, status
@@ -176,7 +182,8 @@ artifacts/mobile/
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
 - **Shelter System**: Admin can CRUD shelters (tap map to place, name modal, bottom sheet with rename/enable-disable/delete). User/ECO/Supervisor screens show shelter markers on map with GPS location + nearest shelter calculation (haversine). Shelter data synced to Leaflet iframe via postMessage (`sync_shelters`, `select_shelter`, `set_nearest_shelter`, `set_user_location`). `prevSheltersRef` resets on `mapHtml` change to ensure re-sync after iframe reload.
-- **Store**: `keas-mobile-store-v9` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection. Shelters slice with `addShelter/updateShelter/deleteShelter` actions.
+- **Registration & Approval**: User Type (Aramco/Contract) determines which fields are shown. Aramco users must select Role + Location. Contract users get Role=null, Location=null. All new registrations get `approvalStatus='pending'`. IT panel (`/(it)/approvals`) allows approve/reject with optional role override and rejection reason. Login blocks pending/rejected users with specific messages.
+- **Store**: `keas-mobile-store-v10` — bump when type shapes change. User interface extended with `userType`, `mobileNumber`, `approvalStatus`, `approvedBy`, `approvedAt`, `rejectionReason`. UserRole extended with `'Supervisor' | 'Back Superior'`. Store includes `approveUser/rejectUser` actions, `ecoAssignments/supervisorAssignments` with merge protection, shelters slice with `addShelter/updateShelter/deleteShelter` actions.
 - **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user), 200001 (Contractor→user, view-only); password `demo1234`
 - **Mobile routing**: ECO/Supervisor flags checked before role switch — ECO users go to `/(eco)`, Supervisor/Backup go to `/(supervisor)`, then role-based (Super Admin→admin, IT→it, default→user)
 
