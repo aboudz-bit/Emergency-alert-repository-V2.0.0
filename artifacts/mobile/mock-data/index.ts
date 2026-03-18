@@ -27,31 +27,48 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-export const seedUsers: User[] = names.map((name, i) => {
-  const locIndex = i % CPF_LOCATIONS.length;
-  const status: User['status'] =
-    i < 30 ? 'confirmed' : 'pending';
+export const seedUsers: User[] = [
+  ...names.map((name, i) => {
+    const locIndex = i % CPF_LOCATIONS.length;
+    const status: User['status'] =
+      i < 30 ? 'confirmed' : 'pending';
 
-  let role: User['role'] = 'User';
-  if (i === 0) role = 'Super Admin';
-  else if (i === 1) role = 'IT';
+    let role: User['role'] = 'User';
+    if (i === 0) role = 'Super Admin';
+    else if (i === 1) role = 'IT';
 
-  return {
-    id: i + 1,
-    name,
-    badge: badges[i],
+    return {
+      id: i + 1,
+      name,
+      badge: badges[i],
+      password: 'demo1234',
+      role,
+      zone: 'CPF',
+      zoneId: 1,
+      location: CPF_LOCATIONS[locIndex],
+      locationId: locIndex + 1,
+      status,
+      accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
+      lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
+      isActive: i !== 3,
+    };
+  }),
+  {
+    id: 51,
+    name: 'Contractor Demo',
+    badge: '200001',
     password: 'demo1234',
-    role,
+    role: 'User' as const,
     zone: 'CPF',
     zoneId: 1,
-    location: CPF_LOCATIONS[locIndex],
-    locationId: locIndex + 1,
-    status,
-    accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
-    lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
-    isActive: i !== 3,
-  };
-});
+    location: CPF_LOCATIONS[0],
+    locationId: 1,
+    status: 'confirmed' as const,
+    accountStatus: 'active' as const,
+    lastActivity: new Date().toISOString(),
+    isActive: true,
+  },
+];
 
 export const seedAlerts: Alert[] = [
   {

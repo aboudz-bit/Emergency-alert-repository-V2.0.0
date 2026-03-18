@@ -738,8 +738,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v8',
-      version: 8,
+      name: 'keas-mobile-store-v9',
+      version: 9,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -846,6 +846,16 @@ export const useStore = create<AppState>()(
         if (version < 8) {
           if (!state.shelters || !Array.isArray(state.shelters)) {
             state.shelters = seedShelters;
+          }
+        }
+        if (version < 9) {
+          if (Array.isArray(state?.users) && !state.users.find((u: any) => u.badge === '200001')) {
+            state.users.push({
+              id: 51, name: 'Contractor Demo', badge: '200001', password: 'demo1234',
+              role: 'User', zone: 'CPF', zoneId: 1, location: 'OT-1', locationId: 1,
+              status: 'confirmed', accountStatus: 'active',
+              lastActivity: new Date().toISOString(), isActive: true,
+            });
           }
         }
         return persisted as AppState;

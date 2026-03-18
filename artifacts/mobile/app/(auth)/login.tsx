@@ -28,6 +28,7 @@ const DEMO_BADGES: { label: string; badge: string; color: string }[] = [
   { label: "ECO (Nasser)", badge: "103618", color: Colors.info },
   { label: "Supervisor (Mohammed)", badge: "108291", color: Colors.amber },
   { label: "Backup Sup (Faisal)", badge: "105477", color: Colors.missing },
+  { label: "Contractor (Demo)", badge: "200001", color: Colors.textSecondary },
 ];
 
 export default function LoginScreen() {
@@ -141,7 +142,7 @@ export default function LoginScreen() {
                 </Pressable>
               ))}
             </View>
-            <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor</Text>
+            <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor / Contractor</Text>
             <View style={styles.chipRow}>
               {DEMO_BADGES.map((item) => (
                 <Pressable
