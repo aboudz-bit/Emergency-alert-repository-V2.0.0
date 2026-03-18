@@ -25,6 +25,7 @@ export default function SupervisorDashboardScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const users = useStore((s) => s.users);
   const alerts = useStore((s) => s.alerts);
+  const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
@@ -43,6 +44,11 @@ export default function SupervisorDashboardScreen() {
   const myLocation = useMemo(
     () => locations.find((l) => l.name === locName && l.zone === zoneName),
     [locations, locName, zoneName]
+  );
+
+  const myZone = useMemo(
+    () => zones.find((z) => z.name === zoneName),
+    [zones, zoneName]
   );
 
   const locationUsers = useMemo(
@@ -147,6 +153,38 @@ export default function SupervisorDashboardScreen() {
               You are viewing this location as Backup Supervisor (read-only
               standby mode).
             </Text>
+          </View>
+        )}
+
+        {/* ── Active Zone Alert ── */}
+        {myZone?.alertActive && (
+          <View style={styles.alertCard}>
+            <View style={styles.alertHeader}>
+              <Feather name="alert-triangle" size={18} color={Colors.white} />
+              <Text style={styles.alertLabel}>ACTIVE ALERT</Text>
+              <View
+                style={[
+                  styles.alertPriorityBadge,
+                  myZone.alertPriority === "High" && { backgroundColor: Colors.primary },
+                  myZone.alertPriority === "Medium" && { backgroundColor: Colors.amber },
+                  myZone.alertPriority === "Low" && { backgroundColor: Colors.info },
+                ]}
+              >
+                <Text style={styles.alertPriorityText}>
+                  {myZone.alertPriority}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.alertType}>
+              {myZone.alertType?.toUpperCase()} ACTIVATED
+            </Text>
+            <Text style={styles.alertZone}>{zoneName}</Text>
+            <Text style={styles.alertMessage}>{myZone.alertMessage}</Text>
+            {myZone.alertUpdatedAt && (
+              <Text style={styles.alertTime}>
+                {format(new Date(myZone.alertUpdatedAt), "MMM d, h:mm a")}
+              </Text>
+            )}
           </View>
         )}
 
@@ -388,6 +426,59 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.amber,
     fontFamily: "Inter_500Medium",
+  },
+  // ── Alert Card ──
+  alertCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  alertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  alertLabel: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.8)",
+    letterSpacing: 1,
+  },
+  alertPriorityBadge: {
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  alertPriorityText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  alertType: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  alertZone: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.7)",
+  },
+  alertMessage: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.9)",
+    marginTop: Spacing.xs,
+  },
+  alertTime: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: Spacing.xs,
   },
   kpiRow: { flexDirection: "row", gap: Spacing.md },
   actionRow: {
