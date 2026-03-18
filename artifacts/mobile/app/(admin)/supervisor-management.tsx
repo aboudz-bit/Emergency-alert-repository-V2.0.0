@@ -235,7 +235,7 @@ export default function SupervisorManagementScreen() {
                 const expected = loc?.expectedManpower ?? 0;
                 const actual = users.filter((u) => u.locationId === item.locationId && u.isActive).length;
                 const safe = users.filter((u) => u.locationId === item.locationId && u.isActive && u.status === "confirmed").length;
-                const pending = users.filter((u) => u.locationId === item.locationId && u.isActive && (u.status === "no_reply" || u.status === "missing")).length;
+                const pending = users.filter((u) => u.locationId === item.locationId && u.isActive && u.status === "pending").length;
                 return (
                   <View style={styles.manpowerRow}>
                     <Feather name="users" size={13} color={Colors.textSecondary} />

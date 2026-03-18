@@ -73,7 +73,7 @@ export default function SupervisorDashboardScreen() {
       (u) => u.status === "confirmed"
     ).length;
     const pending = locationUsers.filter(
-      (u) => u.status === "no_reply" || u.status === "missing"
+      (u) => u.status === "pending"
     ).length;
     const needHelp = locationUsers.filter(
       (u) => u.status === "need_help"
@@ -110,7 +110,7 @@ export default function SupervisorDashboardScreen() {
     if (!myLocation) return;
     RNAlert.alert(
       "Start Accountability",
-      `Reset all ${locationUsers.length} personnel at ${locName} to "No Reply" and begin accountability?`,
+      `Reset all ${locationUsers.length} personnel at ${locName} to "Pending" and begin accountability?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -135,7 +135,7 @@ export default function SupervisorDashboardScreen() {
         rightAction={
           <View style={styles.headerRight}>
             <StatusBadge
-              status={isBackup ? "missing" : "active"}
+              status={isBackup ? "closed" : "active"}
               label={statusLabel}
             />
             <Pressable
@@ -288,17 +288,7 @@ export default function SupervisorDashboardScreen() {
                 </Text>
               </View>
               <View style={styles.personnelStatus}>
-                <StatusBadge
-                  status={
-                    user.status === "confirmed"
-                      ? "confirmed"
-                      : user.status === "need_help"
-                        ? "need_help"
-                        : user.status === "missing"
-                          ? "missing"
-                          : "no_reply"
-                  }
-                />
+                <StatusBadge status={user.status} />
                 <Text style={styles.personnelTime}>
                   {format(new Date(user.lastActivity), "h:mm a")}
                 </Text>

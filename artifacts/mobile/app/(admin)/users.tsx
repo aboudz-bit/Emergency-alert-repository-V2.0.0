@@ -21,9 +21,8 @@ import type { User, UserResponseStatus } from "@/types";
 const SCREEN_H = Dimensions.get("window").height;
 
 const STATUS_OPTIONS: { key: UserResponseStatus; label: string }[] = [
-  { key: "confirmed", label: "Confirmed" },
-  { key: "missing", label: "Missing" },
-  { key: "no_reply", label: "No Reply" },
+  { key: "confirmed", label: "Safe" },
+  { key: "pending", label: "Pending" },
   { key: "need_help", label: "Need Help" },
 ];
 
@@ -44,9 +43,8 @@ export default function UsersScreen() {
 
   const statusFilterOptions: { key: "All" | UserResponseStatus; label: string }[] = [
     { key: "All", label: "All" },
-    { key: "confirmed", label: "Confirmed" },
-    { key: "no_reply", label: "No Reply" },
-    { key: "missing", label: "Missing" },
+    { key: "confirmed", label: "Safe" },
+    { key: "pending", label: "Pending" },
     { key: "need_help", label: "Need Help" },
   ];
 

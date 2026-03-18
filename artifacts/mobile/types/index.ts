@@ -110,7 +110,7 @@ export interface Location {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export type UserResponseStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_help';
+export type UserResponseStatus = 'confirmed' | 'pending' | 'need_help';
 
 export interface User {
   id: number;
@@ -164,8 +164,7 @@ export interface Alert {
   status: AlertStatus;
   stats: {
     confirmed: number;
-    missing: number;
-    noReply: number;
+    pending: number;
     needHelp: number;
     total: number;
   };

@@ -5,9 +5,8 @@ import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 import type { UserResponseStatus, AlertStatus } from "@/types";
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  confirmed: { bg: Colors.safeDim, text: Colors.safe, label: "Confirmed" },
-  missing: { bg: Colors.missingDim, text: Colors.missing, label: "Missing" },
-  no_reply: { bg: Colors.noreplyDim, text: Colors.noreply, label: "No Reply" },
+  confirmed: { bg: Colors.safeDim, text: Colors.safe, label: "Safe" },
+  pending: { bg: Colors.noreplyDim, text: Colors.noreply, label: "Pending" },
   need_help: { bg: Colors.primaryDim, text: Colors.primary, label: "Need Help" },
   active: { bg: Colors.primaryDim, text: Colors.primary, label: "Active" },
   closed: { bg: Colors.noreplyDim, text: Colors.noreply, label: "Closed" },
@@ -22,7 +21,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, label }: StatusBadgeProps) {
-  const config = statusConfig[status] || statusConfig.no_reply;
+  const config = statusConfig[status] || statusConfig.pending;
 
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>

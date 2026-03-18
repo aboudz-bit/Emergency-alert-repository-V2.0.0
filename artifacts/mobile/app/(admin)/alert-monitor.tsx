@@ -20,12 +20,11 @@ import { useStore, selectActiveAlert } from "@/store";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import type { UserResponseStatus } from "@/types";
 
-type TabKey = "confirmed" | "missing" | "no_reply" | "need_help";
+type TabKey = "confirmed" | "pending" | "need_help";
 
 const TABS: { key: TabKey; label: string; color: string }[] = [
   { key: "confirmed", label: "Safe", color: Colors.safe },
-  { key: "missing", label: "Missing", color: Colors.missing },
-  { key: "no_reply", label: "No Reply", color: Colors.noreply },
+  { key: "pending", label: "Pending", color: Colors.noreply },
   { key: "need_help", label: "Help", color: Colors.primary },
 ];
 
@@ -52,8 +51,7 @@ export default function AlertMonitorScreen() {
       if (!activeAlert) return 0;
       switch (key) {
         case "confirmed": return activeAlert.stats.confirmed;
-        case "missing": return activeAlert.stats.missing;
-        case "no_reply": return activeAlert.stats.noReply;
+        case "pending": return activeAlert.stats.pending;
         case "need_help": return activeAlert.stats.needHelp;
       }
     },

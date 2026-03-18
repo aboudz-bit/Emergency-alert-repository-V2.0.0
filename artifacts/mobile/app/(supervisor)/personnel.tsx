@@ -17,7 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { User } from "@/types";
 
-type FilterTab = "all" | "confirmed" | "missing" | "no_reply" | "need_help";
+type FilterTab = "all" | "confirmed" | "pending" | "need_help";
 
 export default function PersonnelScreen() {
   const currentUser = useStore((s) => s.currentUser);
@@ -58,8 +58,7 @@ export default function PersonnelScreen() {
     () => ({
       all: locationUsers.length,
       confirmed: locationUsers.filter((u) => u.status === "confirmed").length,
-      missing: locationUsers.filter((u) => u.status === "missing").length,
-      no_reply: locationUsers.filter((u) => u.status === "no_reply").length,
+      pending: locationUsers.filter((u) => u.status === "pending").length,
       need_help: locationUsers.filter((u) => u.status === "need_help").length,
     }),
     [locationUsers]
@@ -96,8 +95,7 @@ export default function PersonnelScreen() {
   const tabs: { key: FilterTab; label: string; color: string }[] = [
     { key: "all", label: "All", color: Colors.text },
     { key: "confirmed", label: "Safe", color: Colors.safe },
-    { key: "missing", label: "Missing", color: Colors.missing },
-    { key: "no_reply", label: "No Reply", color: Colors.noreply },
+    { key: "pending", label: "Pending", color: Colors.noreply },
     { key: "need_help", label: "Help", color: Colors.primary },
   ];
 

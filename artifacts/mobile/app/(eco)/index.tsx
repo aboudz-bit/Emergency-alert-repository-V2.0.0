@@ -42,7 +42,7 @@ export default function ECODashboardScreen() {
     const total = zoneUsers.length;
     const safe = zoneUsers.filter((u) => u.status === "confirmed").length;
     const pending = zoneUsers.filter(
-      (u) => u.status === "no_reply" || u.status === "missing"
+      (u) => u.status === "pending"
     ).length;
     const needHelp = zoneUsers.filter((u) => u.status === "need_help").length;
     const activeAlerts = alerts.filter(
@@ -56,7 +56,7 @@ export default function ECODashboardScreen() {
       const locUsers = zoneUsers.filter((u) => u.locationId === loc.id);
       const safe = locUsers.filter((u) => u.status === "confirmed").length;
       const pending = locUsers.filter(
-        (u) => u.status === "no_reply" || u.status === "missing"
+        (u) => u.status === "pending"
       ).length;
       const needHelp = locUsers.filter((u) => u.status === "need_help").length;
       return {

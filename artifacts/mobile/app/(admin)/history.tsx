@@ -88,17 +88,10 @@ export default function HistoryScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: Colors.missing }]}>
-                {item.stats.missing}
-              </Text>
-              <Text style={styles.statLabel}>Missing</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: Colors.noreply }]}>
-                {item.stats.noReply}
+                {item.stats.pending}
               </Text>
-              <Text style={styles.statLabel}>No Reply</Text>
+              <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>

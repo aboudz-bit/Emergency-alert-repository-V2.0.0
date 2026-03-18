@@ -80,17 +80,12 @@ function AlertHistoryCard({ alert }: { alert: Alert }) {
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.safe }]} />
           <Text style={styles.statValue}>{alert.stats.confirmed}</Text>
-          <Text style={styles.statLabel}>Confirmed</Text>
-        </View>
-        <View style={styles.statItem}>
-          <View style={[styles.statDot, { backgroundColor: Colors.missing }]} />
-          <Text style={styles.statValue}>{alert.stats.missing}</Text>
-          <Text style={styles.statLabel}>Missing</Text>
+          <Text style={styles.statLabel}>Safe</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.noreply }]} />
-          <Text style={styles.statValue}>{alert.stats.noReply}</Text>
-          <Text style={styles.statLabel}>No Reply</Text>
+          <Text style={styles.statValue}>{alert.stats.pending}</Text>
+          <Text style={styles.statLabel}>Pending</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.primary }]} />
