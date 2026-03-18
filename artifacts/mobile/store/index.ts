@@ -6,7 +6,7 @@ import type {
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
   EcoAssignment, SupervisorAssignment, Shelter,
-  UserType, ApprovalStatus,
+  UserType, ApprovalStatus, PersonnelLocation,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -32,6 +32,7 @@ interface AppState {
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
   shelters: Shelter[];
+  personnelLocations: Record<number, PersonnelLocation>;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -84,6 +85,9 @@ interface AppState {
   deleteShelter: (id: number) => void;
   linkShelterToLocations: (shelterId: number, locationIds: number[]) => void;
 
+  updatePersonnelLocation: (loc: PersonnelLocation) => void;
+  clearPersonnelLocations: () => void;
+
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
 
@@ -111,6 +115,7 @@ export const useStore = create<AppState>()(
       ecoAssignments: seedEcoAssignments,
       supervisorAssignments: seedSupervisorAssignments,
       shelters: seedShelters,
+      personnelLocations: {},
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
@@ -694,6 +699,12 @@ export const useStore = create<AppState>()(
       linkShelterToLocations: (shelterId, locationIds) => set(s => ({
         shelters: s.shelters.map(sh => sh.id === shelterId ? { ...sh, linkedLocationIds: locationIds } : sh),
       })),
+
+      updatePersonnelLocation: (loc) => set(s => ({
+        personnelLocations: { ...s.personnelLocations, [loc.userId]: loc },
+      })),
+
+      clearPersonnelLocations: () => set({ personnelLocations: {} }),
 
       assignEco: (slot, userId, zoneId) => {
         const { users: allUsers, zones: allZones } = get();

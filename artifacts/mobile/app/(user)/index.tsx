@@ -20,6 +20,7 @@ import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
+import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 
@@ -95,6 +96,8 @@ export default function UserHomeScreen() {
   const firstName = currentUser?.name?.split(" ")[0] || "User";
 
   const { detectedLocationId } = useDetectedLocation(userLocation);
+
+  usePersonnelTracking(true);
 
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
 

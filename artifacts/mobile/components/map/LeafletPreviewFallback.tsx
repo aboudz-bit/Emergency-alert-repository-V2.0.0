@@ -196,6 +196,11 @@ function generateLeafletHtml(
   @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
   .nearest-line{stroke:#22C55E;stroke-width:2;stroke-dasharray:8,6;fill:none;opacity:0.7}
   .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
+  .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+  .personnel-dot.safe{background:#22C55E}
+  .personnel-dot.pending{background:#F59E0B}
+  .personnel-dot.need-help{background:#EF4444;animation:personnel-pulse 1.5s infinite}
+  @keyframes personnel-pulse{0%,100%{box-shadow:0 0 4px rgba(239,68,68,0.4)}50%{box-shadow:0 0 12px rgba(239,68,68,0.8)}}
 </style></head><body>
 <div id="map"></div>
 <div id="crosshair" class="map-crosshair"><div class="crosshair-dot"></div></div>
@@ -399,6 +404,41 @@ function generateLeafletHtml(
     if (nearestLine) { map.removeLayer(nearestLine); nearestLine = null; }
   }
 
+  // ── Personnel live markers (managed via postMessage) ──
+  var personnelMarkers = {};
+  function syncPersonnel(list) {
+    var seen = {};
+    list.forEach(function(p) {
+      seen[p.userId] = true;
+      var statusClass = p.status === 'confirmed' ? 'safe' : p.status === 'need_help' ? 'need-help' : 'pending';
+      if (personnelMarkers[p.userId]) {
+        personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
+        var el = personnelMarkers[p.userId].getElement();
+        if (el) {
+          var dot = el.querySelector('.personnel-dot');
+          if (dot) dot.className = 'personnel-dot ' + statusClass;
+        }
+      } else {
+        personnelMarkers[p.userId] = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({
+            className: 'shelter-icon',
+            html: '<div class="personnel-dot ' + statusClass + '"></div>',
+            iconAnchor: [5, 5],
+            iconSize: [10, 10],
+          }),
+          zIndexOffset: 500,
+          interactive: false,
+        }).addTo(map);
+      }
+    });
+    Object.keys(personnelMarkers).forEach(function(id) {
+      if (!seen[id]) {
+        map.removeLayer(personnelMarkers[id]);
+        delete personnelMarkers[id];
+      }
+    });
+  }
+
   // ── Location boundary polygons (managed via postMessage) ──
   var locPolygons = {};
   var locLabels = {};
@@ -580,6 +620,10 @@ function generateLeafletHtml(
       if (d.type === 'fly_to_shelter' && typeof d.lat === 'number') {
         map.flyTo([d.lat, d.lng], d.zoom || 16, {duration: 0.8});
       }
+      // ── Personnel live location messages ──
+      if (d.type === 'sync_personnel' && Array.isArray(d.personnel)) {
+        syncPersonnel(d.personnel);
+      }
       // ── Location boundary messages ──
       if (d.type === 'sync_locations' && Array.isArray(d.locations)) {
         var existingLocIds = {};
@@ -682,6 +726,7 @@ export function LeafletPreviewFallback({
   editingLocationId,
   editingLocationPoints,
   onEditingLocationPointsChange,
+  personnelLocations,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -903,6 +948,16 @@ export function LeafletPreviewFallback({
       return () => clearTimeout(t);
     }
   }, [editingLocationId]);
+
+  // ── Sync personnel live locations via postMessage (no reload) ──
+  useEffect(() => {
+    if (!personnelLocations || personnelLocations.length === 0) {
+      postToIframe({ type: "sync_personnel", personnel: [] });
+      return;
+    }
+    const t = setTimeout(() => postToIframe({ type: "sync_personnel", personnel: personnelLocations }), 80);
+    return () => clearTimeout(t);
+  }, [personnelLocations]);
 
   return (
     <View style={[styles.container, { height }]}>

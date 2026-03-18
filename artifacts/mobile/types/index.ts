@@ -192,6 +192,18 @@ export interface Shelter {
   linkedLocationIds: number[];
 }
 
+// ─── Personnel Live Location ──────────────────────────────────────────────────
+
+export interface PersonnelLocation {
+  userId: number;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  timestamp: number;
+  detectedLocationId: number | null;
+  zoneId: number | null;
+}
+
 // ─── Activity Log ─────────────────────────────────────────────────────────────
 
 export type ActivityLogType = 'alert' | 'action' | 'report' | 'info' | 'user';
