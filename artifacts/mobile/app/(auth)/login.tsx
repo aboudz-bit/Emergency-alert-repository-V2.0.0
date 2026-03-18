@@ -143,7 +143,7 @@ export default function LoginScreen() {
               ))}
             </View>
             <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor / Contractor</Text>
-            <View style={styles.chipRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRowScroll}>
               {DEMO_BADGES.map((item) => (
                 <Pressable
                   key={item.badge}
@@ -157,7 +157,7 @@ export default function LoginScreen() {
                   <Text style={[styles.chipText, { color: item.color }]}>{item.label}</Text>
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
           <Pressable
@@ -247,6 +247,11 @@ const styles = StyleSheet.create({
   chipRow: {
     flexDirection: "row",
     gap: Spacing.sm,
+  },
+  chipRowScroll: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingRight: Spacing.md,
   },
   chip: {
     paddingVertical: Spacing.sm,
