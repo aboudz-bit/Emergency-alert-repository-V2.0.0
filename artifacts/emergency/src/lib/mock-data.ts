@@ -59,7 +59,7 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
 
 export const seedUsers: User[] = names.map((name, i) => {
   const isCpf = i < 30;
@@ -195,9 +195,13 @@ export const seedZones: Zone[] = [
   },
 ];
 
+// Manpower distribution for CPF locations (30 CPF users across 15 locations)
+const cpfManpower = [4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1];
+const campManpower = [3, 2, 2, 2, 2, 2, 2, 2, 3];
+
 export const seedLocations: Location[] = [
-  ...cpfLocations.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true })),
-  ...campLocations.map((name, i) => ({ id: cpfLocations.length + i + 1, name, zone: 'Camp' as const, isActive: true })),
+  ...cpfLocations.map((name, i) => ({ id: i + 1, name, zone: 'CPF' as const, isActive: true, totalManpower: cpfManpower[i] || 2 })),
+  ...campLocations.map((name, i) => ({ id: cpfLocations.length + i + 1, name, zone: 'Camp' as const, isActive: true, totalManpower: campManpower[i] || 2 })),
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
@@ -227,6 +231,136 @@ export const seedSettings: AppSettings = {
   wifiAndMobileData: true,
   systemVersion: '2.0.0-phase2',
 };
+
+// ─── Seed ECO assignments ────────────────────────────────────────────────────
+
+// ECO A is assigned to user index 5 (Nasser Al-Qahtani) for CPF
+// ECO B and C are empty slots
+export const seedEcoAssignments: EcoAssignment[] = [
+  {
+    ecoSlot: 'A',
+    assignedUserId: 6, // Nasser Al-Qahtani (id = index+1)
+    assignedUserName: 'Nasser Al-Qahtani',
+    assignedUserBadge: '103618',
+    assignedZoneId: 1,
+    assignedZoneName: 'CPF',
+    active: true,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    notes: 'Primary ECO for CPF operations',
+  },
+  {
+    ecoSlot: 'B',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedByUserId: null,
+    assignedByName: null,
+    assignedAt: null,
+  },
+  {
+    ecoSlot: 'C',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedByUserId: null,
+    assignedByName: null,
+    assignedAt: null,
+  },
+];
+
+// Apply ECO flags to the seed user who is assigned as ECO A
+const ecoUserId = 6; // Nasser Al-Qahtani
+const ecoUserIdx = seedUsers.findIndex(u => u.id === ecoUserId);
+if (ecoUserIdx >= 0) {
+  seedUsers[ecoUserIdx] = {
+    ...seedUsers[ecoUserIdx],
+    isECOAssigned: true,
+    ecoSlot: 'A',
+    ecoZoneId: 1,
+    ecoZoneName: 'CPF',
+    ecoAssignmentActive: true,
+    ecoAssignedAt: seedEcoAssignments[0].assignedAt,
+    ecoAssignedByUserId: 1,
+    ecoAssignedByName: 'Abdullah Al-Rashidi',
+    originalLocation: seedUsers[ecoUserIdx].location,
+    currentOperationalLocation: 'CCR',
+  };
+}
+
+// ─── Seed Supervisor assignments ──────────────────────────────────────────────
+
+// OT-1: Supervisor = Mohammed Al-Harbi (id=7), Backup = Faisal Al-Otaibi (id=8)
+// OT-2: Supervisor = Ali Al-Zahrani (id=9), no backup
+export const seedSupervisorAssignments: SupervisorAssignment[] = [
+  {
+    locationId: 2, // OT-1
+    locationName: 'OT-1',
+    zoneName: 'CPF',
+    supervisorUserId: 7,
+    supervisorUserName: 'Mohammed Al-Harbi',
+    supervisorUserBadge: '108291',
+    backupSupervisorUserId: 8,
+    backupSupervisorUserName: 'Faisal Al-Otaibi',
+    backupSupervisorUserBadge: '105477',
+    supervisorActive: true,
+    backupActive: true,
+    totalManpower: 2,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    notes: 'Primary OT-1 supervision',
+  },
+  {
+    locationId: 3, // OT-2
+    locationName: 'OT-2',
+    zoneName: 'CPF',
+    supervisorUserId: 9,
+    supervisorUserName: 'Ali Al-Zahrani',
+    supervisorUserBadge: '106832',
+    backupSupervisorUserId: null,
+    backupSupervisorUserName: null,
+    backupSupervisorUserBadge: null,
+    supervisorActive: true,
+    backupActive: false,
+    totalManpower: 2,
+    assignedByUserId: 1,
+    assignedByName: 'Abdullah Al-Rashidi',
+    assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    notes: '',
+  },
+];
+
+// Apply supervisor flags to seed users
+const supervisorPairs: Array<{ userId: number; locId: number; locName: string; zone: string; isSupervisor: boolean }> = [
+  { userId: 7, locId: 2, locName: 'OT-1', zone: 'CPF', isSupervisor: true },
+  { userId: 8, locId: 2, locName: 'OT-1', zone: 'CPF', isSupervisor: false },
+  { userId: 9, locId: 3, locName: 'OT-2', zone: 'CPF', isSupervisor: true },
+];
+for (const sp of supervisorPairs) {
+  const idx = seedUsers.findIndex(u => u.id === sp.userId);
+  if (idx >= 0) {
+    seedUsers[idx] = {
+      ...seedUsers[idx],
+      isSupervisorAssigned: sp.isSupervisor,
+      isBackupSupervisorAssigned: !sp.isSupervisor,
+      supervisorLocationId: sp.locId,
+      supervisorLocationName: sp.locName,
+      supervisorZoneName: sp.zone,
+      supervisorAssignmentActive: true,
+      supervisorAssignedAt: seedSupervisorAssignments[0].assignedAt,
+      supervisorAssignedByUserId: 1,
+      supervisorAssignedByName: 'Abdullah Al-Rashidi',
+    };
+  }
+}
 
 // Legacy store shim — keep for any file that hasn't been updated yet
 export const store = {

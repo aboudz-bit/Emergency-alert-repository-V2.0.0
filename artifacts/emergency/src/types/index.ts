@@ -45,6 +45,7 @@ export interface Location {
   name: string;
   zone: string;
   isActive: boolean;
+  totalManpower?: number;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -65,6 +66,78 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+
+  // ECO assignment fields (user remains role='User' with ECO overlay)
+  // NOTE: currentOperationalLocation='CCR' is a string-only value for now.
+  // CCR is not a Location entity. Convert to a real Location reference if needed later.
+  isECOAssigned?: boolean;
+  ecoSlot?: EcoSlot | null;
+  ecoZoneId?: number | null;
+  ecoZoneName?: string | null;
+  ecoAssignmentActive?: boolean;
+  ecoAssignedAt?: string | null;
+  ecoAssignedByUserId?: number | null;
+  ecoAssignedByName?: string | null;
+  originalLocation?: string | null;
+  currentOperationalLocation?: string | null;
+
+  // Supervisor / Backup Supervisor assignment fields (user remains role='User')
+  isSupervisorAssigned?: boolean;
+  isBackupSupervisorAssigned?: boolean;
+  supervisorLocationId?: number | null;
+  supervisorLocationName?: string | null;
+  supervisorZoneName?: string | null;
+  supervisorAssignmentActive?: boolean;
+  supervisorAssignedAt?: string | null;
+  supervisorAssignedByUserId?: number | null;
+  supervisorAssignedByName?: string | null;
+}
+
+// ─── ECO (Emergency Coordinator) ─────────────────────────────────────────────
+
+export type EcoSlot = 'A' | 'B' | 'C';
+
+export interface EcoAssignment {
+  ecoSlot: EcoSlot;
+  assignedUserId: number | null;
+  assignedUserName: string | null;
+  assignedUserBadge?: string | null;
+  assignedZoneId: number | null;
+  assignedZoneName: string | null;
+  active: boolean;
+  assignedByUserId: number | null;
+  assignedByName: string | null;
+  assignedAt: string | null;
+  expiresAt?: string | null;
+  notes?: string;
+}
+
+export type EcoAuditActionType =
+  | 'eco_assigned'
+  | 'eco_reassigned'
+  | 'eco_activated'
+  | 'eco_deactivated'
+  | 'eco_removed';
+
+// ─── Supervisor ──────────────────────────────────────────────────────────────
+
+export interface SupervisorAssignment {
+  locationId: number;
+  locationName: string;
+  zoneName: string;
+  supervisorUserId: number | null;
+  supervisorUserName: string | null;
+  supervisorUserBadge: string | null;
+  backupSupervisorUserId: number | null;
+  backupSupervisorUserName: string | null;
+  backupSupervisorUserBadge: string | null;
+  supervisorActive: boolean;
+  backupActive: boolean;
+  totalManpower: number;
+  assignedByUserId: number | null;
+  assignedByName: string | null;
+  assignedAt: string | null;
+  notes: string;
 }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
@@ -137,7 +210,23 @@ export type AuditActionType =
   | 'notification_sent'
   | 'sound_triggered'
   | 'sound_stopped'
-  | 'acknowledgment_received';
+  | 'acknowledgment_received'
+  | 'eco_assigned'
+  | 'eco_reassigned'
+  | 'eco_activated'
+  | 'eco_deactivated'
+  | 'eco_removed'
+  | 'supervisor_assigned'
+  | 'supervisor_reassigned'
+  | 'supervisor_removed'
+  | 'supervisor_activated'
+  | 'supervisor_deactivated'
+  | 'backup_supervisor_assigned'
+  | 'backup_supervisor_reassigned'
+  | 'backup_supervisor_removed'
+  | 'backup_supervisor_activated'
+  | 'backup_supervisor_deactivated'
+  | 'manpower_updated';
 
 export type AuditTargetType = 'location' | 'zone' | 'broadcast';
 

@@ -17,7 +17,11 @@ import LocationsPage from '@/pages/admin/locations';
 import UsersPage from '@/pages/admin/users';
 import HistoryPage from '@/pages/admin/history';
 import AuditLogPage from '@/pages/admin/audit-log';
+import ECOManagementPage from '@/pages/admin/eco-management';
 import SettingsPage from '@/pages/admin/settings';
+import ECODashboard from '@/pages/eco/dashboard';
+import SupervisorManagementPage from '@/pages/admin/supervisor-management';
+import SupervisorDashboard from '@/pages/supervisor/dashboard';
 import MobileHome from '@/pages/mobile/home';
 import MobileRegister from '@/pages/mobile/register';
 import MobileLocationPermission from '@/pages/mobile/location-permission';
@@ -102,9 +106,33 @@ function Router() {
           <AuditLogPage />
         </Guard>
       </Route>
+      <Route path="/admin/eco-management">
+        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
+          <ECOManagementPage />
+        </Guard>
+      </Route>
+      <Route path="/admin/supervisor-management">
+        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
+          <SupervisorManagementPage />
+        </Guard>
+      </Route>
       <Route path="/admin/settings">
         <Guard allowedRoles={['Super Admin']} redirectTo="/login">
           <SettingsPage />
+        </Guard>
+      </Route>
+
+      {/* ECO Dashboard — accessible by User (ECO is a User with assignment) */}
+      <Route path="/eco">
+        <Guard allowedRoles={['User']} redirectTo="/login">
+          <ECODashboard />
+        </Guard>
+      </Route>
+
+      {/* Supervisor Dashboard — accessible by User (Supervisor/Backup is a User with assignment) */}
+      <Route path="/supervisor">
+        <Guard allowedRoles={['User']} redirectTo="/login">
+          <SupervisorDashboard />
         </Guard>
       </Route>
 
