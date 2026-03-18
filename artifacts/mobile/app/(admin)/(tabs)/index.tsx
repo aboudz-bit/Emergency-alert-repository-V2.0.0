@@ -77,11 +77,11 @@ export default function DashboardScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <Feather name="bell" size={20} color={Colors.text} />
+              <Feather name="bell" size={18} color={Colors.textSecondary} />
               {hasActiveAlerts && <View style={styles.notifDot} />}
             </Pressable>
             <Pressable onPress={handleLogout} style={styles.iconBtn} hitSlop={8}>
-              <Feather name="log-out" size={20} color={Colors.textSecondary} />
+              <Feather name="log-out" size={18} color={Colors.textSecondary} />
             </Pressable>
           </View>
         }
@@ -218,7 +218,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/send-alert")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryDim }]}>
-                <Feather name="alert-triangle" size={24} color={Colors.primary} />
+                <Feather name="alert-triangle" size={20} color={Colors.primary} />
               </View>
               <Text style={styles.quickActionText}>New Alert</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -228,7 +228,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/zones")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.infoDim }]}>
-                <Feather name="map" size={24} color={Colors.info} />
+                <Feather name="map" size={20} color={Colors.info} />
               </View>
               <Text style={styles.quickActionText}>Zone Map</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -238,7 +238,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/locations")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.safeDim }]}>
-                <Feather name="map-pin" size={24} color={Colors.safe} />
+                <Feather name="map-pin" size={20} color={Colors.safe} />
               </View>
               <Text style={styles.quickActionText}>Locations</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -248,7 +248,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/eco-management")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.amber + "1A" }]}>
-                <Feather name="shield" size={24} color={Colors.amber} />
+                <Feather name="shield" size={20} color={Colors.amber} />
               </View>
               <Text style={styles.quickActionText}>ECO Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -258,7 +258,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/supervisor-management")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + "1A" }]}>
-                <Feather name="clipboard" size={24} color={Colors.info} />
+                <Feather name="clipboard" size={20} color={Colors.info} />
               </View>
               <Text style={styles.quickActionText}>Supervisor Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -328,9 +328,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "Inter_600SemiBold",
     color: Colors.text,
   },
   quickActionsGrid: {
@@ -516,8 +516,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceElevated,
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   quickActionText: {
     flex: 1,
     fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_500Medium",
     color: Colors.text,
   },
   activityCard: {

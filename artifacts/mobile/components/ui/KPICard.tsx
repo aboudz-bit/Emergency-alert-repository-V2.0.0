@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 
@@ -23,9 +23,9 @@ export function KPICard({
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={[styles.iconWrap, { backgroundColor: dimColor }]}>
-          <Feather name={icon} size={18} color={color} />
+          <Feather name={icon} size={16} color={color} />
         </View>
-        <Text style={[styles.value, { color }]}>{value}</Text>
+        <Text style={[styles.value, { color: Colors.text }]}>{value}</Text>
       </View>
       <Text style={styles.title}>{title}</Text>
     </View>
@@ -41,20 +41,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: Spacing.lg,
     gap: Spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.18,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
-      },
-    }),
   },
   topRow: {
     flexDirection: "row",
@@ -62,19 +48,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconWrap: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   value: {
     fontSize: FontSize.xxl,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "Inter_600SemiBold",
   },
   title: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
 });

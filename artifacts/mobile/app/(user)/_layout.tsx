@@ -18,7 +18,7 @@ export default function UserLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: Colors.text,
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrapActive: {
-    backgroundColor: Colors.primaryDim,
+    backgroundColor: Colors.surfaceElevated,
   },
 });

@@ -18,7 +18,7 @@ export default function ECOLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.info,
+        tabBarActiveTintColor: Colors.text,
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrapActive: {
-    backgroundColor: Colors.infoDim,
+    backgroundColor: Colors.surfaceElevated,
   },
 });

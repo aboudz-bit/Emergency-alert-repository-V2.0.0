@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   focused: {
-    borderColor: Colors.info,
+    borderColor: Colors.textTertiary,
   },
   errorBorder: {
     borderColor: Colors.destructive,

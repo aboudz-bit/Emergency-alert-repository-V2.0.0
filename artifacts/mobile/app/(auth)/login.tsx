@@ -86,10 +86,9 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconCircle}>
-              <Feather name="shield" size={36} color={Colors.info} />
+              <Feather name="shield" size={32} color={Colors.text} />
             </View>
             <Text style={styles.title}>KEAS</Text>
             <Text style={styles.subtitle}>
@@ -97,7 +96,6 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Form */}
           <View style={styles.form}>
             <Input
               label="Badge Number"
@@ -127,7 +125,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Demo Role Selector */}
           <View style={styles.demoSection}>
             <Text style={styles.demoLabel}>Quick Demo Access</Text>
             <View style={styles.chipRow}>
@@ -151,7 +148,7 @@ export default function LoginScreen() {
                   key={item.badge}
                   style={({ pressed }) => [
                     styles.chip,
-                    { borderColor: item.color + "40" },
+                    { borderColor: item.color + "30" },
                     pressed && styles.chipPressed,
                   ]}
                   onPress={() => handleBadgeLogin(item.badge)}
@@ -162,7 +159,6 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Register Link */}
           <Pressable
             style={styles.linkRow}
             onPress={() => router.push("/(auth)/register")}
@@ -193,18 +189,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxxl,
   },
 
-  /* Logo */
   logoContainer: {
     alignItems: "center",
     marginBottom: Spacing.xxxl,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
+    width: 68,
+    height: 68,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.infoDim,
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: Colors.infoBorder,
+    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.lg,
@@ -223,7 +218,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* Form */
   form: {
     gap: Spacing.lg,
   },
@@ -237,7 +231,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* Demo */
   demoSection: {
     marginTop: Spacing.xxxl,
     alignItems: "center",
@@ -264,7 +257,7 @@ const styles = StyleSheet.create({
   },
   chipPressed: {
     backgroundColor: Colors.surfaceElevated,
-    borderColor: Colors.info,
+    borderColor: Colors.textTertiary,
   },
   chipText: {
     fontSize: FontSize.sm,
@@ -272,7 +265,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  /* Link */
   linkRow: {
     marginTop: Spacing.xxl,
     alignItems: "center",
@@ -283,7 +275,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   linkHighlight: {
-    color: Colors.info,
+    color: Colors.text,
     fontFamily: "Inter_600SemiBold",
   },
 });
