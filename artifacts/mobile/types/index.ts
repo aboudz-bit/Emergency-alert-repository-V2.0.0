@@ -171,6 +171,17 @@ export interface Alert {
   isActive: boolean;
 }
 
+// ─── Shelters ────────────────────────────────────────────────────────────────
+
+export interface Shelter {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  zoneId: number;
+  isActive: boolean;
+}
+
 // ─── Activity Log ─────────────────────────────────────────────────────────────
 
 export type ActivityLogType = 'alert' | 'action' | 'report' | 'info' | 'user';

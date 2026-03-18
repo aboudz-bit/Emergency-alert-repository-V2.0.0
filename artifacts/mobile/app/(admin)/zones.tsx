@@ -17,7 +17,7 @@ import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { Zone, ZoneType, LatLng } from "@/types";
+import type { Zone, ZoneType, LatLng, Shelter } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 
@@ -40,12 +40,24 @@ export default function ZonesScreen() {
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
+  const shelters = useStore((s) => s.shelters);
+  const addShelter = useStore((s) => s.addShelter);
+  const updateShelter = useStore((s) => s.updateShelter);
+  const deleteShelter = useStore((s) => s.deleteShelter);
 
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
+  const [addingShelter, setAddingShelter] = useState(false);
   const [flyToZoneId, setFlyToZoneId] = useState<number | null>(null);
   const [tapPoints, setTapPoints] = useState<LatLng[]>([]);
   const [editingPoints, setEditingPoints] = useState<LatLng[]>([]);
+
+  const [shelterNameModal, setShelterNameModal] = useState(false);
+  const [pendingShelterLat, setPendingShelterLat] = useState(0);
+  const [pendingShelterLng, setPendingShelterLng] = useState(0);
+  const [shelterFormName, setShelterFormName] = useState("");
+  const [editingShelter, setEditingShelter] = useState<Shelter | null>(null);
 
   // Save modal
   const [showSaveSheet, setShowSaveSheet] = useState(false);
@@ -73,9 +85,68 @@ export default function ZonesScreen() {
   }, [mode]);
 
   const handleMapTap = useCallback((pt: LatLng) => {
+    if (addingShelter) {
+      setPendingShelterLat(pt.lat);
+      setPendingShelterLng(pt.lng);
+      setShelterFormName(`Shelter ${String.fromCharCode(65 + shelters.length)}`);
+      setShelterNameModal(true);
+      return;
+    }
     if (mode !== "draw") return;
     setTapPoints((p) => [...p, pt]);
-  }, [mode]);
+  }, [mode, addingShelter, shelters.length]);
+
+  const handleShelterPress = useCallback((shelterId: number) => {
+    setSelectedShelterId((prev) => (prev === shelterId ? null : shelterId));
+    setSelectedZoneId(null);
+  }, []);
+
+  const handleSaveShelter = useCallback(() => {
+    if (!shelterFormName.trim()) return;
+    const nearestZone = zones[0];
+    addShelter({
+      name: shelterFormName.trim(),
+      lat: pendingShelterLat,
+      lng: pendingShelterLng,
+      zoneId: nearestZone?.id ?? 0,
+      isActive: true,
+    });
+    setShelterNameModal(false);
+    setShelterFormName("");
+    setAddingShelter(false);
+  }, [shelterFormName, pendingShelterLat, pendingShelterLng, zones, addShelter]);
+
+  const handleToggleShelterAdd = useCallback(() => {
+    setAddingShelter((p) => !p);
+    setSelectedShelterId(null);
+    setSelectedZoneId(null);
+  }, []);
+
+  const handleToggleShelter = useCallback((sh: Shelter) => {
+    updateShelter(sh.id, { isActive: !sh.isActive });
+  }, [updateShelter]);
+
+  const handleDeleteShelter = useCallback(() => {
+    if (!selectedShelterId) return;
+    deleteShelter(selectedShelterId);
+    setSelectedShelterId(null);
+  }, [selectedShelterId, deleteShelter]);
+
+  const handleEditShelterName = useCallback(() => {
+    const sh = shelters.find((s) => s.id === selectedShelterId);
+    if (!sh) return;
+    setEditingShelter(sh);
+    setShelterFormName(sh.name);
+    setShelterNameModal(true);
+  }, [selectedShelterId, shelters]);
+
+  const handleSaveEditShelter = useCallback(() => {
+    if (!editingShelter || !shelterFormName.trim()) return;
+    updateShelter(editingShelter.id, { name: shelterFormName.trim() });
+    setShelterNameModal(false);
+    setShelterFormName("");
+    setEditingShelter(null);
+  }, [editingShelter, shelterFormName, updateShelter]);
 
   // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {
@@ -189,7 +260,11 @@ export default function ZonesScreen() {
   }, [selectedZoneId]);
 
   // ─── Derived ───
-  const drawMode: DrawMode = mode === "draw" ? "tap" : "none";
+  const selectedShelter = useMemo(
+    () => shelters.find((s) => s.id === selectedShelterId) || null,
+    [shelters, selectedShelterId]
+  );
+  const drawMode: DrawMode = mode === "draw" || addingShelter ? "tap" : "none";
   const showCrosshair = mode === "pick_shape";
 
   return (
@@ -210,21 +285,40 @@ export default function ZonesScreen() {
         tapPointCount={tapPoints.length}
         flyToZoneId={flyToZoneId}
         showCenterCrosshair={showCrosshair}
+        shelters={shelters}
+        selectedShelterId={selectedShelterId}
+        onShelterPress={handleShelterPress}
       />
 
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
-      {mode === "view" && (
+      {mode === "view" && !addingShelter && (
         <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
           <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
             <Feather name="chevron-left" size={20} color="#fff" />
           </Pressable>
           <View style={styles.fhTitle}>
             <Text style={styles.fhTitleText}>Zones</Text>
-            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""}</Text>
+            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}</Text>
           </View>
+          <Pressable style={[styles.fhBtn, { backgroundColor: "#F59E0B" }]} onPress={handleToggleShelterAdd} hitSlop={8}>
+            <Feather name="home" size={18} color="#fff" />
+          </Pressable>
           <Pressable style={styles.fhBtnAccent} onPress={handlePressAdd} hitSlop={8}>
             <Feather name="plus" size={20} color="#fff" />
           </Pressable>
+        </View>
+      )}
+
+      {/* ═══ FLOATING HEADER — ADD SHELTER ═══ */}
+      {addingShelter && (
+        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
+          <Pressable style={styles.fhBtn} onPress={handleToggleShelterAdd} hitSlop={8}>
+            <Feather name="x" size={20} color="#fff" />
+          </Pressable>
+          <View style={styles.fhTitle}>
+            <Text style={styles.fhTitleText}>Add Shelter</Text>
+            <Text style={styles.fhSubtext}>Tap on map to place shelter</Text>
+          </View>
         </View>
       )}
 
@@ -369,8 +463,40 @@ export default function ZonesScreen() {
         </View>
       )}
 
+      {/* ═══ SELECTED SHELTER — bottom sheet ═══ */}
+      {mode === "view" && !addingShelter && selectedShelter && !selectedZone && (
+        <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsRow}>
+            <View style={[styles.bsDot, { backgroundColor: "#F59E0B" }]} />
+            <View style={styles.bsInfo}>
+              <Text style={styles.bsName} numberOfLines={1}>{selectedShelter.name}</Text>
+              <Text style={styles.bsMeta}>
+                Shelter · {selectedShelter.isActive ? "Active" : "Disabled"}
+              </Text>
+            </View>
+            <Pressable style={styles.bsClose} onPress={() => setSelectedShelterId(null)} hitSlop={8}>
+              <Feather name="x" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          </View>
+          <View style={styles.bsActions}>
+            <Pressable style={styles.bsActionBtn} onPress={handleEditShelterName}>
+              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>Rename</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={() => handleToggleShelter(selectedShelter)}>
+              <Feather name={selectedShelter.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>{selectedShelter.isActive ? "Disable" : "Enable"}</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleDeleteShelter}>
+              <Feather name="trash-2" size={16} color={Colors.destructive} />
+              <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* ═══ ZONE LIST — small floating chips when nothing selected ═══ */}
-      {mode === "view" && !selectedZone && zones.length > 0 && (
+      {mode === "view" && !selectedZone && !selectedShelter && !addingShelter && zones.length > 0 && (
         <View style={[styles.chipBar, { bottom: insets.bottom + 12 }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
             {zones.map((z) => (
@@ -438,6 +564,43 @@ export default function ZonesScreen() {
               >
                 <Feather name="check" size={16} color="#fff" />
                 <Text style={styles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* ═══ SHELTER NAME MODAL ═══ */}
+      <Modal visible={shelterNameModal} transparent animationType="slide" onRequestClose={() => { setShelterNameModal(false); setEditingShelter(null); }}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.saveSheetHandle} />
+            <View style={styles.saveSheetHeader}>
+              <Text style={styles.saveSheetTitle}>{editingShelter ? "Rename Shelter" : "New Shelter"}</Text>
+              <Pressable onPress={() => { setShelterNameModal(false); setEditingShelter(null); }} hitSlop={8}>
+                <Feather name="x" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={styles.nameInput}
+              value={shelterFormName}
+              onChangeText={setShelterFormName}
+              placeholder="Shelter name..."
+              placeholderTextColor={Colors.textTertiary}
+              autoFocus
+            />
+
+            <View style={styles.saveBtnRow}>
+              <Pressable style={styles.discardBtn} onPress={() => { setShelterNameModal(false); setEditingShelter(null); }}>
+                <Text style={styles.discardBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.saveBtn, { backgroundColor: "#F59E0B" }, !shelterFormName.trim() && { opacity: 0.3 }]}
+                onPress={editingShelter ? handleSaveEditShelter : handleSaveShelter}
+                disabled={!shelterFormName.trim()}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.saveBtnText}>{editingShelter ? "Save" : "Add"}</Text>
               </Pressable>
             </View>
           </View>

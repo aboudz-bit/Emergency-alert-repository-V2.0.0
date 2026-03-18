@@ -183,6 +183,17 @@ function generateLeafletHtml(
   .map-crosshair::before{width:2px;height:28px;left:50%;top:50%;transform:translate(-50%,-50%)}
   .map-crosshair::after{width:28px;height:2px;left:50%;top:50%;transform:translate(-50%,-50%)}
   .crosshair-dot{position:absolute;width:8px;height:8px;border-radius:50%;border:2px solid rgba(59,130,246,0.7);background:transparent;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .shelter-icon{background:none!important;border:none!important}
+  .shelter-marker{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);cursor:pointer;border:2px solid #fff;transition:transform 0.2s}
+  .shelter-marker.selected{transform:scale(1.3);border-color:#F59E0B;box-shadow:0 0 12px rgba(245,158,11,0.5)}
+  .shelter-marker.nearest{border-color:#22C55E;box-shadow:0 0 12px rgba(34,197,94,0.5)}
+  .shelter-marker.inactive{opacity:0.4}
+  .shelter-label{background:#fff;color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0e0e0}
+  .user-loc-marker{width:16px;height:16px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 10px rgba(59,130,246,0.6)}
+  .user-loc-pulse{width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,0.15);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 2s infinite}
+  .user-loc-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+  @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+  .nearest-line{stroke:#22C55E;stroke-width:2;stroke-dasharray:8,6;fill:none;opacity:0.7}
 </style></head><body>
 <div id="map"></div>
 <div id="crosshair" class="map-crosshair"><div class="crosshair-dot"></div></div>
@@ -307,6 +318,85 @@ function generateLeafletHtml(
     }, {enableHighAccuracy: true, timeout: 10000});
   }
 
+  // ── Shelter markers layer (managed via postMessage — never baked into HTML) ──
+  var shelterMarkers = {};
+  var shelterLabels = {};
+  var selectedShelterId = null;
+  var nearestShelterId = null;
+  var userLocMarker = null;
+  var nearestLine = null;
+
+  function addShelterMarker(s) {
+    if (shelterMarkers[s.id]) removeShelterMarker(s.id);
+    var isNearest = s.id === nearestShelterId;
+    var isSel = s.id === selectedShelterId;
+    var cls = 'shelter-marker' + (isSel ? ' selected' : '') + (isNearest ? ' nearest' : '') + (!s.isActive ? ' inactive' : '');
+    var bgColor = isNearest ? '#22C55E' : '#F59E0B';
+    var svgIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+    var marker = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({
+        className: 'shelter-icon',
+        html: '<div class="' + cls + '" style="background:' + bgColor + ';">' + svgIcon + '</div>',
+        iconAnchor: [16, 16],
+        iconSize: [32, 32],
+      }),
+      zIndexOffset: isNearest ? 1000 : isSel ? 900 : 500,
+    }).addTo(map);
+    marker.on('click', function() {
+      window.parent.postMessage(JSON.stringify({type:'shelter_select', id: s.id}), '*');
+    });
+    shelterMarkers[s.id] = { marker: marker, data: s };
+    var label = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({
+        className: 'shelter-icon',
+        html: '<div class="shelter-label">' + s.name + '</div>',
+        iconAnchor: [40, -20],
+      }),
+      interactive: false,
+    }).addTo(map);
+    shelterLabels[s.id] = label;
+  }
+
+  function removeShelterMarker(id) {
+    if (shelterMarkers[id]) { map.removeLayer(shelterMarkers[id].marker); delete shelterMarkers[id]; }
+    if (shelterLabels[id]) { map.removeLayer(shelterLabels[id]); delete shelterLabels[id]; }
+  }
+
+  function refreshAllShelterStyles() {
+    Object.keys(shelterMarkers).forEach(function(idStr) {
+      var entry = shelterMarkers[idStr];
+      if (entry && entry.data) addShelterMarker(entry.data);
+    });
+  }
+
+  function setUserLocation(lat, lng) {
+    if (!userLocMarker) {
+      userLocMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'shelter-icon',
+          html: '<div class="user-loc-wrap"><div class="user-loc-pulse"></div><div class="user-loc-marker"></div></div>',
+          iconAnchor: [20, 20],
+          iconSize: [40, 40],
+        }),
+        zIndexOffset: 2000,
+        interactive: false,
+      }).addTo(map);
+    } else {
+      userLocMarker.setLatLng([lat, lng]);
+    }
+  }
+
+  function drawNearestLine(fromLat, fromLng, toLat, toLng) {
+    if (nearestLine) { map.removeLayer(nearestLine); nearestLine = null; }
+    nearestLine = L.polyline([[fromLat, fromLng], [toLat, toLng]], {
+      color: '#22C55E', weight: 2, dashArray: '8,6', opacity: 0.7,
+    }).addTo(map);
+  }
+
+  function clearNearestLine() {
+    if (nearestLine) { map.removeLayer(nearestLine); nearestLine = null; }
+  }
+
   // ── Unified message handler ──
   window.addEventListener('message', function(evt) {
     try {
@@ -363,6 +453,34 @@ function generateLeafletHtml(
         var lb = document.getElementById('loc-btn-wrap');
         if (lb) lb.style.display = d.visible ? '' : 'none';
       }
+      // ── Shelter messages (all handled via postMessage, no iframe rebuild) ──
+      if (d.type === 'sync_shelters' && Array.isArray(d.shelters)) {
+        var existingIds = {};
+        d.shelters.forEach(function(s) { existingIds[s.id] = true; addShelterMarker(s); });
+        Object.keys(shelterMarkers).forEach(function(idStr) {
+          if (!existingIds[idStr]) removeShelterMarker(parseInt(idStr));
+        });
+      }
+      if (d.type === 'select_shelter') {
+        selectedShelterId = d.id;
+        refreshAllShelterStyles();
+      }
+      if (d.type === 'set_nearest_shelter') {
+        nearestShelterId = d.id;
+        refreshAllShelterStyles();
+        if (d.id && d.userLat != null && shelterMarkers[d.id]) {
+          var sData = shelterMarkers[d.id].data;
+          drawNearestLine(d.userLat, d.userLng, sData.lat, sData.lng);
+        } else {
+          clearNearestLine();
+        }
+      }
+      if (d.type === 'set_user_location' && typeof d.lat === 'number') {
+        setUserLocation(d.lat, d.lng);
+      }
+      if (d.type === 'fly_to_shelter' && typeof d.lat === 'number') {
+        map.flyTo([d.lat, d.lng], d.zoom || 16, {duration: 0.8});
+      }
     } catch(ex) {}
   });
 
@@ -393,6 +511,12 @@ export function LeafletPreviewFallback({
   tapPointCount = 0,
   flyToZoneId,
   showCenterCrosshair = false,
+  shelters,
+  selectedShelterId,
+  onShelterPress,
+  onShelterMapTap,
+  nearestShelterId,
+  userLocation,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -525,11 +649,52 @@ export function LeafletPreviewFallback({
         if (data.type === "map_center" && typeof data.lat === "number" && onMapCenterChange) {
           onMapCenterChange({ lat: data.lat, lng: data.lng });
         }
+        if (data.type === "shelter_select" && typeof data.id === "number" && onShelterPress) {
+          onShelterPress(data.id);
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange]);
+  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress]);
+
+  // ── Sync shelters via postMessage (no iframe reload) ──
+  const prevSheltersRef = useRef<string>("");
+  useEffect(() => {
+    prevSheltersRef.current = "";
+  }, [mapHtml]);
+  useEffect(() => {
+    if (!shelters) return;
+    const key = JSON.stringify(shelters);
+    if (key === prevSheltersRef.current) return;
+    prevSheltersRef.current = key;
+    const t = setTimeout(() => postToIframe({ type: "sync_shelters", shelters }), 150);
+    return () => clearTimeout(t);
+  }, [shelters, mapHtml]);
+
+  // ── Select shelter via postMessage ──
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "select_shelter", id: selectedShelterId ?? null }), 80);
+    return () => clearTimeout(t);
+  }, [selectedShelterId]);
+
+  // ── Nearest shelter via postMessage ──
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({
+      type: "set_nearest_shelter",
+      id: nearestShelterId ?? null,
+      userLat: userLocation?.lat,
+      userLng: userLocation?.lng,
+    }), 80);
+    return () => clearTimeout(t);
+  }, [nearestShelterId, userLocation]);
+
+  // ── User location marker via postMessage ──
+  useEffect(() => {
+    if (!userLocation) return;
+    const t = setTimeout(() => postToIframe({ type: "set_user_location", lat: userLocation.lat, lng: userLocation.lng }), 80);
+    return () => clearTimeout(t);
+  }, [userLocation]);
 
   return (
     <View style={[styles.container, { height }]}>

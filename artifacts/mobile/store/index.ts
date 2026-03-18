@@ -5,12 +5,12 @@ import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
-  EcoAssignment, SupervisorAssignment,
+  EcoAssignment, SupervisorAssignment, Shelter,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings,
-  seedEcoAssignments, seedSupervisorAssignments,
+  seedEcoAssignments, seedSupervisorAssignments, seedShelters,
 } from '@/mock-data';
 
 let _historyIdCounter = 0;
@@ -30,6 +30,7 @@ interface AppState {
   mobileUserResponse: UserResponseStatus | null;
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
+  shelters: Shelter[];
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -71,6 +72,10 @@ interface AppState {
   removePersonnelFromLocation: (userId: number) => void;
   startAccountability: (locationId: number) => void;
 
+  addShelter: (shelter: Omit<Shelter, 'id'>) => void;
+  updateShelter: (id: number, partial: Partial<Shelter>) => void;
+  deleteShelter: (id: number) => void;
+
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
 
@@ -97,6 +102,7 @@ export const useStore = create<AppState>()(
       mobileUserResponse: null,
       ecoAssignments: seedEcoAssignments,
       supervisorAssignments: seedSupervisorAssignments,
+      shelters: seedShelters,
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
@@ -627,6 +633,10 @@ export const useStore = create<AppState>()(
         });
       },
 
+      addShelter: (shelter) => set(s => ({ shelters: [...s.shelters, { ...shelter, id: Date.now() }] })),
+      updateShelter: (id, partial) => set(s => ({ shelters: s.shelters.map(sh => sh.id === id ? { ...sh, ...partial } : sh) })),
+      deleteShelter: (id) => set(s => ({ shelters: s.shelters.filter(sh => sh.id !== id) })),
+
       assignEco: (slot, userId, zoneId) => {
         const { users: allUsers, zones: allZones } = get();
         const user = userId ? allUsers.find(u => u.id === userId) : null;
@@ -728,8 +738,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v7',
-      version: 7,
+      name: 'keas-mobile-store-v8',
+      version: 8,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -833,6 +843,11 @@ export const useStore = create<AppState>()(
             }));
           }
         }
+        if (version < 8) {
+          if (!state.shelters || !Array.isArray(state.shelters)) {
+            state.shelters = seedShelters;
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -847,6 +862,7 @@ export const useStore = create<AppState>()(
         activityLogs: state.activityLogs,
         ecoAssignments: state.ecoAssignments,
         supervisorAssignments: state.supervisorAssignments,
+        shelters: state.shelters,
       }),
     },
   ),

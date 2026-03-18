@@ -175,7 +175,8 @@ artifacts/mobile/
   - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
-- **Store**: `keas-mobile-store-v4` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection.
+- **Shelter System**: Admin can CRUD shelters (tap map to place, name modal, bottom sheet with rename/enable-disable/delete). User/ECO/Supervisor screens show shelter markers on map with GPS location + nearest shelter calculation (haversine). Shelter data synced to Leaflet iframe via postMessage (`sync_shelters`, `select_shelter`, `set_nearest_shelter`, `set_user_location`). `prevSheltersRef` resets on `mapHtml` change to ensure re-sync after iframe reload.
+- **Store**: `keas-mobile-store-v8` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection. Shelters slice with `addShelter/updateShelter/deleteShelter` actions.
 - **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user); password `demo1234`
 - **Mobile routing**: ECO/Supervisor flags checked before role switch — ECO users go to `/(eco)`, Supervisor/Backup go to `/(supervisor)`, then role-based (Super Admin→admin, IT→it, default→user)
 

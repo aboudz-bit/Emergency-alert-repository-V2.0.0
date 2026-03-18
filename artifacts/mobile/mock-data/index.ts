@@ -1,4 +1,4 @@
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment, Shelter } from '@/types';
 import { CPF_LOCATIONS } from '@/constants/theme';
 
 const names = [
@@ -111,6 +111,13 @@ export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
   isActive: true, alertActive: false, alertType: null, alertPriority: null,
   alertMessage: '', alertUpdatedAt: null, alertHistory: [],
 }));
+
+export const seedShelters: Shelter[] = [
+  { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true },
+  { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true },
+  { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true },
+  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true },
+];
 
 export const seedActivityLogs: ActivityLog[] = [
   { id: 1, type: 'info', message: 'System check completed successfully.', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
