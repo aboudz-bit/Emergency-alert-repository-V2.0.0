@@ -9,7 +9,8 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "vm"
-run = ["npx", "tsx", "artifacts/boutique-server/server/index.ts"]
+run = ["bash", "-c", "cd artifacts/boutique-server && NODE_ENV=production npx tsx server/index.ts & node artifacts/api-server/dist/index.cjs"]
+build = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
 
 [workflows]
 runButton = "Project"

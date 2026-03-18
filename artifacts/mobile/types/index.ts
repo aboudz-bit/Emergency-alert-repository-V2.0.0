@@ -2,6 +2,33 @@
 
 export type UserRole = 'User' | 'IT' | 'Super Admin';
 export type AccountStatus = 'active' | 'disabled';
+export type EcoSlot = 'A' | 'B' | 'C';
+
+export interface EcoAssignment {
+  ecoSlot: EcoSlot;
+  assignedUserId: number | null;
+  assignedUserName: string | null;
+  assignedUserBadge: string | null;
+  assignedZoneId: number | null;
+  assignedZoneName: string | null;
+  active: boolean;
+  assignedAt: string | null;
+}
+
+export interface SupervisorAssignment {
+  locationId: number;
+  locationName: string;
+  zoneName: string;
+  supervisorUserId: number | null;
+  supervisorUserName: string | null;
+  supervisorUserBadge: string | null;
+  backupSupervisorUserId: number | null;
+  backupSupervisorUserName: string | null;
+  backupSupervisorUserBadge: string | null;
+  supervisorActive: boolean;
+  backupActive: boolean;
+  totalManpower: number;
+}
 
 // ─── Zones ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +125,15 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+  isECOAssigned?: boolean;
+  ecoSlot?: EcoSlot;
+  ecoZoneName?: string;
+  ecoAssignmentActive?: boolean;
+  isSupervisorAssigned?: boolean;
+  isBackupSupervisorAssigned?: boolean;
+  supervisorLocationName?: string;
+  supervisorZoneName?: string;
+  supervisorAssignmentActive?: boolean;
 }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────

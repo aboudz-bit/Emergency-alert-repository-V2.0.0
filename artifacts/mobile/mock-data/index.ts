@@ -1,4 +1,4 @@
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
 import { CPF_LOCATIONS, CAMP_LOCATIONS } from '@/constants/theme';
 
 const names = [
@@ -129,6 +129,70 @@ export const seedActivityLogs: ActivityLog[] = [
   { id: 3, type: 'report', message: 'Weekly drill report generated and archived.', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
   { id: 4, type: 'user', message: '5 new user accounts provisioned by IT.', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
   { id: 5, type: 'alert', message: 'All Clear sent — Security Alert resolved.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
+export const seedEcoAssignments: EcoAssignment[] = [
+  {
+    ecoSlot: 'A',
+    assignedUserId: 6,
+    assignedUserName: 'Nasser Al-Qahtani',
+    assignedUserBadge: '103618',
+    assignedZoneId: 1,
+    assignedZoneName: 'CPF',
+    active: true,
+    assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    ecoSlot: 'B',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedAt: null,
+  },
+  {
+    ecoSlot: 'C',
+    assignedUserId: null,
+    assignedUserName: null,
+    assignedUserBadge: null,
+    assignedZoneId: null,
+    assignedZoneName: null,
+    active: false,
+    assignedAt: null,
+  },
+];
+
+export const seedSupervisorAssignments: SupervisorAssignment[] = [
+  {
+    locationId: 2,
+    locationName: 'OT-1',
+    zoneName: 'CPF',
+    supervisorUserId: 7,
+    supervisorUserName: 'Mohammed Al-Harbi',
+    supervisorUserBadge: '108291',
+    backupSupervisorUserId: 8,
+    backupSupervisorUserName: 'Faisal Al-Otaibi',
+    backupSupervisorUserBadge: '105477',
+    supervisorActive: true,
+    backupActive: true,
+    totalManpower: 2,
+  },
+  {
+    locationId: 3,
+    locationName: 'OT-2',
+    zoneName: 'CPF',
+    supervisorUserId: 9,
+    supervisorUserName: 'Ali Al-Zahrani',
+    supervisorUserBadge: '106832',
+    backupSupervisorUserId: null,
+    backupSupervisorUserName: null,
+    backupSupervisorUserBadge: null,
+    supervisorActive: true,
+    backupActive: false,
+    totalManpower: 3,
+  },
 ];
 
 export const seedSettings: AppSettings = {

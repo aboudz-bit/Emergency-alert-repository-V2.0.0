@@ -5,10 +5,12 @@ import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
+  EcoAssignment, SupervisorAssignment,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings,
+  seedEcoAssignments, seedSupervisorAssignments,
 } from '@/mock-data';
 
 let _historyIdCounter = 0;
@@ -26,6 +28,8 @@ interface AppState {
   settings: AppSettings;
   activityLogs: ActivityLog[];
   mobileUserResponse: UserResponseStatus | null;
+  ecoAssignments: EcoAssignment[];
+  supervisorAssignments: SupervisorAssignment[];
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -78,9 +82,11 @@ export const useStore = create<AppState>()(
       settings: seedSettings,
       activityLogs: seedActivityLogs,
       mobileUserResponse: null,
+      ecoAssignments: seedEcoAssignments,
+      supervisorAssignments: seedSupervisorAssignments,
 
       login: (badge, password, roleOverride) => {
-        const { users } = get();
+        const { users, ecoAssignments, supervisorAssignments } = get();
         let user: User | undefined;
 
         if (roleOverride) {
@@ -93,7 +99,33 @@ export const useStore = create<AppState>()(
         if (user.accountStatus === 'disabled') return { success: false, error: 'Account is disabled. Contact IT.' };
         if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
 
-        set({ isAuthenticated: true, currentUser: user, mobileUserResponse: null });
+        const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
+        const supA = supervisorAssignments.find(a => a.supervisorUserId === user!.id && a.supervisorActive);
+        const backA = supervisorAssignments.find(a => a.backupSupervisorUserId === user!.id && a.backupActive);
+
+        const enrichedUser: User = {
+          ...user,
+          ...(ecoA ? {
+            isECOAssigned: true,
+            ecoSlot: ecoA.ecoSlot,
+            ecoZoneName: ecoA.assignedZoneName ?? undefined,
+            ecoAssignmentActive: true,
+          } : {}),
+          ...(backA ? {
+            isBackupSupervisorAssigned: true,
+            supervisorLocationName: backA.locationName,
+            supervisorZoneName: backA.zoneName,
+            supervisorAssignmentActive: true,
+          } : {}),
+          ...(supA ? {
+            isSupervisorAssigned: true,
+            supervisorLocationName: supA.locationName,
+            supervisorZoneName: supA.zoneName,
+            supervisorAssignmentActive: true,
+          } : {}),
+        };
+
+        set({ isAuthenticated: true, currentUser: enrichedUser, mobileUserResponse: null });
         return { success: true };
       },
 
@@ -531,8 +563,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v3',
-      version: 3,
+      name: 'keas-mobile-store-v4',
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -592,6 +624,14 @@ export const useStore = create<AppState>()(
             });
           }
         }
+        if (version < 4) {
+          if (!state.ecoAssignments || !Array.isArray(state.ecoAssignments) || state.ecoAssignments.length === 0) {
+            state.ecoAssignments = seedEcoAssignments;
+          }
+          if (!state.supervisorAssignments || !Array.isArray(state.supervisorAssignments) || state.supervisorAssignments.length === 0) {
+            state.supervisorAssignments = seedSupervisorAssignments;
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -604,6 +644,8 @@ export const useStore = create<AppState>()(
         locations: state.locations,
         settings: state.settings,
         activityLogs: state.activityLogs,
+        ecoAssignments: state.ecoAssignments,
+        supervisorAssignments: state.supervisorAssignments,
       }),
     },
   ),

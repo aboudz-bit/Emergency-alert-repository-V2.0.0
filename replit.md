@@ -24,7 +24,7 @@ workspace/
 │   │   ├── tsconfig.json       # paths: @shared/* → ./shared/*
 │   │   └── drizzle.config.ts   # Points to ./shared/schema.ts
 │   ├── api-server/             # Thin proxy → forwards all traffic to boutique-server:5000
-│   ├── mobile/                 # Expo React Native scaffold (not yet built out)
+│   ├── mobile/                 # Expo React Native app (Admin, User, ECO, Supervisor, IT)
 │   └── mockup-sandbox/         # UI prototyping sandbox
 ├── masah_boutique/             # Flutter app (from GitHub branch)
 └── lib/                        # Shared TS libs (api-spec, api-client-react, api-zod, db)
@@ -107,12 +107,12 @@ artifacts/emergency/
 ## Key Technical Details
 
 - **Zustand v5**: Always use `useShallow` from `@/store` when selecting multiple values or using selectors that return new arrays/objects (`.filter()`, `.map()`). Single-value/function selectors are safe without `useShallow`.
-- **Store version**: `keas-store-v3` — bump version when changing Zone/User type shapes to force fresh seed data
+- **Store version**: `keas-store-v5` — bump version when changing Zone/User type shapes to force fresh seed data. Store merge function ensures ecoAssignments/supervisorAssignments never rehydrate as empty.
 - **Leaflet**: `react-leaflet` with CartoDB Voyager light tiles (`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`), no API key needed. Zones page uses a light professional theme (white/slate panels, blue accents) separate from the app's dark theme.
 - **Zone coordinates**: Real Khurais lat/lng (~25.08°N, 48.18°E)
 - **Responsive**: Desktop table → mobile card layout at `lg` (1024px) breakpoint. Sidebar auto-collapses on mobile with drawer overlay.
 - **Routing**: Wouter with `base={import.meta.env.BASE_URL}` (base is `/emergency/`)
-- **Demo login**: Badge 102934 (Super Admin), 110001 (IT), 123456 (User); password `demo1234`
+- **Demo login**: Badge 102934 (Super Admin), 104822 (IT), 103618 (ECO→/eco), 108291 (Supervisor→/supervisor), 105477 (Backup→/supervisor), 107543 (Normal User→/mobile/home); password `demo1234`. Login page has one-tap quick demo buttons. "Reset Demo Data" button clears stale localStorage.
 
 ## Mobile App (KEAS)
 
@@ -130,6 +130,16 @@ artifacts/mobile/
 │   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
 │   │   ├── locations.tsx          # Location management with zone tabs
 │   │   └── settings.tsx           # System settings with steppers and toggles
+│   ├── (eco)/
+│   │   ├── _layout.tsx            # ECO tab bar (Dashboard, Alerts, Profile)
+│   │   ├── index.tsx              # ECO dashboard: zone-wide KPIs, location breakdown, alerts
+│   │   ├── alerts.tsx             # Zone alerts list (active + history)
+│   │   └── profile.tsx            # ECO profile with assignment info
+│   ├── (supervisor)/
+│   │   ├── _layout.tsx            # Supervisor tab bar (Dashboard, Personnel, Profile)
+│   │   ├── index.tsx              # Supervisor dashboard: location KPIs, personnel list, backup indicator
+│   │   ├── personnel.tsx          # Personnel list with status filter tabs
+│   │   └── profile.tsx            # Supervisor profile
 │   └── (user)/
 │       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
 │       ├── index.tsx              # User home: alert banner, response buttons, status
@@ -164,8 +174,9 @@ artifacts/mobile/
   - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
-- **Store**: `keas-mobile-store-v2` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`)
-- **Demo login**: Same as web (badge 102934/110001/123456, password demo1234)
+- **Store**: `keas-mobile-store-v4` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection.
+- **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user); password `demo1234`
+- **Mobile routing**: ECO/Supervisor flags checked before role switch — ECO users go to `/(eco)`, Supervisor/Backup go to `/(supervisor)`, then role-based (Super Admin→admin, IT→it, default→user)
 
 ## Workflow
 

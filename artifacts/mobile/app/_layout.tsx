@@ -61,6 +61,8 @@ export default function RootLayout() {
               <Stack.Screen name="(admin)" />
               <Stack.Screen name="(user)" />
               <Stack.Screen name="(it)" />
+              <Stack.Screen name="(eco)" />
+              <Stack.Screen name="(supervisor)" />
             </Stack>
           </KeyboardProvider>
         </GestureHandlerRootView>
