@@ -153,36 +153,27 @@ export const seedEcoAssignments: EcoAssignment[] = [
   },
 ];
 
-export const seedSupervisorAssignments: SupervisorAssignment[] = [
-  {
-    locationId: 1,
-    locationName: 'OT-1',
-    zoneName: 'CPF',
-    supervisorUserId: 7,
-    supervisorUserName: 'Mohammed Al-Harbi',
-    supervisorUserBadge: '108291',
-    backupSupervisorUserId: 8,
-    backupSupervisorUserName: 'Faisal Al-Otaibi',
-    backupSupervisorUserBadge: '105477',
-    supervisorActive: true,
-    backupActive: true,
-    totalManpower: 8,
-  },
-  {
-    locationId: 2,
-    locationName: 'OT-2',
-    zoneName: 'CPF',
-    supervisorUserId: 9,
-    supervisorUserName: 'Ali Al-Zahrani',
-    supervisorUserBadge: '106832',
-    backupSupervisorUserId: null,
-    backupSupervisorUserName: null,
-    backupSupervisorUserBadge: null,
-    supervisorActive: true,
-    backupActive: false,
-    totalManpower: 8,
-  },
-];
+export const seedSupervisorAssignments: SupervisorAssignment[] = CPF_LOCATIONS.map((name, i) => {
+  const locId = i + 1;
+  if (locId === 1) return {
+    locationId: 1, locationName: 'OT-1', zoneName: 'CPF',
+    supervisorUserId: 7, supervisorUserName: 'Mohammed Al-Harbi', supervisorUserBadge: '108291',
+    backupSupervisorUserId: 8, backupSupervisorUserName: 'Faisal Al-Otaibi', backupSupervisorUserBadge: '105477',
+    supervisorActive: true, backupActive: true, totalManpower: _expectedManpower[i],
+  };
+  if (locId === 2) return {
+    locationId: 2, locationName: 'OT-2', zoneName: 'CPF',
+    supervisorUserId: 9, supervisorUserName: 'Ali Al-Zahrani', supervisorUserBadge: '106832',
+    backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null,
+    supervisorActive: true, backupActive: false, totalManpower: _expectedManpower[i],
+  };
+  return {
+    locationId: locId, locationName: name, zoneName: 'CPF',
+    supervisorUserId: null, supervisorUserName: null, supervisorUserBadge: null,
+    backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null,
+    supervisorActive: false, backupActive: false, totalManpower: _expectedManpower[i],
+  };
+});
 
 export const seedSettings: AppSettings = {
   systemName: 'Khurais Emergency Alert System',
