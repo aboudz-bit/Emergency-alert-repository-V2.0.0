@@ -130,6 +130,8 @@ export default function ZonesScreen() {
     addZone({
       name: formName.trim(), type: formType, boundaryType: "Polygon",
       polygonPoints: pts, center: { lat, lng }, isActive: true, color: formColor,
+      alertActive: false, alertType: null, alertPriority: null,
+      alertMessage: "", alertUpdatedAt: null, alertHistory: [],
     });
     setShowSaveSheet(false);
     setTapPoints([]);
