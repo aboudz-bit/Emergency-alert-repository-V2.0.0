@@ -82,6 +82,7 @@ interface AppState {
   addShelter: (shelter: Omit<Shelter, 'id'>) => void;
   updateShelter: (id: number, partial: Partial<Shelter>) => void;
   deleteShelter: (id: number) => void;
+  linkShelterToLocations: (shelterId: number, locationIds: number[]) => void;
 
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
@@ -319,9 +320,15 @@ export const useStore = create<AppState>()(
       updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
       deleteZone: (id) => set(s => ({ zones: s.zones.filter(z => z.id !== id) })),
 
-      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), alertHistory: location.alertHistory || [] }] })),
+      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), polygonPoints: location.polygonPoints ?? [], alertHistory: location.alertHistory || [] }] })),
       updateLocation: (id, partial) => set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, ...partial } : l) })),
-      deleteLocation: (id) => set(s => ({ locations: s.locations.filter(l => l.id !== id) })),
+      deleteLocation: (id) => set(s => ({
+        locations: s.locations.filter(l => l.id !== id),
+        shelters: s.shelters.map(sh => ({
+          ...sh,
+          linkedLocationIds: (sh.linkedLocationIds || []).filter(lid => lid !== id),
+        })),
+      })),
 
       activateLocationAlert: (id, alertType, priority, message) => {
         const now = new Date().toISOString();
@@ -681,9 +688,12 @@ export const useStore = create<AppState>()(
         });
       },
 
-      addShelter: (shelter) => set(s => ({ shelters: [...s.shelters, { ...shelter, id: Date.now() }] })),
+      addShelter: (shelter) => set(s => ({ shelters: [...s.shelters, { ...shelter, id: Date.now(), linkedLocationIds: shelter.linkedLocationIds ?? [] }] })),
       updateShelter: (id, partial) => set(s => ({ shelters: s.shelters.map(sh => sh.id === id ? { ...sh, ...partial } : sh) })),
       deleteShelter: (id) => set(s => ({ shelters: s.shelters.filter(sh => sh.id !== id) })),
+      linkShelterToLocations: (shelterId, locationIds) => set(s => ({
+        shelters: s.shelters.map(sh => sh.id === shelterId ? { ...sh, linkedLocationIds: locationIds } : sh),
+      })),
 
       assignEco: (slot, userId, zoneId) => {
         const { users: allUsers, zones: allZones } = get();
@@ -786,8 +796,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v10',
-      version: 10,
+      name: 'keas-mobile-store-v11',
+      version: 11,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -916,6 +926,20 @@ export const useStore = create<AppState>()(
               approvedBy: u.approvedBy ?? null,
               approvedAt: u.approvedAt ?? null,
               rejectionReason: u.rejectionReason ?? null,
+            }));
+          }
+        }
+        if (version < 11) {
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((l: any) => ({
+              ...l,
+              polygonPoints: l.polygonPoints ?? [],
+            }));
+          }
+          if (Array.isArray(state?.shelters)) {
+            state.shelters = state.shelters.map((s: any) => ({
+              ...s,
+              linkedLocationIds: s.linkedLocationIds ?? [],
             }));
           }
         }

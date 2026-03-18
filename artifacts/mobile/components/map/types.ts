@@ -1,4 +1,4 @@
-import type { LatLng, Zone, Shelter } from "@/types";
+import type { LatLng, Zone, Shelter, Location } from "@/types";
 
 export interface MapRegion {
   latitude: number;
@@ -41,6 +41,13 @@ export interface ZoneMapProps {
   onShelterMapTap?: (point: LatLng) => void;
   nearestShelterId?: number | null;
   userLocation?: LatLng | null;
+  locations?: Location[];
+  selectedLocationId?: number | null;
+  onLocationPress?: (locationId: number) => void;
+  highlightedLocationIds?: number[];
+  editingLocationId?: number | null;
+  editingLocationPoints?: LatLng[];
+  onEditingLocationPointsChange?: (points: LatLng[]) => void;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

@@ -90,6 +90,7 @@ export default function LocationsScreen() {
         zoneId,
         expectedManpower: 0,
         isActive: true,
+        polygonPoints: [],
         alertActive: false,
         alertType: null,
         alertPriority: null,

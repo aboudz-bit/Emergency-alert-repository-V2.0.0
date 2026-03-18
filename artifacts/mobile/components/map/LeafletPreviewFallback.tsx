@@ -195,6 +195,7 @@ function generateLeafletHtml(
   .user-loc-wrap{position:relative;display:flex;align-items:center;justify-content:center}
   @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
   .nearest-line{stroke:#22C55E;stroke-width:2;stroke-dasharray:8,6;fill:none;opacity:0.7}
+  .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
 </style></head><body>
 <div id="map"></div>
 <div id="crosshair" class="map-crosshair"><div class="crosshair-dot"></div></div>
@@ -398,6 +399,103 @@ function generateLeafletHtml(
     if (nearestLine) { map.removeLayer(nearestLine); nearestLine = null; }
   }
 
+  // ── Location boundary polygons (managed via postMessage) ──
+  var locPolygons = {};
+  var locLabels = {};
+  var selectedLocId = null;
+  var highlightedLocIds = [];
+  var locEditPoly = null;
+  var locEditMarkers = [];
+  var locEditPoints = [];
+  var locEditId = null;
+
+  function addLocPolygon(loc) {
+    removeLocPolygon(loc.id);
+    if (!loc.polygonPoints || loc.polygonPoints.length < 3) return;
+    var coords = loc.polygonPoints.map(function(p){return [p.lat, p.lng]});
+    var isSel = loc.id === selectedLocId;
+    var isHL = highlightedLocIds.indexOf(loc.id) >= 0;
+    var fillOp = isSel ? 0.35 : isHL ? 0.3 : 0.15;
+    var weight = isSel ? 3 : isHL ? 2.5 : 1.5;
+    var color = isSel ? '#3B82F6' : isHL ? '#F59E0B' : '#6366F1';
+    var poly = L.polygon(coords, {
+      color: color, fillColor: color,
+      fillOpacity: fillOp, weight: weight,
+      dashArray: '4,4',
+    }).addTo(map);
+    poly.on('click', function() {
+      if (!tapEnabled) {
+        window.parent.postMessage(JSON.stringify({type:'location_select', id: loc.id}), '*');
+      }
+    });
+    locPolygons[loc.id] = { layer: poly, data: loc };
+    var cLat = loc.polygonPoints.reduce(function(s,p){return s+p.lat},0) / loc.polygonPoints.length;
+    var cLng = loc.polygonPoints.reduce(function(s,p){return s+p.lng},0) / loc.polygonPoints.length;
+    var label = L.marker([cLat, cLng], {
+      icon: L.divIcon({
+        className: 'shelter-icon',
+        html: '<div class="loc-label-inner">' + loc.name + '</div>',
+        iconAnchor: [30, 8],
+      }),
+      interactive: false,
+      zIndexOffset: 200,
+    }).addTo(map);
+    locLabels[loc.id] = label;
+  }
+
+  function removeLocPolygon(id) {
+    if (locPolygons[id]) { map.removeLayer(locPolygons[id].layer); delete locPolygons[id]; }
+    if (locLabels[id]) { map.removeLayer(locLabels[id]); delete locLabels[id]; }
+  }
+
+  function refreshAllLocStyles() {
+    Object.keys(locPolygons).forEach(function(idStr) {
+      var entry = locPolygons[idStr];
+      if (entry && entry.data) addLocPolygon(entry.data);
+    });
+  }
+
+  function startLocEdit(locId, points, color) {
+    clearLocEdit();
+    locEditId = locId;
+    locEditPoints = points.map(function(p){return {lat:p.lat,lng:p.lng}});
+    var editColor = color || '#3B82F6';
+    locEditPoly = L.polygon(locEditPoints.map(function(p){return [p.lat,p.lng]}), {
+      color: editColor, fillColor: editColor,
+      fillOpacity: 0.25, weight: 3,
+    }).addTo(map);
+    locEditPoints.forEach(function(pt, idx) {
+      var m = L.marker([pt.lat, pt.lng], {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'edit-vertex',
+          html: '<div class="vertex-outer"><div class="vertex-inner" style="background:' + editColor + ';"></div><div class="vertex-num">' + (idx+1) + '</div></div>',
+          iconAnchor: [24, 24],
+        })
+      }).addTo(map);
+      m.on('dragstart', function() { vertexDragging = true; map.dragging.disable(); });
+      m.on('drag', function(e) {
+        var ll = e.target.getLatLng();
+        locEditPoints[idx] = {lat: ll.lat, lng: ll.lng};
+        locEditPoly.setLatLngs(locEditPoints.map(function(p){return [p.lat,p.lng]}));
+        window.parent.postMessage(JSON.stringify({type:'loc_edit_points', points: locEditPoints}), '*');
+      });
+      m.on('dragend', function() { map.dragging.enable(); vertexDragging = false; });
+      locEditMarkers.push(m);
+    });
+    editModeActive = true;
+    map.fitBounds(locEditPoly.getBounds(), {padding: [60, 60]});
+  }
+
+  function clearLocEdit() {
+    if (locEditPoly) { map.removeLayer(locEditPoly); locEditPoly = null; }
+    locEditMarkers.forEach(function(m) { map.removeLayer(m); });
+    locEditMarkers = [];
+    locEditPoints = [];
+    locEditId = null;
+    editModeActive = false;
+  }
+
   // ── Unified message handler ──
   window.addEventListener('message', function(evt) {
     try {
@@ -482,6 +580,65 @@ function generateLeafletHtml(
       if (d.type === 'fly_to_shelter' && typeof d.lat === 'number') {
         map.flyTo([d.lat, d.lng], d.zoom || 16, {duration: 0.8});
       }
+      // ── Location boundary messages ──
+      if (d.type === 'sync_locations' && Array.isArray(d.locations)) {
+        var existingLocIds = {};
+        d.locations.forEach(function(loc) { existingLocIds[loc.id] = true; addLocPolygon(loc); });
+        Object.keys(locPolygons).forEach(function(idStr) {
+          if (!existingLocIds[idStr]) removeLocPolygon(parseInt(idStr));
+        });
+      }
+      if (d.type === 'select_location') {
+        selectedLocId = d.id;
+        refreshAllLocStyles();
+      }
+      if (d.type === 'highlight_locations') {
+        highlightedLocIds = Array.isArray(d.ids) ? d.ids : [];
+        refreshAllLocStyles();
+      }
+      if (d.type === 'start_loc_edit') {
+        startLocEdit(d.id, d.points || [], d.color);
+      }
+      if (d.type === 'clear_loc_edit') {
+        clearLocEdit();
+      }
+      if (d.type === 'add_loc_edit_point' && typeof d.lat === 'number') {
+        locEditPoints.push({lat: d.lat, lng: d.lng});
+        if (locEditPoly) {
+          locEditPoly.setLatLngs(locEditPoints.map(function(p){return [p.lat,p.lng]}));
+        } else {
+          locEditPoly = L.polygon(locEditPoints.map(function(p){return [p.lat,p.lng]}), {
+            color: '#3B82F6', fillColor: '#3B82F6',
+            fillOpacity: 0.25, weight: 3,
+          }).addTo(map);
+        }
+        var nm = L.marker([d.lat, d.lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: 'edit-vertex',
+            html: '<div class="vertex-outer"><div class="vertex-inner" style="background:#3B82F6;"></div><div class="vertex-num">' + locEditPoints.length + '</div></div>',
+            iconAnchor: [24, 24],
+          })
+        }).addTo(map);
+        var capturedIdx = locEditPoints.length - 1;
+        nm.on('dragstart', function() { vertexDragging = true; map.dragging.disable(); });
+        nm.on('drag', function(e) {
+          var ll = e.target.getLatLng();
+          locEditPoints[capturedIdx] = {lat: ll.lat, lng: ll.lng};
+          if (locEditPoly) locEditPoly.setLatLngs(locEditPoints.map(function(p){return [p.lat,p.lng]}));
+          window.parent.postMessage(JSON.stringify({type:'loc_edit_points', points: locEditPoints}), '*');
+        });
+        nm.on('dragend', function() { map.dragging.enable(); vertexDragging = false; });
+        locEditMarkers.push(nm);
+        window.parent.postMessage(JSON.stringify({type:'loc_edit_points', points: locEditPoints}), '*');
+      }
+      if (d.type === 'undo_loc_edit_point' && locEditMarkers.length > 0) {
+        var lastM = locEditMarkers.pop();
+        map.removeLayer(lastM);
+        locEditPoints.pop();
+        if (locEditPoly) locEditPoly.setLatLngs(locEditPoints.map(function(p){return [p.lat,p.lng]}));
+        window.parent.postMessage(JSON.stringify({type:'loc_edit_points', points: locEditPoints}), '*');
+      }
     } catch(ex) {}
   });
 
@@ -518,6 +675,13 @@ export function LeafletPreviewFallback({
   onShelterMapTap,
   nearestShelterId,
   userLocation,
+  locations,
+  selectedLocationId,
+  onLocationPress,
+  highlightedLocationIds,
+  editingLocationId,
+  editingLocationPoints,
+  onEditingLocationPointsChange,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -653,11 +817,17 @@ export function LeafletPreviewFallback({
         if (data.type === "shelter_select" && typeof data.id === "number" && onShelterPress) {
           onShelterPress(data.id);
         }
+        if (data.type === "location_select" && typeof data.id === "number" && onLocationPress) {
+          onLocationPress(data.id);
+        }
+        if (data.type === "loc_edit_points" && Array.isArray(data.points) && onEditingLocationPointsChange) {
+          onEditingLocationPointsChange(data.points);
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress]);
+  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange]);
 
   // ── Sync shelters via postMessage (no iframe reload) ──
   const prevSheltersRef = useRef<string>("");
@@ -696,6 +866,43 @@ export function LeafletPreviewFallback({
     const t = setTimeout(() => postToIframe({ type: "set_user_location", lat: userLocation.lat, lng: userLocation.lng }), 80);
     return () => clearTimeout(t);
   }, [userLocation]);
+
+  // ── Sync location polygons via postMessage (no iframe reload) ──
+  const prevLocationsRef = useRef<string>("");
+  useEffect(() => {
+    prevLocationsRef.current = "";
+  }, [mapHtml]);
+  useEffect(() => {
+    if (!locations) return;
+    const key = JSON.stringify(locations.map(l => ({ id: l.id, name: l.name, polygonPoints: l.polygonPoints })));
+    if (key === prevLocationsRef.current) return;
+    prevLocationsRef.current = key;
+    const t = setTimeout(() => postToIframe({ type: "sync_locations", locations }), 200);
+    return () => clearTimeout(t);
+  }, [locations, mapHtml]);
+
+  // ── Select location via postMessage ──
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "select_location", id: selectedLocationId ?? null }), 80);
+    return () => clearTimeout(t);
+  }, [selectedLocationId]);
+
+  // ── Highlight linked locations via postMessage ──
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "highlight_locations", ids: highlightedLocationIds ?? [] }), 80);
+    return () => clearTimeout(t);
+  }, [highlightedLocationIds]);
+
+  // ── Location boundary editing via postMessage ──
+  useEffect(() => {
+    if (editingLocationId != null && editingLocationPoints) {
+      const t = setTimeout(() => postToIframe({ type: "start_loc_edit", id: editingLocationId, points: editingLocationPoints }), 150);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(() => postToIframe({ type: "clear_loc_edit" }), 80);
+      return () => clearTimeout(t);
+    }
+  }, [editingLocationId]);
 
   return (
     <View style={[styles.container, { height }]}>

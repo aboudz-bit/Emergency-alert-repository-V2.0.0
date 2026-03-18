@@ -102,6 +102,7 @@ export interface Location {
   zoneId: number;
   expectedManpower: number;
   isActive: boolean;
+  polygonPoints: LatLng[];
   alertActive: boolean;
   alertType: LocationAlertType | null;
   alertPriority: AlertPriority | null;
@@ -188,6 +189,7 @@ export interface Shelter {
   lng: number;
   zoneId: number;
   isActive: boolean;
+  linkedLocationIds: number[];
 }
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────

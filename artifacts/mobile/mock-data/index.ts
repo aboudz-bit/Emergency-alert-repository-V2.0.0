@@ -125,15 +125,16 @@ const _expectedManpower = [8, 8, 8, 7, 7, 6, 6];
 export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
   id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
   expectedManpower: _expectedManpower[i],
-  isActive: true, alertActive: false, alertType: null, alertPriority: null,
+  isActive: true, polygonPoints: [],
+  alertActive: false, alertType: null, alertPriority: null,
   alertMessage: '', alertUpdatedAt: null, alertHistory: [],
 }));
 
 export const seedShelters: Shelter[] = [
-  { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true },
-  { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true },
-  { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true },
-  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true },
+  { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true, linkedLocationIds: [1, 2] },
+  { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true, linkedLocationIds: [3, 4] },
+  { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true, linkedLocationIds: [5, 6] },
+  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true, linkedLocationIds: [7] },
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
