@@ -26,15 +26,37 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const routeUser = React.useCallback((u: typeof currentUser) => {
+    if (!u) return;
+    let dest: string;
+    if (u.role === 'Super Admin') dest = '/admin';
+    else if (u.role === 'IT') dest = '/it';
+    else if (u.isECOAssigned && u.ecoAssignmentActive) dest = '/eco';
+    else if ((u.isSupervisorAssigned || u.isBackupSupervisorAssigned) && u.supervisorAssignmentActive) dest = '/supervisor';
+    else dest = '/mobile/home';
+    console.log('[ROUTE] →', dest, 'for', u.name, '| isECO:', u.isECOAssigned, 'isSup:', u.isSupervisorAssigned, 'isBackup:', u.isBackupSupervisorAssigned);
+    setLocation(dest);
+  }, [setLocation]);
+
   React.useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      if (currentUser.role === 'Super Admin') setLocation('/admin');
-      else if (currentUser.role === 'IT') setLocation('/it');
-      else if (currentUser.isECOAssigned && currentUser.ecoAssignmentActive) setLocation('/eco');
-      else if ((currentUser.isSupervisorAssigned || currentUser.isBackupSupervisorAssigned) && currentUser.supervisorAssignmentActive) setLocation('/supervisor');
-      else setLocation('/mobile/home');
+    const params = new URLSearchParams(window.location.search);
+    const autoBadge = params.get('auto');
+    if (autoBadge) {
+      useStore.getState().logout();
+      const account = demoAccounts.find(a => a.badge === autoBadge);
+      if (account) {
+        console.log('[AUTO-LOGIN] badge:', autoBadge);
+        login(account.badge, account.password, account.role);
+        const fresh = useStore.getState().currentUser;
+        console.log('[AUTO-LOGIN] currentUser after login:', fresh?.name, 'isECO:', fresh?.isECOAssigned);
+        routeUser(fresh);
+      }
+      return;
     }
-  }, [isAuthenticated, currentUser]);
+    if (isAuthenticated && currentUser) {
+      routeUser(currentUser);
+    }
+  }, [isAuthenticated, currentUser, routeUser]);
 
   const doLogin = (b: string, p: string, roleOverride?: UserRole) => {
     setError('');
@@ -46,13 +68,7 @@ export default function Login() {
         setError(result.error || 'Login failed.');
         return;
       }
-      const loggedInUser = useStore.getState().currentUser;
-      if (!loggedInUser) return;
-      if (loggedInUser.role === 'Super Admin') setLocation('/admin');
-      else if (loggedInUser.role === 'IT') setLocation('/it');
-      else if (loggedInUser.isECOAssigned && loggedInUser.ecoAssignmentActive) setLocation('/eco');
-      else if ((loggedInUser.isSupervisorAssigned || loggedInUser.isBackupSupervisorAssigned) && loggedInUser.supervisorAssignmentActive) setLocation('/supervisor');
-      else setLocation('/mobile/home');
+      routeUser(useStore.getState().currentUser);
     }, 400);
   };
 

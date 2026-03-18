@@ -145,10 +145,15 @@ export const useStore = create<AppState>()(
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
 
+        console.log('[LOGIN] badge:', badge, 'roleOverride:', roleOverride);
+        console.log('[LOGIN] ecoAssignments count:', ecoAssignments.length, JSON.stringify(ecoAssignments.map(a => ({ slot: a.ecoSlot, userId: a.assignedUserId, active: a.active }))));
+        console.log('[LOGIN] supervisorAssignments count:', supervisorAssignments.length);
+
         let user: User | undefined;
 
         if (badge && badge.trim()) {
           user = users.find(u => u.badge === badge.trim());
+          console.log('[LOGIN] found by badge:', user ? `${user.name} (id=${user.id}, role=${user.role})` : 'NOT FOUND');
         }
 
         if (!user && roleOverride) {
@@ -159,6 +164,7 @@ export const useStore = create<AppState>()(
           } else {
             user = users.find(u => u.role === 'User' && u.accountStatus === 'active');
           }
+          console.log('[LOGIN] fallback by role:', user ? `${user.name} (id=${user.id})` : 'NOT FOUND');
         }
 
         if (!user) return { success: false, error: 'Badge number not found.' };
@@ -166,6 +172,7 @@ export const useStore = create<AppState>()(
         if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
 
         const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
+        console.log('[LOGIN] ECO check for userId', user.id, '→', ecoA ? `FOUND slot ${ecoA.ecoSlot}` : 'NONE');
         if (ecoA) {
           user = {
             ...user,
@@ -177,10 +184,12 @@ export const useStore = create<AppState>()(
             ecoAssignedAt: ecoA.assignedAt ?? undefined,
             ecoAssignedByUserId: ecoA.assignedByUserId ?? undefined,
             ecoAssignedByName: ecoA.assignedByName ?? undefined,
+            currentOperationalLocation: 'CCR',
           };
         }
 
         const supA = supervisorAssignments.find(a => a.supervisorUserId === user!.id && a.supervisorActive);
+        console.log('[LOGIN] Supervisor check for userId', user.id, '→', supA ? `FOUND loc ${supA.locationName}` : 'NONE');
         if (supA) {
           user = {
             ...user,
@@ -196,6 +205,7 @@ export const useStore = create<AppState>()(
         }
 
         const backA = supervisorAssignments.find(a => a.backupSupervisorUserId === user!.id && a.backupActive);
+        console.log('[LOGIN] Backup check for userId', user.id, '→', backA ? `FOUND loc ${backA.locationName}` : 'NONE');
         if (backA) {
           user = {
             ...user,
@@ -209,6 +219,14 @@ export const useStore = create<AppState>()(
             supervisorAssignedByName: backA.assignedByName ?? undefined,
           };
         }
+
+        console.log('[LOGIN] Final user flags:', {
+          isECOAssigned: user.isECOAssigned,
+          ecoAssignmentActive: user.ecoAssignmentActive,
+          isSupervisorAssigned: user.isSupervisorAssigned,
+          isBackupSupervisorAssigned: user.isBackupSupervisorAssigned,
+          supervisorAssignmentActive: user.supervisorAssignmentActive,
+        });
 
         set({ isAuthenticated: true, currentUser: user, mobileUserResponse: null });
         get().addActivityLog({
@@ -1154,9 +1172,8 @@ export const useStore = create<AppState>()(
       getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
     }),
     {
-      name: 'keas-store-v4',
+      name: 'keas-store-v5',
       storage: createJSONStorage(() => localStorage),
-      // Only persist auth + mobileResponse; data is always re-seeded unless already stored
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
@@ -1172,6 +1189,17 @@ export const useStore = create<AppState>()(
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
       }),
+      merge: (persistedState: any, currentState: any) => {
+        if (!persistedState) return currentState;
+        const merged = { ...currentState, ...persistedState };
+        if (!merged.ecoAssignments || merged.ecoAssignments.length === 0) {
+          merged.ecoAssignments = seedEcoAssignments;
+        }
+        if (!merged.supervisorAssignments || merged.supervisorAssignments.length === 0) {
+          merged.supervisorAssignments = seedSupervisorAssignments;
+        }
+        return merged;
+      },
     },
   ),
 );

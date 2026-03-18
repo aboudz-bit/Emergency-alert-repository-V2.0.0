@@ -107,7 +107,7 @@ artifacts/emergency/
 ## Key Technical Details
 
 - **Zustand v5**: Always use `useShallow` from `@/store` when selecting multiple values or using selectors that return new arrays/objects (`.filter()`, `.map()`). Single-value/function selectors are safe without `useShallow`.
-- **Store version**: `keas-store-v4` — bump version when changing Zone/User type shapes to force fresh seed data
+- **Store version**: `keas-store-v5` — bump version when changing Zone/User type shapes to force fresh seed data. Store merge function ensures ecoAssignments/supervisorAssignments never rehydrate as empty.
 - **Leaflet**: `react-leaflet` with CartoDB Voyager light tiles (`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`), no API key needed. Zones page uses a light professional theme (white/slate panels, blue accents) separate from the app's dark theme.
 - **Zone coordinates**: Real Khurais lat/lng (~25.08°N, 48.18°E)
 - **Responsive**: Desktop table → mobile card layout at `lg` (1024px) breakpoint. Sidebar auto-collapses on mobile with drawer overlay.
