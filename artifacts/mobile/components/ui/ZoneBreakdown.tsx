@@ -7,8 +7,7 @@ export interface ZoneStats {
   zoneName: string;
   zoneColor: string;
   confirmed: number;
-  missing: number;
-  noReply: number;
+  pending: number;
   needHelp: number;
   total: number;
 }
@@ -39,17 +38,10 @@ export function ZoneBreakdown({ zoneStats, compact = false }: ZoneBreakdownProps
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: Colors.missing }]}>
-                {zone.missing}
-              </Text>
-              <Text style={styles.statLabel}>Missing</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: Colors.noreply }]}>
-                {zone.noReply}
+                {zone.pending}
               </Text>
-              <Text style={styles.statLabel}>No Reply</Text>
+              <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>

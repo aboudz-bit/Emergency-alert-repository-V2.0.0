@@ -25,6 +25,7 @@ export default function SupervisorDashboardScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const users = useStore((s) => s.users);
   const alerts = useStore((s) => s.alerts);
+  const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
@@ -40,27 +41,39 @@ export default function SupervisorDashboardScreen() {
   const roleLabel = isBackup ? "Backup Supervisor" : "Supervisor";
   const statusLabel = isBackup ? "STANDBY" : "ACTIVE";
 
+  const myLocationId = useMemo(() => {
+    const sa = useStore.getState().supervisorAssignments.find(
+      (a) => a.supervisorUserId === currentUser?.id || a.backupSupervisorUserId === currentUser?.id
+    );
+    return sa?.locationId ?? null;
+  }, [currentUser]);
+
   const myLocation = useMemo(
-    () => locations.find((l) => l.name === locName && l.zone === zoneName),
-    [locations, locName, zoneName]
+    () => myLocationId ? locations.find((l) => l.id === myLocationId) : locations.find((l) => l.name === locName && l.zone === zoneName),
+    [locations, myLocationId, locName, zoneName]
+  );
+
+  const myZone = useMemo(
+    () => zones.find((z) => z.name === zoneName),
+    [zones, zoneName]
   );
 
   const locationUsers = useMemo(
     () =>
-      users.filter(
-        (u) => u.location === locName && u.zone === zoneName && u.isActive
-      ),
-    [users, locName, zoneName]
+      myLocation
+        ? users.filter((u) => u.locationId === myLocation.id && u.isActive)
+        : [],
+    [users, myLocation]
   );
 
   const stats = useMemo(() => {
     const actual = locationUsers.length;
-    const expected = myLocation?.expectedManpower ?? actual;
+    const expected = myLocation?.expectedManpower ?? 0;
     const safe = locationUsers.filter(
       (u) => u.status === "confirmed"
     ).length;
     const pending = locationUsers.filter(
-      (u) => u.status === "no_reply" || u.status === "missing"
+      (u) => u.status === "pending"
     ).length;
     const needHelp = locationUsers.filter(
       (u) => u.status === "need_help"
@@ -97,7 +110,7 @@ export default function SupervisorDashboardScreen() {
     if (!myLocation) return;
     RNAlert.alert(
       "Start Accountability",
-      `Reset all ${locationUsers.length} personnel at ${locName} to "No Reply" and begin accountability?`,
+      `Reset all ${locationUsers.length} personnel at ${locName} to "Pending" and begin accountability?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -122,7 +135,7 @@ export default function SupervisorDashboardScreen() {
         rightAction={
           <View style={styles.headerRight}>
             <StatusBadge
-              status={isBackup ? "missing" : "active"}
+              status={isBackup ? "closed" : "active"}
               label={statusLabel}
             />
             <Pressable
@@ -147,6 +160,38 @@ export default function SupervisorDashboardScreen() {
               You are viewing this location as Backup Supervisor (read-only
               standby mode).
             </Text>
+          </View>
+        )}
+
+        {/* ── Active Zone Alert ── */}
+        {myZone?.alertActive && (
+          <View style={styles.alertCard}>
+            <View style={styles.alertHeader}>
+              <Feather name="alert-triangle" size={18} color={Colors.white} />
+              <Text style={styles.alertLabel}>ACTIVE ALERT</Text>
+              <View
+                style={[
+                  styles.alertPriorityBadge,
+                  myZone.alertPriority === "High" && { backgroundColor: Colors.primary },
+                  myZone.alertPriority === "Medium" && { backgroundColor: Colors.amber },
+                  myZone.alertPriority === "Low" && { backgroundColor: Colors.info },
+                ]}
+              >
+                <Text style={styles.alertPriorityText}>
+                  {myZone.alertPriority}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.alertType}>
+              {myZone.alertType?.toUpperCase()} ACTIVATED
+            </Text>
+            <Text style={styles.alertZone}>{zoneName}</Text>
+            <Text style={styles.alertMessage}>{myZone.alertMessage}</Text>
+            {myZone.alertUpdatedAt && (
+              <Text style={styles.alertTime}>
+                {format(new Date(myZone.alertUpdatedAt), "MMM d, h:mm a")}
+              </Text>
+            )}
           </View>
         )}
 
@@ -243,17 +288,7 @@ export default function SupervisorDashboardScreen() {
                 </Text>
               </View>
               <View style={styles.personnelStatus}>
-                <StatusBadge
-                  status={
-                    user.status === "confirmed"
-                      ? "confirmed"
-                      : user.status === "need_help"
-                        ? "need_help"
-                        : user.status === "missing"
-                          ? "missing"
-                          : "no_reply"
-                  }
-                />
+                <StatusBadge status={user.status} />
                 <Text style={styles.personnelTime}>
                   {format(new Date(user.lastActivity), "h:mm a")}
                 </Text>
@@ -388,6 +423,59 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.amber,
     fontFamily: "Inter_500Medium",
+  },
+  // ── Alert Card ──
+  alertCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  alertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  alertLabel: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.8)",
+    letterSpacing: 1,
+  },
+  alertPriorityBadge: {
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  alertPriorityText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  alertType: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  alertZone: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.7)",
+  },
+  alertMessage: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.9)",
+    marginTop: Spacing.xs,
+  },
+  alertTime: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: Spacing.xs,
   },
   kpiRow: { flexDirection: "row", gap: Spacing.md },
   actionRow: {

@@ -34,8 +34,7 @@ export function useZoneBreakdown(
         zoneName,
         zoneColor: zoneColorMap.get(zoneName) || "#6B7280",
         confirmed: zoneUsers.filter((u) => u.status === "confirmed").length,
-        missing: zoneUsers.filter((u) => u.status === "missing").length,
-        noReply: zoneUsers.filter((u) => u.status === "no_reply").length,
+        pending: zoneUsers.filter((u) => u.status === "pending").length,
         needHelp: zoneUsers.filter((u) => u.status === "need_help").length,
         total: zoneUsers.length,
       };

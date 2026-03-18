@@ -17,7 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { User } from "@/types";
 
-type FilterTab = "all" | "confirmed" | "missing" | "no_reply" | "need_help";
+type FilterTab = "all" | "confirmed" | "pending" | "need_help";
 
 export default function PersonnelScreen() {
   const currentUser = useStore((s) => s.currentUser);
@@ -33,26 +33,32 @@ export default function PersonnelScreen() {
   const locName = currentUser?.supervisorLocationName ?? "";
   const zoneName = currentUser?.supervisorZoneName ?? currentUser?.zone ?? "";
 
+  const myLocationId = useMemo(() => {
+    const sa = useStore.getState().supervisorAssignments.find(
+      (a) => a.supervisorUserId === currentUser?.id || a.backupSupervisorUserId === currentUser?.id
+    );
+    return sa?.locationId ?? null;
+  }, [currentUser]);
+
   const myLocation = useMemo(
-    () => locations.find((l) => l.name === locName && l.zone === zoneName),
-    [locations, locName, zoneName]
+    () => myLocationId ? locations.find((l) => l.id === myLocationId) : locations.find((l) => l.name === locName && l.zone === zoneName),
+    [locations, myLocationId, locName, zoneName]
   );
 
-  // Only show users matching BOTH zone AND location
+  // Only show users matching this locationId
   const locationUsers = useMemo(
     () =>
-      users.filter(
-        (u) => u.location === locName && u.zone === zoneName && u.isActive
-      ),
-    [users, locName, zoneName]
+      myLocation
+        ? users.filter((u) => u.locationId === myLocation.id && u.isActive)
+        : [],
+    [users, myLocation]
   );
 
   const counts = useMemo(
     () => ({
       all: locationUsers.length,
       confirmed: locationUsers.filter((u) => u.status === "confirmed").length,
-      missing: locationUsers.filter((u) => u.status === "missing").length,
-      no_reply: locationUsers.filter((u) => u.status === "no_reply").length,
+      pending: locationUsers.filter((u) => u.status === "pending").length,
       need_help: locationUsers.filter((u) => u.status === "need_help").length,
     }),
     [locationUsers]
@@ -69,7 +75,7 @@ export default function PersonnelScreen() {
   const handleRemove = useCallback(
     (user: User) => {
       // Guard: only allow removing users from supervisor's own location
-      if (user.location !== locName || user.zone !== zoneName) return;
+      if (!myLocation || user.locationId !== myLocation.id) return;
       RNAlert.alert(
         "Remove Personnel",
         `Remove ${user.name} (${user.badge}) from ${locName}?`,
@@ -83,14 +89,13 @@ export default function PersonnelScreen() {
         ]
       );
     },
-    [locName, zoneName, removePersonnelFromLocation]
+    [myLocation, locName, removePersonnelFromLocation]
   );
 
   const tabs: { key: FilterTab; label: string; color: string }[] = [
     { key: "all", label: "All", color: Colors.text },
     { key: "confirmed", label: "Safe", color: Colors.safe },
-    { key: "missing", label: "Missing", color: Colors.missing },
-    { key: "no_reply", label: "No Reply", color: Colors.noreply },
+    { key: "pending", label: "Pending", color: Colors.noreply },
     { key: "need_help", label: "Help", color: Colors.primary },
   ];
 

@@ -234,16 +234,16 @@ export default function AlertDetailScreen() {
               <Text style={styles.statCount}>
                 {activeAlert.stats.confirmed}
               </Text>
-              <Text style={styles.statLabel}>Confirmed</Text>
+              <Text style={styles.statLabel}>Safe</Text>
             </View>
             <View style={styles.statItem}>
               <View
-                style={[styles.statDot, { backgroundColor: Colors.missing }]}
+                style={[styles.statDot, { backgroundColor: Colors.noreply }]}
               />
               <Text style={styles.statCount}>
-                {activeAlert.stats.missing}
+                {activeAlert.stats.pending}
               </Text>
-              <Text style={styles.statLabel}>Missing</Text>
+              <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statItem}>
               <View
@@ -253,15 +253,6 @@ export default function AlertDetailScreen() {
                 {activeAlert.stats.needHelp}
               </Text>
               <Text style={styles.statLabel}>Need Help</Text>
-            </View>
-            <View style={styles.statItem}>
-              <View
-                style={[styles.statDot, { backgroundColor: Colors.noreply }]}
-              />
-              <Text style={styles.statCount}>
-                {activeAlert.stats.noReply}
-              </Text>
-              <Text style={styles.statLabel}>No Reply</Text>
             </View>
           </View>
         </Card>

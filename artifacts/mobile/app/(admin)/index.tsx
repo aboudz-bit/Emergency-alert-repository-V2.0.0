@@ -243,6 +243,26 @@ export default function DashboardScreen() {
               <Text style={styles.quickActionText}>Locations</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+              onPress={() => router.push("/(admin)/eco-management")}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: Colors.amber + "1A" }]}>
+                <Feather name="shield" size={24} color={Colors.amber} />
+              </View>
+              <Text style={styles.quickActionText}>ECO Management</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+              onPress={() => router.push("/(admin)/supervisor-management")}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + "1A" }]}>
+                <Feather name="clipboard" size={24} color={Colors.info} />
+              </View>
+              <Text style={styles.quickActionText}>Supervisor Management</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
           </View>
         </View>
 

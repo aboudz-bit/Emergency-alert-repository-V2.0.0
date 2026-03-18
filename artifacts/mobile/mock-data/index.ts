@@ -30,7 +30,7 @@ const badges = [
 export const seedUsers: User[] = names.map((name, i) => {
   const locIndex = i % CPF_LOCATIONS.length;
   const status: User['status'] =
-    i < 30 ? 'confirmed' : i < 42 ? 'missing' : 'no_reply';
+    i < 30 ? 'confirmed' : 'pending';
 
   let role: User['role'] = 'User';
   if (i === 0) role = 'Super Admin';
@@ -59,35 +59,35 @@ export const seedAlerts: Alert[] = [
     message: 'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Ahmed Al-Qahtani', priority: 'High', status: 'active', isActive: true,
-    stats: { confirmed: 30, missing: 12, noReply: 8, needHelp: 0, total: 50 },
+    stats: { confirmed: 30, pending: 20, needHelp: 0, total: 50 },
   },
   {
     id: 2, type: 'Security Alert', zone: 'CPF', title: 'SECURITY INCIDENT',
     message: 'Please remain indoors and lock all doors until further notice.',
     timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Security Team', priority: 'High', status: 'closed', isActive: false,
-    stats: { confirmed: 45, missing: 2, noReply: 1, needHelp: 0, total: 48 },
+    stats: { confirmed: 45, pending: 3, needHelp: 0, total: 48 },
   },
   {
     id: 3, type: 'Shelter-in', zone: 'CPF', title: 'SHELTER IN PLACE',
     message: 'Toxic gas alarm triggered. Shelter in place immediately.',
     timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'System Auto', priority: 'High', status: 'closed', isActive: false,
-    stats: { confirmed: 47, missing: 2, noReply: 1, needHelp: 0, total: 50 },
+    stats: { confirmed: 47, pending: 3, needHelp: 0, total: 50 },
   },
   {
     id: 4, type: 'Drill', zone: 'All Zones', title: 'EMERGENCY EVACUATION DRILL',
     message: 'This is a drill. Proceed to muster points.',
     timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'HSE Dept', priority: 'Medium', status: 'closed', isActive: false,
-    stats: { confirmed: 90, missing: 5, noReply: 3, needHelp: 0, total: 98 },
+    stats: { confirmed: 90, pending: 8, needHelp: 0, total: 98 },
   },
   {
     id: 5, type: 'All Clear', zone: 'CPF', title: 'ALL CLEAR',
     message: 'The previous emergency condition has been resolved. Return to normal operations.',
     timestamp: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Command Center', priority: 'Low', status: 'closed', isActive: false,
-    stats: { confirmed: 50, missing: 0, noReply: 0, needHelp: 0, total: 50 },
+    stats: { confirmed: 50, pending: 0, needHelp: 0, total: 50 },
   },
 ];
 
@@ -153,36 +153,27 @@ export const seedEcoAssignments: EcoAssignment[] = [
   },
 ];
 
-export const seedSupervisorAssignments: SupervisorAssignment[] = [
-  {
-    locationId: 1,
-    locationName: 'OT-1',
-    zoneName: 'CPF',
-    supervisorUserId: 7,
-    supervisorUserName: 'Mohammed Al-Harbi',
-    supervisorUserBadge: '108291',
-    backupSupervisorUserId: 8,
-    backupSupervisorUserName: 'Faisal Al-Otaibi',
-    backupSupervisorUserBadge: '105477',
-    supervisorActive: true,
-    backupActive: true,
-    totalManpower: 8,
-  },
-  {
-    locationId: 2,
-    locationName: 'OT-2',
-    zoneName: 'CPF',
-    supervisorUserId: 9,
-    supervisorUserName: 'Ali Al-Zahrani',
-    supervisorUserBadge: '106832',
-    backupSupervisorUserId: null,
-    backupSupervisorUserName: null,
-    backupSupervisorUserBadge: null,
-    supervisorActive: true,
-    backupActive: false,
-    totalManpower: 8,
-  },
-];
+export const seedSupervisorAssignments: SupervisorAssignment[] = CPF_LOCATIONS.map((name, i) => {
+  const locId = i + 1;
+  if (locId === 1) return {
+    locationId: 1, locationName: 'OT-1', zoneName: 'CPF',
+    supervisorUserId: 7, supervisorUserName: 'Mohammed Al-Harbi', supervisorUserBadge: '108291',
+    backupSupervisorUserId: 8, backupSupervisorUserName: 'Faisal Al-Otaibi', backupSupervisorUserBadge: '105477',
+    supervisorActive: true, backupActive: true, totalManpower: _expectedManpower[i],
+  };
+  if (locId === 2) return {
+    locationId: 2, locationName: 'OT-2', zoneName: 'CPF',
+    supervisorUserId: 9, supervisorUserName: 'Ali Al-Zahrani', supervisorUserBadge: '106832',
+    backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null,
+    supervisorActive: true, backupActive: false, totalManpower: _expectedManpower[i],
+  };
+  return {
+    locationId: locId, locationName: name, zoneName: 'CPF',
+    supervisorUserId: null, supervisorUserName: null, supervisorUserBadge: null,
+    backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null,
+    supervisorActive: false, backupActive: false, totalManpower: _expectedManpower[i],
+  };
+});
 
 export const seedSettings: AppSettings = {
   systemName: 'Khurais Emergency Alert System',

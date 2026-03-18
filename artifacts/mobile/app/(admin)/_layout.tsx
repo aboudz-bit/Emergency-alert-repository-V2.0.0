@@ -63,6 +63,8 @@ export default function AdminLayout() {
       <Tabs.Screen name="alert-monitor" options={{ href: null }} />
       <Tabs.Screen name="zones" options={{ href: null }} />
       <Tabs.Screen name="locations" options={{ href: null }} />
+      <Tabs.Screen name="eco-management" options={{ href: null }} />
+      <Tabs.Screen name="supervisor-management" options={{ href: null }} />
     </Tabs>
   );
 }

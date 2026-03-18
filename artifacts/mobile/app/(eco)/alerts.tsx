@@ -78,12 +78,8 @@ export default function ECOAlertsScreen() {
                     <Text style={styles.statLabel}>Safe</Text>
                   </View>
                   <View style={styles.statChip}>
-                    <Text style={[styles.statValue, { color: Colors.missing }]}>{alert.stats.missing}</Text>
-                    <Text style={styles.statLabel}>Missing</Text>
-                  </View>
-                  <View style={styles.statChip}>
-                    <Text style={[styles.statValue, { color: Colors.noreply }]}>{alert.stats.noReply}</Text>
-                    <Text style={styles.statLabel}>No Reply</Text>
+                    <Text style={[styles.statValue, { color: Colors.noreply }]}>{alert.stats.pending}</Text>
+                    <Text style={styles.statLabel}>Pending</Text>
                   </View>
                   {alert.stats.needHelp > 0 && (
                     <View style={styles.statChip}>

@@ -71,6 +71,14 @@ interface AppState {
   removePersonnelFromLocation: (userId: number) => void;
   startAccountability: (locationId: number) => void;
 
+  assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
+  toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
+
+  assignSupervisor: (locationId: number, userId: number | null) => void;
+  assignBackupSupervisor: (locationId: number, userId: number | null) => void;
+  toggleSupervisorActive: (locationId: number) => void;
+  toggleBackupActive: (locationId: number) => void;
+
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
 }
@@ -147,7 +155,7 @@ export const useStore = create<AppState>()(
           id: Date.now(), name, badge, password, role: 'User', zone, location,
           zoneId: matchedZone?.id ?? 0,
           locationId: matchedLoc?.id ?? 0,
-          status: 'no_reply', accountStatus: 'active',
+          status: 'pending', accountStatus: 'active',
           lastActivity: new Date().toISOString(), isActive: true,
         };
         set(s => ({ users: [...s.users, newUser] }));
@@ -165,7 +173,7 @@ export const useStore = create<AppState>()(
           id: Date.now(), name, badge, password, role: 'Super Admin',
           zone: 'CPF', zoneId: cpfZone?.id ?? 1,
           location: 'CCR', locationId: ccr?.id ?? 7,
-          status: 'no_reply',
+          status: 'pending',
           accountStatus: 'active', lastActivity: new Date().toISOString(), isActive: true,
         };
         set(s => ({ users: [...s.users, newAdmin] }));
@@ -197,8 +205,7 @@ export const useStore = create<AppState>()(
               ...a,
               stats: {
                 confirmed: users.filter(u => u.status === 'confirmed').length,
-                missing: users.filter(u => u.status === 'missing').length,
-                noReply: users.filter(u => u.status === 'no_reply').length,
+                pending: users.filter(u => u.status === 'pending').length,
                 needHelp: users.filter(u => u.status === 'need_help').length,
                 total: users.length,
               },
@@ -212,11 +219,11 @@ export const useStore = create<AppState>()(
         const { users } = get();
         set(s => ({
           alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
-          users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
+          users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
         }));
         const newAlert: Alert = {
           ...data, id: Date.now(), status: 'active', isActive: true,
-          stats: { confirmed: 0, missing: 0, noReply: users.length, needHelp: 0, total: users.length },
+          stats: { confirmed: 0, pending: users.length, needHelp: 0, total: users.length },
         };
         set(s => ({ alerts: [newAlert, ...s.alerts], mobileUserResponse: null }));
         return newAlert;
@@ -234,7 +241,7 @@ export const useStore = create<AppState>()(
           id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
           message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
           timestamp: new Date().toISOString(), sentBy, priority: 'High', status: 'closed', isActive: false,
-          stats: { confirmed: users.length, missing: 0, noReply: 0, needHelp: 0, total: users.length },
+          stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
         };
         set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
       },
@@ -562,19 +569,18 @@ export const useStore = create<AppState>()(
       },
 
       assignPersonnelToLocation: (userId, locationId) => {
-        const { currentUser: caller, locations: locs, users: allUsers } = get();
+        const { currentUser: caller, locations: locs, users: allUsers, supervisorAssignments } = get();
         const loc = locs.find(l => l.id === locationId);
         if (!loc) return;
         // Guard: non-admin callers can only assign to their own location
         if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
-          const supLoc = caller.supervisorLocationName;
-          const supZone = caller.supervisorZoneName ?? caller.zone;
-          if (loc.name !== supLoc || loc.zone !== supZone) return;
+          const sa = supervisorAssignments.find(a => a.supervisorUserId === caller.id || a.backupSupervisorUserId === caller.id);
+          if (!sa || sa.locationId !== locationId) return;
         }
         // Guard: target user must be in same zone+location already (or unassigned)
         const target = allUsers.find(u => u.id === userId);
         if (!target) return;
-        if (target.location !== '' && (target.location !== loc.name || target.zone !== loc.zone)) return;
+        if (target.locationId !== 0 && (target.locationId !== loc.id || target.zoneId !== loc.zoneId)) return;
         set(s => ({
           users: s.users.map(u =>
             u.id === userId
@@ -585,14 +591,13 @@ export const useStore = create<AppState>()(
       },
 
       removePersonnelFromLocation: (userId) => {
-        const { currentUser: caller, users: allUsers } = get();
+        const { currentUser: caller, users: allUsers, supervisorAssignments } = get();
         const target = allUsers.find(u => u.id === userId);
         if (!target) return;
         // Guard: non-admin callers can only remove from their own location
         if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
-          const supLoc = caller.supervisorLocationName;
-          const supZone = caller.supervisorZoneName ?? caller.zone;
-          if (target.location !== supLoc || target.zone !== supZone) return;
+          const sa = supervisorAssignments.find(a => a.supervisorUserId === caller.id || a.backupSupervisorUserId === caller.id);
+          if (!sa || target.locationId !== sa.locationId) return;
         }
         set(s => ({
           users: s.users.map(u =>
@@ -606,11 +611,11 @@ export const useStore = create<AppState>()(
       startAccountability: (locationId) => {
         const loc = get().locations.find(l => l.id === locationId);
         if (!loc) return;
-        // Reset all personnel at this location to no_reply for fresh accountability
+        // Reset all personnel at this location to pending for fresh accountability
         set(s => ({
           users: s.users.map(u =>
             u.locationId === locationId && u.isActive
-              ? { ...u, status: 'no_reply' as UserResponseStatus }
+              ? { ...u, status: 'pending' as UserResponseStatus }
               : u,
           ),
         }));
@@ -620,6 +625,92 @@ export const useStore = create<AppState>()(
           timestamp: new Date().toISOString(),
           actorName: get().currentUser?.name ?? undefined,
         });
+      },
+
+      assignEco: (slot, userId, zoneId) => {
+        const { users: allUsers, zones: allZones } = get();
+        const user = userId ? allUsers.find(u => u.id === userId) : null;
+        const zone = zoneId ? allZones.find(z => z.id === zoneId) : null;
+        set(s => ({
+          ecoAssignments: s.ecoAssignments.map(a =>
+            a.ecoSlot === slot
+              ? {
+                  ...a,
+                  assignedUserId: user?.id ?? null,
+                  assignedUserName: user?.name ?? null,
+                  assignedUserBadge: user?.badge ?? null,
+                  assignedZoneId: zone?.id ?? null,
+                  assignedZoneName: zone?.name ?? null,
+                  active: !!user,
+                  assignedAt: user ? new Date().toISOString() : null,
+                }
+              : a,
+          ),
+        }));
+      },
+      toggleEcoActive: (slot) => {
+        set(s => ({
+          ecoAssignments: s.ecoAssignments.map(a =>
+            a.ecoSlot === slot ? { ...a, active: !a.active } : a,
+          ),
+        }));
+      },
+
+      assignSupervisor: (locationId, userId) => {
+        const { users: allUsers, locations: allLocs } = get();
+        const user = userId ? allUsers.find(u => u.id === userId) : null;
+        const loc = allLocs.find(l => l.id === locationId);
+        if (!loc) return;
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a =>
+            a.locationId === locationId
+              ? {
+                  ...a,
+                  supervisorUserId: user?.id ?? null,
+                  supervisorUserName: user?.name ?? null,
+                  supervisorUserBadge: user?.badge ?? null,
+                  supervisorActive: !!user,
+                }
+              : a,
+          ),
+        }));
+      },
+      assignBackupSupervisor: (locationId, userId) => {
+        const { users: allUsers, locations: allLocs } = get();
+        const user = userId ? allUsers.find(u => u.id === userId) : null;
+        const loc = allLocs.find(l => l.id === locationId);
+        if (!loc) return;
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a =>
+            a.locationId === locationId
+              ? {
+                  ...a,
+                  backupSupervisorUserId: user?.id ?? null,
+                  backupSupervisorUserName: user?.name ?? null,
+                  backupSupervisorUserBadge: user?.badge ?? null,
+                  backupActive: !!user,
+                }
+              : a,
+          ),
+        }));
+      },
+      toggleSupervisorActive: (locationId) => {
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a =>
+            a.locationId === locationId
+              ? { ...a, supervisorActive: !a.supervisorActive }
+              : a,
+          ),
+        }));
+      },
+      toggleBackupActive: (locationId) => {
+        set(s => ({
+          supervisorAssignments: s.supervisorAssignments.map(a =>
+            a.locationId === locationId
+              ? { ...a, backupActive: !a.backupActive }
+              : a,
+          ),
+        }));
       },
 
       updateSettings: (partial) => set(s => ({ settings: { ...s.settings, ...partial } })),
@@ -637,8 +728,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v6',
-      version: 6,
+      name: 'keas-mobile-store-v7',
+      version: 7,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -719,6 +810,26 @@ export const useStore = create<AppState>()(
             state.locations = state.locations.map((loc: any) => ({
               ...loc,
               expectedManpower: loc.expectedManpower ?? 0,
+            }));
+          }
+        }
+        if (version < 7) {
+          // Simplify status model: remove missing + no_reply, replace with pending
+          if (Array.isArray(state?.users)) {
+            state.users = state.users.map((u: any) => ({
+              ...u,
+              status: u.status === 'missing' || u.status === 'no_reply' ? 'pending' : u.status,
+            }));
+          }
+          if (Array.isArray(state?.alerts)) {
+            state.alerts = state.alerts.map((a: any) => ({
+              ...a,
+              stats: a.stats ? {
+                confirmed: a.stats.confirmed ?? 0,
+                pending: (a.stats.pending ?? 0) + (a.stats.missing ?? 0) + (a.stats.noReply ?? 0),
+                needHelp: a.stats.needHelp ?? 0,
+                total: a.stats.total ?? 0,
+              } : a.stats,
             }));
           }
         }
