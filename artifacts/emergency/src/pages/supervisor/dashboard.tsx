@@ -68,9 +68,9 @@ export default function SupervisorDashboard() {
     a.isActive && (a.zone === zoneName || a.zone === 'All Zones'),
   );
 
-  // Recent audit for this location
+  // Recent audit for this location only — do NOT include zone-wide entries
   const locationAudit = auditLog
-    .filter(e => e.locationName === locName || e.targetName === locName || e.zoneName === zoneName)
+    .filter(e => e.locationName === locName || e.targetName === locName)
     .slice(0, 8);
 
   const handleLogout = () => { logout(); setLocation('/login'); };
@@ -121,28 +121,21 @@ export default function SupervisorDashboard() {
       )}
 
       <main className="flex-1 overflow-y-auto p-3 md:p-5 lg:p-8">
-        <div className="max-w-[1200px] mx-auto space-y-6">
+        <div className="max-w-[1200px] mx-auto space-y-4 lg:space-y-6">
 
-          {/* Assignment Identity Card */}
-          <div className="bg-card border border-border rounded-xl p-4 lg:p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Role</p>
-                <p className="font-bold text-foreground text-lg">{roleLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Location</p>
-                <p className="font-bold text-foreground text-lg">{locName}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Zone</p>
-                <p className="font-medium text-foreground">{zoneName}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p>
-                <p className={cn('font-bold', isSupervisor ? 'text-safe' : 'text-amber-500')}>{statusLabel}</p>
-              </div>
-            </div>
+          {/* Assignment Identity Strip */}
+          <div className="bg-card border border-border rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="font-bold text-foreground">{roleLabel}</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="font-bold text-foreground">{locName}</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">{zoneName}</span>
+            <span className={cn(
+              'ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold border',
+              isSupervisor ? 'bg-safe/10 text-safe border-safe/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+            )}>
+              {statusLabel.toUpperCase()}
+            </span>
           </div>
 
           {/* Backup indicator for read-only mode */}
@@ -156,56 +149,60 @@ export default function SupervisorDashboard() {
           )}
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-semibold uppercase">Total Manpower</span>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3">
+            <div className="bg-card border border-border rounded-xl p-3 lg:p-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] lg:text-xs text-muted-foreground font-semibold uppercase">Manpower</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">{totalManpower}</p>
+              <p className="text-xl lg:text-2xl font-bold text-foreground">{totalManpower}</p>
               {registeredCount !== totalManpower && (
-                <p className="text-[10px] text-amber-500 font-medium mt-1">Registered: {registeredCount}</p>
+                <p className="text-[10px] text-amber-500 font-medium mt-0.5">Reg: {registeredCount}</p>
               )}
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-safe" />
-                <span className="text-xs text-safe font-semibold uppercase">Safe</span>
+            <div className="bg-card border border-border rounded-xl p-3 lg:p-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-safe" />
+                <span className="text-[10px] lg:text-xs text-safe font-semibold uppercase">Safe</span>
               </div>
-              <p className="text-2xl font-bold text-safe">{safeCount}</p>
+              <p className="text-xl lg:text-2xl font-bold text-safe">{safeCount}</p>
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-noreply" />
-                <span className="text-xs text-noreply font-semibold uppercase">Pending</span>
+            <div className="bg-card border border-border rounded-xl p-3 lg:p-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Clock className="w-3.5 h-3.5 text-noreply" />
+                <span className="text-[10px] lg:text-xs text-noreply font-semibold uppercase">Pending</span>
               </div>
-              <p className="text-2xl font-bold text-noreply">{pendingCount}</p>
+              <p className="text-xl lg:text-2xl font-bold text-noreply">{pendingCount}</p>
             </div>
             {needHelpCount > 0 && (
-              <div className="bg-card border-2 border-destructive rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  <span className="text-xs text-destructive font-semibold uppercase">Need Help</span>
+              <div className="bg-card border-2 border-destructive rounded-xl p-3 lg:p-4">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                  <span className="text-[10px] lg:text-xs text-destructive font-semibold uppercase">Need Help</span>
                 </div>
-                <p className="text-2xl font-bold text-destructive">{needHelpCount}</p>
+                <p className="text-xl lg:text-2xl font-bold text-destructive">{needHelpCount}</p>
               </div>
             )}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-primary" />
-                <span className="text-xs text-primary font-semibold uppercase">Active Alerts</span>
+            <div className="bg-card border border-border rounded-xl p-3 lg:p-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] lg:text-xs text-primary font-semibold uppercase">Zone Alerts</span>
               </div>
-              <p className="text-2xl font-bold text-primary">{locationAlerts.length}</p>
+              <p className="text-xl lg:text-2xl font-bold text-primary">{locationAlerts.length}</p>
+              {locationAlerts.length > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">{zoneName}</p>
+              )}
             </div>
           </div>
 
-          {/* Active Alert Card */}
+          {/* Active Zone Alerts */}
           {locationAlerts.map(alert => (
             <div key={alert.id} className="bg-destructive/10 border-2 border-destructive rounded-xl p-4 lg:p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
                 <AlertTypeBadge type={alert.type} />
                 <span className="text-xs font-bold text-foreground bg-card px-2 py-0.5 rounded border border-border">{alert.priority.toUpperCase()}</span>
+                <span className="text-[10px] text-muted-foreground bg-card px-2 py-0.5 rounded border border-border">Zone: {alert.zone}</span>
                 <span className="text-xs text-muted-foreground font-mono">{new Date(alert.timestamp).toLocaleTimeString()}</span>
                 {alert.deliveryChannels && (
                   <div className="flex items-center gap-1 ml-auto">
@@ -221,7 +218,7 @@ export default function SupervisorDashboard() {
           ))}
 
           {/* User Accountability List */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             <div className="lg:col-span-2">
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="px-4 lg:px-6 py-4 border-b border-border bg-background/30">

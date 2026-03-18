@@ -605,6 +605,16 @@ export const useStore = create<AppState>()(
           }));
         }
 
+        // Also clear target user from any backup slot (user can't be both)
+        const existingBackup = get().supervisorAssignments.find(a => a.backupSupervisorUserId === userId);
+        if (existingBackup) {
+          set(s => ({
+            supervisorAssignments: s.supervisorAssignments.map(a =>
+              a.locationId === existingBackup.locationId ? { ...a, backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null, backupActive: false } : a,
+            ),
+          }));
+        }
+
         // Update or create assignment
         const updatedAssignment: SupervisorAssignment = {
           locationId, locationName: loc.name, zoneName: loc.zone,
@@ -673,6 +683,16 @@ export const useStore = create<AppState>()(
           set(s => ({
             supervisorAssignments: s.supervisorAssignments.map(a =>
               a.locationId === existingBackup.locationId ? { ...a, backupSupervisorUserId: null, backupSupervisorUserName: null, backupSupervisorUserBadge: null, backupActive: false } : a,
+            ),
+          }));
+        }
+
+        // Also clear target user from any supervisor slot (user can't be both)
+        const existingSupervisor = get().supervisorAssignments.find(a => a.supervisorUserId === userId);
+        if (existingSupervisor) {
+          set(s => ({
+            supervisorAssignments: s.supervisorAssignments.map(a =>
+              a.locationId === existingSupervisor.locationId ? { ...a, supervisorUserId: null, supervisorUserName: null, supervisorUserBadge: null, supervisorActive: false } : a,
             ),
           }));
         }

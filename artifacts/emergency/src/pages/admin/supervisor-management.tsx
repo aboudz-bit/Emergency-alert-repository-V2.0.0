@@ -6,7 +6,7 @@ import {
   Shield, UserPlus, X, Search, Power, PowerOff, Trash2, RefreshCw,
   MapPin, User as UserIcon, Users, Hash, ChevronDown, ChevronRight, Edit3,
 } from 'lucide-react';
-import type { User, SupervisorAssignment } from '@/types';
+import type { User } from '@/types';
 
 export default function SupervisorManagementPage() {
   const {
@@ -65,7 +65,7 @@ export default function SupervisorManagementPage() {
               {/* Zone header */}
               <button
                 onClick={() => toggleZone(zone)}
-                className="w-full px-5 py-4 flex items-center justify-between bg-background/30 border-b border-border hover:bg-muted/30 transition-colors"
+                className="w-full px-4 lg:px-5 py-3 lg:py-4 flex items-center justify-between bg-background/30 border-b border-border hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-primary" />
@@ -83,31 +83,29 @@ export default function SupervisorManagementPage() {
                     const mp = a?.totalManpower ?? loc.totalManpower ?? 0;
 
                     return (
-                      <div key={loc.id} className="px-5 py-4">
+                      <div key={loc.id} className="px-4 lg:px-5 py-3 lg:py-4">
                         {/* Location header row */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-primary" />
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 lg:w-8 lg:h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                              <MapPin className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-primary" />
                             </div>
                             <div>
                               <h4 className="font-bold text-foreground text-sm">{loc.name}</h4>
-                              <p className="text-xs text-muted-foreground">Registered: {locUsers.length}</p>
+                              <p className="text-[10px] lg:text-xs text-muted-foreground">Reg: {locUsers.length}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setManpowerModal({ locationId: loc.id, current: mp })}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Hash className="w-3 h-3" /> Manpower: {mp}
-                              <Edit3 className="w-3 h-3 text-muted-foreground" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setManpowerModal({ locationId: loc.id, current: mp })}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-background border border-border rounded-lg text-[10px] lg:text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Hash className="w-3 h-3" /> {mp}
+                            <Edit3 className="w-3 h-3 text-muted-foreground" />
+                          </button>
                         </div>
 
                         {/* Supervisor + Backup row */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
                           {/* Supervisor */}
                           <PersonSlot
                             label="Supervisor"
@@ -186,10 +184,10 @@ function PersonSlot({ label, userName, userBadge, isActive, onAssign, onToggle, 
   const isAssigned = !!userName;
   return (
     <div className={cn(
-      'border rounded-lg p-3 transition-colors',
+      'border rounded-lg p-2.5 lg:p-3 transition-colors',
       isAssigned ? (isActive ? 'border-safe/30 bg-safe/5' : 'border-border bg-muted/30') : 'border-dashed border-border bg-background/50',
     )}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{label}</span>
         {isAssigned && (
           <span className={cn(
