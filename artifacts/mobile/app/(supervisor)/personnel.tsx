@@ -75,7 +75,7 @@ export default function PersonnelScreen() {
   const handleRemove = useCallback(
     (user: User) => {
       // Guard: only allow removing users from supervisor's own location
-      if (user.location !== locName || user.zone !== zoneName) return;
+      if (!myLocation || user.locationId !== myLocation.id) return;
       RNAlert.alert(
         "Remove Personnel",
         `Remove ${user.name} (${user.badge}) from ${locName}?`,
@@ -89,7 +89,7 @@ export default function PersonnelScreen() {
         ]
       );
     },
-    [locName, zoneName, removePersonnelFromLocation]
+    [myLocation, locName, removePersonnelFromLocation]
   );
 
   const tabs: { key: FilterTab; label: string; color: string }[] = [

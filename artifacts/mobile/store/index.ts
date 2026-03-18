@@ -569,19 +569,18 @@ export const useStore = create<AppState>()(
       },
 
       assignPersonnelToLocation: (userId, locationId) => {
-        const { currentUser: caller, locations: locs, users: allUsers } = get();
+        const { currentUser: caller, locations: locs, users: allUsers, supervisorAssignments } = get();
         const loc = locs.find(l => l.id === locationId);
         if (!loc) return;
         // Guard: non-admin callers can only assign to their own location
         if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
-          const supLoc = caller.supervisorLocationName;
-          const supZone = caller.supervisorZoneName ?? caller.zone;
-          if (loc.name !== supLoc || loc.zone !== supZone) return;
+          const sa = supervisorAssignments.find(a => a.supervisorUserId === caller.id || a.backupSupervisorUserId === caller.id);
+          if (!sa || sa.locationId !== locationId) return;
         }
         // Guard: target user must be in same zone+location already (or unassigned)
         const target = allUsers.find(u => u.id === userId);
         if (!target) return;
-        if (target.location !== '' && (target.location !== loc.name || target.zone !== loc.zone)) return;
+        if (target.locationId !== 0 && (target.locationId !== loc.id || target.zoneId !== loc.zoneId)) return;
         set(s => ({
           users: s.users.map(u =>
             u.id === userId
@@ -592,14 +591,13 @@ export const useStore = create<AppState>()(
       },
 
       removePersonnelFromLocation: (userId) => {
-        const { currentUser: caller, users: allUsers } = get();
+        const { currentUser: caller, users: allUsers, supervisorAssignments } = get();
         const target = allUsers.find(u => u.id === userId);
         if (!target) return;
         // Guard: non-admin callers can only remove from their own location
         if (caller && caller.role !== 'Super Admin' && caller.role !== 'IT') {
-          const supLoc = caller.supervisorLocationName;
-          const supZone = caller.supervisorZoneName ?? caller.zone;
-          if (target.location !== supLoc || target.zone !== supZone) return;
+          const sa = supervisorAssignments.find(a => a.supervisorUserId === caller.id || a.backupSupervisorUserId === caller.id);
+          if (!sa || target.locationId !== sa.locationId) return;
         }
         set(s => ({
           users: s.users.map(u =>

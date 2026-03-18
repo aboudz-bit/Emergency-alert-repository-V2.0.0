@@ -52,9 +52,9 @@ export default function UsersScreen() {
     let result = users;
     if (selectedFilter !== "All") {
       const filterZone = zones.find((z) => z.name === selectedFilter);
-      result = filterZone
-        ? result.filter((u) => u.zoneId === filterZone.id)
-        : result.filter((u) => u.zone === selectedFilter);
+      if (filterZone) {
+        result = result.filter((u) => u.zoneId === filterZone.id);
+      }
     }
     if (selectedStatus !== "All") {
       result = result.filter((u) => u.status === selectedStatus);
