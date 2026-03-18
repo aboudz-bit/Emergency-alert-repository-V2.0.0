@@ -38,10 +38,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+    color: '#1F2937',
   },
   input: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   focused: {
-    borderColor: Colors.textTertiary,
+    borderColor: Colors.primary,
   },
   errorBorder: {
     borderColor: Colors.destructive,

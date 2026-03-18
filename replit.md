@@ -162,8 +162,8 @@ artifacts/mobile/
 
 ### Mobile Key Details
 
-- **UI Theme**: Professional enterprise palette — muted navy background (`#0B0F1E`), slate surface (`#111827`), subtle borders (`#1F2937`), clean text (`#E8ECF4`), muted red CTA (`#C62E3E`). Flat cards (no shadows), tightened border radii (sm:6, md:10, lg:12). Consistent 20px icons, SemiBold/Medium font weights. KPICard values in neutral white. Input focus uses subtle gray border.
-- **Tab bar**: Active tab icons have pill-shaped surfaceElevated background (36×28 rounded-14), active text color is white (`Colors.text`), inactive is muted (`Colors.textTertiary`). Platform-aware height (iOS 88 / Android 68).
+- **UI Theme**: Light enterprise palette — light gray background (`#F5F6F8`), white cards (`#FFFFFF`), gray borders (`#E5E7EB`), dark text (`#111111`/`#1F2937`). Purple header (`#5B3A8E`) with white text. Purple accent (`#5B3A8E`) used for primary, info, active tab, links. Red for alerts/destructive (`#DC2626`), green for safe (`#16A34A`), amber for warnings (`#D97706`). Flat cards (no shadows), tightened border radii (sm:6, md:10, lg:12).
+- **Tab bar**: White background, gray top border, purple active icons/text (`Colors.primary`), gray inactive (`Colors.textSecondary`). Active pill uses `Colors.primaryDim`. Platform-aware height (iOS 88 / Android 68).
 - **Zone Map Architecture (Google Maps target)**:
   - `components/map/` — unified map abstraction layer
     - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions

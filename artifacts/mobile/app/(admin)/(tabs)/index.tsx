@@ -77,11 +77,11 @@ export default function DashboardScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <Feather name="bell" size={18} color={Colors.textSecondary} />
+              <Feather name="bell" size={18} color={Colors.headerText} />
               {hasActiveAlerts && <View style={styles.notifDot} />}
             </Pressable>
             <Pressable onPress={handleLogout} style={styles.iconBtn} hitSlop={8}>
-              <Feather name="log-out" size={18} color={Colors.textSecondary} />
+              <Feather name="log-out" size={18} color={Colors.headerText} />
             </Pressable>
           </View>
         }
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -343,9 +343,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.destructive,
     borderWidth: 2,
-    borderColor: Colors.surfaceElevated,
+    borderColor: Colors.headerBg,
   },
   scroll: {
     flex: 1,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   alertMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
-    color: Colors.text,
+    color: '#1F2937',
     lineHeight: 22,
   },
   alertStats: {
@@ -444,14 +444,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   alertActionSecondary: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   alertActionTextDark: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: '#1F2937',
   },
   zoneAlertRow: {
     flexDirection: "row",
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   zoneAlertName: {
     fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: '#1F2937',
   },
   zoneAlertTag: {
     paddingHorizontal: 6,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: '#1F2937',
   },
   quickActionsGrid: {
     gap: Spacing.sm,
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.background,
   },
   quickActionIcon: {
     width: 40,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
-    color: Colors.text,
+    color: '#1F2937',
   },
   activityCard: {
     padding: 0,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   logMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
-    color: Colors.text,
+    color: '#1F2937',
   },
   logTime: {
     fontSize: FontSize.xs,

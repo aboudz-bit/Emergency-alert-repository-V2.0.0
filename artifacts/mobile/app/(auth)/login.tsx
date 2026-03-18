@@ -88,7 +88,7 @@ export default function LoginScreen() {
         >
           <View style={styles.logoContainer}>
             <View style={styles.iconCircle}>
-              <Feather name="shield" size={32} color={Colors.text} />
+              <Feather name="shield" size={32} color={Colors.primary} />
             </View>
             <Text style={styles.title}>KEAS</Text>
             <Text style={styles.subtitle}>
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.primaryDim,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primaryBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.lg,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.display,
     fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    color: '#1F2937',
     letterSpacing: 4,
   },
   subtitle: {
@@ -256,8 +256,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   chipPressed: {
-    backgroundColor: Colors.surfaceElevated,
-    borderColor: Colors.textTertiary,
+    backgroundColor: Colors.background,
+    borderColor: Colors.primary,
   },
   chipText: {
     fontSize: FontSize.sm,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   linkHighlight: {
-    color: Colors.text,
+    color: Colors.primary,
     fontFamily: "Inter_600SemiBold",
   },
 });

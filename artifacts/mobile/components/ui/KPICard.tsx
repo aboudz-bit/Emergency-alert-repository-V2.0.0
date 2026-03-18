@@ -25,7 +25,7 @@ export function KPICard({
         <View style={[styles.iconWrap, { backgroundColor: dimColor }]}>
           <Feather name={icon} size={16} color={color} />
         </View>
-        <Text style={[styles.value, { color: Colors.text }]}>{value}</Text>
+        <Text style={[styles.value, { color: '#1F2937' }]}>{value}</Text>
       </View>
       <Text style={styles.title}>{title}</Text>
     </View>

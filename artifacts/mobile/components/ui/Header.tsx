@@ -26,7 +26,7 @@ export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) 
             style={styles.backBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Feather name="chevron-left" size={22} color={Colors.textSecondary} />
+            <Feather name="chevron-left" size={22} color={Colors.headerText} />
           </Pressable>
         )}
         <View style={styles.titleWrap}>
@@ -41,9 +41,9 @@ export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) 
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
   },
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: "center",
     justifyContent: "center",
   },
@@ -67,12 +67,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.xl,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: Colors.headerText,
   },
   subtitle: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
 });
