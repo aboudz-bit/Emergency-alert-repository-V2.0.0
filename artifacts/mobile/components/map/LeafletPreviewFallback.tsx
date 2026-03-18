@@ -17,10 +17,10 @@ import type { Zone, LatLng } from "@/types";
  */
 function generateLeafletHtml(
   zones: Zone[],
-  selectedZoneId: number | null,
   editingZoneId: number | null | undefined,
   initialEditPoints: LatLng[] | undefined,
 ): string {
+  const selectedZoneId: number | null = null; // selection is handled via postMessage
   const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
   let centerLng = 48.175;
@@ -52,7 +52,7 @@ function generateLeafletHtml(
           fillOpacity: ${fillOpacity}, weight: ${weight},
           ${dashArray ? `dashArray: '${dashArray}',` : ""}
         }).addTo(map);
-        allZonePolygons.push({id:${z.id}, layer: poly${z.id}, origOpacity: ${fillOpacity}});
+        allZonePolygons.push({id:${z.id}, layer: poly${z.id}, origOpacity: ${fillOpacity}, origColor:'${z.color}', isActive:${z.isActive}});
         poly${z.id}.on('click', function() {
           if (!tapEnabled) {
             window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
@@ -331,6 +331,30 @@ function generateLeafletHtml(
         if (!d.enabled) clearAllTapPoints();
         setTapMode(!!d.enabled);
       }
+      if (d.type === 'select_zone') {
+        var selId = d.id;
+        allZonePolygons.forEach(function(zp) {
+          var isSel = zp.id === selId;
+          zp.layer.setStyle({
+            weight: isSel ? 3 : 2,
+            fillOpacity: isSel ? 0.35 : zp.origOpacity
+          });
+        });
+      }
+      if (d.type === 'update_zone_active') {
+        allZonePolygons.forEach(function(zp) {
+          if (zp.id === d.id) {
+            zp.isActive = d.isActive;
+            var baseOpacity = d.isActive ? 0.2 : 0.08;
+            zp.origOpacity = baseOpacity;
+            zp.layer.setStyle({
+              color: d.isActive ? zp.origColor : '#6B7280',
+              dashArray: d.isActive ? '' : '5,5',
+              fillOpacity: baseOpacity
+            });
+          }
+        });
+      }
       if (d.type === 'set_crosshair') {
         var ch = document.getElementById('crosshair');
         if (ch) ch.className = 'map-crosshair' + (d.visible ? ' visible' : '');
@@ -384,17 +408,51 @@ export function LeafletPreviewFallback({
     initialEditPointsRef.current = editingZoneId != null ? editingPoints : undefined;
   }
 
-  // Only regenerate HTML when zone DATA or edit-mode entry changes — never on vertex drags
+  // Stable key: only regenerate when zone structure changes (add/remove/reorder/color/points),
+  // NOT on isActive toggle or selection changes — those use postMessage.
+  const zonesStructureKey = useMemo(
+    () =>
+      zones
+        .map(
+          (z) =>
+            `${z.id}:${z.color}:${z.polygonPoints.map((p) => `${p.lat},${p.lng}`).join("|")}:${z.center?.lat},${z.center?.lng}:${z.name}`
+        )
+        .join(";"),
+    [zones]
+  );
+
+  // Only regenerate HTML when zone STRUCTURE or edit-mode entry changes — never on
+  // selection, isActive toggle, or vertex drags.
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, selectedZoneId, editingZoneId, initialEditPointsRef.current),
+    () => generateLeafletHtml(zones, editingZoneId, initialEditPointsRef.current),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [zones, selectedZoneId, editingZoneId]
+    [zonesStructureKey, editingZoneId]
   );
 
   // Helper to post a message to the iframe
   const postToIframe = (msg: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify(msg), "*");
   };
+
+  // ── Highlight selected zone via postMessage (no iframe reload) ──
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "select_zone", id: selectedZoneId }), 80);
+    return () => clearTimeout(t);
+  }, [selectedZoneId]);
+
+  // ── Sync zone isActive changes via postMessage (no iframe reload) ──
+  const prevZonesRef = useRef<Zone[]>([]);
+  useEffect(() => {
+    const prev = prevZonesRef.current;
+    prevZonesRef.current = zones;
+    if (prev.length === 0) return; // first render, skip
+    for (const z of zones) {
+      const old = prev.find((p) => p.id === z.id);
+      if (old && old.isActive !== z.isActive) {
+        postToIframe({ type: "update_zone_active", id: z.id, isActive: z.isActive });
+      }
+    }
+  }, [zones]);
 
   // ── Toggle edit mode (suspends location auto-centering) ──
   useEffect(() => {
