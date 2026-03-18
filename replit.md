@@ -162,7 +162,8 @@ artifacts/mobile/
 
 ### Mobile Key Details
 
-- **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
+- **UI Theme**: Enterprise navy/indigo palette — deep navy background (`#06091A`), navy surface (`#0E1330`), indigo accents (`#6366F1`), red CTA (`#DC3545`). Platform-specific shadows on Card, KPICard, Header. StatusBadge has per-status border colors. Input focus uses indigo. Login accents are indigo with red CTA button for visual hierarchy.
+- **Tab bar**: Active tab icons have pill-shaped dim background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68). Admin/User tabs use red accent, ECO uses indigo, Supervisor uses amber.
 - **Zone Map Architecture (Google Maps target)**:
   - `components/map/` — unified map abstraction layer
     - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
