@@ -33,18 +33,25 @@ export default function PersonnelScreen() {
   const locName = currentUser?.supervisorLocationName ?? "";
   const zoneName = currentUser?.supervisorZoneName ?? currentUser?.zone ?? "";
 
+  const myLocationId = useMemo(() => {
+    const sa = useStore.getState().supervisorAssignments.find(
+      (a) => a.supervisorUserId === currentUser?.id || a.backupSupervisorUserId === currentUser?.id
+    );
+    return sa?.locationId ?? null;
+  }, [currentUser]);
+
   const myLocation = useMemo(
-    () => locations.find((l) => l.name === locName && l.zone === zoneName),
-    [locations, locName, zoneName]
+    () => myLocationId ? locations.find((l) => l.id === myLocationId) : locations.find((l) => l.name === locName && l.zone === zoneName),
+    [locations, myLocationId, locName, zoneName]
   );
 
-  // Only show users matching BOTH zone AND location
+  // Only show users matching this locationId
   const locationUsers = useMemo(
     () =>
-      users.filter(
-        (u) => u.location === locName && u.zone === zoneName && u.isActive
-      ),
-    [users, locName, zoneName]
+      myLocation
+        ? users.filter((u) => u.locationId === myLocation.id && u.isActive)
+        : [],
+    [users, myLocation]
   );
 
   const counts = useMemo(

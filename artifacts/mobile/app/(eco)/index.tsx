@@ -21,37 +21,48 @@ export default function ECODashboardScreen() {
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
 
-  const zoneName = currentUser?.ecoZoneName ?? "CPF";
+  const zoneName = currentUser?.ecoZoneName ?? currentUser?.zone ?? "";
+  const zoneObj = useMemo(
+    () => zones.find((z) => z.name === zoneName),
+    [zones, zoneName]
+  );
+  const zoneId = zoneObj?.id ?? null;
 
   const zoneLocations = useMemo(
-    () => locations.filter((l) => l.zone === zoneName && l.isActive),
-    [locations, zoneName]
+    () => zoneId !== null ? locations.filter((l) => l.zoneId === zoneId && l.isActive) : [],
+    [locations, zoneId]
   );
 
   const zoneUsers = useMemo(
-    () => users.filter((u) => u.zone === zoneName && u.isActive),
-    [users, zoneName]
+    () => zoneId !== null ? users.filter((u) => u.zoneId === zoneId && u.isActive) : [],
+    [users, zoneId]
   );
 
   const stats = useMemo(() => {
     const total = zoneUsers.length;
     const safe = zoneUsers.filter((u) => u.status === "confirmed").length;
-    const pending = total - safe;
+    const pending = zoneUsers.filter(
+      (u) => u.status === "no_reply" || u.status === "missing"
+    ).length;
+    const needHelp = zoneUsers.filter((u) => u.status === "need_help").length;
     const activeAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { total, safe, pending, activeAlerts, locationCount: zoneLocations.length };
+    return { total, safe, pending, needHelp, activeAlerts, locationCount: zoneLocations.length };
   }, [zoneUsers, alerts, zoneName, zoneLocations]);
 
   const locationBreakdown = useMemo(() => {
     return zoneLocations.map((loc) => {
-      const locUsers = zoneUsers.filter((u) => u.location === loc.name);
+      const locUsers = zoneUsers.filter((u) => u.locationId === loc.id);
       const safe = locUsers.filter((u) => u.status === "confirmed").length;
-      const pending = locUsers.length - safe;
+      const pending = locUsers.filter(
+        (u) => u.status === "no_reply" || u.status === "missing"
+      ).length;
       const needHelp = locUsers.filter((u) => u.status === "need_help").length;
       return {
         id: loc.id,
         name: loc.name,
+        expected: loc.expectedManpower,
         manpower: locUsers.length,
         safe,
         pending,
@@ -114,6 +125,12 @@ export default function ECODashboardScreen() {
           <KPICard title="Safe" value={stats.safe} icon="check-circle" color={Colors.safe} dimColor={Colors.safeDim} />
           <KPICard title="Pending" value={stats.pending} icon="clock" color={Colors.missing} dimColor={Colors.missingDim} />
         </View>
+        {stats.needHelp > 0 && (
+          <View style={styles.kpiRow}>
+            <KPICard title="Need Help" value={stats.needHelp} icon="alert-circle" color={Colors.primary} dimColor={Colors.primaryDim} />
+            <View style={{ flex: 1 }} />
+          </View>
+        )}
 
         {activeAlerts.length > 0 && (
           <Card elevated style={styles.alertCard}>
@@ -145,8 +162,12 @@ export default function ECODashboardScreen() {
             </View>
             <View style={styles.locationStats}>
               <View style={styles.locStat}>
-                <Text style={styles.locStatValue}>{loc.manpower}</Text>
-                <Text style={styles.locStatLabel}>Total</Text>
+                <Text style={styles.locStatValue}>{loc.expected}</Text>
+                <Text style={styles.locStatLabel}>Expected</Text>
+              </View>
+              <View style={styles.locStat}>
+                <Text style={[styles.locStatValue, { color: loc.manpower >= loc.expected ? Colors.safe : Colors.missing }]}>{loc.manpower}</Text>
+                <Text style={styles.locStatLabel}>Actual</Text>
               </View>
               <View style={styles.locStat}>
                 <Text style={[styles.locStatValue, { color: Colors.safe }]}>{loc.safe}</Text>

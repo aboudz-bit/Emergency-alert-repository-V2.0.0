@@ -23,6 +23,7 @@ export default function SupervisorManagementScreen() {
   const router = useRouter();
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
   const users = useStore((s) => s.users);
+  const locations = useStore((s) => s.locations);
   const assignSupervisor = useStore((s) => s.assignSupervisor);
   const assignBackupSupervisor = useStore((s) => s.assignBackupSupervisor);
   const toggleSupervisorActive = useStore((s) => s.toggleSupervisorActive);
@@ -228,13 +229,22 @@ export default function SupervisorManagementScreen() {
                 </View>
               </View>
 
-              {/* Manpower footer */}
-              <View style={styles.manpowerRow}>
-                <Feather name="users" size={13} color={Colors.textSecondary} />
-                <Text style={styles.manpowerText}>
-                  Expected Manpower: {item.totalManpower}
-                </Text>
-              </View>
+              {/* Manpower footer — live from store */}
+              {(() => {
+                const loc = locations.find((l) => l.id === item.locationId);
+                const expected = loc?.expectedManpower ?? 0;
+                const actual = users.filter((u) => u.locationId === item.locationId && u.isActive).length;
+                const safe = users.filter((u) => u.locationId === item.locationId && u.isActive && u.status === "confirmed").length;
+                const pending = users.filter((u) => u.locationId === item.locationId && u.isActive && (u.status === "no_reply" || u.status === "missing")).length;
+                return (
+                  <View style={styles.manpowerRow}>
+                    <Feather name="users" size={13} color={Colors.textSecondary} />
+                    <Text style={styles.manpowerText}>
+                      Expected: {expected} · Actual: {actual} · Safe: {safe} · Pending: {pending}
+                    </Text>
+                  </View>
+                );
+              })()}
             </View>
           );
         }}
