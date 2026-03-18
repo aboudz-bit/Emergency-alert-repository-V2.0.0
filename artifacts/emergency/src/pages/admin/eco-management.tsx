@@ -4,7 +4,7 @@ import { useStore, useShallow } from '@/store';
 import { cn } from '@/components/shared/Badges';
 import {
   ShieldAlert, UserPlus, X, Search, Power, PowerOff,
-  Trash2, RefreshCw, MapPin, User as UserIcon, Clock,
+  Trash2, RefreshCw, MapPin, User as UserIcon, Clock, UserCheck,
 } from 'lucide-react';
 import type { EcoSlot, User } from '@/types';
 
@@ -101,7 +101,7 @@ export default function ECOManagementPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+                          <UserCheck className="w-4 h-4 text-muted-foreground" />
                           <div>
                             <p className="text-xs text-muted-foreground">Assigned By</p>
                             <p className="font-medium text-foreground">{assignment.assignedByName || '—'}</p>

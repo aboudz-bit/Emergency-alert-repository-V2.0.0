@@ -88,6 +88,7 @@ export default function Login() {
                 className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               />
               <p className="text-xs text-muted-foreground">Demo password: <span className="font-mono text-foreground">demo1234</span></p>
+              <p className="text-xs text-muted-foreground">ECO demo badge: <span className="font-mono text-foreground">103618</span></p>
             </div>
 
             {error && (

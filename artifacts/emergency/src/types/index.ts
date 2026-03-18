@@ -67,6 +67,8 @@ export interface User {
   isActive: boolean;
 
   // ECO assignment fields (user remains role='User' with ECO overlay)
+  // NOTE: currentOperationalLocation='CCR' is a string-only value for now.
+  // CCR is not a Location entity. Convert to a real Location reference if needed later.
   isECOAssigned?: boolean;
   ecoSlot?: EcoSlot | null;
   ecoZoneId?: number | null;

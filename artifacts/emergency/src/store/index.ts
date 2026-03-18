@@ -566,7 +566,7 @@ export const useStore = create<AppState>()(
         const prevAssignment = ecoAssignments.find(a => a.ecoSlot === slot);
         const isReassign = prevAssignment?.assignedUserId != null && prevAssignment.assignedUserId !== userId;
 
-        // If reassigning, clear previous user's ECO flags
+        // If reassigning this slot, clear previous user's ECO flags
         if (isReassign && prevAssignment?.assignedUserId) {
           const prevUserId = prevAssignment.assignedUserId;
           set(s => ({
@@ -583,6 +583,28 @@ export const useStore = create<AppState>()(
                 ecoAssignedByName: null,
                 currentOperationalLocation: null,
               } : u,
+            ),
+          }));
+        }
+
+        // If target user is already assigned to a different slot, clear that slot first
+        const existingSlot = ecoAssignments.find(a => a.assignedUserId === userId && a.ecoSlot !== slot);
+        if (existingSlot) {
+          set(s => ({
+            ecoAssignments: s.ecoAssignments.map(a =>
+              a.ecoSlot === existingSlot.ecoSlot ? {
+                ecoSlot: existingSlot.ecoSlot,
+                assignedUserId: null,
+                assignedUserName: null,
+                assignedUserBadge: null,
+                assignedZoneId: null,
+                assignedZoneName: null,
+                active: false,
+                assignedByUserId: null,
+                assignedByName: null,
+                assignedAt: null,
+                notes: '',
+              } : a,
             ),
           }));
         }
@@ -664,14 +686,20 @@ export const useStore = create<AppState>()(
         const removedUserId = assignment.assignedUserId;
         const removedUserName = assignment.assignedUserName || 'Unknown';
 
+        // Fully reset assignment slot to empty state + clear user ECO flags
         set(s => ({
           ecoAssignments: s.ecoAssignments.map(a =>
             a.ecoSlot === slot ? {
-              ...a,
+              ecoSlot: slot,
               assignedUserId: null,
               assignedUserName: null,
               assignedUserBadge: null,
+              assignedZoneId: null,
+              assignedZoneName: null,
               active: false,
+              assignedByUserId: null,
+              assignedByName: null,
+              assignedAt: null,
               notes: '',
             } : a,
           ),

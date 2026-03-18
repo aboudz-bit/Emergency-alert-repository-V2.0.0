@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { AlertTypeBadge } from '@/components/shared/Badges';
-import { useStore, useShallow, selectActiveAlert } from '@/store';
+import { useStore, useShallow } from '@/store';
 
 export default function ECODashboard() {
   const [, setLocation] = useLocation();
@@ -23,7 +23,6 @@ export default function ECODashboard() {
     logout: s.logout,
     activeBroadcast: s.activeBroadcast,
   })));
-  const activeAlert = useStore(selectActiveAlert);
 
   // Find this user's ECO assignment
   const ecoAssignment = ecoAssignments.find(
@@ -37,9 +36,14 @@ export default function ECODashboard() {
           <ShieldAlert className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold text-foreground mb-2">No Active ECO Assignment</h2>
           <p className="text-muted-foreground mb-4">Your ECO assignment is not active or has been removed.</p>
-          <button onClick={() => { logout(); setLocation('/login'); }} className="px-6 py-2 bg-primary text-white rounded-lg font-medium">
-            Return to Login
-          </button>
+          <div className="flex items-center justify-center gap-3">
+            <button onClick={() => setLocation('/mobile/home')} className="px-6 py-2 bg-primary text-white rounded-lg font-medium">
+              Go to Home
+            </button>
+            <button onClick={() => { logout(); setLocation('/login'); }} className="px-6 py-2 bg-card border border-border text-foreground rounded-lg font-medium hover:bg-muted transition-colors">
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     );
