@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_600SemiBold",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   input: {
     backgroundColor: Colors.surface,

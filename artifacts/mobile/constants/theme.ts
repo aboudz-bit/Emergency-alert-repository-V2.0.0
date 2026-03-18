@@ -6,6 +6,7 @@ export const Colors = {
   borderLight: '#D1D5DB',
 
   text: '#111111',
+  textTitle: '#1F2937',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
 

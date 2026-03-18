@@ -712,6 +712,6 @@ export function LeafletPreviewFallback({
 const styles = StyleSheet.create({
   container: {
     overflow: "hidden",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Colors.background,
   },
 });

@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   alertMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
-    color: '#1F2937',
+    color: Colors.textTitle,
     lineHeight: 22,
   },
   alertStats: {
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   alertActionTextDark: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   zoneAlertRow: {
     flexDirection: "row",
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   zoneAlertName: {
     fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   zoneAlertTag: {
     paddingHorizontal: 6,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg,
     fontFamily: "Inter_600SemiBold",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   quickActionsGrid: {
     gap: Spacing.sm,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   activityCard: {
     padding: 0,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   logMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
-    color: '#1F2937',
+    color: Colors.textTitle,
   },
   logTime: {
     fontSize: FontSize.xs,

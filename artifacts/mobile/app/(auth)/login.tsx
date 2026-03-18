@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.display,
     fontFamily: "Inter_700Bold",
-    color: '#1F2937',
+    color: Colors.textTitle,
     letterSpacing: 4,
   },
   subtitle: {
