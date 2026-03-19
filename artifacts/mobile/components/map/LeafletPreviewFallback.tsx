@@ -198,7 +198,8 @@ function generateLeafletHtml(
   .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
   .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
   .personnel-dot.safe{background:#22C55E}
-  .personnel-dot.pending{background:#F59E0B}
+  .personnel-dot.outside{background:#F59E0B}
+  .personnel-dot.contractor{background:#F97316}
   .personnel-dot.need-help{background:#EF4444;animation:personnel-pulse 1.5s infinite}
   @keyframes personnel-pulse{0%,100%{box-shadow:0 0 4px rgba(239,68,68,0.4)}50%{box-shadow:0 0 12px rgba(239,68,68,0.8)}}
 </style></head><body>
@@ -410,7 +411,11 @@ function generateLeafletHtml(
     var seen = {};
     list.forEach(function(p) {
       seen[p.userId] = true;
-      var statusClass = p.status === 'confirmed' ? 'safe' : p.status === 'need_help' ? 'need-help' : 'pending';
+      var statusClass;
+      if (p.status === 'need_help') { statusClass = 'need-help'; }
+      else if (p.userType === 'Contract') { statusClass = 'contractor'; }
+      else if (p.isInsideAssignedLocation) { statusClass = 'safe'; }
+      else { statusClass = 'outside'; }
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();

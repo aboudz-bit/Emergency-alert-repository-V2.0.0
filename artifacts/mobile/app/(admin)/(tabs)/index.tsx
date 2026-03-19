@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import {
+  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,14 +15,18 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+
+const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
 
 export default function DashboardScreen() {
   const router = useRouter();
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
 
@@ -263,6 +268,23 @@ export default function DashboardScreen() {
               <Text style={styles.quickActionText}>Supervisor Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
             </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Zone Overview</Text>
+          </View>
+          <View style={styles.dashMapContainer}>
+            <ZoneMap
+              zones={zones}
+              selectedZoneId={null}
+              onZonePress={() => {}}
+              height={DASH_MAP_HEIGHT}
+              showLabels
+              locations={locations}
+              shelters={shelters}
+            />
           </View>
         </View>
 
@@ -571,5 +593,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     paddingVertical: Spacing.xl,
+  },
+  dashMapContainer: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    height: DASH_MAP_HEIGHT,
   },
 });
