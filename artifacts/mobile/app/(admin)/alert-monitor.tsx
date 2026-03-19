@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   Dimensions,
   Modal,
@@ -72,13 +72,16 @@ export default function AlertMonitorScreen() {
     enabled: hasActiveAlert,
   });
 
+  const visiblePersonnelRef = useRef(visiblePersonnel);
+  visiblePersonnelRef.current = visiblePersonnel;
+
   const [selectedTab, setSelectedTab] = useState<TabKey>("confirmed");
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
 
   const handlePersonnelPress = useCallback((userId: number) => {
-    const p = visiblePersonnel.find((v) => v.userId === userId);
+    const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
     if (p) setPersonnelDetail(p);
-  }, [visiblePersonnel]);
+  }, []);
 
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
