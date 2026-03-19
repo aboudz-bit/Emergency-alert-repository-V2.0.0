@@ -10,8 +10,12 @@ export interface PersonnelMapEntry {
   name: string;
   badge?: string;
   role?: string | null;
+  userType?: string;
   assignedLocation?: string;
+  assignedLocationId?: number;
   detectedLocation?: string;
+  detectedLocationId?: number | null;
+  isInsideAssignedLocation?: boolean;
   lastUpdate?: number;
 }
 
@@ -50,6 +54,7 @@ export function useVisiblePersonnel(opts: {
       const user = users.find((u) => u.id === loc.userId);
       const assignedLoc = user?.locationId ? locations.find((l) => l.id === user.locationId) : null;
       const detectedLoc = loc.detectedLocationId ? locations.find((l) => l.id === loc.detectedLocationId) : null;
+      const isInsideAssigned = !!(assignedLoc && loc.detectedLocationId === assignedLoc.id);
       entries.push({
         userId: loc.userId,
         lat: loc.lat,
@@ -58,8 +63,12 @@ export function useVisiblePersonnel(opts: {
         name: user?.name ?? `User ${loc.userId}`,
         badge: user?.badge,
         role: user?.role,
+        userType: user?.userType ?? "Aramco",
         assignedLocation: assignedLoc?.name ?? user?.location ?? "",
+        assignedLocationId: assignedLoc?.id ?? user?.locationId ?? 0,
         detectedLocation: detectedLoc?.name ?? "",
+        detectedLocationId: loc.detectedLocationId,
+        isInsideAssignedLocation: isInsideAssigned,
         lastUpdate: loc.timestamp,
       });
     }

@@ -43,9 +43,34 @@ export default function AlertMonitorScreen() {
   const sendAllClear = useStore((s) => s.sendAllClear);
   const closeAlert = useStore((s) => s.closeAlert);
 
+  const currentUser = useStore((s) => s.currentUser);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
+
   const hasActiveAlert = useStore(selectHasActiveAlert);
   usePersonnelSimulation(hasActiveAlert);
-  const visiblePersonnel = useVisiblePersonnel({ scope: "all", enabled: hasActiveAlert });
+
+  // Scope: Super Admin sees all, Supervisor/Backup sees only their assigned location
+  const personnelScope = useMemo(() => {
+    if (!currentUser) return { scope: "all" as const };
+    const role = currentUser.role;
+    if (role === "Super Admin" || role === "IT") {
+      return { scope: "all" as const };
+    }
+    // Check if supervisor or backup supervisor for a location
+    const sa = supervisorAssignments.find(
+      (a) => a.supervisorUserId === currentUser.id || a.backupSupervisorUserId === currentUser.id
+    );
+    if (sa) {
+      return { scope: "location" as const, locationId: sa.locationId };
+    }
+    return { scope: "all" as const };
+  }, [currentUser, supervisorAssignments]);
+
+  const visiblePersonnel = useVisiblePersonnel({
+    scope: personnelScope.scope,
+    locationId: "locationId" in personnelScope ? personnelScope.locationId : undefined,
+    enabled: hasActiveAlert,
+  });
 
   const [selectedTab, setSelectedTab] = useState<TabKey>("confirmed");
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
@@ -161,11 +186,15 @@ export default function AlertMonitorScreen() {
             <View style={styles.mapLegend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
-                <Text style={styles.legendText}>Safe</Text>
+                <Text style={styles.legendText}>Inside</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
-                <Text style={styles.legendText}>Pending</Text>
+                <Text style={styles.legendText}>Outside</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
+                <Text style={styles.legendText}>Contractor</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
@@ -184,8 +213,9 @@ export default function AlertMonitorScreen() {
                     onPress={() => setPersonnelDetail(p)}
                   >
                     <View style={[styles.trackedDot, {
-                      backgroundColor: p.status === 'confirmed' ? Colors.safe
-                        : p.status === 'need_help' ? Colors.primary : Colors.amber,
+                      backgroundColor: p.status === 'need_help' ? Colors.primary
+                        : p.userType === 'Contract' ? '#F97316'
+                        : p.isInsideAssignedLocation ? Colors.safe : Colors.amber,
                     }]} />
                     <Text style={styles.trackedName} numberOfLines={1}>{p.name}</Text>
                     <Text style={styles.trackedMeta}>{p.badge}</Text>
