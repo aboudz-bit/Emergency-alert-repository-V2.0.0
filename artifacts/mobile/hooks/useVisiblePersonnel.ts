@@ -11,6 +11,7 @@ export interface PersonnelMapEntry {
   badge?: string;
   role?: string | null;
   userType?: string;
+  mobileNumber?: string;
   assignedLocation?: string;
   assignedLocationId?: number;
   detectedLocation?: string;
@@ -64,6 +65,7 @@ export function useVisiblePersonnel(opts: {
         badge: user?.badge,
         role: user?.role,
         userType: user?.userType ?? "Aramco",
+        mobileNumber: user?.mobileNumber ?? "",
         assignedLocation: assignedLoc?.name ?? user?.location ?? "",
         assignedLocationId: assignedLoc?.id ?? user?.locationId ?? 0,
         detectedLocation: detectedLoc?.name ?? "",
