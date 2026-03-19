@@ -84,11 +84,6 @@ export default function AlertMonitorScreen() {
 
   const isMultiZone = zoneStats.length > 1;
 
-  const filteredUsers = useMemo(
-    () => users.filter((u) => u.status === selectedTab),
-    [users, selectedTab]
-  );
-
   const getTabCount = useCallback(
     (key: TabKey) => {
       if (!activeAlert) return 0;
@@ -210,59 +205,8 @@ export default function AlertMonitorScreen() {
                 {visiblePersonnel.length} tracked
               </Text>
             </View>
-            {visiblePersonnel.length > 0 && (
-              <View style={styles.trackedList}>
-                {visiblePersonnel.slice(0, 8).map((p) => (
-                  <Pressable
-                    key={p.userId}
-                    style={({ pressed }) => [styles.trackedRow, pressed && { backgroundColor: Colors.background }]}
-                    onPress={() => setPersonnelDetail(p)}
-                  >
-                    <View style={[styles.trackedDot, {
-                      backgroundColor: p.status === 'need_help' ? Colors.primary
-                        : p.userType === 'Contract' ? '#F97316'
-                        : p.isInsideAssignedLocation ? Colors.safe : Colors.amber,
-                    }]} />
-                    <Text style={styles.trackedName} numberOfLines={1}>{p.name}</Text>
-                    <Text style={styles.trackedMeta}>{p.badge}</Text>
-                    <Feather name="chevron-right" size={14} color={Colors.textTertiary} />
-                  </Pressable>
-                ))}
-                {visiblePersonnel.length > 8 && (
-                  <Text style={styles.trackedMore}>+{visiblePersonnel.length - 8} more</Text>
-                )}
-              </View>
-            )}
           </View>
         )}
-
-        <View style={styles.userListSection}>
-          <Text style={styles.zoneSectionTitle}>
-            Personnel — {TABS.find((t) => t.key === selectedTab)?.label} ({filteredUsers.length})
-          </Text>
-          {filteredUsers.length === 0 ? (
-            <View style={styles.listEmpty}>
-              <Text style={styles.listEmptyText}>No users with this status</Text>
-            </View>
-          ) : (
-            filteredUsers.map((item) => (
-              <View key={item.id} style={styles.userRow}>
-                <View style={styles.userAvatar}>
-                  <Text style={styles.userAvatarText}>
-                    {item.name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.name}</Text>
-                  <Text style={styles.userDetails}>
-                    {item.badge} · {item.zone} · {item.location}
-                  </Text>
-                </View>
-                <StatusBadge status={item.status} />
-              </View>
-            ))
-          )}
-        </View>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -464,57 +408,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: Spacing.xs,
   },
-  userListSection: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  listEmpty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxxl,
-  },
-  listEmptyText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  userAvatarText: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.textSecondary,
-  },
-  userInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  userName: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  userDetails: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
   bottomActions: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -590,42 +483,6 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     marginLeft: "auto",
   },
-  trackedList: {
-    marginTop: Spacing.xs,
-    gap: 2,
-  },
-  trackedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-  },
-  trackedDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  trackedName: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
-    color: Colors.text,
-  },
-  trackedMeta: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
-  },
-  trackedMore: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textTertiary,
-    textAlign: "center",
-    paddingVertical: Spacing.xs,
-  },
-
   detailOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
