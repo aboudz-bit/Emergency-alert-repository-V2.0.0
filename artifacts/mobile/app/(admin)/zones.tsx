@@ -49,8 +49,12 @@ export default function ZonesScreen() {
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
   const activeAlert = useStore(selectActiveAlert);
   const addHazardZone = useStore((s) => s.addHazardZone);
+  const removeHazardZone = useStore((s) => s.removeHazardZone);
+  const unlockHazardZone = useStore((s) => s.unlockHazardZone);
   const hazardZones = useStore((s) => s.hazardZones);
   const settings = useStore((s) => s.settings);
+
+  const [selectedHazardId, setSelectedHazardId] = useState<number | null>(null);
 
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
@@ -503,7 +507,7 @@ export default function ZonesScreen() {
           {hazardCenter && (
             <View style={styles.modeCount}>
               <Text style={styles.modeCountText}>
-                Hot:{settings.hazardRedRadius}m Warm:{settings.hazardYellowRadius}m Cold:{settings.hazardGreenRadius}m
+                Hot:{settings.hazardHotRadius || 200}m Warm:{settings.hazardWarmRadius || 500}m Cold:{settings.hazardColdRadius || 1000}m
               </Text>
             </View>
           )}
@@ -529,6 +533,83 @@ export default function ZonesScreen() {
           </View>
         </View>
       )}
+
+      {/* ═══ HAZARD ZONES LIST — bottom chips when active ═══ */}
+      {mode === "view" && !addingShelter && !placingHazard && activeHazardZones.length > 0 && !selectedZone && !selectedShelter && !selectedLocation && (
+        <View style={[styles.hazardChipBar, { bottom: insets.bottom + (zones.length > 0 ? 56 : 12) }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
+            {activeHazardZones.map((hz) => (
+              <Pressable
+                key={hz.id}
+                style={[styles.hazardChip, selectedHazardId === hz.id && styles.hazardChipSelected]}
+                onPress={() => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id)}
+              >
+                <Feather name="alert-triangle" size={12} color="#EF4444" />
+                <Text style={styles.hazardChipText}>
+                  WZ {hz.centerLat.toFixed(2)}°
+                </Text>
+                {hz.isLocked && <Feather name="lock" size={10} color="rgba(255,255,255,0.5)" />}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ═══ SELECTED HAZARD ZONE — bottom sheet ═══ */}
+      {mode === "view" && !addingShelter && !placingHazard && selectedHazardId != null && !selectedZone && !selectedShelter && !selectedLocation && (() => {
+        const hz = activeHazardZones.find((h) => h.id === selectedHazardId);
+        if (!hz) return null;
+        return (
+          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={styles.bsRow}>
+              <View style={[styles.bsDot, { backgroundColor: "#EF4444" }]} />
+              <View style={styles.bsInfo}>
+                <Text style={styles.bsName}>Warning Zone</Text>
+                <Text style={styles.bsMeta}>
+                  {hz.centerLat.toFixed(4)}°N, {hz.centerLng.toFixed(4)}°E · {hz.isLocked ? "Locked" : "Unlocked"}
+                </Text>
+              </View>
+              <Pressable style={styles.bsClose} onPress={() => setSelectedHazardId(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textTertiary} />
+              </Pressable>
+            </View>
+            <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
+              <View style={{ flex: 1, backgroundColor: "#EF444420", borderRadius: 8, padding: 8, alignItems: "center" }}>
+                <Text style={{ fontSize: 10, color: "#EF4444", fontFamily: "Inter_600SemiBold" }}>HOT</Text>
+                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.hotRadius}m</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: "#EAB30820", borderRadius: 8, padding: 8, alignItems: "center" }}>
+                <Text style={{ fontSize: 10, color: "#EAB308", fontFamily: "Inter_600SemiBold" }}>WARM</Text>
+                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.warmRadius}m</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: "#22C55E20", borderRadius: 8, padding: 8, alignItems: "center" }}>
+                <Text style={{ fontSize: 10, color: "#22C55E", fontFamily: "Inter_600SemiBold" }}>COLD</Text>
+                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.coldRadius}m</Text>
+              </View>
+            </View>
+            <View style={styles.bsActions}>
+              {hz.isLocked ? (
+                <Pressable style={styles.bsActionBtn} onPress={() => unlockHazardZone(hz.id)}>
+                  <Feather name="unlock" size={16} color="#F59E0B" />
+                  <Text style={[styles.bsActionText, { color: "#F59E0B" }]}>Unlock</Text>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.bsActionBtn} onPress={() => {}}>
+                  <Feather name="lock" size={16} color={Colors.text} />
+                  <Text style={styles.bsActionText}>Locked</Text>
+                </Pressable>
+              )}
+              <Pressable style={styles.bsActionBtn} onPress={() => {
+                removeHazardZone(hz.id);
+                setSelectedHazardId(null);
+              }}>
+                <Feather name="trash-2" size={16} color={Colors.destructive} />
+                <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        );
+      })()}
 
       {/* ═══ FLOATING HEADER — PICK SHAPE ═══ */}
       {mode === "pick_shape" && (
@@ -1186,4 +1267,18 @@ const styles = StyleSheet.create({
     minHeight: 48, borderRadius: 10, backgroundColor: Colors.info,
   },
   saveBtnText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
+
+  // ─── Hazard zone chips ───
+  hazardChipBar: { position: "absolute", left: 0, right: 0, zIndex: 14 },
+  hazardChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 7,
+    backgroundColor: "rgba(239,68,68,0.15)", borderRadius: 20,
+    borderWidth: 1, borderColor: "rgba(239,68,68,0.3)",
+  },
+  hazardChipSelected: {
+    backgroundColor: "rgba(239,68,68,0.3)",
+    borderColor: "rgba(239,68,68,0.6)",
+  },
+  hazardChipText: { fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: "#fff", maxWidth: 120 },
 });

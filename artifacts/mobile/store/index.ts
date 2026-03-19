@@ -93,6 +93,7 @@ interface AppState {
 
   addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
   removeHazardZone: (id: number) => void;
+  unlockHazardZone: (id: number) => void;
   clearHazardZones: () => void;
 
   sendZoneNotification: (zoneId: number, message: string) => void;
@@ -778,19 +779,29 @@ export const useStore = create<AppState>()(
           locationId: locationId ?? null,
           centerLat,
           centerLng,
-          redRadius: settings.hazardRedRadius,
-          yellowRadius: settings.hazardYellowRadius,
-          greenRadius: settings.hazardGreenRadius,
+          hotRadius: settings.hazardHotRadius || 200,
+          warmRadius: settings.hazardWarmRadius || 500,
+          coldRadius: settings.hazardColdRadius || 1000,
           alertId: activeAlert.id,
           isActive: true,
+          isLocked: true,
           createdBy: currentUser?.name || 'System',
           createdAt: now,
+          windDirectionDeg: null,
+          windMode: null,
+          hazardShape: 'circle',
         };
         set(s => ({ hazardZones: [...s.hazardZones, hz] }));
       },
 
       removeHazardZone: (id) => {
         set(s => ({ hazardZones: s.hazardZones.filter(hz => hz.id !== id) }));
+      },
+
+      unlockHazardZone: (id) => {
+        set(s => ({
+          hazardZones: s.hazardZones.map(hz => hz.id === id ? { ...hz, isLocked: false } : hz),
+        }));
       },
 
       clearHazardZones: () => {
@@ -927,8 +938,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v12',
-      version: 12,
+      name: 'keas-mobile-store-v14',
+      version: 14,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1077,6 +1088,45 @@ export const useStore = create<AppState>()(
         if (version < 12) {
           if (!Array.isArray(state?.zoneNotifications)) {
             state.zoneNotifications = [];
+          }
+        }
+        if (version < 13) {
+          if (!Array.isArray(state?.hazardZones)) {
+            state.hazardZones = [];
+          }
+          if (state?.settings) {
+            if (typeof state.settings.hazardRedRadius !== 'number' || isNaN(state.settings.hazardRedRadius)) {
+              state.settings.hazardRedRadius = 200;
+            }
+            if (typeof state.settings.hazardYellowRadius !== 'number' || isNaN(state.settings.hazardYellowRadius)) {
+              state.settings.hazardYellowRadius = 500;
+            }
+            if (typeof state.settings.hazardGreenRadius !== 'number' || isNaN(state.settings.hazardGreenRadius)) {
+              state.settings.hazardGreenRadius = 1000;
+            }
+          }
+        }
+        if (version < 14) {
+          // Rename radius fields: red→hot, yellow→warm, green→cold; add isLocked + wind fields
+          if (state?.settings) {
+            state.settings.hazardHotRadius = state.settings.hazardRedRadius ?? state.settings.hazardHotRadius ?? 200;
+            state.settings.hazardWarmRadius = state.settings.hazardYellowRadius ?? state.settings.hazardWarmRadius ?? 500;
+            state.settings.hazardColdRadius = state.settings.hazardGreenRadius ?? state.settings.hazardColdRadius ?? 1000;
+            delete state.settings.hazardRedRadius;
+            delete state.settings.hazardYellowRadius;
+            delete state.settings.hazardGreenRadius;
+          }
+          if (Array.isArray(state?.hazardZones)) {
+            state.hazardZones = state.hazardZones.map((hz: any) => ({
+              ...hz,
+              hotRadius: hz.redRadius ?? hz.hotRadius ?? 200,
+              warmRadius: hz.yellowRadius ?? hz.warmRadius ?? 500,
+              coldRadius: hz.greenRadius ?? hz.coldRadius ?? 1000,
+              isLocked: hz.isLocked ?? true,
+              windDirectionDeg: hz.windDirectionDeg ?? null,
+              windMode: hz.windMode ?? null,
+              hazardShape: hz.hazardShape ?? 'circle',
+            }));
           }
         }
         return persisted as AppState;

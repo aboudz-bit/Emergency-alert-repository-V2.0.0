@@ -113,6 +113,7 @@ interface AppState {
   // ── Hazard Zone actions ──────────────────────────────────────────────────────
   addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
   removeHazardZone: (id: number) => void;
+  unlockHazardZone: (id: number) => void;
   clearHazardZones: () => void;
 
   // ── Settings ─────────────────────────────────────────────────────────────────
@@ -642,13 +643,17 @@ export const useStore = create<AppState>()(
           locationId: locationId ?? null,
           centerLat,
           centerLng,
-          redRadius: settings.hazardRedRadius,
-          yellowRadius: settings.hazardYellowRadius,
-          greenRadius: settings.hazardGreenRadius,
+          hotRadius: settings.hazardHotRadius || 200,
+          warmRadius: settings.hazardWarmRadius || 500,
+          coldRadius: settings.hazardColdRadius || 1000,
           alertId: activeAlert.id,
           isActive: true,
+          isLocked: true,
           createdBy: currentUser?.name || 'System',
           createdAt: now,
+          windDirectionDeg: null,
+          windMode: null,
+          hazardShape: 'circle',
         };
         set(s => ({ hazardZones: [...s.hazardZones, hz] }));
         get().addActivityLog({
@@ -662,6 +667,12 @@ export const useStore = create<AppState>()(
 
       removeHazardZone: (id) => {
         set(s => ({ hazardZones: s.hazardZones.filter(hz => hz.id !== id) }));
+      },
+
+      unlockHazardZone: (id) => {
+        set(s => ({
+          hazardZones: s.hazardZones.map(hz => hz.id === id ? { ...hz, isLocked: false } : hz),
+        }));
       },
 
       clearHazardZones: () => {
@@ -1251,6 +1262,44 @@ export const useStore = create<AppState>()(
         }
         if (!merged.supervisorAssignments || merged.supervisorAssignments.length === 0) {
           merged.supervisorAssignments = seedSupervisorAssignments;
+        }
+        if (!Array.isArray(merged.hazardZones)) {
+          merged.hazardZones = [];
+        }
+        if (merged.settings) {
+          // Migrate old field names if present
+          if (merged.settings.hazardRedRadius != null && merged.settings.hazardHotRadius == null) {
+            merged.settings.hazardHotRadius = merged.settings.hazardRedRadius;
+            delete merged.settings.hazardRedRadius;
+          }
+          if (merged.settings.hazardYellowRadius != null && merged.settings.hazardWarmRadius == null) {
+            merged.settings.hazardWarmRadius = merged.settings.hazardYellowRadius;
+            delete merged.settings.hazardYellowRadius;
+          }
+          if (merged.settings.hazardGreenRadius != null && merged.settings.hazardColdRadius == null) {
+            merged.settings.hazardColdRadius = merged.settings.hazardGreenRadius;
+            delete merged.settings.hazardGreenRadius;
+          }
+          if (typeof merged.settings.hazardHotRadius !== 'number' || isNaN(merged.settings.hazardHotRadius)) {
+            merged.settings.hazardHotRadius = 200;
+          }
+          if (typeof merged.settings.hazardWarmRadius !== 'number' || isNaN(merged.settings.hazardWarmRadius)) {
+            merged.settings.hazardWarmRadius = 500;
+          }
+          if (typeof merged.settings.hazardColdRadius !== 'number' || isNaN(merged.settings.hazardColdRadius)) {
+            merged.settings.hazardColdRadius = 1000;
+          }
+        }
+        // Migrate old hazard zone field names
+        if (Array.isArray(merged.hazardZones)) {
+          merged.hazardZones = merged.hazardZones.map((hz: any) => ({
+            ...hz,
+            hotRadius: hz.redRadius ?? hz.hotRadius ?? 200,
+            warmRadius: hz.yellowRadius ?? hz.warmRadius ?? 500,
+            coldRadius: hz.greenRadius ?? hz.coldRadius ?? 1000,
+            isLocked: hz.isLocked ?? true,
+            hazardShape: hz.hazardShape ?? 'circle',
+          }));
         }
         return merged;
       },

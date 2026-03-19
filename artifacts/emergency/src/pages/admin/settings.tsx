@@ -177,8 +177,8 @@ export default function SettingsPage() {
               type="number"
               min={10}
               max={1000}
-              value={settings.hazardRedRadius}
-              onChange={e => updateSettings({ hazardRedRadius: Number(e.target.value) || 50 })}
+              value={settings.hazardHotRadius}
+              onChange={e => updateSettings({ hazardHotRadius: Number(e.target.value) || 50 })}
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
@@ -187,8 +187,8 @@ export default function SettingsPage() {
               type="number"
               min={10}
               max={2000}
-              value={settings.hazardYellowRadius}
-              onChange={e => updateSettings({ hazardYellowRadius: Number(e.target.value) || 150 })}
+              value={settings.hazardWarmRadius}
+              onChange={e => updateSettings({ hazardWarmRadius: Number(e.target.value) || 150 })}
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
@@ -197,8 +197,8 @@ export default function SettingsPage() {
               type="number"
               min={10}
               max={5000}
-              value={settings.hazardGreenRadius}
-              onChange={e => updateSettings({ hazardGreenRadius: Number(e.target.value) || 300 })}
+              value={settings.hazardColdRadius}
+              onChange={e => updateSettings({ hazardColdRadius: Number(e.target.value) || 300 })}
               className="w-32 h-8 text-sm"
             />
           </SettingRow>

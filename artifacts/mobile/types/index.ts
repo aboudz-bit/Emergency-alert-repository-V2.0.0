@@ -230,19 +230,27 @@ export interface ActivityLog {
 
 // ─── Hazard Zones ────────────────────────────────────────────────────────────
 
+export type HazardShape = 'circle' | 'plume';
+export type WindMode = 'manual' | 'auto';
+
 export interface HazardZone {
   id: number;
   zoneId: number | null;
   locationId: number | null;
   centerLat: number;
   centerLng: number;
-  redRadius: number;
-  yellowRadius: number;
-  greenRadius: number;
+  hotRadius: number;
+  warmRadius: number;
+  coldRadius: number;
   alertId: number;
   isActive: boolean;
+  isLocked: boolean;
   createdBy: string;
   createdAt: string;
+  // Wind direction support (Phase 3 — data model only)
+  windDirectionDeg?: number | null;
+  windMode?: WindMode | null;
+  hazardShape?: HazardShape | null;
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -267,7 +275,7 @@ export interface AppSettings {
   badgeAsUsername: boolean;
   wifiAndMobileData: boolean;
   systemVersion: string;
-  hazardRedRadius: number;
-  hazardYellowRadius: number;
-  hazardGreenRadius: number;
+  hazardHotRadius: number;
+  hazardWarmRadius: number;
+  hazardColdRadius: number;
 }
