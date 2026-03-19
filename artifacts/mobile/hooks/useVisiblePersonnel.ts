@@ -8,6 +8,11 @@ export interface PersonnelMapEntry {
   lng: number;
   status: string;
   name: string;
+  badge?: string;
+  role?: string | null;
+  assignedLocation?: string;
+  detectedLocation?: string;
+  lastUpdate?: number;
 }
 
 export function useVisiblePersonnel(opts: {
@@ -19,6 +24,7 @@ export function useVisiblePersonnel(opts: {
 }): PersonnelMapEntry[] {
   const personnelLocations = useStore((s) => s.personnelLocations);
   const users = useStore((s) => s.users);
+  const locations = useStore((s) => s.locations);
   const currentUser = useStore((s) => s.currentUser);
 
   return useMemo(() => {
@@ -42,15 +48,22 @@ export function useVisiblePersonnel(opts: {
       if (staleMs > 120_000) continue;
 
       const user = users.find((u) => u.id === loc.userId);
+      const assignedLoc = user?.locationId ? locations.find((l) => l.id === user.locationId) : null;
+      const detectedLoc = loc.detectedLocationId ? locations.find((l) => l.id === loc.detectedLocationId) : null;
       entries.push({
         userId: loc.userId,
         lat: loc.lat,
         lng: loc.lng,
         status: user?.status ?? "pending",
         name: user?.name ?? `User ${loc.userId}`,
+        badge: user?.badge,
+        role: user?.role,
+        assignedLocation: assignedLoc?.name ?? user?.location ?? "",
+        detectedLocation: detectedLoc?.name ?? "",
+        lastUpdate: loc.timestamp,
       });
     }
 
     return entries;
-  }, [personnelLocations, users, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, opts.excludeSelf, opts.enabled]);
+  }, [personnelLocations, users, locations, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, opts.excludeSelf, opts.enabled]);
 }

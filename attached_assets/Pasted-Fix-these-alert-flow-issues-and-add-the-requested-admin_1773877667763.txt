@@ -1,0 +1,146 @@
+Fix these alert-flow issues and add the requested admin features.
+
+IMPORTANT:
+Do NOT break current map behavior.
+Do NOT break camera stability.
+Do NOT reload the map.
+Do NOT reset iframe.
+Do NOT change routing unless needed for this feature.
+
+==================================================
+1) BUG FIX — ALERT RE-ACTIVATION
+==================================================
+
+Current problem:
+I turned OFF the alert, then created a new alert again.
+
+Issues found:
+- Alert Monitor did not activate properly again
+- Supervisor page did not show personnel on the map again after the new alert
+
+Required fix:
+When a new alert becomes active after a previous one was cleared:
+
+1. Alert Monitor must detect the new active alert correctly
+2. Personnel tracking must restart correctly
+3. Supervisor map must show personnel markers again
+4. Super Admin map must also show personnel again
+5. Any alert-gated tracking logic must re-enable properly
+6. Do not require app refresh for this to work
+
+Check all alert lifecycle transitions:
+
+- no alert -> active alert
+- active alert -> all clear
+- all clear -> active alert again
+- active alert -> close alert
+- close alert -> new active alert
+
+The whole cycle must work repeatedly.
+
+==================================================
+2) SUPER ADMIN LIVE MAP IN ALERT MONITOR
+==================================================
+
+Add a Super Admin live map section inside the Alert Monitor page.
+
+This map should behave like the Supervisor live map,
+but for Super Admin it must show ALL zones / ALL locations / ALL visible personnel during active alert.
+
+Requirements:
+- only visible when alert is active
+- show all active personnel markers across all zones
+- show all zones / locations boundaries as already available
+- show linked shelters if already supported
+- tapping a person marker should show:
+  - name
+  - badge
+  - role
+  - status
+  - assigned location
+  - detected location
+  - last update time
+
+Filtering is optional for now, but the map must at least show all active personnel across all zones.
+
+When there is no active alert:
+- do not show live personnel markers
+- map can stay hidden or show empty state
+
+==================================================
+3) ALERT MANAGEMENT PAGE — REPLACE 3 ICONS WITH MENU
+==================================================
+
+In Alert Management / Zones page:
+
+Currently there are 3 separate action icons on each zone row/card.
+
+Replace them with:
+- one 3-dots / menu button
+
+When pressed, open an action menu / bottom sheet / dropdown
+showing the actions.
+
+Required actions in that menu:
+- Edit
+- View / Review
+- History
+- Notification
+
+If there are existing actions like:
+- settings / review / history
+move them into this menu.
+
+Do NOT clutter the row with multiple small icons anymore.
+
+==================================================
+4) ADD NOTIFICATION OPTION
+==================================================
+
+Add a Notification action inside that new zone actions menu.
+
+At minimum, add the option in UI now.
+If full notification logic already exists, connect it.
+If not, prepare the action cleanly without breaking existing flow.
+
+Expected menu example:
+- Edit
+- Review
+- History
+- Notification
+
+==================================================
+5) MAP / TRACKING RULES
+==================================================
+
+Do NOT break these rules:
+
+- no camera jump
+- no map reload
+- no iframe rebuild on normal state updates
+- no remount
+- no losing markers after alert state changes
+
+Live personnel markers must update through state/postMessage only.
+
+==================================================
+6) VERIFY AFTER FIX
+==================================================
+
+Please verify this exact scenario:
+
+1. Activate alert
+2. Alert Monitor shows active alert
+3. Supervisor map shows personnel
+4. Clear / close alert
+5. Personnel disappear
+6. Create a new alert again
+7. Alert Monitor becomes active again
+8. Supervisor map shows personnel again
+9. Super Admin Alert Monitor map shows all live personnel again
+
+At the end, tell me:
+- what caused the re-activation bug
+- what files you changed
+- how the new Super Admin map works
+- how the new 3-dots menu works

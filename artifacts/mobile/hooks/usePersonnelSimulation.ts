@@ -7,9 +7,6 @@ const SIMULATION_INTERVAL_MS = 8000;
 const JITTER = 0.0003;
 
 export function usePersonnelSimulation(enabled: boolean = true) {
-  const users = useStore((s) => s.users);
-  const locations = useStore((s) => s.locations);
-  const zones = useStore((s) => s.zones);
   const currentUser = useStore((s) => s.currentUser);
   const updatePersonnelLocation = useStore((s) => s.updatePersonnelLocation);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -17,6 +14,8 @@ export function usePersonnelSimulation(enabled: boolean = true) {
 
   useEffect(() => {
     if (!enabled || !currentUser) return;
+
+    const { users, locations, zones } = useStore.getState();
 
     function initBasePositions() {
       const bases: Record<number, { lat: number; lng: number }> = {};
@@ -49,6 +48,7 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     }
 
     function simulate() {
+      const { users: liveUsers, locations: liveLocs } = useStore.getState();
       const bases = basePositionsRef.current;
       Object.entries(bases).forEach(([idStr, base]) => {
         const userId = parseInt(idStr);
@@ -56,9 +56,9 @@ export function usePersonnelSimulation(enabled: boolean = true) {
         const jitterLng = (Math.random() - 0.5) * JITTER * 2;
         const lat = base.lat + jitterLat;
         const lng = base.lng + jitterLng;
-        const detectedLocationId = findContainingLocationId({ lat, lng }, locations);
+        const detectedLocationId = findContainingLocationId({ lat, lng }, liveLocs);
 
-        const user = users.find((u) => u.id === userId);
+        const user = liveUsers.find((u) => u.id === userId);
 
         const loc: PersonnelLocation = {
           userId,

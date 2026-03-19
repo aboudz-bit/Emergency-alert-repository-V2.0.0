@@ -292,16 +292,43 @@ export const useStore = create<AppState>()(
       sendAllClear: () => {
         const { currentUser, users } = get();
         const sentBy = currentUser?.name || 'System Auto';
+        const now = new Date().toISOString();
         set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
+          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a),
           users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
+          zones: s.zones.map(z => z.alertActive ? {
+            ...z,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(), zoneId: z.id, action: 'deactivated' as const,
+              alertType: z.alertType, priority: z.alertPriority, message: z.alertMessage,
+              timestamp: now, user: sentBy,
+            }],
+          } : z),
+          locations: s.locations.map(l => l.alertActive ? {
+            ...l,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(), locationId: l.id, action: 'deactivated' as const,
+              alertType: l.alertType, priority: l.alertPriority, message: l.alertMessage,
+              timestamp: now, user: sentBy,
+            }],
+          } : l),
           personnelLocations: {},
           mobileUserResponse: 'confirmed' as UserResponseStatus,
         }));
         const allClearAlert: Alert = {
           id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
           message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
-          timestamp: new Date().toISOString(), sentBy, priority: 'High', status: 'closed', isActive: false,
+          timestamp: now, sentBy, priority: 'High', status: 'closed', isActive: false,
           stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
         };
         set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
@@ -312,10 +339,11 @@ export const useStore = create<AppState>()(
           const updatedAlerts = s.alerts.map(a =>
             a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
           );
-          const anyStillActive = updatedAlerts.some(a => a.isActive);
+          const anyAlertActive = updatedAlerts.some(a => a.isActive);
+          const anyZoneActive = s.zones.some(z => z.alertActive);
           return {
             alerts: updatedAlerts,
-            ...(anyStillActive ? {} : { personnelLocations: {} }),
+            ...(!anyAlertActive && !anyZoneActive ? { personnelLocations: {} } : {}),
           };
         });
       },
@@ -500,6 +528,12 @@ export const useStore = create<AppState>()(
             }],
           } : l),
         }));
+        const { zones: updZ, alerts: updA } = get();
+        const anyZA = updZ.some(z => z.alertActive);
+        const anyAA = updA.some(a => a.isActive);
+        if (!anyZA && !anyAA) {
+          set({ personnelLocations: {} });
+        }
       },
       activateZoneAlert: (zoneId, alertType, priority, message) => {
         const now = new Date().toISOString();
@@ -588,6 +622,12 @@ export const useStore = create<AppState>()(
             }],
           } : l),
         }));
+        const { zones: updatedZones, alerts: updatedAlerts } = get();
+        const anyZoneActive = updatedZones.some(z => z.alertActive);
+        const anyAlertActive = updatedAlerts.some(a => a.isActive);
+        if (!anyZoneActive && !anyAlertActive) {
+          set({ personnelLocations: {} });
+        }
       },
       editZoneAlert: (zoneId, alertType, priority, message) => {
         const zone = get().zones.find(z => z.id === zoneId);
@@ -980,5 +1020,29 @@ export const useStore = create<AppState>()(
   ),
 );
 
-export const selectActiveAlert = (s: AppState) => s.alerts.find(a => a.isActive) || null;
-export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive);
+export const selectActiveAlert = (s: AppState) => {
+  const fromAlerts = s.alerts.find(a => a.isActive);
+  if (fromAlerts) return fromAlerts;
+  const activeZones = s.zones.filter(z => z.alertActive);
+  if (activeZones.length === 0) return null;
+  const first = activeZones[0];
+  return {
+    id: -1,
+    type: first.alertType || 'Zone Alert',
+    zone: activeZones.map(z => z.name).join(', '),
+    title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+    message: first.alertMessage || '',
+    timestamp: first.alertUpdatedAt || new Date().toISOString(),
+    sentBy: 'System',
+    priority: first.alertPriority || 'High',
+    status: 'active' as const,
+    isActive: true,
+    stats: {
+      confirmed: s.users.filter(u => u.status === 'confirmed').length,
+      pending: s.users.filter(u => u.status === 'pending').length,
+      needHelp: s.users.filter(u => u.status === 'need_help').length,
+      total: s.users.length,
+    },
+  } as import('@/types').Alert;
+};
+export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
