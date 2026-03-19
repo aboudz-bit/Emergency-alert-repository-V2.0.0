@@ -16,9 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectHasActiveAlert } from "@/store";
-import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
-import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import { useStore } from "@/store";
 import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
@@ -49,10 +47,6 @@ export default function ZonesScreen() {
   const updateShelter = useStore((s) => s.updateShelter);
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
-
-  const hasActiveAlert = useStore(selectHasActiveAlert);
-  usePersonnelSimulation(hasActiveAlert);
-  const visiblePersonnel = useVisiblePersonnel({ scope: "all", enabled: hasActiveAlert });
 
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
@@ -404,7 +398,6 @@ export default function ZonesScreen() {
         editingLocationId={editingLocationId}
         editingLocationPoints={editingLocationId ? locEditPoints : undefined}
         onEditingLocationPointsChange={handleLocEditPointsChange}
-        personnelLocations={visiblePersonnel}
       />
 
       {/* ═══ FLOATING HEADER — VIEW ═══ */}

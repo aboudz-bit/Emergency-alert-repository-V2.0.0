@@ -73,7 +73,6 @@ export default function DashboardScreen() {
         rightAction={
           <View style={styles.headerActions}>
             <Pressable
-              onPress={() => router.push("/(admin)/alert-monitor")}
               style={styles.iconBtn}
               hitSlop={8}
             >
