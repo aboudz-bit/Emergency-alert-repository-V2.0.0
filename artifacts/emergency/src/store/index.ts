@@ -377,14 +377,6 @@ export const useStore = create<AppState>()(
         const operatorId = currentUser?.id || null;
         const now = new Date().toISOString();
 
-        // Close any currently active alert (and clear associated hazard zones)
-        set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a),
-          users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
-          activeBroadcast: null,
-          hazardZones: [],
-        }));
-
         const newAlert: Alert = {
           ...data,
           id: Date.now(),
@@ -414,10 +406,14 @@ export const useStore = create<AppState>()(
           timestamp: now,
         } : null;
 
+        // Single atomic set: close old alert + add new alert + clear hazard zones
+        // This prevents an intermediate state where activeAlert === null
         set(s => ({
-          alerts: [newAlert, ...s.alerts],
-          mobileUserResponse: null,
+          alerts: [newAlert, ...s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a)],
+          users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
           activeBroadcast: broadcastState,
+          mobileUserResponse: null,
+          hazardZones: [],
         }));
 
         // Audit: alert activated
