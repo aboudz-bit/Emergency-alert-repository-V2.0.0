@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectActiveAlert } from "@/store";
 import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
@@ -47,6 +47,10 @@ export default function ZonesScreen() {
   const updateShelter = useStore((s) => s.updateShelter);
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
+  const activeAlert = useStore(selectActiveAlert);
+  const addHazardZone = useStore((s) => s.addHazardZone);
+  const hazardZones = useStore((s) => s.hazardZones);
+  const settings = useStore((s) => s.settings);
 
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
@@ -71,6 +75,9 @@ export default function ZonesScreen() {
   const [pendingShelterLng, setPendingShelterLng] = useState(0);
   const [shelterFormName, setShelterFormName] = useState("");
   const [editingShelter, setEditingShelter] = useState<Shelter | null>(null);
+
+  const [placingHazard, setPlacingHazard] = useState(false);
+  const [hazardCenter, setHazardCenter] = useState<LatLng | null>(null);
 
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const [formName, setFormName] = useState("");
@@ -99,6 +106,10 @@ export default function ZonesScreen() {
   }, [mode]);
 
   const handleMapTap = useCallback((pt: LatLng) => {
+    if (placingHazard) {
+      setHazardCenter(pt);
+      return;
+    }
     if (addingShelter) {
       setPendingShelterLat(pt.lat);
       setPendingShelterLng(pt.lng);
@@ -112,7 +123,7 @@ export default function ZonesScreen() {
     }
     if (mode !== "draw") return;
     setTapPoints((p) => [...p, pt]);
-  }, [mode, addingShelter, shelters.length, locDrawMode]);
+  }, [mode, addingShelter, shelters.length, locDrawMode, placingHazard]);
 
   const handleShelterPress = useCallback((shelterId: number) => {
     setSelectedShelterId((prev) => (prev === shelterId ? null : shelterId));
@@ -167,6 +178,32 @@ export default function ZonesScreen() {
     setShelterFormName("");
     setEditingShelter(null);
   }, [editingShelter, shelterFormName, updateShelter]);
+
+  // ─── HAZARD ZONE flow ───
+  const handleStartPlacingHazard = useCallback(() => {
+    setPlacingHazard(true);
+    setHazardCenter(null);
+    setSelectedZoneId(null);
+    setSelectedShelterId(null);
+    setSelectedLocationId(null);
+  }, []);
+
+  const handleConfirmHazard = useCallback(() => {
+    if (!hazardCenter || !activeAlert) return;
+    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
+    setPlacingHazard(false);
+    setHazardCenter(null);
+  }, [hazardCenter, activeAlert, addHazardZone]);
+
+  const handleCancelHazard = useCallback(() => {
+    setPlacingHazard(false);
+    setHazardCenter(null);
+  }, []);
+
+  const activeHazardZones = useMemo(
+    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
+    [hazardZones, activeAlert]
+  );
 
   // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {
@@ -297,7 +334,7 @@ export default function ZonesScreen() {
     return locations;
   }, [locations, selectedZoneId]);
 
-  const drawMode: DrawMode = mode === "draw" || addingShelter ? "tap" : locDrawMode ? "tap" : "none";
+  const drawMode: DrawMode = mode === "draw" || addingShelter || placingHazard ? "tap" : locDrawMode ? "tap" : "none";
   const showCrosshair = mode === "pick_shape";
 
   // ─── Location handlers ───
@@ -398,10 +435,11 @@ export default function ZonesScreen() {
         editingLocationId={editingLocationId}
         editingLocationPoints={editingLocationId ? locEditPoints : undefined}
         onEditingLocationPointsChange={handleLocEditPointsChange}
+        hazardZones={activeHazardZones}
       />
 
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
-      {mode === "view" && !addingShelter && (
+      {mode === "view" && !addingShelter && !placingHazard && (
         <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
           <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
             <Feather name="chevron-left" size={20} color="#fff" />
@@ -410,6 +448,11 @@ export default function ZonesScreen() {
             <Text style={styles.fhTitleText}>Zones</Text>
             <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}</Text>
           </View>
+          {activeAlert && (
+            <Pressable style={[styles.fhBtn, { backgroundColor: "#EF4444" }]} onPress={handleStartPlacingHazard} hitSlop={8}>
+              <Feather name="alert-triangle" size={18} color="#fff" />
+            </Pressable>
+          )}
           <Pressable style={[styles.fhBtn, { backgroundColor: "#F59E0B" }]} onPress={handleToggleShelterAdd} hitSlop={8}>
             <Feather name="home" size={18} color="#fff" />
           </Pressable>
@@ -428,6 +471,61 @@ export default function ZonesScreen() {
           <View style={styles.fhTitle}>
             <Text style={styles.fhTitleText}>Add Shelter</Text>
             <Text style={styles.fhSubtext}>Tap on map to place shelter</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ FLOATING HEADER — PLACE HAZARD ═══ */}
+      {placingHazard && (
+        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
+          <Pressable style={styles.fhBtn} onPress={handleCancelHazard} hitSlop={8}>
+            <Feather name="x" size={20} color="#fff" />
+          </Pressable>
+          <View style={styles.fhTitle}>
+            <Text style={[styles.fhTitleText, { color: "#EF4444" }]}>Warning Zone</Text>
+            <Text style={styles.fhSubtext}>
+              {hazardCenter
+                ? `${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E`
+                : "Tap the map to place center"
+              }
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ HAZARD PLACEMENT — MODE PILL ═══ */}
+      {placingHazard && (
+        <View style={[styles.modeHeader, { top: insets.top + 8 + 52 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#EF4444" }]}>
+            <View style={styles.modePillDot} />
+            <Text style={styles.modePillText}>WARNING ZONE</Text>
+          </View>
+          {hazardCenter && (
+            <View style={styles.modeCount}>
+              <Text style={styles.modeCountText}>
+                R:{settings.hazardRedRadius}m Y:{settings.hazardYellowRadius}m G:{settings.hazardGreenRadius}m
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ═══ HAZARD PLACEMENT — BOTTOM BAR ═══ */}
+      {placingHazard && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.drawBar}>
+            <Pressable style={styles.actionBtn} onPress={handleCancelHazard}>
+              <Feather name="x" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Pressable
+              style={[styles.actionBtnPrimary, { backgroundColor: "#EF4444" }, !hazardCenter && { opacity: 0.3 }]}
+              onPress={handleConfirmHazard}
+              disabled={!hazardCenter}
+            >
+              <Feather name="check" size={18} color="#fff" />
+              <Text style={styles.actionBtnPrimaryText}>Place</Text>
+            </Pressable>
           </View>
         </View>
       )}
@@ -761,7 +859,7 @@ export default function ZonesScreen() {
       )}
 
       {/* ═══ ZONE LIST — small floating chips when nothing selected ═══ */}
-      {mode === "view" && !selectedZone && !selectedShelter && !addingShelter && zones.length > 0 && (
+      {mode === "view" && !selectedZone && !selectedShelter && !addingShelter && !placingHazard && zones.length > 0 && (
         <View style={[styles.chipBar, { bottom: insets.bottom + 12 }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
             {zones.map((z) => (

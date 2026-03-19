@@ -267,4 +267,7 @@ export interface AppSettings {
   badgeAsUsername: boolean;
   wifiAndMobileData: boolean;
   systemVersion: string;
+  hazardRedRadius: number;
+  hazardYellowRadius: number;
+  hazardGreenRadius: number;
 }
