@@ -931,6 +931,30 @@ export default function Zones() {
             )}
           </MapContainer>
 
+          {/* Compass overlay — fixed top-right */}
+          <div className="absolute top-4 right-4 z-[900] pointer-events-none select-none" title="North is up">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Background circle */}
+              <circle cx="28" cy="28" r="27" fill="white" fillOpacity="0.92" stroke="#cbd5e1" strokeWidth="1"/>
+              {/* Tick marks */}
+              <line x1="28" y1="4" x2="28" y2="8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="28" y1="48" x2="28" y2="52" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="4" y1="28" x2="8" y2="28" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="48" y1="28" x2="52" y2="28" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              {/* North arrow (red triangle pointing up) */}
+              <polygon points="28,10 23,26 33,26" fill="#EF4444" opacity="0.9"/>
+              {/* South arrow (dark triangle pointing down) */}
+              <polygon points="28,46 23,30 33,30" fill="#64748b" opacity="0.4"/>
+              {/* Center dot */}
+              <circle cx="28" cy="28" r="2.5" fill="#475569"/>
+              {/* Cardinal labels */}
+              <text x="28" y="9" textAnchor="middle" fontSize="8" fontWeight="800" fill="#EF4444" fontFamily="Inter,system-ui,sans-serif">N</text>
+              <text x="28" y="54" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">S</text>
+              <text x="5" y="31" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">W</text>
+              <text x="51" y="31" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">E</text>
+            </svg>
+          </div>
+
           {/* Floating map controls */}
           {!isEditing && (
             <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2">
