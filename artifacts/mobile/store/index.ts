@@ -774,9 +774,17 @@ export const useStore = create<AppState>()(
       })),
 
       addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
-        const { settings, currentUser, alerts } = get();
-        const activeAlert = alerts.find(a => a.isActive);
-        if (!activeAlert) return;
+        const state = get();
+        const { settings, currentUser, alerts, zones } = state;
+        // Use real alert if available, otherwise fall back to synthetic alert from zone alerts
+        let activeAlert = alerts.find(a => a.isActive);
+        if (!activeAlert) {
+          const hasZoneAlert = zones.some(z => z.alertActive);
+          if (!hasZoneAlert) return;
+          // Use selectActiveAlert to get the synthetic alert derived from zone alerts
+          activeAlert = selectActiveAlert(state);
+          if (!activeAlert) return;
+        }
         const now = new Date().toISOString();
         const hz: import('@/types').HazardZone = {
           id: Date.now(),

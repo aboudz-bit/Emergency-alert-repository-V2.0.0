@@ -49,9 +49,9 @@ export default function ZonesScreen() {
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
   const activeAlert = useStore(selectActiveAlert);
-  // selectActiveAlert may return a synthetic alert (id: -1) derived from zone
-  // alertActive flags. addHazardZone needs a real alert record in alerts[].
-  const hasRealAlert = useStore((s) => s.alerts.some((a) => a.isActive));
+  // Show Warning Zone button when there is ANY active alert — either a real
+  // alert record in alerts[] or a zone-level alert (zones[].alertActive).
+  const hasRealAlert = useStore((s) => s.alerts.some((a) => a.isActive) || s.zones.some((z) => z.alertActive));
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
@@ -190,10 +190,11 @@ export default function ZonesScreen() {
 
   // ─── HAZARD ZONE flow ───
   const handleStartPlacingHazard = useCallback(() => {
-    // Guard: only allow placement when a real alert record exists in alerts[]
-    const realAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
-    if (!realAlert) {
-      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert record found.");
+    // Guard: allow placement when any alert is active (real or zone-level)
+    const state = useStore.getState();
+    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { alertActive?: boolean }) => z.alertActive);
+    if (!hasAny) {
+      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert found.");
       return;
     }
     setPlacingHazard(true);
@@ -205,14 +206,13 @@ export default function ZonesScreen() {
 
   const handleConfirmHazard = useCallback(() => {
     if (!hazardCenter) return;
-    // Read activeAlert fresh from the store — selectActiveAlert may return a
-    // synthetic alert (id:-1) derived from zone alertActive flags, but
-    // addHazardZone needs a real alert record in alerts[].
-    const currentAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
-    if (!currentAlert) {
+    // Check for any active alert (real or zone-level)
+    const state = useStore.getState();
+    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { alertActive?: boolean }) => z.alertActive);
+    if (!hasAny) {
       setPlacingHazard(false);
       setHazardCenter(null);
-      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert record found.");
+      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert found.");
       return;
     }
     addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
