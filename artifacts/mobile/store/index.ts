@@ -298,16 +298,19 @@ export const useStore = create<AppState>()(
 
       createAlert: (data) => {
         const { users } = get();
-        set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
-          users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
-          hazardZones: [],
-        }));
+        const now = new Date().toISOString();
         const newAlert: Alert = {
           ...data, id: Date.now(), status: 'active', isActive: true,
           stats: { confirmed: 0, pending: users.length, needHelp: 0, total: users.length },
         };
-        set(s => ({ alerts: [newAlert, ...s.alerts], mobileUserResponse: null }));
+        // Single atomic set: close old alert + add new alert + clear hazard zones
+        // This prevents an intermediate state where activeAlert === null
+        set(s => ({
+          alerts: [newAlert, ...s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a)],
+          users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
+          hazardZones: [],
+          mobileUserResponse: null,
+        }));
         return newAlert;
       },
 

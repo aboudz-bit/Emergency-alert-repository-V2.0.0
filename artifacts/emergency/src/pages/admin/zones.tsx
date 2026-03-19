@@ -940,8 +940,8 @@ export default function Zones() {
             )}
           </MapContainer>
 
-          {/* Compass overlay — fixed right side, below top controls */}
-          <div className="absolute top-20 right-4 z-[900] pointer-events-none select-none" title="North is up">
+          {/* Compass overlay — fixed right side, vertically centered area */}
+          <div className="absolute top-1/3 right-4 z-[900] pointer-events-none select-none" title="North is up">
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Background circle */}
               <circle cx="28" cy="28" r="27" fill="white" fillOpacity="0.92" stroke="#cbd5e1" strokeWidth="1"/>
