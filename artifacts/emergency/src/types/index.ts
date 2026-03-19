@@ -249,6 +249,23 @@ export interface AuditLogEntry {
   notes?: string;
 }
 
+// ─── Hazard Zones ────────────────────────────────────────────────────────────
+
+export interface HazardZone {
+  id: number;
+  zoneId: number | null;
+  locationId: number | null;
+  centerLat: number;
+  centerLng: number;
+  redRadius: number;
+  yellowRadius: number;
+  greenRadius: number;
+  alertId: number;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface NotificationPolicy {
@@ -271,4 +288,7 @@ export interface AppSettings {
   badgeAsUsername: boolean;
   wifiAndMobileData: boolean;
   systemVersion: string;
+  hazardRedRadius: number;
+  hazardYellowRadius: number;
+  hazardGreenRadius: number;
 }

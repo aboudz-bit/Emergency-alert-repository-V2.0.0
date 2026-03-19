@@ -7,6 +7,7 @@ import type {
   AuditLogEntry, AuditActionType, DeliveryChannel, AuditTargetType,
   EcoAssignment, EcoSlot,
   SupervisorAssignment,
+  HazardZone,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -37,6 +38,9 @@ interface AppState {
 
   // Supervisor assignments (per-location)
   supervisorAssignments: SupervisorAssignment[];
+
+  // Hazard zones (temporary, linked to active alert)
+  hazardZones: HazardZone[];
 
   // Audit log (system-wide operational log)
   auditLog: AuditLogEntry[];
@@ -106,6 +110,11 @@ interface AppState {
   disableLocation: (id: number) => void;
   deleteLocation: (id: number) => void;
 
+  // ── Hazard Zone actions ──────────────────────────────────────────────────────
+  addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
+  removeHazardZone: (id: number) => void;
+  clearHazardZones: () => void;
+
   // ── Settings ─────────────────────────────────────────────────────────────────
   updateSettings: (partial: Partial<AppSettings>) => void;
   updateNotificationSettings: (partial: Partial<AppSettings['notifications']>) => void;
@@ -137,6 +146,7 @@ export const useStore = create<AppState>()(
       mobileUserResponse: null,
       ecoAssignments: seedEcoAssignments,
       supervisorAssignments: seedSupervisorAssignments,
+      hazardZones: [],
       auditLog: [],
       activeBroadcast: null,
 
@@ -256,6 +266,7 @@ export const useStore = create<AppState>()(
           activityLogs: seedActivityLogs,
           ecoAssignments: seedEcoAssignments,
           supervisorAssignments: seedSupervisorAssignments,
+          hazardZones: [],
           auditLog: [],
           activeBroadcast: null,
         });
@@ -364,11 +375,12 @@ export const useStore = create<AppState>()(
         const operatorId = currentUser?.id || null;
         const now = new Date().toISOString();
 
-        // Close any currently active alert
+        // Close any currently active alert (and clear associated hazard zones)
         set(s => ({
           alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a),
           users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
           activeBroadcast: null,
+          hazardZones: [],
         }));
 
         const newAlert: Alert = {
@@ -494,6 +506,7 @@ export const useStore = create<AppState>()(
           users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
           mobileUserResponse: 'confirmed' as UserResponseStatus,
           activeBroadcast: null,
+          hazardZones: [],
         }));
 
         const allClearAlert: Alert = {
@@ -551,6 +564,7 @@ export const useStore = create<AppState>()(
             a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a,
           ),
           activeBroadcast: s.activeBroadcast?.alertId === alertId ? null : s.activeBroadcast,
+          hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),
         }));
 
         if (alert) {
@@ -613,6 +627,45 @@ export const useStore = create<AppState>()(
 
       deleteLocation: (id) => {
         set(s => ({ locations: s.locations.filter(l => l.id !== id) }));
+      },
+
+      // ── Hazard Zone actions ──────────────────────────────────────────────────
+
+      addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
+        const { settings, currentUser, alerts } = get();
+        const activeAlert = alerts.find(a => a.isActive);
+        if (!activeAlert) return;
+        const now = new Date().toISOString();
+        const hz: HazardZone = {
+          id: Date.now(),
+          zoneId: zoneId ?? null,
+          locationId: locationId ?? null,
+          centerLat,
+          centerLng,
+          redRadius: settings.hazardRedRadius,
+          yellowRadius: settings.hazardYellowRadius,
+          greenRadius: settings.hazardGreenRadius,
+          alertId: activeAlert.id,
+          isActive: true,
+          createdBy: currentUser?.name || 'System',
+          createdAt: now,
+        };
+        set(s => ({ hazardZones: [...s.hazardZones, hz] }));
+        get().addActivityLog({
+          type: 'action',
+          message: `Hazard zone placed at ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)} by ${hz.createdBy}.`,
+          timestamp: now,
+          actorId: currentUser?.id ?? undefined,
+          actorName: hz.createdBy,
+        });
+      },
+
+      removeHazardZone: (id) => {
+        set(s => ({ hazardZones: s.hazardZones.filter(hz => hz.id !== id) }));
+      },
+
+      clearHazardZones: () => {
+        set({ hazardZones: [] });
       },
 
       // ── Settings ──────────────────────────────────────────────────────────────
@@ -1186,6 +1239,7 @@ export const useStore = create<AppState>()(
         locations: state.locations,
         ecoAssignments: state.ecoAssignments,
         supervisorAssignments: state.supervisorAssignments,
+        hazardZones: state.hazardZones,
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
       }),

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Settings, Globe, Map, Bell, Shield, HelpCircle, Save, Wifi, MapPin, UserCheck, Clock } from 'lucide-react';
+import { Settings, Globe, Map, Bell, Shield, HelpCircle, Save, Wifi, MapPin, UserCheck, Clock, AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -162,6 +162,45 @@ export default function SettingsPage() {
                 <SelectItem value="60">Every 1 min</SelectItem>
               </SelectContent>
             </Select>
+          </SettingRow>
+        </SettingsCard>
+
+        {/* Hazard Zone Defaults */}
+        <SettingsCard
+          icon={AlertTriangle}
+          title="Hazard Zone Defaults"
+          description="Default radius values for Red / Yellow / Green warning zones (in meters)"
+          onSave={() => {}}
+        >
+          <SettingRow label="Red Zone Radius (Danger)" description="Inner danger zone radius in meters">
+            <Input
+              type="number"
+              min={10}
+              max={1000}
+              value={settings.hazardRedRadius}
+              onChange={e => updateSettings({ hazardRedRadius: Number(e.target.value) || 50 })}
+              className="w-32 h-8 text-sm"
+            />
+          </SettingRow>
+          <SettingRow label="Yellow Zone Radius (Hazard)" description="Middle hazard zone radius in meters">
+            <Input
+              type="number"
+              min={10}
+              max={2000}
+              value={settings.hazardYellowRadius}
+              onChange={e => updateSettings({ hazardYellowRadius: Number(e.target.value) || 150 })}
+              className="w-32 h-8 text-sm"
+            />
+          </SettingRow>
+          <SettingRow label="Green Zone Radius (Safe)" description="Outer safe perimeter radius in meters">
+            <Input
+              type="number"
+              min={10}
+              max={5000}
+              value={settings.hazardGreenRadius}
+              onChange={e => updateSettings({ hazardGreenRadius: Number(e.target.value) || 300 })}
+              className="w-32 h-8 text-sm"
+            />
           </SettingRow>
         </SettingsCard>
 

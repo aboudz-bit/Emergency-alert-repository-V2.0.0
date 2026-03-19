@@ -1,13 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { useStore, useShallow, selectActiveAlert } from '@/store';
 import { StatusBadge, AlertTypeBadge, cn } from '@/components/shared/Badges';
-import { Search, Download, UserCheck, X, ShieldAlert, Clock, MapPin } from 'lucide-react';
-import type { User, UserResponseStatus } from '@/types';
+import { Search, Download, UserCheck, X, ShieldAlert, Clock, MapPin, Map as MapIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import type { User, UserResponseStatus, HazardZone } from '@/types';
+import {
+  MapContainer, TileLayer, Circle, Tooltip,
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const KHURAIS_CENTER: [number, number] = [25.082, 48.178];
+
+function HazardZoneOverlay({ hazardZones }: { hazardZones: HazardZone[] }) {
+  return (
+    <>
+      {hazardZones.filter(hz => hz.isActive).map(hz => (
+        <React.Fragment key={hz.id}>
+          <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.greenRadius}
+            pathOptions={{ color: '#22c55e', weight: 2, fillOpacity: 0.15, fillColor: '#22c55e' }}>
+            <Tooltip direction="top" className="zone-label">Safe Zone ({hz.greenRadius}m)</Tooltip>
+          </Circle>
+          <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.yellowRadius}
+            pathOptions={{ color: '#eab308', weight: 2, fillOpacity: 0.25, fillColor: '#eab308' }}>
+            <Tooltip direction="top" className="zone-label">Hazard Zone ({hz.yellowRadius}m)</Tooltip>
+          </Circle>
+          <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.redRadius}
+            pathOptions={{ color: '#ef4444', weight: 3, fillOpacity: 0.25, fillColor: '#ef4444' }}>
+            <Tooltip direction="top" className="zone-label">Danger Zone ({hz.redRadius}m)</Tooltip>
+          </Circle>
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
 
 export default function AlertMonitor() {
   const alert = useStore(selectActiveAlert);
   const users = useStore(s => s.users);
+  const hazardZones = useStore(s => s.hazardZones);
   const { updateUserResponse, sendAllClear } = useStore(useShallow(s => ({
     updateUserResponse: s.updateUserResponse,
     sendAllClear: s.sendAllClear,
@@ -16,6 +46,18 @@ export default function AlertMonitor() {
   const [activeTab, setActiveTab] = useState<UserResponseStatus>('missing');
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showMap, setShowMap] = useState(true);
+
+  const activeHazardZones = useMemo(() =>
+    hazardZones.filter(hz => hz.isActive && alert && hz.alertId === alert.id),
+    [hazardZones, alert],
+  );
+  const mapCenter = useMemo<[number, number]>(() => {
+    if (activeHazardZones.length > 0) {
+      return [activeHazardZones[0].centerLat, activeHazardZones[0].centerLng];
+    }
+    return KHURAIS_CENTER;
+  }, [activeHazardZones]);
 
   if (!alert) {
     return (
@@ -100,6 +142,40 @@ export default function AlertMonitor() {
           </button>
         ))}
       </div>
+
+      {/* Hazard Zone Map — only visible when hazard zones exist during active alert */}
+      {activeHazardZones.length > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowMap(prev => !prev)}
+            className="w-full flex items-center justify-between bg-card border border-border rounded-t-xl px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <MapIcon className="w-4 h-4 text-destructive" />
+              <span className="text-sm font-bold text-foreground">Live Hazard Map</span>
+              <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">
+                {activeHazardZones.length} zone{activeHazardZones.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            {showMap ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showMap && (
+            <div className="border border-t-0 border-border rounded-b-xl overflow-hidden h-[300px] lg:h-[350px]">
+              <MapContainer
+                center={mapCenter}
+                zoom={15}
+                className="w-full h-full"
+                style={{ background: '#0a0c10' }}
+                zoomControl={true}
+                attributionControl={false}
+              >
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                <HazardZoneOverlay hazardZones={activeHazardZones} />
+              </MapContainer>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Table Area */}
       <div className="bg-card border border-border rounded-xl flex flex-col h-[calc(100vh-420px)] lg:h-[600px] relative overflow-hidden">
