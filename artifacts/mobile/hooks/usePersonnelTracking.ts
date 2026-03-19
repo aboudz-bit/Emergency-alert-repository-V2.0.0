@@ -48,7 +48,8 @@ export function usePersonnelTracking(enabled: boolean = true) {
         if (cancelled || !enabledRef.current) return;
 
         const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        const detectedLocationId = findContainingLocationId(pt, locations);
+        const currentLocations = useStore.getState().locations;
+        const detectedLocationId = findContainingLocationId(pt, currentLocations);
 
         const loc: PersonnelLocation = {
           userId: currentUser!.id,

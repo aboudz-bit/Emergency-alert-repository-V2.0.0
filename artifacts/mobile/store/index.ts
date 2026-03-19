@@ -265,13 +265,21 @@ export const useStore = create<AppState>()(
           );
           const alerts = s.alerts.map(a => {
             if (!a.isActive) return a;
+            // Only count users in the alert's targeted zone(s)
+            const isAllZones = a.zone === 'All Zones' || a.zone === 'all';
+            const targetZone = isAllZones ? null : s.zones.find(z => z.name === a.zone);
+            const relevantUsers = isAllZones
+              ? users.filter(u => u.isActive)
+              : targetZone
+                ? users.filter(u => u.zoneId === targetZone.id && u.isActive)
+                : users.filter(u => u.isActive);
             return {
               ...a,
               stats: {
-                confirmed: users.filter(u => u.status === 'confirmed').length,
-                pending: users.filter(u => u.status === 'pending').length,
-                needHelp: users.filter(u => u.status === 'need_help').length,
-                total: users.length,
+                confirmed: relevantUsers.filter(u => u.status === 'confirmed').length,
+                pending: relevantUsers.filter(u => u.status === 'pending').length,
+                needHelp: relevantUsers.filter(u => u.status === 'need_help').length,
+                total: relevantUsers.length,
               },
             };
           });
@@ -1051,6 +1059,8 @@ export const selectActiveAlert = (s: AppState) => {
   const activeZones = s.zones.filter(z => z.alertActive);
   if (activeZones.length === 0) return null;
   const first = activeZones[0];
+  const activeZoneIds = new Set(activeZones.map(z => z.id));
+  const zoneUsers = s.users.filter(u => activeZoneIds.has(u.zoneId) && u.isActive);
   return {
     id: -1,
     type: first.alertType || 'Zone Alert',
@@ -1063,10 +1073,10 @@ export const selectActiveAlert = (s: AppState) => {
     status: 'active' as const,
     isActive: true,
     stats: {
-      confirmed: s.users.filter(u => u.status === 'confirmed').length,
-      pending: s.users.filter(u => u.status === 'pending').length,
-      needHelp: s.users.filter(u => u.status === 'need_help').length,
-      total: s.users.length,
+      confirmed: zoneUsers.filter(u => u.status === 'confirmed').length,
+      pending: zoneUsers.filter(u => u.status === 'pending').length,
+      needHelp: zoneUsers.filter(u => u.status === 'need_help').length,
+      total: zoneUsers.length,
     },
   } as import('@/types').Alert;
 };
