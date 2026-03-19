@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
+  Alert as RNAlert,
   Dimensions,
   Modal,
   Pressable,
@@ -48,6 +49,9 @@ export default function ZonesScreen() {
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
   const activeAlert = useStore(selectActiveAlert);
+  // selectActiveAlert may return a synthetic alert (id: -1) derived from zone
+  // alertActive flags. addHazardZone needs a real alert record in alerts[].
+  const hasRealAlert = useStore((s) => s.alerts.some((a) => a.isActive));
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
@@ -186,6 +190,12 @@ export default function ZonesScreen() {
 
   // ─── HAZARD ZONE flow ───
   const handleStartPlacingHazard = useCallback(() => {
+    // Guard: only allow placement when a real alert record exists in alerts[]
+    const realAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
+    if (!realAlert) {
+      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert record found.");
+      return;
+    }
     setPlacingHazard(true);
     setHazardCenter(null);
     setSelectedZoneId(null);
@@ -195,11 +205,14 @@ export default function ZonesScreen() {
 
   const handleConfirmHazard = useCallback(() => {
     if (!hazardCenter) return;
-    // Read activeAlert fresh from the store to avoid stale-closure edge-cases
+    // Read activeAlert fresh from the store — selectActiveAlert may return a
+    // synthetic alert (id:-1) derived from zone alertActive flags, but
+    // addHazardZone needs a real alert record in alerts[].
     const currentAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
     if (!currentAlert) {
       setPlacingHazard(false);
       setHazardCenter(null);
+      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert record found.");
       return;
     }
     addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
@@ -474,7 +487,7 @@ export default function ZonesScreen() {
             <Text style={styles.fhTitleText}>Zones</Text>
             <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}</Text>
           </View>
-          {activeAlert && (
+          {hasRealAlert && (
             <Pressable style={[styles.fhBtn, { backgroundColor: "#EF4444" }]} onPress={handleStartPlacingHazard} hitSlop={8}>
               <Feather name="alert-triangle" size={18} color="#fff" />
             </Pressable>

@@ -203,7 +203,7 @@ function generateLeafletHtml(
   .personnel-dot.contractor{background:#F97316}
   .personnel-dot.need-help{background:#EF4444;animation:personnel-pulse 1.5s infinite}
   @keyframes personnel-pulse{0%,100%{box-shadow:0 0 4px rgba(239,68,68,0.4)}50%{box-shadow:0 0 12px rgba(239,68,68,0.8)}}
-  .compass-overlay{position:absolute;top:12px;right:12px;z-index:800;pointer-events:none;user-select:none}
+  .compass-overlay{position:absolute;top:33%;right:12px;z-index:800;pointer-events:none;user-select:none}
 </style></head><body>
 <div id="map"></div>
 <div class="compass-overlay">
