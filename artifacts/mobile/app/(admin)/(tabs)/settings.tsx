@@ -154,6 +154,12 @@ export default function SettingsScreen() {
                 }
               />
             </View>
+            <Divider />
+            <View style={{ paddingVertical: Spacing.sm }}>
+              <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textTertiary }}>
+                Applies to new warning zones. Use "Apply Defaults" on the Zones page to update existing zones.
+              </Text>
+            </View>
           </Card>
         </View>
 
