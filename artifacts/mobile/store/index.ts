@@ -1215,3 +1215,5 @@ export const selectActiveAlert = (s: AppState) => {
   return _cachedZoneAlert;
 };
 export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
+/** True only when a real (non-synthetic) alert is active — id !== -1. */
+export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);

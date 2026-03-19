@@ -7,7 +7,7 @@ import {
   GripVertical, Info, LocateFixed, AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
-import { useStore, useShallow, selectActiveAlert } from '@/store';
+import { useStore, useShallow, selectActiveAlert, selectHasRealAlert } from '@/store';
 import type { Zone, ZoneBoundaryType, LatLng } from '@/types';
 import {
   MapContainer, TileLayer, Polygon, Circle, useMapEvents, useMap,
@@ -329,6 +329,7 @@ export default function Zones() {
     addHazardZone: s.addHazardZone, removeHazardZone: s.removeHazardZone, unlockHazardZone: s.unlockHazardZone, applyDefaultsToHazardZone: s.applyDefaultsToHazardZone, hazardZones: s.hazardZones, settings: s.settings,
   })));
   const activeAlert = useStore(selectActiveAlert);
+  const hasRealAlert = useStore(selectHasRealAlert);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [placingHazard, setPlacingHazard] = useState(false);
@@ -501,8 +502,9 @@ export default function Zones() {
   const handlePlaceHazardZone = () => {
     if (!hazardCenter) return;
     // Read activeAlert fresh from the store to avoid stale-closure edge-cases
+    // Guard: only allow on real alerts (not synthetic zone-alert id:-1)
     const currentAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
-    if (!currentAlert) {
+    if (!currentAlert || currentAlert.id <= 0) {
       setPlacingHazard(false);
       setHazardCenter(null);
       setToast({ message: 'No active alert — cannot place warning zone', variant: 'error' });
@@ -543,7 +545,7 @@ export default function Zones() {
               <span className="text-slate-400 font-normal">({activeZones.length})</span>
             </h2>
             <div className="flex gap-2">
-              {activeAlert && (
+              {hasRealAlert && (
                 <button onClick={() => { setPlacingHazard(true); setHazardCenter(null); }} disabled={isEditing || placingHazard}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
                   <AlertCircle className="w-3.5 h-3.5" /> Warning Zone
