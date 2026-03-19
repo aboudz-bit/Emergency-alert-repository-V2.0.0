@@ -670,7 +670,7 @@ export default function Zones() {
                       <p className="text-sm font-bold text-slate-800">Place Warning Zone</p>
                       <p className="text-xs text-slate-500">
                         {hazardCenter
-                          ? `Selected: ${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E — Hot: ${settings.hazardRedRadius}m, Warm: ${settings.hazardYellowRadius}m, Cold: ${settings.hazardGreenRadius}m`
+                          ? `Selected: ${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E — Hot: ${settings.hazardHotRadius}m, Warm: ${settings.hazardWarmRadius}m, Cold: ${settings.hazardColdRadius}m`
                           : 'Click on the map to place the center of the warning zone'
                         }
                       </p>
@@ -812,17 +812,17 @@ export default function Zones() {
             {/* Hazard zone preview during placement */}
             {placingHazard && hazardCenter && (
               <>
-                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardGreenRadius}
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardColdRadius}
                   pathOptions={{ color: '#22c55e', weight: 2, fillOpacity: 0.15, fillColor: '#22c55e', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Cold Zone — Safe ({settings.hazardGreenRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Cold Zone — Safe ({settings.hazardColdRadius}m)</Tooltip>
                 </Circle>
-                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardYellowRadius}
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardWarmRadius}
                   pathOptions={{ color: '#eab308', weight: 2, fillOpacity: 0.2, fillColor: '#eab308', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Warm Zone — Buffer ({settings.hazardYellowRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Warm Zone — Buffer ({settings.hazardWarmRadius}m)</Tooltip>
                 </Circle>
-                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardRedRadius}
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardHotRadius}
                   pathOptions={{ color: '#ef4444', weight: 3, fillOpacity: 0.25, fillColor: '#ef4444', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Hot Zone — Danger ({settings.hazardRedRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Hot Zone — Danger ({settings.hazardHotRadius}m)</Tooltip>
                 </Circle>
               </>
             )}

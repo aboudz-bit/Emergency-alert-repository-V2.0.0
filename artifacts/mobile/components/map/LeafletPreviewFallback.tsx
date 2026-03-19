@@ -460,33 +460,33 @@ function generateLeafletHtml(
       seen[hz.id] = true;
       if (hazardCircles[hz.id]) {
         // Update positions if needed
-        hazardCircles[hz.id].red.setLatLng([hz.centerLat, hz.centerLng]);
-        hazardCircles[hz.id].red.setRadius(hz.redRadius);
-        hazardCircles[hz.id].yellow.setLatLng([hz.centerLat, hz.centerLng]);
-        hazardCircles[hz.id].yellow.setRadius(hz.yellowRadius);
-        hazardCircles[hz.id].green.setLatLng([hz.centerLat, hz.centerLng]);
-        hazardCircles[hz.id].green.setRadius(hz.greenRadius);
+        hazardCircles[hz.id].hot.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].hot.setRadius(hz.hotRadius);
+        hazardCircles[hz.id].warm.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].warm.setRadius(hz.warmRadius);
+        hazardCircles[hz.id].cold.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].cold.setRadius(hz.coldRadius);
       } else {
-        var green = L.circle([hz.centerLat, hz.centerLng], {
-          radius: hz.greenRadius, color: '#22C55E', fillColor: '#22C55E',
+        var cold = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.coldRadius, color: '#22C55E', fillColor: '#22C55E',
           fillOpacity: 0.12, weight: 2, interactive: false,
         }).addTo(map);
-        var yellow = L.circle([hz.centerLat, hz.centerLng], {
-          radius: hz.yellowRadius, color: '#EAB308', fillColor: '#EAB308',
+        var warm = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.warmRadius, color: '#EAB308', fillColor: '#EAB308',
           fillOpacity: 0.18, weight: 2, interactive: false,
         }).addTo(map);
-        var red = L.circle([hz.centerLat, hz.centerLng], {
-          radius: hz.redRadius, color: '#EF4444', fillColor: '#EF4444',
+        var hot = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.hotRadius, color: '#EF4444', fillColor: '#EF4444',
           fillOpacity: 0.22, weight: 3, interactive: false,
         }).addTo(map);
-        hazardCircles[hz.id] = { red: red, yellow: yellow, green: green };
+        hazardCircles[hz.id] = { hot: hot, warm: warm, cold: cold };
       }
     });
     Object.keys(hazardCircles).forEach(function(idStr) {
       if (!seen[idStr]) {
-        map.removeLayer(hazardCircles[idStr].red);
-        map.removeLayer(hazardCircles[idStr].yellow);
-        map.removeLayer(hazardCircles[idStr].green);
+        map.removeLayer(hazardCircles[idStr].hot);
+        map.removeLayer(hazardCircles[idStr].warm);
+        map.removeLayer(hazardCircles[idStr].cold);
         delete hazardCircles[idStr];
       }
     });

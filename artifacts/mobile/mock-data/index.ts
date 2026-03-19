@@ -214,7 +214,7 @@ export const seedSettings: AppSettings = {
   badgeAsUsername: true,
   wifiAndMobileData: true,
   systemVersion: '2.0.0-ios',
-  hazardRedRadius: 200,
-  hazardYellowRadius: 500,
-  hazardGreenRadius: 1000,
+  hazardHotRadius: 200,
+  hazardWarmRadius: 500,
+  hazardColdRadius: 1000,
 };
