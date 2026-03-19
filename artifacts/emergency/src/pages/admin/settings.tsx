@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Settings, Globe, Map, Bell, Shield, HelpCircle, Save, Wifi, MapPin, UserCheck, Clock, AlertTriangle } from 'lucide-react';
+import { Settings, Globe, Map, Bell, Shield, HelpCircle, Save, Wifi, MapPin, UserCheck, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,18 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useStore, useShallow } from '@/store';
 
-function SettingsCard({ icon: Icon, title, description, children, onSave }: {
+function SettingsCard({ icon: Icon, title, description, children }: {
   icon: React.ComponentType<any>;
   title: string;
   description: string;
   children: React.ReactNode;
-  onSave?: () => void;
 }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
   return (
     <div className="rounded-xl border border-border bg-card p-6 space-y-5">
       <div className="flex items-start gap-3">
@@ -29,8 +34,13 @@ function SettingsCard({ icon: Icon, title, description, children, onSave }: {
       </div>
       <Separator className="bg-border/60" />
       <div className="space-y-4">{children}</div>
-      <div className="flex justify-end pt-1">
-        <Button onClick={onSave} size="sm" className="bg-primary hover:bg-primary/90 text-white gap-2">
+      <div className="flex items-center justify-end gap-2 pt-1">
+        {saved && (
+          <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+          </span>
+        )}
+        <Button onClick={() => setSaved(true)} size="sm" className="bg-primary hover:bg-primary/90 text-white gap-2">
           <Save className="w-3.5 h-3.5" />
           Save Changes
         </Button>
@@ -83,7 +93,6 @@ export default function SettingsPage() {
           icon={Globe}
           title="General"
           description="Core system preferences and locale configuration"
-          onSave={() => {}}
         >
           <SettingRow label="System Name">
             <Input
@@ -128,7 +137,6 @@ export default function SettingsPage() {
           icon={Map}
           title="Zone Management"
           description="GPS geofencing and location detection settings"
-          onSave={() => {}}
         >
           <SettingRow label="Auto-detect zone entry / exit" description="Use GPS to automatically assign users to zones">
             <Switch
@@ -170,7 +178,6 @@ export default function SettingsPage() {
           icon={AlertTriangle}
           title="Hazard Zone Defaults"
           description="Default radius values for Hot / Warm / Cold warning zones (in meters)"
-          onSave={() => {}}
         >
           <SettingRow label="Hot Zone Radius (Red)" description="Immediate danger area radius in meters">
             <Input
@@ -202,6 +209,10 @@ export default function SettingsPage() {
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
+          <p className="text-xs text-muted-foreground bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
+            These defaults apply to <span className="font-semibold text-foreground">newly created</span> warning zones.
+            To update an existing zone, use "Apply Defaults" from the Zones page.
+          </p>
         </SettingsCard>
 
         {/* Notifications */}
@@ -209,7 +220,6 @@ export default function SettingsPage() {
           icon={Bell}
           title="Notifications"
           description="Alert delivery and escalation configuration"
-          onSave={() => {}}
         >
           <SettingRow label="Alert Sound" description="Play an alarm tone when emergency alerts are broadcast">
             <Switch
@@ -244,7 +254,6 @@ export default function SettingsPage() {
           icon={Shield}
           title="Account & Security"
           description="Authentication policies and session management"
-          onSave={() => {}}
         >
           <SettingRow label="Session Timeout" description="Automatically log out inactive users">
             <Select
@@ -277,7 +286,6 @@ export default function SettingsPage() {
           icon={HelpCircle}
           title="Support"
           description="System information and IT contact details"
-          onSave={() => {}}
         >
           <SettingRow label="System Version">
             <Badge variant="outline" className="font-mono text-xs">{settings.systemVersion}</Badge>

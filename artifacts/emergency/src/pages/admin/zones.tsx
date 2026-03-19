@@ -324,9 +324,9 @@ function ChangeColorModal({ zone, onClose, onSave }: { zone: Zone; onClose: () =
 }
 
 export default function Zones() {
-  const { zones, disableZone, deleteZone, addZone, updateZone, users, addHazardZone, hazardZones, settings } = useStore(useShallow(s => ({
+  const { zones, disableZone, deleteZone, addZone, updateZone, users, addHazardZone, removeHazardZone, unlockHazardZone, applyDefaultsToHazardZone, hazardZones, settings } = useStore(useShallow(s => ({
     zones: s.zones, disableZone: s.disableZone, deleteZone: s.deleteZone, addZone: s.addZone, updateZone: s.updateZone, users: s.users,
-    addHazardZone: s.addHazardZone, hazardZones: s.hazardZones, settings: s.settings,
+    addHazardZone: s.addHazardZone, removeHazardZone: s.removeHazardZone, unlockHazardZone: s.unlockHazardZone, applyDefaultsToHazardZone: s.applyDefaultsToHazardZone, hazardZones: s.hazardZones, settings: s.settings,
   })));
   const activeAlert = useStore(selectActiveAlert);
 
@@ -345,6 +345,12 @@ export default function Zones() {
   const [circleRadius, setCircleRadius] = useState(500);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [selectedHazardId, setSelectedHazardId] = useState<number | null>(null);
+
+  const activeHazardZones = useMemo(() => {
+    if (!activeAlert) return [];
+    return hazardZones.filter(hz => hz.isActive && hz.alertId === activeAlert.id);
+  }, [hazardZones, activeAlert]);
   const mapRef = useRef<L.Map | null>(null);
   const locationMarkerRef = useRef<L.Marker | null>(null);
 
@@ -640,6 +646,86 @@ export default function Zones() {
             </div>
           )}
 
+          {/* Active Warning Zones */}
+          {activeHazardZones.length > 0 && (
+            <div className="mt-3 bg-white border border-red-200 rounded-xl p-3 shrink-0 shadow-sm space-y-2">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                <AlertCircle className="w-3 h-3" /> Warning Zones ({activeHazardZones.length})
+              </p>
+              <div className="space-y-1.5">
+                {activeHazardZones.map(hz => (
+                  <button key={hz.id} onClick={() => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id)}
+                    className={cn(
+                      'w-full text-left rounded-lg px-3 py-2 text-xs transition-all border',
+                      selectedHazardId === hz.id
+                        ? 'bg-red-50 border-red-300 shadow-sm'
+                        : 'bg-slate-50 border-slate-200 hover:border-red-200 hover:bg-red-50/50',
+                    )}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-700">
+                        WZ {hz.centerLat.toFixed(3)}°N
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {hz.isLocked ? '🔒' : '🔓'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-0.5 text-[10px] text-slate-500">
+                      <span className="text-red-500">Hot:{hz.hotRadius}m</span>
+                      <span className="text-yellow-600">Warm:{hz.warmRadius}m</span>
+                      <span className="text-green-600">Cold:{hz.coldRadius}m</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Selected hazard zone actions */}
+              {selectedHazardId != null && (() => {
+                const hz = activeHazardZones.find(h => h.id === selectedHazardId);
+                if (!hz) return null;
+                const defaultsDiffer = hz.hotRadius !== (settings.hazardHotRadius || 200)
+                  || hz.warmRadius !== (settings.hazardWarmRadius || 500)
+                  || hz.coldRadius !== (settings.hazardColdRadius || 1000);
+                return (
+                  <div className="pt-2 border-t border-red-200 space-y-2">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {hz.isLocked ? (
+                        <button onClick={() => unlockHazardZone(hz.id)}
+                          className="flex items-center justify-center gap-1 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 text-[10px] font-bold hover:bg-amber-100">
+                          Unlock
+                        </button>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-400 text-[10px] font-bold">
+                          Unlocked
+                        </div>
+                      )}
+                      <button onClick={() => {
+                        applyDefaultsToHazardZone(hz.id);
+                        setToast({ message: 'Applied current default radii', variant: 'success' });
+                      }}
+                        className={cn(
+                          'flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold border',
+                          defaultsDiffer
+                            ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100'
+                            : 'bg-slate-50 border-slate-200 text-slate-400',
+                        )}>
+                        Apply Defaults
+                      </button>
+                      <button onClick={() => { removeHazardZone(hz.id); setSelectedHazardId(null); }}
+                        className="flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 text-[10px] font-bold hover:bg-red-100">
+                        Delete
+                      </button>
+                    </div>
+                    {defaultsDiffer && (
+                      <p className="text-[9px] text-slate-400 text-center">
+                        Current defaults: Hot:{settings.hazardHotRadius}m · Warm:{settings.hazardWarmRadius}m · Cold:{settings.hazardColdRadius}m
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Legend */}
           <div className="mt-3 bg-white/90 border border-slate-200 rounded-xl p-3 shrink-0 shadow-sm">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Map Legend</p>
@@ -809,6 +895,23 @@ export default function Zones() {
                 onCenterChange={setCircleCenter} onRadiusChange={setCircleRadius} />
             )}
 
+            {/* Existing hazard zones on map */}
+            {activeHazardZones.map(hz => (
+              <React.Fragment key={hz.id}>
+                <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.coldRadius}
+                  pathOptions={{ color: '#22c55e', weight: selectedHazardId === hz.id ? 3 : 1.5, fillOpacity: 0.1, fillColor: '#22c55e' }}
+                  eventHandlers={{ click: () => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id) }} />
+                <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.warmRadius}
+                  pathOptions={{ color: '#eab308', weight: selectedHazardId === hz.id ? 3 : 1.5, fillOpacity: 0.15, fillColor: '#eab308' }}
+                  eventHandlers={{ click: () => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id) }} />
+                <Circle center={[hz.centerLat, hz.centerLng]} radius={hz.hotRadius}
+                  pathOptions={{ color: '#ef4444', weight: selectedHazardId === hz.id ? 3 : 2, fillOpacity: 0.2, fillColor: '#ef4444' }}
+                  eventHandlers={{ click: () => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id) }}>
+                  <Tooltip direction="top" className="zone-label">Warning Zone{hz.isLocked ? ' (Locked)' : ''}</Tooltip>
+                </Circle>
+              </React.Fragment>
+            ))}
+
             {/* Hazard zone preview during placement */}
             {placingHazard && hazardCenter && (
               <>
@@ -827,6 +930,30 @@ export default function Zones() {
               </>
             )}
           </MapContainer>
+
+          {/* Compass overlay — fixed top-right */}
+          <div className="absolute top-4 right-4 z-[900] pointer-events-none select-none" title="North is up">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Background circle */}
+              <circle cx="28" cy="28" r="27" fill="white" fillOpacity="0.92" stroke="#cbd5e1" strokeWidth="1"/>
+              {/* Tick marks */}
+              <line x1="28" y1="4" x2="28" y2="8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="28" y1="48" x2="28" y2="52" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="4" y1="28" x2="8" y2="28" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="48" y1="28" x2="52" y2="28" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+              {/* North arrow (red triangle pointing up) */}
+              <polygon points="28,10 23,26 33,26" fill="#EF4444" opacity="0.9"/>
+              {/* South arrow (dark triangle pointing down) */}
+              <polygon points="28,46 23,30 33,30" fill="#64748b" opacity="0.4"/>
+              {/* Center dot */}
+              <circle cx="28" cy="28" r="2.5" fill="#475569"/>
+              {/* Cardinal labels */}
+              <text x="28" y="9" textAnchor="middle" fontSize="8" fontWeight="800" fill="#EF4444" fontFamily="Inter,system-ui,sans-serif">N</text>
+              <text x="28" y="54" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">S</text>
+              <text x="5" y="31" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">W</text>
+              <text x="51" y="31" textAnchor="middle" fontSize="7" fontWeight="700" fill="#94a3b8" fontFamily="Inter,system-ui,sans-serif">E</text>
+            </svg>
+          </div>
 
           {/* Floating map controls */}
           {!isEditing && (

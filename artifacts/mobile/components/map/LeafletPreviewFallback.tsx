@@ -203,8 +203,25 @@ function generateLeafletHtml(
   .personnel-dot.contractor{background:#F97316}
   .personnel-dot.need-help{background:#EF4444;animation:personnel-pulse 1.5s infinite}
   @keyframes personnel-pulse{0%,100%{box-shadow:0 0 4px rgba(239,68,68,0.4)}50%{box-shadow:0 0 12px rgba(239,68,68,0.8)}}
+  .compass-overlay{position:absolute;top:12px;right:12px;z-index:800;pointer-events:none;user-select:none}
 </style></head><body>
 <div id="map"></div>
+<div class="compass-overlay">
+  <svg width="48" height="48" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="28" cy="28" r="27" fill="white" fill-opacity="0.92" stroke="#cbd5e1" stroke-width="1"/>
+    <line x1="28" y1="4" x2="28" y2="8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="28" y1="48" x2="28" y2="52" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="4" y1="28" x2="8" y2="28" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="48" y1="28" x2="52" y2="28" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+    <polygon points="28,10 23,26 33,26" fill="#EF4444" opacity="0.9"/>
+    <polygon points="28,46 23,30 33,30" fill="#64748b" opacity="0.4"/>
+    <circle cx="28" cy="28" r="2.5" fill="#475569"/>
+    <text x="28" y="9" text-anchor="middle" font-size="8" font-weight="800" fill="#EF4444" font-family="system-ui,sans-serif">N</text>
+    <text x="28" y="54" text-anchor="middle" font-size="7" font-weight="700" fill="#94a3b8" font-family="system-ui,sans-serif">S</text>
+    <text x="5" y="31" text-anchor="middle" font-size="7" font-weight="700" fill="#94a3b8" font-family="system-ui,sans-serif">W</text>
+    <text x="51" y="31" text-anchor="middle" font-size="7" font-weight="700" fill="#94a3b8" font-family="system-ui,sans-serif">E</text>
+  </svg>
+</div>
 <div id="crosshair" class="map-crosshair"><div class="crosshair-dot"></div></div>
 <script>
   var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:true,attributionControl:false,tap:true,tapTolerance:30});

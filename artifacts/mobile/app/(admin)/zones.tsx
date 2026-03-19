@@ -51,6 +51,7 @@ export default function ZonesScreen() {
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
+  const applyDefaultsToHazardZone = useStore((s) => s.applyDefaultsToHazardZone);
   const hazardZones = useStore((s) => s.hazardZones);
   const settings = useStore((s) => s.settings);
 
@@ -599,6 +600,12 @@ export default function ZonesScreen() {
                   <Text style={styles.bsActionText}>Locked</Text>
                 </Pressable>
               )}
+              <Pressable style={styles.bsActionBtn} onPress={() => {
+                applyDefaultsToHazardZone(hz.id);
+              }}>
+                <Feather name="refresh-cw" size={16} color={Colors.info} />
+                <Text style={[styles.bsActionText, { color: Colors.info }]}>Apply Defaults</Text>
+              </Pressable>
               <Pressable style={styles.bsActionBtn} onPress={() => {
                 removeHazardZone(hz.id);
                 setSelectedHazardId(null);

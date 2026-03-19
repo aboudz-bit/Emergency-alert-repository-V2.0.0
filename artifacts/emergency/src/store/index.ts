@@ -114,6 +114,7 @@ interface AppState {
   addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
   removeHazardZone: (id: number) => void;
   unlockHazardZone: (id: number) => void;
+  applyDefaultsToHazardZone: (id: number) => void;
   clearHazardZones: () => void;
 
   // ── Settings ─────────────────────────────────────────────────────────────────
@@ -672,6 +673,18 @@ export const useStore = create<AppState>()(
       unlockHazardZone: (id) => {
         set(s => ({
           hazardZones: s.hazardZones.map(hz => hz.id === id ? { ...hz, isLocked: false } : hz),
+        }));
+      },
+
+      applyDefaultsToHazardZone: (id) => {
+        const { settings } = get();
+        set(s => ({
+          hazardZones: s.hazardZones.map(hz => hz.id === id ? {
+            ...hz,
+            hotRadius: settings.hazardHotRadius || 200,
+            warmRadius: settings.hazardWarmRadius || 500,
+            coldRadius: settings.hazardColdRadius || 1000,
+          } : hz),
         }));
       },
 
