@@ -347,13 +347,16 @@ export default function Zones() {
   const [locating, setLocating] = useState(false);
   const [selectedHazardId, setSelectedHazardId] = useState<number | null>(null);
 
+  // Derive a stable primitive for alert identity — avoids useMemo recomputing
+  // when the activeAlert object reference changes but the id is the same.
+  const alertId = activeAlert?.id ?? null;
+
   const activeHazardZones = useMemo(() => {
-    if (!activeAlert) return [];
-    return hazardZones.filter(hz => hz.isActive && hz.alertId === activeAlert.id);
-  }, [hazardZones, activeAlert]);
+    if (alertId == null) return [];
+    return hazardZones.filter(hz => hz.isActive && hz.alertId === alertId);
+  }, [hazardZones, alertId]);
 
   // Reset hazard placement state when alert changes or disappears
-  const alertId = activeAlert?.id ?? null;
   useEffect(() => {
     setPlacingHazard(false);
     setHazardCenter(null);
@@ -496,7 +499,15 @@ export default function Zones() {
   }, []);
 
   const handlePlaceHazardZone = () => {
-    if (!hazardCenter || !activeAlert) return;
+    if (!hazardCenter) return;
+    // Read activeAlert fresh from the store to avoid stale-closure edge-cases
+    const currentAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
+    if (!currentAlert) {
+      setPlacingHazard(false);
+      setHazardCenter(null);
+      setToast({ message: 'No active alert — cannot place warning zone', variant: 'error' });
+      return;
+    }
     addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
     setPlacingHazard(false);
     setHazardCenter(null);
