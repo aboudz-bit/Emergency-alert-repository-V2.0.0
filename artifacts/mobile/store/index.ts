@@ -87,6 +87,7 @@ interface AppState {
   linkShelterToLocations: (shelterId: number, locationIds: number[]) => void;
 
   updatePersonnelLocation: (loc: PersonnelLocation) => void;
+  batchUpdatePersonnelLocations: (locs: PersonnelLocation[]) => void;
   clearPersonnelLocations: () => void;
 
   sendZoneNotification: (zoneId: number, message: string) => void;
@@ -265,13 +266,21 @@ export const useStore = create<AppState>()(
           );
           const alerts = s.alerts.map(a => {
             if (!a.isActive) return a;
+            // Only count users in the alert's targeted zone(s)
+            const isAllZones = a.zone === 'All Zones' || a.zone === 'all';
+            const targetZone = isAllZones ? null : s.zones.find(z => z.name === a.zone);
+            const relevantUsers = isAllZones
+              ? users.filter(u => u.isActive)
+              : targetZone
+                ? users.filter(u => u.zoneId === targetZone.id && u.isActive)
+                : users.filter(u => u.isActive);
             return {
               ...a,
               stats: {
-                confirmed: users.filter(u => u.status === 'confirmed').length,
-                pending: users.filter(u => u.status === 'pending').length,
-                needHelp: users.filter(u => u.status === 'need_help').length,
-                total: users.length,
+                confirmed: relevantUsers.filter(u => u.status === 'confirmed').length,
+                pending: relevantUsers.filter(u => u.status === 'pending').length,
+                needHelp: relevantUsers.filter(u => u.status === 'need_help').length,
+                total: relevantUsers.length,
               },
             };
           });
@@ -754,6 +763,14 @@ export const useStore = create<AppState>()(
         personnelLocations: { ...s.personnelLocations, [loc.userId]: loc },
       })),
 
+      batchUpdatePersonnelLocations: (locs) => set(s => {
+        const next = { ...s.personnelLocations };
+        for (const loc of locs) {
+          next[loc.userId] = loc;
+        }
+        return { personnelLocations: next };
+      }),
+
       clearPersonnelLocations: () => set({ personnelLocations: {} }),
 
       sendZoneNotification: (zoneId, message) => {
@@ -1045,13 +1062,37 @@ export const useStore = create<AppState>()(
   ),
 );
 
+let _cachedZoneAlert: import('@/types').Alert | null = null;
+let _cachedZoneAlertKey = '';
+
 export const selectActiveAlert = (s: AppState) => {
   const fromAlerts = s.alerts.find(a => a.isActive);
-  if (fromAlerts) return fromAlerts;
+  if (fromAlerts) {
+    _cachedZoneAlert = null;
+    _cachedZoneAlertKey = '';
+    return fromAlerts;
+  }
   const activeZones = s.zones.filter(z => z.alertActive);
-  if (activeZones.length === 0) return null;
+  if (activeZones.length === 0) {
+    _cachedZoneAlert = null;
+    _cachedZoneAlertKey = '';
+    return null;
+  }
   const first = activeZones[0];
-  return {
+  const activeZoneIds = new Set(activeZones.map(z => z.id));
+  const zoneUsers = s.users.filter(u => activeZoneIds.has(u.zoneId) && u.isActive);
+  const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
+  const pending = zoneUsers.filter(u => u.status === 'pending').length;
+  const needHelp = zoneUsers.filter(u => u.status === 'need_help').length;
+  const total = zoneUsers.length;
+  const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
+  const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${pending}|${needHelp}|${total}`;
+
+  if (_cachedZoneAlert && _cachedZoneAlertKey === cacheKey) {
+    return _cachedZoneAlert;
+  }
+
+  _cachedZoneAlert = {
     id: -1,
     type: first.alertType || 'Zone Alert',
     zone: activeZones.map(z => z.name).join(', '),
@@ -1062,12 +1103,9 @@ export const selectActiveAlert = (s: AppState) => {
     priority: first.alertPriority || 'High',
     status: 'active' as const,
     isActive: true,
-    stats: {
-      confirmed: s.users.filter(u => u.status === 'confirmed').length,
-      pending: s.users.filter(u => u.status === 'pending').length,
-      needHelp: s.users.filter(u => u.status === 'need_help').length,
-      total: s.users.length,
-    },
+    stats: { confirmed, pending, needHelp, total },
   } as import('@/types').Alert;
+  _cachedZoneAlertKey = cacheKey;
+  return _cachedZoneAlert;
 };
 export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);

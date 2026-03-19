@@ -921,6 +921,19 @@ export default function AlertManagementScreen() {
               <Feather name="clock" size={16} color={Colors.textSecondary} />
               <Text style={styles.menuItemText}>History</Text>
             </Pressable>
+            {menuTarget?.alertActive && (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={() => {
+                  const z = menuTarget;
+                  setMenuTarget(null);
+                  if (z) handleOpenEdit(z);
+                }}
+              >
+                <Feather name="settings" size={16} color={Colors.textSecondary} />
+                <Text style={styles.menuItemText}>Edit Alert</Text>
+              </Pressable>
+            )}
             <Pressable
               style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
               onPress={() => {

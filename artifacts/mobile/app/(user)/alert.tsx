@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    backgroundColor: Colors.primaryDim,
     borderBottomWidth: 1,
     borderBottomColor: Colors.primaryBorder,
   },

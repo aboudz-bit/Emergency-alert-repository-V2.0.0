@@ -8,7 +8,7 @@ const JITTER = 0.0003;
 
 export function usePersonnelSimulation(enabled: boolean = true) {
   const currentUser = useStore((s) => s.currentUser);
-  const updatePersonnelLocation = useStore((s) => s.updatePersonnelLocation);
+  const batchUpdatePersonnelLocations = useStore((s) => s.batchUpdatePersonnelLocations);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const basePositionsRef = useRef<Record<number, { lat: number; lng: number }>>({});
 
@@ -50,6 +50,7 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     function simulate() {
       const { users: liveUsers, locations: liveLocs } = useStore.getState();
       const bases = basePositionsRef.current;
+      const batch: PersonnelLocation[] = [];
       Object.entries(bases).forEach(([idStr, base]) => {
         const userId = parseInt(idStr);
         const jitterLat = (Math.random() - 0.5) * JITTER * 2;
@@ -60,7 +61,7 @@ export function usePersonnelSimulation(enabled: boolean = true) {
 
         const user = liveUsers.find((u) => u.id === userId);
 
-        const loc: PersonnelLocation = {
+        batch.push({
           userId,
           lat,
           lng,
@@ -68,10 +69,11 @@ export function usePersonnelSimulation(enabled: boolean = true) {
           timestamp: Date.now(),
           detectedLocationId,
           zoneId: user?.zoneId ?? null,
-        };
-
-        updatePersonnelLocation(loc);
+        });
       });
+      if (batch.length > 0) {
+        batchUpdatePersonnelLocations(batch);
+      }
     }
 
     initBasePositions();
