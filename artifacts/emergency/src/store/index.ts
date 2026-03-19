@@ -631,8 +631,9 @@ export const useStore = create<AppState>()(
 
       addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
         const { settings, currentUser, alerts } = get();
+        // Only allow hazard zones on real alerts (not synthetic zone-alert id:-1)
         const activeAlert = alerts.find(a => a.isActive);
-        if (!activeAlert) return;
+        if (!activeAlert || activeAlert.id <= 0) return;
         const now = new Date().toISOString();
         const hz: HazardZone = {
           id: Date.now(),
@@ -1318,7 +1319,68 @@ export const useStore = create<AppState>()(
 
 // ─── Convenience selectors ────────────────────────────────────────────────────
 
-export const selectActiveAlert = (s: AppState) => s.alerts.find(a => a.isActive) || null;
+// Cache for synthetic zone-alert object (avoids re-creating every render)
+let _cachedZoneAlert: Alert | null = null;
+let _cachedZoneAlertKey = '';
+
+/**
+ * Returns the active alert. If no real alert is active but one or more zones
+ * have zone-level alerts, synthesizes a virtual alert with id:-1 so the UI
+ * can still display status. Consumers that need to guard against the synthetic
+ * alert should use `selectHasRealAlert`.
+ */
+export const selectActiveAlert = (s: AppState) => {
+  const fromAlerts = s.alerts.find(a => a.isActive);
+  if (fromAlerts) {
+    _cachedZoneAlert = null;
+    _cachedZoneAlertKey = '';
+    return fromAlerts;
+  }
+  // Synthesize an alert from active zone-level alerts (if zones support it)
+  const activeZones = s.zones.filter((z: any) => z.alertActive);
+  if (activeZones.length === 0) {
+    _cachedZoneAlert = null;
+    _cachedZoneAlertKey = '';
+    return null;
+  }
+  const first = activeZones[0] as any;
+  const activeZoneIds = new Set(activeZones.map(z => z.id));
+  const zoneUsers = s.users.filter(u => activeZoneIds.has((u as any).zoneId) && u.isActive);
+  const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
+  const pending = zoneUsers.filter(u => u.status === 'pending' || u.status === 'no_reply').length;
+  const needHelp = zoneUsers.filter(u => u.status === 'need_help').length;
+  const total = zoneUsers.length;
+  const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
+  const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${pending}|${needHelp}|${total}`;
+
+  if (_cachedZoneAlert && _cachedZoneAlertKey === cacheKey) {
+    return _cachedZoneAlert;
+  }
+
+  _cachedZoneAlert = {
+    id: -1,
+    type: first.alertType || 'Zone Alert',
+    zone: activeZones.map(z => z.name).join(', '),
+    title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+    message: first.alertMessage || '',
+    timestamp: first.alertUpdatedAt || new Date().toISOString(),
+    sentBy: 'System',
+    priority: first.alertPriority || 'High',
+    status: 'active' as const,
+    isActive: true,
+    stats: { confirmed, pending, missing: 0, noReply: 0, needHelp, total },
+  } as Alert;
+  _cachedZoneAlertKey = cacheKey;
+  return _cachedZoneAlert;
+};
+
+/** True when ANY alert or zone-level alert is active (includes synthetic id:-1). */
+export const selectHasActiveAlert = (s: AppState) =>
+  s.alerts.some(a => a.isActive) || s.zones.some((z: any) => z.alertActive);
+
+/** True only when a real (non-synthetic) alert is active — id !== -1. */
+export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
+
 export const selectAlertHistory = (s: AppState) => s.alerts.filter(a => !a.isActive);
 export const selectCPFUsers = (s: AppState) => s.users.filter(u => u.zone === 'CPF');
 export const selectCampUsers = (s: AppState) => s.users.filter(u => u.zone === 'Camp');
