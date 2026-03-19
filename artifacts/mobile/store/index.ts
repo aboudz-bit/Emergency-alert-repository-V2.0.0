@@ -5,7 +5,7 @@ import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
-  EcoAssignment, SupervisorAssignment, Shelter,
+  EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
 } from '@/types';
 import {
@@ -32,6 +32,7 @@ interface AppState {
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
   shelters: Shelter[];
+  hazardZones: HazardZone[];
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
 
@@ -119,6 +120,7 @@ export const useStore = create<AppState>()(
       ecoAssignments: seedEcoAssignments,
       supervisorAssignments: seedSupervisorAssignments,
       shelters: seedShelters,
+      hazardZones: [],
       personnelLocations: {},
       zoneNotifications: [],
 
@@ -337,6 +339,7 @@ export const useStore = create<AppState>()(
           } : l),
           personnelLocations: {},
           mobileUserResponse: 'confirmed' as UserResponseStatus,
+          hazardZones: [],
         }));
         const allClearAlert: Alert = {
           id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
@@ -356,6 +359,7 @@ export const useStore = create<AppState>()(
           const anyZoneActive = s.zones.some(z => z.alertActive);
           return {
             alerts: updatedAlerts,
+            hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),
             ...(!anyAlertActive && !anyZoneActive ? { personnelLocations: {} } : {}),
           };
         });
@@ -1056,6 +1060,7 @@ export const useStore = create<AppState>()(
         ecoAssignments: state.ecoAssignments,
         supervisorAssignments: state.supervisorAssignments,
         shelters: state.shelters,
+        hazardZones: state.hazardZones,
         zoneNotifications: state.zoneNotifications,
       }),
     },

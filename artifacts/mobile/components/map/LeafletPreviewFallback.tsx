@@ -451,6 +451,47 @@ function generateLeafletHtml(
     });
   }
 
+  // ── Hazard zone circles (managed via postMessage — never baked into HTML) ──
+  var hazardCircles = {};
+
+  function syncHazardZones(list) {
+    var seen = {};
+    list.forEach(function(hz) {
+      seen[hz.id] = true;
+      if (hazardCircles[hz.id]) {
+        // Update positions if needed
+        hazardCircles[hz.id].red.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].red.setRadius(hz.redRadius);
+        hazardCircles[hz.id].yellow.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].yellow.setRadius(hz.yellowRadius);
+        hazardCircles[hz.id].green.setLatLng([hz.centerLat, hz.centerLng]);
+        hazardCircles[hz.id].green.setRadius(hz.greenRadius);
+      } else {
+        var green = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.greenRadius, color: '#22C55E', fillColor: '#22C55E',
+          fillOpacity: 0.12, weight: 2, interactive: false,
+        }).addTo(map);
+        var yellow = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.yellowRadius, color: '#EAB308', fillColor: '#EAB308',
+          fillOpacity: 0.18, weight: 2, interactive: false,
+        }).addTo(map);
+        var red = L.circle([hz.centerLat, hz.centerLng], {
+          radius: hz.redRadius, color: '#EF4444', fillColor: '#EF4444',
+          fillOpacity: 0.22, weight: 3, interactive: false,
+        }).addTo(map);
+        hazardCircles[hz.id] = { red: red, yellow: yellow, green: green };
+      }
+    });
+    Object.keys(hazardCircles).forEach(function(idStr) {
+      if (!seen[idStr]) {
+        map.removeLayer(hazardCircles[idStr].red);
+        map.removeLayer(hazardCircles[idStr].yellow);
+        map.removeLayer(hazardCircles[idStr].green);
+        delete hazardCircles[idStr];
+      }
+    });
+  }
+
   // ── Location boundary polygons (managed via postMessage) ──
   var locPolygons = {};
   var locLabels = {};
@@ -636,6 +677,10 @@ function generateLeafletHtml(
       if (d.type === 'sync_personnel' && Array.isArray(d.personnel)) {
         syncPersonnel(d.personnel);
       }
+      // ── Hazard zone messages ──
+      if (d.type === 'sync_hazard_zones' && Array.isArray(d.hazardZones)) {
+        syncHazardZones(d.hazardZones);
+      }
       // ── Location boundary messages ──
       if (d.type === 'sync_locations' && Array.isArray(d.locations)) {
         var existingLocIds = {};
@@ -740,6 +785,7 @@ export function LeafletPreviewFallback({
   onEditingLocationPointsChange,
   personnelLocations,
   onPersonnelPress,
+  hazardZones,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -974,6 +1020,17 @@ export function LeafletPreviewFallback({
     const t = setTimeout(() => postToIframe({ type: "sync_personnel", personnel: personnelLocations }), 80);
     return () => clearTimeout(t);
   }, [personnelLocations]);
+
+  // ── Sync hazard zones via postMessage (no reload) ──
+  useEffect(() => {
+    if (!hazardZones || hazardZones.length === 0) {
+      postToIframe({ type: "sync_hazard_zones", hazardZones: [] });
+      return;
+    }
+    const active = hazardZones.filter((hz) => hz.isActive);
+    const t = setTimeout(() => postToIframe({ type: "sync_hazard_zones", hazardZones: active }), 120);
+    return () => clearTimeout(t);
+  }, [hazardZones]);
 
   return (
     <View style={[styles.container, { height }]}>

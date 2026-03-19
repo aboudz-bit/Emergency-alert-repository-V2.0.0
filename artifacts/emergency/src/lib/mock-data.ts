@@ -230,6 +230,9 @@ export const seedSettings: AppSettings = {
   badgeAsUsername: true,
   wifiAndMobileData: true,
   systemVersion: '2.0.0-phase2',
+  hazardRedRadius: 50,
+  hazardYellowRadius: 150,
+  hazardGreenRadius: 300,
 };
 
 // ─── Seed ECO assignments ────────────────────────────────────────────────────

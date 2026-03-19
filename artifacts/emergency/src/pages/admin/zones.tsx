@@ -7,7 +7,7 @@ import {
   GripVertical, Info, LocateFixed, AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
-import { useStore, useShallow } from '@/store';
+import { useStore, useShallow, selectActiveAlert } from '@/store';
 import type { Zone, ZoneBoundaryType, LatLng } from '@/types';
 import {
   MapContainer, TileLayer, Polygon, Circle, useMapEvents, useMap,
@@ -324,11 +324,15 @@ function ChangeColorModal({ zone, onClose, onSave }: { zone: Zone; onClose: () =
 }
 
 export default function Zones() {
-  const { zones, disableZone, deleteZone, addZone, updateZone, users } = useStore(useShallow(s => ({
+  const { zones, disableZone, deleteZone, addZone, updateZone, users, addHazardZone, hazardZones, settings } = useStore(useShallow(s => ({
     zones: s.zones, disableZone: s.disableZone, deleteZone: s.deleteZone, addZone: s.addZone, updateZone: s.updateZone, users: s.users,
+    addHazardZone: s.addHazardZone, hazardZones: s.hazardZones, settings: s.settings,
   })));
+  const activeAlert = useStore(selectActiveAlert);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [placingHazard, setPlacingHazard] = useState(false);
+  const [hazardCenter, setHazardCenter] = useState<LatLng | null>(null);
   const [renameZone, setRenameZone] = useState<Zone | null>(null);
   const [colorZone, setColorZone] = useState<Zone | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
@@ -476,6 +480,19 @@ export default function Zones() {
     );
   }, []);
 
+  const handlePlaceHazardZone = () => {
+    if (!hazardCenter || !activeAlert) return;
+    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
+    setPlacingHazard(false);
+    setHazardCenter(null);
+    setToast({ message: 'Warning zone placed successfully', variant: 'success' });
+  };
+
+  const handleCancelHazard = () => {
+    setPlacingHazard(false);
+    setHazardCenter(null);
+  };
+
   useEffect(() => {
     return () => { if (locationMarkerRef.current) locationMarkerRef.current.remove(); };
   }, []);
@@ -499,10 +516,18 @@ export default function Zones() {
               <Layers className="w-4 h-4 text-blue-600" /> Zones
               <span className="text-slate-400 font-normal">({activeZones.length})</span>
             </h2>
-            <button onClick={() => setShowAddModal(true)} disabled={isEditing}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
-              <Plus className="w-3.5 h-3.5" /> Add Zone
-            </button>
+            <div className="flex gap-2">
+              {activeAlert && (
+                <button onClick={() => { setPlacingHazard(true); setHazardCenter(null); }} disabled={isEditing || placingHazard}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                  <AlertCircle className="w-3.5 h-3.5" /> Warning Zone
+                </button>
+              )}
+              <button onClick={() => setShowAddModal(true)} disabled={isEditing || placingHazard}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                <Plus className="w-3.5 h-3.5" /> Add Zone
+              </button>
+            </div>
           </div>
 
           {/* Zone List */}
@@ -632,6 +657,40 @@ export default function Zones() {
         {/* ═══ Right Panel — Map ═══ */}
         <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden relative order-1 lg:order-2 min-h-[320px] lg:min-h-0 shadow-sm isolate">
 
+          {/* Hazard Zone Placement Banner */}
+          {placingHazard && (
+            <div className="absolute top-3 left-3 right-3 z-[1000]">
+              <div className="bg-white/95 backdrop-blur-xl border border-red-300 rounded-xl px-4 py-3 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Place Warning Zone</p>
+                      <p className="text-xs text-slate-500">
+                        {hazardCenter
+                          ? `Selected: ${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E — Red: ${settings.hazardRedRadius}m, Yellow: ${settings.hazardYellowRadius}m, Green: ${settings.hazardGreenRadius}m`
+                          : 'Click on the map to place the center of the warning zone'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={handlePlaceHazardZone} disabled={!hazardCenter}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm">
+                      <Save className="w-3.5 h-3.5" /> Confirm
+                    </button>
+                    <button onClick={handleCancelHazard}
+                      className="px-3 py-2 text-slate-600 hover:text-slate-800 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Drawing / Editing Banner */}
           {isEditing && (
             <div className="absolute top-3 left-3 right-3 z-[1000]">
@@ -706,6 +765,7 @@ export default function Zones() {
             <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
             <FitBoundsControl zones={activeZones} />
             <ClickToAddPoints active={isEditing && editingBoundary === 'Polygon'} onAdd={handleAddPoint} />
+            <ClickToAddPoints active={placingHazard} onAdd={(latlng) => setHazardCenter(latlng)} />
             <MapRefCapture onMap={(m) => { mapRef.current = m; }} />
 
             {activeZones.map(zone => {
@@ -747,6 +807,24 @@ export default function Zones() {
             {isEditing && editingBoundary === 'Circle' && (
               <CircleEditHandles center={circleCenter} radius={circleRadius} color={editingColor}
                 onCenterChange={setCircleCenter} onRadiusChange={setCircleRadius} />
+            )}
+
+            {/* Hazard zone preview during placement */}
+            {placingHazard && hazardCenter && (
+              <>
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardGreenRadius}
+                  pathOptions={{ color: '#22c55e', weight: 2, fillOpacity: 0.15, fillColor: '#22c55e', dashArray: '6 4' }}>
+                  <Tooltip direction="top" className="zone-label">Green — Safe ({settings.hazardGreenRadius}m)</Tooltip>
+                </Circle>
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardYellowRadius}
+                  pathOptions={{ color: '#eab308', weight: 2, fillOpacity: 0.2, fillColor: '#eab308', dashArray: '6 4' }}>
+                  <Tooltip direction="top" className="zone-label">Yellow — Hazard ({settings.hazardYellowRadius}m)</Tooltip>
+                </Circle>
+                <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardRedRadius}
+                  pathOptions={{ color: '#ef4444', weight: 3, fillOpacity: 0.25, fillColor: '#ef4444', dashArray: '6 4' }}>
+                  <Tooltip direction="top" className="zone-label">Red — Danger ({settings.hazardRedRadius}m)</Tooltip>
+                </Circle>
+              </>
             )}
           </MapContainer>
 
