@@ -1,8 +1,10 @@
 // ─── Roles & Auth ─────────────────────────────────────────────────────────────
 
-export type UserRole = 'User' | 'IT' | 'Super Admin';
+export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Superior';
 export type AccountStatus = 'active' | 'disabled';
 export type EcoSlot = 'A' | 'B' | 'C';
+export type UserType = 'Aramco' | 'Contract';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export interface EcoAssignment {
   ecoSlot: EcoSlot;
@@ -100,6 +102,7 @@ export interface Location {
   zoneId: number;
   expectedManpower: number;
   isActive: boolean;
+  polygonPoints: LatLng[];
   alertActive: boolean;
   alertType: LocationAlertType | null;
   alertPriority: AlertPriority | null;
@@ -126,6 +129,12 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+  userType?: UserType;
+  mobileNumber?: string;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
   isECOAssigned?: boolean;
   ecoSlot?: EcoSlot;
   ecoZoneName?: string;
@@ -169,6 +178,30 @@ export interface Alert {
     total: number;
   };
   isActive: boolean;
+}
+
+// ─── Shelters ────────────────────────────────────────────────────────────────
+
+export interface Shelter {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  zoneId: number;
+  isActive: boolean;
+  linkedLocationIds: number[];
+}
+
+// ─── Personnel Live Location ──────────────────────────────────────────────────
+
+export interface PersonnelLocation {
+  userId: number;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  timestamp: number;
+  detectedLocationId: number | null;
+  zoneId: number | null;
 }
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────

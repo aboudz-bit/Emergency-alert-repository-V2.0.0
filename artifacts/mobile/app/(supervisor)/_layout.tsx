@@ -18,8 +18,8 @@ export default function SupervisorLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.amber,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrapActive: {
-    backgroundColor: Colors.amberDim,
+    backgroundColor: Colors.primaryDim,
   },
 });

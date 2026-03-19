@@ -29,7 +29,7 @@ interface ButtonProps {
 
 const variantStyles: Record<Variant, { bg: string; text: string; border?: string }> = {
   primary: { bg: Colors.primary, text: Colors.white },
-  secondary: { bg: Colors.surfaceElevated, text: Colors.text, border: Colors.border },
+  secondary: { bg: Colors.surface, text: Colors.text, border: Colors.border },
   destructive: { bg: Colors.destructive, text: Colors.white },
   ghost: { bg: "transparent", text: Colors.textSecondary },
   safe: { bg: Colors.safe, text: Colors.white },

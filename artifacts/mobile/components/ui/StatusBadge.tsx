@@ -13,6 +13,8 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   draft: { bg: Colors.infoDim, text: Colors.info, label: "Draft" },
   enabled: { bg: Colors.safeDim, text: Colors.safe, label: "Active" },
   disabled: { bg: Colors.primaryDim, text: Colors.primary, label: "Disabled" },
+  missing: { bg: Colors.missingDim, text: Colors.missing, label: "Missing" },
+  no_reply: { bg: Colors.noreplyDim, text: Colors.noreply, label: "No Reply" },
 };
 
 interface StatusBadgeProps {
@@ -50,6 +52,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_500Medium",
   },
 });

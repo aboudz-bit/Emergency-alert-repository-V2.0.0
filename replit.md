@@ -119,7 +119,8 @@ artifacts/emergency/
 ```
 artifacts/mobile/
 ├── app/
-│   ├── (auth)/login.tsx           # Badge + password login
+│   ├── (auth)/login.tsx           # Badge + password login (approval status checks)
+│   ├── (auth)/register.tsx       # Registration with User Type (Aramco/Contract), dynamic fields, approval workflow
 │   ├── (admin)/
 │   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
 │   │   ├── index.tsx              # Dashboard: KPIs, alert banner + per-zone breakdown, quick actions, activity feed
@@ -140,6 +141,11 @@ artifacts/mobile/
 │   │   ├── index.tsx              # Supervisor dashboard: location KPIs, personnel list, backup indicator
 │   │   ├── personnel.tsx          # Personnel list with status filter tabs
 │   │   └── profile.tsx            # Supervisor profile
+│   ├── (it)/
+│   │   ├── _layout.tsx            # IT stack layout
+│   │   ├── index.tsx              # IT dashboard: account management, password resets, enable/disable
+│   │   ├── create-admin.tsx       # Create Super Admin account
+│   │   └── approvals.tsx          # Registration approval panel (pending/approved/rejected, role override)
 │   └── (user)/
 │       ├── _layout.tsx            # User tab bar (Home, Alerts, Profile)
 │       ├── index.tsx              # User home: alert banner, response buttons, status
@@ -162,11 +168,12 @@ artifacts/mobile/
 
 ### Mobile Key Details
 
-- **Tab bar**: Active tab icons have pill-shaped `primaryDim` background (36×28 rounded-14), platform-aware height (iOS 88 / Android 68)
+- **UI Theme**: Light enterprise palette — light gray background (`#F5F6F8`), white cards (`#FFFFFF`), gray borders (`#E5E7EB`), dark text (`#111111`/`#1F2937`). Purple header (`#5B3A8E`) with white text. Purple accent (`#5B3A8E`) used for primary, info, active tab, links. Red for alerts/destructive (`#DC2626`), green for safe (`#16A34A`), amber for warnings (`#D97706`). Flat cards (no shadows), tightened border radii (sm:6, md:10, lg:12).
+- **Tab bar**: White background, gray top border, purple active icons/text (`Colors.primary`), gray inactive (`Colors.textSecondary`). Active pill uses `Colors.primaryDim`. Platform-aware height (iOS 88 / Android 68).
 - **Zone Map Architecture (Google Maps target)**:
   - `components/map/` — unified map abstraction layer
     - `types.ts` — shared types (MapRegion, ZonePolygon, ZoneMapProps), converter functions
-    - `ZoneMap.tsx` — provider router: Google Maps on native (FINAL), Leaflet iframe on web preview (TEMPORARY fallback)
+    - `ZoneMap.tsx` — provider router: Leaflet iframe on web (active fallback), placeholder on native until Google Maps API key configured
     - `GoogleMapsView.tsx` — FINAL native implementation via react-native-maps with PROVIDER_GOOGLE, light styled map, zone polygons, labels, selection + vertex drag editing
     - `LeafletPreviewFallback.tsx` — TEMPORARY web preview fallback (Leaflet iframe + CartoDB Voyager light tiles + vertex drag editing). Will be removed when shipping native.
     - `index.ts` — barrel export
@@ -174,8 +181,16 @@ artifacts/mobile/
   - Zone CRUD: Add Zone bottom-sheet modal (name/type/color), Edit Zone bottom-sheet modal (settings + "Edit Boundary Shape" action). New zones auto-appear in Location Management tabs.
   - **Shape editing**: "Edit Boundary Shape" enters full-screen map mode with draggable vertex markers on the polygon. Save/Cancel controls overlay the map. Works in both Google Maps native and Leaflet web preview.
 - **Dependencies**: `react-native-maps` (Google Maps native), `react-native-webview` (Leaflet fallback)
-- **Store**: `keas-mobile-store-v4` — bump when type shapes change. User.zone is now `string` (not hardcoded `'CPF' | 'Camp'`). Store includes ecoAssignments/supervisorAssignments with merge protection.
-- **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user); password `demo1234`
+- **Shelter System**: Admin can CRUD shelters (tap map to place, name modal, bottom sheet with rename/enable-disable/delete). User/ECO/Supervisor screens show shelter markers on map with GPS location + nearest shelter calculation (haversine). Shelter data synced to Leaflet iframe via postMessage (`sync_shelters`, `select_shelter`, `set_nearest_shelter`, `set_user_location`). `prevSheltersRef` resets on `mapHtml` change to ensure re-sync after iframe reload. Shelters have `linkedLocationIds` for shelter-to-location linking (which locations a shelter serves).
+- **Location Boundaries**: Locations have `polygonPoints: LatLng[]` for polygon boundaries rendered on the map (indigo dashed polygons, distinct from zone polygons). Admin can draw/edit/clear location boundaries from the zone bottom sheet → location chips. Location polygons synced to Leaflet via postMessage (`sync_locations`, `select_location`, `highlight_locations`, `start_loc_edit`, `clear_loc_edit`). When a shelter is selected, its linked locations are highlighted (amber). Shelter-to-location linking modal allows multi-select with checkboxes.
+- **Location-Aware Logic**: `utils/geo.ts` has `pointInPolygon` (ray-casting), `haversineDistance`, `formatDistance`, and `findBestShelter` (generic, prioritizes linked shelters > zone shelters > all). `hooks/useDetectedLocation.ts` detects user's current location from GPS via pip. User home uses detected location to prefer linked shelters and highlights the user's location boundary on the map. Supervisor dashboard shows linked shelter count KPI. ECO dashboard shows shelter count per location in breakdown cards.
+- **Live Personnel Tracking** (alert-gated): `PersonnelLocation` type with `userId, lat, lng, accuracy, timestamp, detectedLocationId, zoneId`. Store has `personnelLocations: Record<number, PersonnelLocation>` + `updatePersonnelLocation`/`clearPersonnelLocations` actions. **Tracking activates ONLY when an alert is active** (`selectHasActiveAlert`). `usePersonnelTracking(hasActiveAlert)` polls GPS every 8s (settings-configurable, clamped 5-30s), permission requested once. `usePersonnelSimulation(hasActiveAlert)` simulates other users for demo (uses `useStore.getState()` inside simulate() to avoid stale closures). `useVisiblePersonnel` has `enabled` param gated on alert state + fail-closed scope guards + 120s stale filter + extended fields (badge, role, assignedLocation, detectedLocation, lastUpdate). When alert ends (`sendAllClear`/`closeAlert`), store auto-clears `personnelLocations: {}`. `sendAllClear` also deactivates all zone alerts and location alerts. Leaflet renders personnel as small color-coded dots (green=safe, amber=pending, red=need-help with pulse). All updates via postMessage `sync_personnel` — no map reload/camera reset. Super Admin sees all personnel; Supervisor sees only their assigned location's personnel.
+- **Alert Re-activation**: `selectHasActiveAlert` checks both `alerts` array AND zone `alertActive` states. `selectActiveAlert` synthesizes a virtual Alert from active zones when no alert record exists (id=-1). `deactivateZoneAlert`/`bulkDeactivateZoneAlerts` clear `personnelLocations` when no zones/alerts remain active. Full lifecycle supported: no-alert → active → clear → active again — repeatedly without app refresh.
+- **Super Admin Alert Monitor Map**: Alert Monitor (`/(admin)/alert-monitor.tsx`) includes a live map section showing all zones/locations/shelters/personnel when alert is active. Personnel list below map allows tap-to-detail showing name, badge, role, status, assigned/detected location, and last update time.
+- **Zone Actions Menu**: Alert Management page (`/(admin)/(tabs)/send-alert.tsx`) zone rows replaced 3 separate icon buttons (settings/eye/clock) with a single 3-dots menu button. Menu opens a centered modal with: Edit, Review, History, and Notification actions.
+- **Registration & Approval**: User Type (Aramco/Contract) determines which fields are shown. Aramco users must select Role + Location. Contract users get Role=null, Location=null. All new registrations get `approvalStatus='pending'`. IT panel (`/(it)/approvals`) allows approve/reject with optional role override and rejection reason. Login blocks pending/rejected users with specific messages.
+- **Store**: `keas-mobile-store-v11` — bump when type shapes change. User interface extended with `userType`, `mobileNumber`, `approvalStatus`, `approvedBy`, `approvedAt`, `rejectionReason`. UserRole extended with `'Supervisor' | 'Back Superior'`. Store includes `approveUser/rejectUser` actions, `ecoAssignments/supervisorAssignments` with merge protection, shelters slice with `addShelter/updateShelter/deleteShelter` actions.
+- **Demo login**: Badge 102934 (Super Admin→admin), 104822 (IT→it), 103618 (ECO→eco), 108291 (Supervisor→supervisor), 105477 (Backup Supervisor→supervisor), 107543 (User→user), 200001 (Contractor→user, view-only); password `demo1234`
 - **Mobile routing**: ECO/Supervisor flags checked before role switch — ECO users go to `/(eco)`, Supervisor/Backup go to `/(supervisor)`, then role-based (Super Admin→admin, IT→it, default→user)
 
 ## Workflow

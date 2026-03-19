@@ -1,4 +1,4 @@
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment, Shelter } from '@/types';
 import { CPF_LOCATIONS } from '@/constants/theme';
 
 const names = [
@@ -27,31 +27,48 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-export const seedUsers: User[] = names.map((name, i) => {
-  const locIndex = i % CPF_LOCATIONS.length;
-  const status: User['status'] =
-    i < 30 ? 'confirmed' : 'pending';
+export const seedUsers: User[] = [
+  ...names.map((name, i) => {
+    const locIndex = i % CPF_LOCATIONS.length;
+    const status: User['status'] =
+      i < 30 ? 'confirmed' : 'pending';
 
-  let role: User['role'] = 'User';
-  if (i === 0) role = 'Super Admin';
-  else if (i === 1) role = 'IT';
+    let role: User['role'] = 'User';
+    if (i === 0) role = 'Super Admin';
+    else if (i === 1) role = 'IT';
 
-  return {
-    id: i + 1,
-    name,
-    badge: badges[i],
+    return {
+      id: i + 1,
+      name,
+      badge: badges[i],
+      password: 'demo1234',
+      role,
+      zone: 'CPF',
+      zoneId: 1,
+      location: CPF_LOCATIONS[locIndex],
+      locationId: locIndex + 1,
+      status,
+      accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
+      lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
+      isActive: i !== 3,
+    };
+  }),
+  {
+    id: 51,
+    name: 'Contractor Demo',
+    badge: '200001',
     password: 'demo1234',
-    role,
+    role: 'User' as const,
     zone: 'CPF',
     zoneId: 1,
-    location: CPF_LOCATIONS[locIndex],
-    locationId: locIndex + 1,
-    status,
-    accountStatus: i === 3 ? 'disabled' as const : 'active' as const,
-    lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
-    isActive: i !== 3,
-  };
-});
+    location: CPF_LOCATIONS[0],
+    locationId: 1,
+    status: 'confirmed' as const,
+    accountStatus: 'active' as const,
+    lastActivity: new Date().toISOString(),
+    isActive: true,
+  },
+];
 
 export const seedAlerts: Alert[] = [
   {
@@ -108,9 +125,17 @@ const _expectedManpower = [8, 8, 8, 7, 7, 6, 6];
 export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
   id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
   expectedManpower: _expectedManpower[i],
-  isActive: true, alertActive: false, alertType: null, alertPriority: null,
+  isActive: true, polygonPoints: [],
+  alertActive: false, alertType: null, alertPriority: null,
   alertMessage: '', alertUpdatedAt: null, alertHistory: [],
 }));
+
+export const seedShelters: Shelter[] = [
+  { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true, linkedLocationIds: [1, 2] },
+  { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true, linkedLocationIds: [3, 4] },
+  { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true, linkedLocationIds: [5, 6] },
+  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true, linkedLocationIds: [7] },
+];
 
 export const seedActivityLogs: ActivityLog[] = [
   { id: 1, type: 'info', message: 'System check completed successfully.', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },

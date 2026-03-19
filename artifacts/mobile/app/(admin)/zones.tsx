@@ -16,8 +16,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
-import type { Zone, ZoneType, LatLng } from "@/types";
+import { useStore, selectHasActiveAlert } from "@/store";
+import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
+import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 
@@ -40,14 +42,42 @@ export default function ZonesScreen() {
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
+  const locations = useStore((s) => s.locations);
+  const updateLocation = useStore((s) => s.updateLocation);
+  const shelters = useStore((s) => s.shelters);
+  const addShelter = useStore((s) => s.addShelter);
+  const updateShelter = useStore((s) => s.updateShelter);
+  const deleteShelter = useStore((s) => s.deleteShelter);
+  const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
+
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelSimulation(hasActiveAlert);
+  const visiblePersonnel = useVisiblePersonnel({ scope: "all", enabled: hasActiveAlert });
 
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+  const [addingShelter, setAddingShelter] = useState(false);
   const [flyToZoneId, setFlyToZoneId] = useState<number | null>(null);
   const [tapPoints, setTapPoints] = useState<LatLng[]>([]);
   const [editingPoints, setEditingPoints] = useState<LatLng[]>([]);
 
-  // Save modal
+  const [locDrawMode, setLocDrawMode] = useState(false);
+  const [locDrawLocationId, setLocDrawLocationId] = useState<number | null>(null);
+  const [locEditPoints, setLocEditPoints] = useState<LatLng[]>([]);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
+
+  const [linkingModal, setLinkingModal] = useState(false);
+  const [linkingShelterId, setLinkingShelterId] = useState<number | null>(null);
+  const [linkingSelectedIds, setLinkingSelectedIds] = useState<number[]>([]);
+
+  const [shelterNameModal, setShelterNameModal] = useState(false);
+  const [pendingShelterLat, setPendingShelterLat] = useState(0);
+  const [pendingShelterLng, setPendingShelterLng] = useState(0);
+  const [shelterFormName, setShelterFormName] = useState("");
+  const [editingShelter, setEditingShelter] = useState<Shelter | null>(null);
+
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<ZoneType>("Custom");
@@ -70,12 +100,79 @@ export default function ZonesScreen() {
   const handleZonePress = useCallback((id: number) => {
     if (mode !== "view") return;
     setSelectedZoneId((prev) => (prev === id ? null : id));
+    setSelectedShelterId(null);
+    setSelectedLocationId(null);
   }, [mode]);
 
   const handleMapTap = useCallback((pt: LatLng) => {
+    if (addingShelter) {
+      setPendingShelterLat(pt.lat);
+      setPendingShelterLng(pt.lng);
+      setShelterFormName(`Shelter ${String.fromCharCode(65 + shelters.length)}`);
+      setShelterNameModal(true);
+      return;
+    }
+    if (locDrawMode) {
+      setLocEditPoints((prev) => [...prev, pt]);
+      return;
+    }
     if (mode !== "draw") return;
     setTapPoints((p) => [...p, pt]);
-  }, [mode]);
+  }, [mode, addingShelter, shelters.length, locDrawMode]);
+
+  const handleShelterPress = useCallback((shelterId: number) => {
+    setSelectedShelterId((prev) => (prev === shelterId ? null : shelterId));
+    setSelectedZoneId(null);
+    setSelectedLocationId(null);
+  }, []);
+
+  const handleSaveShelter = useCallback(() => {
+    if (!shelterFormName.trim()) return;
+    const nearestZone = zones[0];
+    addShelter({
+      name: shelterFormName.trim(),
+      lat: pendingShelterLat,
+      lng: pendingShelterLng,
+      zoneId: nearestZone?.id ?? 0,
+      isActive: true,
+      linkedLocationIds: [],
+    });
+    setShelterNameModal(false);
+    setShelterFormName("");
+    setAddingShelter(false);
+  }, [shelterFormName, pendingShelterLat, pendingShelterLng, zones, addShelter]);
+
+  const handleToggleShelterAdd = useCallback(() => {
+    setAddingShelter((p) => !p);
+    setSelectedShelterId(null);
+    setSelectedZoneId(null);
+  }, []);
+
+  const handleToggleShelter = useCallback((sh: Shelter) => {
+    updateShelter(sh.id, { isActive: !sh.isActive });
+  }, [updateShelter]);
+
+  const handleDeleteShelter = useCallback(() => {
+    if (!selectedShelterId) return;
+    deleteShelter(selectedShelterId);
+    setSelectedShelterId(null);
+  }, [selectedShelterId, deleteShelter]);
+
+  const handleEditShelterName = useCallback(() => {
+    const sh = shelters.find((s) => s.id === selectedShelterId);
+    if (!sh) return;
+    setEditingShelter(sh);
+    setShelterFormName(sh.name);
+    setShelterNameModal(true);
+  }, [selectedShelterId, shelters]);
+
+  const handleSaveEditShelter = useCallback(() => {
+    if (!editingShelter || !shelterFormName.trim()) return;
+    updateShelter(editingShelter.id, { name: shelterFormName.trim() });
+    setShelterNameModal(false);
+    setShelterFormName("");
+    setEditingShelter(null);
+  }, [editingShelter, shelterFormName, updateShelter]);
 
   // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {
@@ -189,8 +286,95 @@ export default function ZonesScreen() {
   }, [selectedZoneId]);
 
   // ─── Derived ───
-  const drawMode: DrawMode = mode === "draw" ? "tap" : "none";
+  const selectedShelter = useMemo(
+    () => shelters.find((s) => s.id === selectedShelterId) || null,
+    [shelters, selectedShelterId]
+  );
+  const selectedLocation = useMemo(
+    () => locations.find((l) => l.id === selectedLocationId) || null,
+    [locations, selectedLocationId]
+  );
+  const highlightedLocationIds = useMemo(() => {
+    if (selectedShelter) return selectedShelter.linkedLocationIds || [];
+    return [];
+  }, [selectedShelter]);
+  const locationsForZone = useMemo(() => {
+    if (selectedZoneId) return locations.filter((l) => l.zoneId === selectedZoneId);
+    return locations;
+  }, [locations, selectedZoneId]);
+
+  const drawMode: DrawMode = mode === "draw" || addingShelter ? "tap" : locDrawMode ? "tap" : "none";
   const showCrosshair = mode === "pick_shape";
+
+  // ─── Location handlers ───
+  const handleLocationPress = useCallback((locId: number) => {
+    if (locDrawMode || mode !== "view") return;
+    setSelectedLocationId((prev) => (prev === locId ? null : locId));
+    setSelectedZoneId(null);
+    setSelectedShelterId(null);
+  }, [locDrawMode, mode]);
+
+  const handleStartLocDraw = useCallback((locId: number) => {
+    const loc = locations.find((l) => l.id === locId);
+    if (!loc) return;
+    setLocDrawMode(true);
+    setLocDrawLocationId(locId);
+    setLocEditPoints([]);
+    setSelectedLocationId(null);
+  }, [locations]);
+
+  const handleStartLocEdit = useCallback((locId: number) => {
+    const loc = locations.find((l) => l.id === locId);
+    if (!loc || loc.polygonPoints.length < 3) return;
+    setEditingLocationId(locId);
+    setLocEditPoints([...loc.polygonPoints]);
+    setSelectedLocationId(null);
+  }, [locations]);
+
+  const handleLocEditPointsChange = useCallback((pts: LatLng[]) => {
+    setLocEditPoints(pts);
+  }, []);
+
+  const handleSaveLocEdit = useCallback(() => {
+    if (editingLocationId && locEditPoints.length >= 3) {
+      updateLocation(editingLocationId, { polygonPoints: locEditPoints });
+    }
+    setEditingLocationId(null);
+    setLocEditPoints([]);
+  }, [editingLocationId, locEditPoints, updateLocation]);
+
+  const handleCancelLocEdit = useCallback(() => {
+    setEditingLocationId(null);
+    setLocEditPoints([]);
+  }, []);
+
+  const handleClearLocBoundary = useCallback((locId: number) => {
+    updateLocation(locId, { polygonPoints: [] });
+    setSelectedLocationId(null);
+  }, [updateLocation]);
+
+  const handleOpenLinking = useCallback((shId: number) => {
+    const sh = shelters.find((s) => s.id === shId);
+    if (!sh) return;
+    setLinkingShelterId(shId);
+    setLinkingSelectedIds([...(sh.linkedLocationIds || [])]);
+    setLinkingModal(true);
+  }, [shelters]);
+
+  const handleToggleLinkLocation = useCallback((locId: number) => {
+    setLinkingSelectedIds((prev) =>
+      prev.includes(locId) ? prev.filter((id) => id !== locId) : [...prev, locId]
+    );
+  }, []);
+
+  const handleSaveLinking = useCallback(() => {
+    if (linkingShelterId != null) {
+      linkShelterToLocations(linkingShelterId, linkingSelectedIds);
+    }
+    setLinkingModal(false);
+    setLinkingShelterId(null);
+    setLinkingSelectedIds([]);
+  }, [linkingShelterId, linkingSelectedIds, linkShelterToLocations]);
 
   return (
     <View style={styles.root}>
@@ -210,21 +394,48 @@ export default function ZonesScreen() {
         tapPointCount={tapPoints.length}
         flyToZoneId={flyToZoneId}
         showCenterCrosshair={showCrosshair}
+        shelters={shelters}
+        selectedShelterId={selectedShelterId}
+        onShelterPress={handleShelterPress}
+        locations={locations}
+        selectedLocationId={selectedLocationId}
+        onLocationPress={handleLocationPress}
+        highlightedLocationIds={highlightedLocationIds}
+        editingLocationId={editingLocationId}
+        editingLocationPoints={editingLocationId ? locEditPoints : undefined}
+        onEditingLocationPointsChange={handleLocEditPointsChange}
+        personnelLocations={visiblePersonnel}
       />
 
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
-      {mode === "view" && (
+      {mode === "view" && !addingShelter && (
         <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
           <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
             <Feather name="chevron-left" size={20} color="#fff" />
           </Pressable>
           <View style={styles.fhTitle}>
             <Text style={styles.fhTitleText}>Zones</Text>
-            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""}</Text>
+            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}</Text>
           </View>
+          <Pressable style={[styles.fhBtn, { backgroundColor: "#F59E0B" }]} onPress={handleToggleShelterAdd} hitSlop={8}>
+            <Feather name="home" size={18} color="#fff" />
+          </Pressable>
           <Pressable style={styles.fhBtnAccent} onPress={handlePressAdd} hitSlop={8}>
             <Feather name="plus" size={20} color="#fff" />
           </Pressable>
+        </View>
+      )}
+
+      {/* ═══ FLOATING HEADER — ADD SHELTER ═══ */}
+      {addingShelter && (
+        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
+          <Pressable style={styles.fhBtn} onPress={handleToggleShelterAdd} hitSlop={8}>
+            <Feather name="x" size={20} color="#fff" />
+          </Pressable>
+          <View style={styles.fhTitle}>
+            <Text style={styles.fhTitleText}>Add Shelter</Text>
+            <Text style={styles.fhSubtext}>Tap on map to place shelter</Text>
+          </View>
         </View>
       )}
 
@@ -333,6 +544,82 @@ export default function ZonesScreen() {
         </View>
       )}
 
+      {/* ═══ FLOATING HEADER — LOC DRAW ═══ */}
+      {locDrawMode && (
+        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#6366F1" }]}>
+            <View style={styles.modePillDot} />
+            <Text style={styles.modePillText}>LOCATION BOUNDARY</Text>
+          </View>
+          <View style={styles.modeCount}>
+            <Text style={styles.modeCountText}>{locEditPoints.length} pts</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ LOC DRAW CONTROLS ═══ */}
+      {locDrawMode && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.drawBar}>
+            <Pressable style={styles.actionBtn} onPress={() => {
+              setLocDrawMode(false);
+              setLocDrawLocationId(null);
+              setLocEditPoints([]);
+            }}>
+              <Feather name="x" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            {locEditPoints.length > 0 && (
+              <Pressable style={styles.actionBtn} onPress={() => setLocEditPoints((p) => p.slice(0, -1))}>
+                <Feather name="corner-up-left" size={18} color={Colors.textSecondary} />
+              </Pressable>
+            )}
+            <View style={{ flex: 1 }} />
+            <Pressable
+              style={[styles.actionBtnPrimary, { backgroundColor: "#6366F1" }, locEditPoints.length < 3 && { opacity: 0.3 }]}
+              onPress={() => {
+                if (locDrawLocationId && locEditPoints.length >= 3) {
+                  updateLocation(locDrawLocationId, { polygonPoints: locEditPoints });
+                }
+                setLocDrawMode(false);
+                setLocDrawLocationId(null);
+                setLocEditPoints([]);
+              }}
+              disabled={locEditPoints.length < 3}
+            >
+              <Feather name="check" size={18} color="#fff" />
+              <Text style={styles.actionBtnPrimaryText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ LOC EDIT CONTROLS ═══ */}
+      {editingLocationId != null && (
+        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#6366F1" }]}>
+            <View style={styles.modePillDot} />
+            <Text style={styles.modePillText}>EDIT BOUNDARY</Text>
+          </View>
+          <View style={styles.modeCount}>
+            <Text style={styles.modeCountText}>{locEditPoints.length} vertices</Text>
+          </View>
+        </View>
+      )}
+      {editingLocationId != null && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.drawBar}>
+            <Pressable style={styles.actionBtn} onPress={handleCancelLocEdit}>
+              <Feather name="x" size={18} color={Colors.textSecondary} />
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Pressable style={[styles.actionBtnPrimary, { backgroundColor: "#6366F1" }]} onPress={handleSaveLocEdit}>
+              <Feather name="check" size={18} color="#fff" />
+              <Text style={styles.actionBtnPrimaryText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* ═══ SELECTED ZONE — compact bottom sheet ═══ */}
       {mode === "view" && selectedZone && (
         <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
@@ -366,11 +653,122 @@ export default function ZonesScreen() {
               <Text style={[styles.bsActionText, { color: Colors.primary }]}>Delete</Text>
             </Pressable>
           </View>
+          {locationsForZone.length > 0 && (
+            <>
+              <View style={{ height: 1, backgroundColor: Colors.border, marginTop: 4 }} />
+              <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary, marginTop: 2 }}>
+                LOCATIONS ({locationsForZone.length})
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {locationsForZone.map((loc) => (
+                  <Pressable
+                    key={loc.id}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 6,
+                      paddingHorizontal: 10, paddingVertical: 6,
+                      backgroundColor: Colors.surfaceElevated, borderRadius: 8,
+                      borderWidth: 1, borderColor: loc.polygonPoints.length > 0 ? "#6366F1" : Colors.border,
+                    }}
+                    onPress={() => {
+                      setSelectedLocationId(loc.id);
+                      setSelectedZoneId(null);
+                    }}
+                  >
+                    <Feather
+                      name={loc.polygonPoints.length > 0 ? "check-circle" : "circle"}
+                      size={12}
+                      color={loc.polygonPoints.length > 0 ? "#6366F1" : Colors.textTertiary}
+                    />
+                    <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.text }} numberOfLines={1}>
+                      {loc.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* ═══ SELECTED SHELTER — bottom sheet ═══ */}
+      {mode === "view" && !addingShelter && selectedShelter && !selectedZone && !selectedLocation && (
+        <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsRow}>
+            <View style={[styles.bsDot, { backgroundColor: "#F59E0B" }]} />
+            <View style={styles.bsInfo}>
+              <Text style={styles.bsName} numberOfLines={1}>{selectedShelter.name}</Text>
+              <Text style={styles.bsMeta}>
+                Shelter · {selectedShelter.isActive ? "Active" : "Disabled"} · {(selectedShelter.linkedLocationIds || []).length} linked
+              </Text>
+            </View>
+            <Pressable style={styles.bsClose} onPress={() => setSelectedShelterId(null)} hitSlop={8}>
+              <Feather name="x" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          </View>
+          <View style={styles.bsActions}>
+            <Pressable style={styles.bsActionBtn} onPress={() => handleOpenLinking(selectedShelter.id)}>
+              <Feather name="link" size={16} color="#6366F1" />
+              <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Link</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleEditShelterName}>
+              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>Rename</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={() => handleToggleShelter(selectedShelter)}>
+              <Feather name={selectedShelter.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>{selectedShelter.isActive ? "Disable" : "Enable"}</Text>
+            </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleDeleteShelter}>
+              <Feather name="trash-2" size={16} color={Colors.destructive} />
+              <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ═══ SELECTED LOCATION — bottom sheet ═══ */}
+      {mode === "view" && !addingShelter && !locDrawMode && !editingLocationId && selectedLocation && !selectedZone && !selectedShelter && (
+        <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsRow}>
+            <View style={[styles.bsDot, { backgroundColor: "#6366F1" }]} />
+            <View style={styles.bsInfo}>
+              <Text style={styles.bsName} numberOfLines={1}>{selectedLocation.name}</Text>
+              <Text style={styles.bsMeta}>
+                Location · {selectedLocation.polygonPoints.length > 0 ? `${selectedLocation.polygonPoints.length} pts` : "No boundary"}
+              </Text>
+            </View>
+            <Pressable style={styles.bsClose} onPress={() => setSelectedLocationId(null)} hitSlop={8}>
+              <Feather name="x" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          </View>
+          <View style={styles.bsActions}>
+            {selectedLocation.polygonPoints.length === 0 ? (
+              <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocDraw(selectedLocation.id)}>
+                <Feather name="edit-3" size={16} color="#6366F1" />
+                <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Draw Boundary</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocEdit(selectedLocation.id)}>
+                  <Feather name="move" size={16} color="#6366F1" />
+                  <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Edit</Text>
+                </Pressable>
+                <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocDraw(selectedLocation.id)}>
+                  <Feather name="refresh-cw" size={16} color={Colors.text} />
+                  <Text style={styles.bsActionText}>Redraw</Text>
+                </Pressable>
+                <Pressable style={styles.bsActionBtn} onPress={() => handleClearLocBoundary(selectedLocation.id)}>
+                  <Feather name="trash-2" size={16} color={Colors.destructive} />
+                  <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Clear</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
         </View>
       )}
 
       {/* ═══ ZONE LIST — small floating chips when nothing selected ═══ */}
-      {mode === "view" && !selectedZone && zones.length > 0 && (
+      {mode === "view" && !selectedZone && !selectedShelter && !addingShelter && zones.length > 0 && (
         <View style={[styles.chipBar, { bottom: insets.bottom + 12 }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
             {zones.map((z) => (
@@ -438,6 +836,108 @@ export default function ZonesScreen() {
               >
                 <Feather name="check" size={16} color="#fff" />
                 <Text style={styles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* ═══ SHELTER-LOCATION LINKING MODAL ═══ */}
+      <Modal visible={linkingModal} transparent animationType="slide" onRequestClose={() => setLinkingModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20, maxHeight: SCREEN_H * 0.6 }]}>
+            <View style={styles.saveSheetHandle} />
+            <View style={styles.saveSheetHeader}>
+              <Text style={styles.saveSheetTitle}>Link Locations</Text>
+              <Pressable onPress={() => setLinkingModal(false)} hitSlop={8}>
+                <Feather name="x" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+            <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginBottom: 4 }}>
+              Select locations this shelter serves:
+            </Text>
+            <ScrollView style={{ maxHeight: SCREEN_H * 0.35 }}>
+              {locations.filter((loc) => {
+                const sh = shelters.find((s) => s.id === linkingShelterId);
+                return sh ? loc.zoneId === sh.zoneId : true;
+              }).map((loc) => {
+                const isLinked = linkingSelectedIds.includes(loc.id);
+                return (
+                  <Pressable
+                    key={loc.id}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 10,
+                      paddingVertical: 10, paddingHorizontal: 12,
+                      backgroundColor: isLinked ? "rgba(99,102,241,0.08)" : "transparent",
+                      borderRadius: 10, marginBottom: 2,
+                    }}
+                    onPress={() => handleToggleLinkLocation(loc.id)}
+                  >
+                    <View style={{
+                      width: 22, height: 22, borderRadius: 6,
+                      borderWidth: 2, borderColor: isLinked ? "#6366F1" : Colors.border,
+                      backgroundColor: isLinked ? "#6366F1" : "transparent",
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                      {isLinked && <Feather name="check" size={14} color="#fff" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text }}>{loc.name}</Text>
+                      <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary }}>
+                        Zone: {loc.zone} · {loc.polygonPoints.length > 0 ? "Has boundary" : "No boundary"}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.saveBtnRow}>
+              <Pressable style={styles.discardBtn} onPress={() => setLinkingModal(false)}>
+                <Text style={styles.discardBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.saveBtn, { backgroundColor: "#6366F1" }]}
+                onPress={handleSaveLinking}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.saveBtnText}>Save ({linkingSelectedIds.length})</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══ SHELTER NAME MODAL ═══ */}
+      <Modal visible={shelterNameModal} transparent animationType="slide" onRequestClose={() => { setShelterNameModal(false); setEditingShelter(null); }}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.saveSheetHandle} />
+            <View style={styles.saveSheetHeader}>
+              <Text style={styles.saveSheetTitle}>{editingShelter ? "Rename Shelter" : "New Shelter"}</Text>
+              <Pressable onPress={() => { setShelterNameModal(false); setEditingShelter(null); }} hitSlop={8}>
+                <Feather name="x" size={20} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={styles.nameInput}
+              value={shelterFormName}
+              onChangeText={setShelterFormName}
+              placeholder="Shelter name..."
+              placeholderTextColor={Colors.textTertiary}
+              autoFocus
+            />
+
+            <View style={styles.saveBtnRow}>
+              <Pressable style={styles.discardBtn} onPress={() => { setShelterNameModal(false); setEditingShelter(null); }}>
+                <Text style={styles.discardBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.saveBtn, { backgroundColor: "#F59E0B" }, !shelterFormName.trim() && { opacity: 0.3 }]}
+                onPress={editingShelter ? handleSaveEditShelter : handleSaveShelter}
+                disabled={!shelterFormName.trim()}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.saveBtnText}>{editingShelter ? "Save" : "Add"}</Text>
               </Pressable>
             </View>
           </View>

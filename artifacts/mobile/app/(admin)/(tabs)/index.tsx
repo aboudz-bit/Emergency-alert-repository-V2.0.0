@@ -77,11 +77,11 @@ export default function DashboardScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <Feather name="bell" size={20} color={Colors.text} />
+              <Feather name="bell" size={18} color={Colors.headerText} />
               {hasActiveAlerts && <View style={styles.notifDot} />}
             </Pressable>
             <Pressable onPress={handleLogout} style={styles.iconBtn} hitSlop={8}>
-              <Feather name="log-out" size={20} color={Colors.textSecondary} />
+              <Feather name="log-out" size={18} color={Colors.headerText} />
             </Pressable>
           </View>
         }
@@ -218,7 +218,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/send-alert")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryDim }]}>
-                <Feather name="alert-triangle" size={24} color={Colors.primary} />
+                <Feather name="alert-triangle" size={20} color={Colors.primary} />
               </View>
               <Text style={styles.quickActionText}>New Alert</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -228,7 +228,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/zones")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.infoDim }]}>
-                <Feather name="map" size={24} color={Colors.info} />
+                <Feather name="map" size={20} color={Colors.info} />
               </View>
               <Text style={styles.quickActionText}>Zone Map</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -238,7 +238,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/locations")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.safeDim }]}>
-                <Feather name="map-pin" size={24} color={Colors.safe} />
+                <Feather name="map-pin" size={20} color={Colors.safe} />
               </View>
               <Text style={styles.quickActionText}>Locations</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -248,7 +248,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/eco-management")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.amber + "1A" }]}>
-                <Feather name="shield" size={24} color={Colors.amber} />
+                <Feather name="shield" size={20} color={Colors.amber} />
               </View>
               <Text style={styles.quickActionText}>ECO Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -258,7 +258,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(admin)/supervisor-management")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + "1A" }]}>
-                <Feather name="clipboard" size={24} color={Colors.info} />
+                <Feather name="clipboard" size={20} color={Colors.info} />
               </View>
               <Text style={styles.quickActionText}>Supervisor Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
@@ -328,10 +328,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceElevated,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -343,9 +343,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.destructive,
     borderWidth: 2,
-    borderColor: Colors.surfaceElevated,
+    borderColor: Colors.headerBg,
   },
   scroll: {
     flex: 1,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   alertMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_400Regular",
-    color: Colors.text,
+    color: Colors.textTitle,
     lineHeight: 22,
   },
   alertStats: {
@@ -444,14 +444,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   alertActionSecondary: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   alertActionTextDark: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: Colors.textTitle,
   },
   zoneAlertRow: {
     flexDirection: "row",
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   zoneAlertName: {
     fontSize: FontSize.md,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    color: Colors.textTitle,
   },
   zoneAlertTag: {
     paddingHorizontal: 6,
@@ -495,8 +495,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textTitle,
   },
   quickActionsGrid: {
     gap: Spacing.sm,
@@ -513,11 +513,11 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.background,
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
@@ -525,8 +525,8 @@ const styles = StyleSheet.create({
   quickActionText: {
     flex: 1,
     fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTitle,
   },
   activityCard: {
     padding: 0,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   logMessage: {
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
-    color: Colors.text,
+    color: Colors.textTitle,
   },
   logTime: {
     fontSize: FontSize.xs,

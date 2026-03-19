@@ -23,9 +23,9 @@ export function KPICard({
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={[styles.iconWrap, { backgroundColor: dimColor }]}>
-          <Feather name={icon} size={18} color={color} />
+          <Feather name={icon} size={16} color={color} />
         </View>
-        <Text style={[styles.value, { color }]}>{value}</Text>
+        <Text style={[styles.value, { color: Colors.textTitle }]}>{value}</Text>
       </View>
       <Text style={styles.title}>{title}</Text>
     </View>
@@ -48,19 +48,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconWrap: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   value: {
     fontSize: FontSize.xxl,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "Inter_600SemiBold",
   },
   title: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
   },
 });

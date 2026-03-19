@@ -38,10 +38,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textSecondary,
+    color: Colors.textTitle,
   },
   input: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,

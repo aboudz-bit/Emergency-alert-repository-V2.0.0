@@ -28,6 +28,7 @@ const DEMO_BADGES: { label: string; badge: string; color: string }[] = [
   { label: "ECO (Nasser)", badge: "103618", color: Colors.info },
   { label: "Supervisor (Mohammed)", badge: "108291", color: Colors.amber },
   { label: "Backup Sup (Faisal)", badge: "105477", color: Colors.missing },
+  { label: "Contractor (Demo)", badge: "200001", color: Colors.textSecondary },
 ];
 
 export default function LoginScreen() {
@@ -86,10 +87,9 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconCircle}>
-              <Feather name="shield" size={36} color={Colors.primary} />
+              <Feather name="shield" size={32} color={Colors.primary} />
             </View>
             <Text style={styles.title}>KEAS</Text>
             <Text style={styles.subtitle}>
@@ -97,7 +97,6 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Form */}
           <View style={styles.form}>
             <Input
               label="Badge Number"
@@ -127,7 +126,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Demo Role Selector */}
           <View style={styles.demoSection}>
             <Text style={styles.demoLabel}>Quick Demo Access</Text>
             <View style={styles.chipRow}>
@@ -144,14 +142,14 @@ export default function LoginScreen() {
                 </Pressable>
               ))}
             </View>
-            <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor</Text>
-            <View style={styles.chipRow}>
+            <Text style={[styles.demoLabel, { marginTop: Spacing.md }]}>ECO / Supervisor / Contractor</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRowScroll}>
               {DEMO_BADGES.map((item) => (
                 <Pressable
                   key={item.badge}
                   style={({ pressed }) => [
                     styles.chip,
-                    { borderColor: item.color + "40" },
+                    { borderColor: item.color + "30" },
                     pressed && styles.chipPressed,
                   ]}
                   onPress={() => handleBadgeLogin(item.badge)}
@@ -159,10 +157,9 @@ export default function LoginScreen() {
                   <Text style={[styles.chipText, { color: item.color }]}>{item.label}</Text>
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
-          {/* Register Link */}
           <Pressable
             style={styles.linkRow}
             onPress={() => router.push("/(auth)/register")}
@@ -193,16 +190,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxxl,
   },
 
-  /* Logo */
   logoContainer: {
     alignItems: "center",
     marginBottom: Spacing.xxxl,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
+    width: 68,
+    height: 68,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primaryDim,
+    borderWidth: 1,
+    borderColor: Colors.primaryBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.lg,
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.display,
     fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    color: Colors.textTitle,
     letterSpacing: 4,
   },
   subtitle: {
@@ -221,7 +219,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* Form */
   form: {
     gap: Spacing.lg,
   },
@@ -235,7 +232,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  /* Demo */
   demoSection: {
     marginTop: Spacing.xxxl,
     alignItems: "center",
@@ -252,6 +248,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.sm,
   },
+  chipRowScroll: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingRight: Spacing.md,
+  },
   chip: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   chipPressed: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.background,
     borderColor: Colors.primary,
   },
   chipText: {
@@ -270,7 +271,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  /* Link */
   linkRow: {
     marginTop: Spacing.xxl,
     alignItems: "center",

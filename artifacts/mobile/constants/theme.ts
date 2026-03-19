@@ -1,40 +1,44 @@
 export const Colors = {
-  background: '#0F1117',
-  surface: '#171B24',
-  surfaceElevated: '#1E2330',
-  border: '#2A2F3C',
-  borderLight: '#353B4A',
+  background: '#F5F6F8',
+  surface: '#FFFFFF',
+  surfaceElevated: '#F0F1F4',
+  border: '#E5E7EB',
+  borderLight: '#D1D5DB',
 
-  text: '#F0F1F3',
-  textSecondary: '#8B91A0',
-  textTertiary: '#5C6275',
+  text: '#111111',
+  textTitle: '#1F2937',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
 
-  primary: '#EF4444',
-  primaryDim: 'rgba(239, 68, 68, 0.15)',
-  primaryBorder: 'rgba(239, 68, 68, 0.25)',
+  primary: '#5B3A8E',
+  primaryDim: 'rgba(91, 58, 142, 0.08)',
+  primaryBorder: 'rgba(91, 58, 142, 0.16)',
 
-  safe: '#22C55E',
-  safeDim: 'rgba(34, 197, 94, 0.15)',
-  safeBorder: 'rgba(34, 197, 94, 0.25)',
+  safe: '#16A34A',
+  safeDim: 'rgba(22, 163, 74, 0.08)',
+  safeBorder: 'rgba(22, 163, 74, 0.16)',
 
-  missing: '#EAB308',
-  missingDim: 'rgba(234, 179, 8, 0.15)',
-  missingBorder: 'rgba(234, 179, 8, 0.25)',
+  missing: '#D97706',
+  missingDim: 'rgba(217, 119, 6, 0.08)',
+  missingBorder: 'rgba(217, 119, 6, 0.16)',
 
   noreply: '#6B7280',
-  noreplyDim: 'rgba(107, 114, 128, 0.15)',
+  noreplyDim: 'rgba(107, 114, 128, 0.08)',
 
-  info: '#3B82F6',
-  infoDim: 'rgba(59, 130, 246, 0.15)',
-  infoBorder: 'rgba(59, 130, 246, 0.25)',
+  info: '#5B3A8E',
+  infoDim: 'rgba(91, 58, 142, 0.08)',
+  infoBorder: 'rgba(91, 58, 142, 0.16)',
 
-  amber: '#F59E0B',
-  amberDim: 'rgba(245, 158, 11, 0.15)',
+  amber: '#D97706',
+  amberDim: 'rgba(217, 119, 6, 0.08)',
 
-  destructive: '#EF4444',
+  destructive: '#DC2626',
 
   white: '#FFFFFF',
   black: '#000000',
+
+  headerBg: '#5B3A8E',
+  headerText: '#FFFFFF',
 } as const;
 
 export const Spacing = {
@@ -59,11 +63,11 @@ export const FontSize = {
 } as const;
 
 export const BorderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  sm: 6,
+  md: 10,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
   full: 9999,
 } as const;
 

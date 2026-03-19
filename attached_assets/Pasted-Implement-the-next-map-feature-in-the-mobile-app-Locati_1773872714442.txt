@@ -1,0 +1,366 @@
+Implement the next map feature in the mobile app:
+
+Location boundaries inside each Zone + shelter-to-location linking.
+
+IMPORTANT:
+Do NOT break the current map behavior.
+Do NOT break camera stability.
+Do NOT break zone drawing.
+Do NOT break shelter markers.
+Do NOT break ECO / Supervisor / User flows.
+
+The map camera rules remain permanent:
+- no camera jump
+- no iframe rebuild on normal state change
+- no map reset
+- no remount
+- no reload on selection
+Use postMessage / state updates whenever possible.
+
+==================================================
+GOAL
+==================================================
+
+We already have:
+- Zones
+- Shelters
+- ECO
+- Supervisor
+- Map
+
+Now we need to add:
+
+1) Location boundaries inside a Zone
+2) Each Location can be drawn on the map
+3) Locations must be linked to the existing Locations page / store
+4) Shelter must be linked to one or more Locations
+5) User / Contractor should later benefit from this mapping automatically
+
+==================================================
+LOCATION MODEL
+==================================================
+
+A Location is a real operational area inside a Zone.
+
+Examples:
+- OT-1
+- OT-2
+- OT-3
+- OT-4
+- WIP
+- Utility
+- Shipping
+- CCR
+- Camp
+- Gas Train-1
+- Gas Train-2
+
+Each Location must have:
+- id
+- name
+- zoneId
+- zoneName
+- polygon / boundary points
+- expectedManpower
+- supervisorUserId (optional if not assigned yet)
+- backupSupervisorUserId (optional)
+- isActive
+
+If a Location already exists in the store, do NOT create a duplicate.
+The map boundary must link to the same existing locationId.
+
+==================================================
+SHELTER MODEL UPDATE
+==================================================
+
+A shelter is NOT always one shelter per one location.
+
+One shelter may serve multiple locations.
+
+Examples:
+- Shelter A -> OT-1 + OT-2
+- Shelter B -> OT-3 + OT-4
+
+Update shelter model to support:
+
+- id
+- name
+- zoneId
+- zoneName
+- lat
+- lng
+- isActive
+- linkedLocationIds: number[]
+
+Important:
+A shelter can be linked to multiple locations.
+A location may use one shelter.
+Keep the structure simple and practical.
+
+==================================================
+ADMIN MAP FEATURES
+==================================================
+
+Admin must be able to manage Locations inside a Zone using the map.
+
+Required features:
+
+1) Add Location Boundary
+- select a zone
+- choose/add location
+- draw polygon inside that zone
+- save it to the same location record
+
+2) Edit Location Boundary
+- select location polygon
+- edit points
+- save
+
+3) Delete Location Boundary
+- remove polygon only or remove location entirely (choose safer behavior)
+- if deleting the location would break assignments, require confirmation
+
+4) Link Shelter to Locations
+- select shelter
+- choose one or more locations linked to that shelter
+- save
+
+5) View linked data
+When admin taps a location boundary, show:
+- location name
+- zone
+- expected manpower
+- supervisor
+- backup supervisor
+- linked shelter (if any)
+
+==================================================
+LINK TO LOCATIONS PAGE
+==================================================
+
+The map and the Locations page must use the same source of truth.
+
+If admin adds a Location from the map:
+- it must appear automatically in the Locations page/store
+
+If admin edits a Location from the Locations page:
+- the map must reflect the same location record
+
+Do NOT keep separate "map locations" and "locations page locations".
+
+Everything must be linked by:
+- locationId
+- zoneId
+
+NOT by text name only.
+
+==================================================
+SHELTER LINKING FLOW
+==================================================
+
+Admin flow should be:
+
+1) Add or select shelter
+2) Open "Link Locations"
+3) Select one or more locations that use this shelter
+4) Save
+
+Example:
+Shelter A
+linked locations:
+- OT-1
+- OT-2
+
+Shelter B
+linked locations:
+- OT-3
+- OT-4
+
+==================================================
+USER / CONTRACTOR BENEFIT
+==================================================
+
+Do not overbuild new screens yet.
+But structure the data so users and contractors can later benefit.
+
+The logic should support:
+
+- user belongs to one location
+- app can find the shelter linked to that location
+- app can show the correct shelter for that user's area
+
+If user is in OT-2:
+- and Shelter A is linked to OT-1 + OT-2
+- then user should be directed to Shelter A
+
+This should be easy to use later in:
+- nearest shelter
+- alert evacuation guidance
+- supervisor screens
+- ECO dashboard
+
+==================================================
+SUPERVISOR / ECO BENEFIT
+==================================================
+
+Location boundaries should improve:
+
+Supervisor:
+- sees exact mapped location area
+- sees linked shelter for that location
+- sees manpower for that location
+
+ECO:
+- sees all mapped locations inside zone
+- sees manpower and shelter mapping per location
+- sees clearer operational structure
+
+==================================================
+MAP RULES
+==================================================
+
+Do NOT break the current map architecture.
+
+Very important:
+
+1) Do NOT rebuild iframe / map HTML for:
+- selecting location
+- selecting shelter
+- selecting zone
+- linking shelter
+- viewing info
+- enabling/disabling
+- opening modal
+
+2) Only rebuild map when structural geometry changes:
+- location boundary added
+- location boundary removed
+- location polygon edited
+- zone polygon edited
+- shelter added/removed if unavoidable
+
+3) Camera must stay stable.
+
+4) Use postMessage/state sync for:
+- selection highlighting
+- shelter linking highlighting
+- location highlighting
+- active/inactive visual state
+
+==================================================
+VISUAL MAP BEHAVIOR
+==================================================
+
+Show:
+- zone polygon
+- location polygons inside zone
+- shelter markers
+
+Use clear visual hierarchy:
+- zone boundary = outer area
+- location boundaries = inner areas
+- shelter marker = point marker
+
+Location boundaries must be clearly distinguishable from zone boundaries.
+
+When selecting a location:
+- highlight only that location
+- do not reload map
+
+When selecting a shelter:
+- highlight linked locations
+- do not reload map
+
+==================================================
+STORE / DATA RULES
+==================================================
+
+Single source of truth only.
+
+Use:
+- locations store
+- shelters store
+- users store
+- assignments store
+
+No duplicate data.
+No shadow copies.
+No text-only linking.
+
+All calculations and relationships must use IDs.
+
+==================================================
+MINIMUM ADMIN UI NEEDED
+==================================================
+
+Inside admin map flow, add enough controls to manage this feature:
+
+- Add Location Boundary
+- Edit Location Boundary
+- Delete Location Boundary
+- Link Shelter to Locations
+- Unlink Shelter from Locations
+
+Keep UI simple.
+Do NOT redesign the whole app.
+
+==================================================
+TEST CASES
+==================================================
+
+Please make sure these work:
+
+1) Admin adds OT-1 boundary inside CPF
+-> appears on map
+-> appears in locations data
+
+2) Admin adds OT-2 boundary
+-> appears separately
+-> linked by its own locationId
+
+3) Admin adds Shelter A
+-> links it to OT-1 and OT-2
+
+4) Admin taps Shelter A
+-> linked locations OT-1 and OT-2 are shown/highlighted
+
+5) User assigned to OT-2
+-> later can resolve to Shelter A correctly
+
+6) Supervisor for OT-1
+-> sees OT-1 location and linked shelter correctly
+
+7) ECO
+-> sees all mapped locations and their shelters without inconsistencies
+
+==================================================
+DO NOT DO THESE
+==================================================
+
+- Do NOT redesign the app
+- Do NOT change routing
+- Do NOT change role logic
+- Do NOT break current shelter map
+- Do NOT break current zone map
+- Do NOT reintroduce camera reset bug
+- Do NOT create duplicate locations
+- Do NOT link by string name only
+
+==================================================
+IMPLEMENTATION EXPECTATION
+==================================================
+
+Build the first working version of:
+- location boundaries inside zone
+- syncing map locations with locations page/store
+- shelter linked to multiple locations
+- admin controls to manage this
+- clean stable map behavior
+
+At the end, summarize:
+- files changed
+- types updated
+- store changes
+- map changes
+- assumptions made
+- any limitations

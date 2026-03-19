@@ -1,0 +1,104 @@
+Update the Create Account screen, registration flow, and approval workflow with the following logic:
+
+1) Registration fields:
+   - Full Name (required)
+   - Badge Number (required)
+   - Mobile Number (required)
+   - User Type (required): Aramco / Contract
+   - Role (required only when User Type = Aramco)
+   - Password (required)
+   - Confirm Password (required, must match Password)
+   - Zone (required for all users)
+   - Location (required only when User Type = Aramco)
+
+2) User Type behavior:
+   A) If User Type = Aramco:
+      - Show Role dropdown
+      - Show Zone field
+      - Show Location field
+      - Role options:
+        - User
+        - Supervisor
+        - Back Superior
+        - Super Admin
+
+   B) If User Type = Contract:
+      - Hide Role dropdown
+      - Show Zone field
+      - Hide Location field completely
+      - Store Location as null / empty
+      - Store Role as null / empty
+
+3) Validation rules:
+   - Full Name: required
+   - Badge Number: required
+   - Mobile Number: required
+   - User Type: required
+   - Role: required only when User Type = Aramco
+   - Password: required
+   - Confirm Password: must match Password
+   - Zone: required for all users
+   - Location: required only when User Type = Aramco
+
+4) Registration order on screen:
+   - Full Name
+   - Badge Number
+   - Mobile Number
+   - User Type
+   - Role (only for Aramco)
+   - Password
+   - Confirm Password
+   - Zone
+   - Location (only for Aramco)
+
+5) Approval workflow:
+   - Every new registration must be created with:
+     approvalStatus = "pending"
+   - No newly registered user can access the system until approved by IT
+
+6) Approval statuses:
+   - pending
+   - approved
+   - rejected
+
+7) Backend / database fields:
+   - fullName
+   - badgeNumber
+   - mobileNumber
+   - userType
+   - role (nullable for Contract)
+   - zone
+   - location (nullable for Contract)
+   - approvalStatus
+   - approvedBy
+   - approvedAt
+   - rejectionReason (optional)
+
+8) Login rules:
+   - If approvalStatus = pending:
+     show "Your account is pending IT approval."
+   - If approvalStatus = rejected:
+     show "Your registration was rejected. Please contact IT."
+   - Only approved users can log in
+
+9) IT approval panel:
+   Build an IT admin screen where IT can:
+   - View all pending registrations
+   - View user details
+   - Approve user
+   - Reject user
+   - Add optional rejection reason
+   - Assign or adjust the final role if needed
+
+10) UI behavior:
+   - Keep current app styling
+   - Show/hide fields dynamically based on User Type
+   - If Contract is selected, Location must disappear entirely
+   - If Aramco is selected, Location must appear and be required
+
+11) Success message after registration:
+   Show:
+   "Registration submitted successfully. Your account is awaiting IT approval."
+
+12) Implementation scope:
+   Update frontend UI, form state, validation, payload, API, backend model, database schema, login checks, and IT approval panel so the feature works end-to-end.

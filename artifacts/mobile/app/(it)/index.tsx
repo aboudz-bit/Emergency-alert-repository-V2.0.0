@@ -54,7 +54,8 @@ export default function ITDashboardScreen() {
     const total = users.length;
     const active = users.filter((u) => u.accountStatus === "active").length;
     const disabled = total - active;
-    return { total, active, disabled };
+    const pendingApproval = users.filter((u) => u.approvalStatus === "pending").length;
+    return { total, active, disabled, pendingApproval };
   }, [users]);
 
   const handleLogout = () => {
@@ -193,12 +194,21 @@ export default function ITDashboardScreen() {
               </View>
             </View>
 
-            {/* Create Super Admin */}
-            <Button
-              title="Create Super Admin"
-              onPress={() => router.push("/(it)/create-admin")}
-              fullWidth
-            />
+            {/* Action Buttons */}
+            <View style={styles.actionRow}>
+              <Button
+                title={stats.pendingApproval > 0 ? `Approvals (${stats.pendingApproval})` : "Approvals"}
+                onPress={() => router.push("/(it)/approvals")}
+                fullWidth
+                style={styles.approvalBtn}
+              />
+              <Button
+                title="Create Admin"
+                variant="secondary"
+                onPress={() => router.push("/(it)/create-admin")}
+                fullWidth
+              />
+            </View>
 
             {/* Section title */}
             <Text style={styles.sectionTitle}>All Accounts</Text>
@@ -305,6 +315,15 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+
+  /* Action Buttons */
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  approvalBtn: {
+    flex: 1,
   },
 
   /* Section */

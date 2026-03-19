@@ -80,6 +80,9 @@ export default function AlertManagementScreen() {
   // Details modal (locations inside a zone)
   const [detailsTarget, setDetailsTarget] = useState<Zone | null>(null);
 
+  // Zone actions menu
+  const [menuTarget, setMenuTarget] = useState<Zone | null>(null);
+
   // ─── Derived counts ───
   const zoneStats = useMemo(() => {
     const map = new Map<number, { locationCount: number; userCount: number }>();
@@ -314,24 +317,10 @@ export default function AlertManagementScreen() {
                 />
                 <Pressable
                   style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                  onPress={() => handleOpenEdit(zone)}
-                  hitSlop={4}
+                  onPress={() => setMenuTarget(zone)}
+                  hitSlop={6}
                 >
-                  <Feather name="settings" size={15} color={Colors.textSecondary} />
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                  onPress={() => setDetailsTarget(zone)}
-                  hitSlop={4}
-                >
-                  <Feather name="eye" size={15} color={Colors.textSecondary} />
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.5, backgroundColor: Colors.border }]}
-                  onPress={() => setHistoryTarget(zone)}
-                  hitSlop={4}
-                >
-                  <Feather name="clock" size={15} color={Colors.textTertiary} />
+                  <Feather name="more-vertical" size={17} color={Colors.textSecondary} />
                 </Pressable>
               </View>
             )}
@@ -339,7 +328,7 @@ export default function AlertManagementScreen() {
         </Pressable>
       );
     },
-    [handleToggle, handleOpenEdit, zoneStats, timeAgo, selectionMode, selectedZoneIds, toggleZoneSelection]
+    [handleToggle, zoneStats, timeAgo, selectionMode, selectedZoneIds, toggleZoneSelection]
   );
 
   // ─── Shared alert form builder ───
@@ -892,6 +881,66 @@ export default function AlertManagementScreen() {
         </View>
       </Modal>
 
+      {/* ═══ ZONE ACTIONS MENU ═══ */}
+      <Modal
+        visible={menuTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuTarget(null)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuTarget(null)}>
+          <View style={styles.menuSheet}>
+            <View style={styles.menuHeader}>
+              <View style={[styles.zoneDot, { backgroundColor: menuTarget?.color || Colors.textTertiary }]} />
+              <Text style={styles.menuHeaderText} numberOfLines={1}>{menuTarget?.name}</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              onPress={() => {
+                const z = menuTarget;
+                setMenuTarget(null);
+                if (z) handleOpenEdit(z);
+              }}
+            >
+              <Feather name="settings" size={16} color={Colors.textSecondary} />
+              <Text style={styles.menuItemText}>Edit</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              onPress={() => {
+                const z = menuTarget;
+                setMenuTarget(null);
+                if (z) setDetailsTarget(z);
+              }}
+            >
+              <Feather name="eye" size={16} color={Colors.textSecondary} />
+              <Text style={styles.menuItemText}>Review</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              onPress={() => {
+                const z = menuTarget;
+                setMenuTarget(null);
+                if (z) setHistoryTarget(z);
+              }}
+            >
+              <Feather name="clock" size={16} color={Colors.textSecondary} />
+              <Text style={styles.menuItemText}>History</Text>
+            </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              onPress={() => {
+                setMenuTarget(null);
+              }}
+            >
+              <Feather name="bell" size={16} color={Colors.primary} />
+              <Text style={[styles.menuItemText, { color: Colors.primary }]}>Notification</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
       {/* ═══ BULK ACTIVATE MODAL ═══ */}
       <Modal
         visible={bulkActivateVisible}
@@ -1338,4 +1387,40 @@ const styles = StyleSheet.create({
     borderWidth: 1, backgroundColor: Colors.surfaceElevated,
   },
   bulkZoneChipText: { fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.text },
+
+  // ─── Zone actions menu ───
+  menuOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center", alignItems: "center",
+    paddingHorizontal: 48,
+  },
+  menuSheet: {
+    width: "100%", maxWidth: 280,
+    backgroundColor: Colors.surface,
+    borderRadius: 14, overflow: "hidden",
+    paddingVertical: 6,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 8,
+  },
+  menuHeader: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    marginBottom: 2,
+  },
+  menuHeaderText: {
+    fontSize: 14, fontFamily: "Inter_700Bold", color: Colors.text, flex: 1,
+  },
+  menuItem: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+  },
+  menuItemPressed: {
+    backgroundColor: Colors.background,
+  },
+  menuItemText: {
+    fontSize: 14, fontFamily: "Inter_500Medium", color: Colors.text,
+  },
+  menuDivider: {
+    height: 1, backgroundColor: Colors.border, marginHorizontal: 12, marginVertical: 2,
+  },
 });

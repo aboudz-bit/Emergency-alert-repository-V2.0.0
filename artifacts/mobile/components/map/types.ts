@@ -1,4 +1,5 @@
-import type { LatLng, Zone } from "@/types";
+import type { LatLng, Zone, Shelter, Location } from "@/types";
+import type { PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 
 export interface MapRegion {
   latitude: number;
@@ -35,6 +36,20 @@ export interface ZoneMapProps {
   tapPointCount?: number;
   flyToZoneId?: number | null;
   showCenterCrosshair?: boolean;
+  shelters?: Shelter[];
+  selectedShelterId?: number | null;
+  onShelterPress?: (shelterId: number) => void;
+  onShelterMapTap?: (point: LatLng) => void;
+  nearestShelterId?: number | null;
+  userLocation?: LatLng | null;
+  locations?: Location[];
+  selectedLocationId?: number | null;
+  onLocationPress?: (locationId: number) => void;
+  highlightedLocationIds?: number[];
+  editingLocationId?: number | null;
+  editingLocationPoints?: LatLng[];
+  onEditingLocationPointsChange?: (points: LatLng[]) => void;
+  personnelLocations?: PersonnelMapEntry[];
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

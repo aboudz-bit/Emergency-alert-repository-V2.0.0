@@ -5,12 +5,13 @@ import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
-  EcoAssignment, SupervisorAssignment,
+  EcoAssignment, SupervisorAssignment, Shelter,
+  UserType, ApprovalStatus, PersonnelLocation,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings,
-  seedEcoAssignments, seedSupervisorAssignments,
+  seedEcoAssignments, seedSupervisorAssignments, seedShelters,
 } from '@/mock-data';
 
 let _historyIdCounter = 0;
@@ -30,10 +31,18 @@ interface AppState {
   mobileUserResponse: UserResponseStatus | null;
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
+  shelters: Shelter[];
+  personnelLocations: Record<number, PersonnelLocation>;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
-  registerUser: (data: { name: string; badge: string; password: string; zone: string; location: string }) => { success: boolean; error?: string };
+  registerUser: (data: {
+    name: string; badge: string; password: string; zone: string;
+    location: string; mobileNumber: string; userType: UserType;
+    role: UserRole | null;
+  }) => { success: boolean; error?: string };
+  approveUser: (userId: number, approverName: string, finalRole?: UserRole) => void;
+  rejectUser: (userId: number, approverName: string, reason?: string) => void;
 
   createSuperAdmin: (data: { name: string; badge: string; password: string }) => { success: boolean; error?: string };
   toggleAccountStatus: (userId: number) => void;
@@ -71,6 +80,14 @@ interface AppState {
   removePersonnelFromLocation: (userId: number) => void;
   startAccountability: (locationId: number) => void;
 
+  addShelter: (shelter: Omit<Shelter, 'id'>) => void;
+  updateShelter: (id: number, partial: Partial<Shelter>) => void;
+  deleteShelter: (id: number) => void;
+  linkShelterToLocations: (shelterId: number, locationIds: number[]) => void;
+
+  updatePersonnelLocation: (loc: PersonnelLocation) => void;
+  clearPersonnelLocations: () => void;
+
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
 
@@ -97,6 +114,8 @@ export const useStore = create<AppState>()(
       mobileUserResponse: null,
       ecoAssignments: seedEcoAssignments,
       supervisorAssignments: seedSupervisorAssignments,
+      shelters: seedShelters,
+      personnelLocations: {},
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
@@ -110,6 +129,8 @@ export const useStore = create<AppState>()(
 
         if (!user) return { success: false, error: 'Badge number not found.' };
         if (user.accountStatus === 'disabled') return { success: false, error: 'Account is disabled. Contact IT.' };
+        if (!roleOverride && user.approvalStatus === 'pending') return { success: false, error: 'Your account is pending IT approval.' };
+        if (!roleOverride && user.approvalStatus === 'rejected') return { success: false, error: 'Your registration was rejected. Please contact IT.' };
         if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
 
         const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
@@ -144,22 +165,61 @@ export const useStore = create<AppState>()(
 
       logout: () => set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null }),
 
-      registerUser: ({ name, badge, password, zone, location }) => {
+      registerUser: ({ name, badge, password, zone, location, mobileNumber, userType, role }) => {
         const { users, zones, locations: locs } = get();
         if (users.find(u => u.badge === badge)) {
           return { success: false, error: 'Badge number already registered.' };
         }
         const matchedZone = zones.find(z => z.name === zone);
-        const matchedLoc = locs.find(l => l.name === location && l.zone === zone);
+        const matchedLoc = location ? locs.find(l => l.name === location && l.zone === zone) : null;
         const newUser: User = {
-          id: Date.now(), name, badge, password, role: 'User', zone, location,
+          id: Date.now(), name, badge, password,
+          role: role ?? 'User',
+          zone, location: location || '',
           zoneId: matchedZone?.id ?? 0,
           locationId: matchedLoc?.id ?? 0,
           status: 'pending', accountStatus: 'active',
           lastActivity: new Date().toISOString(), isActive: true,
+          userType,
+          mobileNumber,
+          approvalStatus: 'pending',
+          approvedBy: null, approvedAt: null, rejectionReason: null,
         };
         set(s => ({ users: [...s.users, newUser] }));
         return { success: true };
+      },
+
+      approveUser: (userId, approverName, finalRole) => {
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? {
+                  ...u,
+                  approvalStatus: 'approved' as const,
+                  approvedBy: approverName,
+                  approvedAt: new Date().toISOString(),
+                  rejectionReason: null,
+                  ...(finalRole ? { role: finalRole } : {}),
+                }
+              : u,
+          ),
+        }));
+      },
+
+      rejectUser: (userId, approverName, reason) => {
+        set(s => ({
+          users: s.users.map(u =>
+            u.id === userId
+              ? {
+                  ...u,
+                  approvalStatus: 'rejected' as const,
+                  approvedBy: approverName,
+                  approvedAt: new Date().toISOString(),
+                  rejectionReason: reason || null,
+                }
+              : u,
+          ),
+        }));
       },
 
       createSuperAdmin: ({ name, badge, password }) => {
@@ -232,26 +292,60 @@ export const useStore = create<AppState>()(
       sendAllClear: () => {
         const { currentUser, users } = get();
         const sentBy = currentUser?.name || 'System Auto';
+        const now = new Date().toISOString();
         set(s => ({
-          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
+          alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a),
           users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
+          zones: s.zones.map(z => z.alertActive ? {
+            ...z,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(z.alertHistory || []), {
+              id: nextHistoryId(), zoneId: z.id, action: 'deactivated' as const,
+              alertType: z.alertType, priority: z.alertPriority, message: z.alertMessage,
+              timestamp: now, user: sentBy,
+            }],
+          } : z),
+          locations: s.locations.map(l => l.alertActive ? {
+            ...l,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(), locationId: l.id, action: 'deactivated' as const,
+              alertType: l.alertType, priority: l.alertPriority, message: l.alertMessage,
+              timestamp: now, user: sentBy,
+            }],
+          } : l),
+          personnelLocations: {},
           mobileUserResponse: 'confirmed' as UserResponseStatus,
         }));
         const allClearAlert: Alert = {
           id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
           message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
-          timestamp: new Date().toISOString(), sentBy, priority: 'High', status: 'closed', isActive: false,
+          timestamp: now, sentBy, priority: 'High', status: 'closed', isActive: false,
           stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
         };
         set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
       },
 
       closeAlert: (alertId) => {
-        set(s => ({
-          alerts: s.alerts.map(a =>
+        set(s => {
+          const updatedAlerts = s.alerts.map(a =>
             a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
-          ),
-        }));
+          );
+          const anyAlertActive = updatedAlerts.some(a => a.isActive);
+          const anyZoneActive = s.zones.some(z => z.alertActive);
+          return {
+            alerts: updatedAlerts,
+            ...(!anyAlertActive && !anyZoneActive ? { personnelLocations: {} } : {}),
+          };
+        });
       },
 
       respondToAlert: (response) => {
@@ -265,9 +359,15 @@ export const useStore = create<AppState>()(
       updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
       deleteZone: (id) => set(s => ({ zones: s.zones.filter(z => z.id !== id) })),
 
-      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), alertHistory: location.alertHistory || [] }] })),
+      addLocation: (location) => set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), polygonPoints: location.polygonPoints ?? [], alertHistory: location.alertHistory || [] }] })),
       updateLocation: (id, partial) => set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, ...partial } : l) })),
-      deleteLocation: (id) => set(s => ({ locations: s.locations.filter(l => l.id !== id) })),
+      deleteLocation: (id) => set(s => ({
+        locations: s.locations.filter(l => l.id !== id),
+        shelters: s.shelters.map(sh => ({
+          ...sh,
+          linkedLocationIds: (sh.linkedLocationIds || []).filter(lid => lid !== id),
+        })),
+      })),
 
       activateLocationAlert: (id, alertType, priority, message) => {
         const now = new Date().toISOString();
@@ -428,6 +528,12 @@ export const useStore = create<AppState>()(
             }],
           } : l),
         }));
+        const { zones: updZ, alerts: updA } = get();
+        const anyZA = updZ.some(z => z.alertActive);
+        const anyAA = updA.some(a => a.isActive);
+        if (!anyZA && !anyAA) {
+          set({ personnelLocations: {} });
+        }
       },
       activateZoneAlert: (zoneId, alertType, priority, message) => {
         const now = new Date().toISOString();
@@ -516,6 +622,12 @@ export const useStore = create<AppState>()(
             }],
           } : l),
         }));
+        const { zones: updatedZones, alerts: updatedAlerts } = get();
+        const anyZoneActive = updatedZones.some(z => z.alertActive);
+        const anyAlertActive = updatedAlerts.some(a => a.isActive);
+        if (!anyZoneActive && !anyAlertActive) {
+          set({ personnelLocations: {} });
+        }
       },
       editZoneAlert: (zoneId, alertType, priority, message) => {
         const zone = get().zones.find(z => z.id === zoneId);
@@ -627,6 +739,19 @@ export const useStore = create<AppState>()(
         });
       },
 
+      addShelter: (shelter) => set(s => ({ shelters: [...s.shelters, { ...shelter, id: Date.now(), linkedLocationIds: shelter.linkedLocationIds ?? [] }] })),
+      updateShelter: (id, partial) => set(s => ({ shelters: s.shelters.map(sh => sh.id === id ? { ...sh, ...partial } : sh) })),
+      deleteShelter: (id) => set(s => ({ shelters: s.shelters.filter(sh => sh.id !== id) })),
+      linkShelterToLocations: (shelterId, locationIds) => set(s => ({
+        shelters: s.shelters.map(sh => sh.id === shelterId ? { ...sh, linkedLocationIds: locationIds } : sh),
+      })),
+
+      updatePersonnelLocation: (loc) => set(s => ({
+        personnelLocations: { ...s.personnelLocations, [loc.userId]: loc },
+      })),
+
+      clearPersonnelLocations: () => set({ personnelLocations: {} }),
+
       assignEco: (slot, userId, zoneId) => {
         const { users: allUsers, zones: allZones } = get();
         const user = userId ? allUsers.find(u => u.id === userId) : null;
@@ -728,8 +853,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v7',
-      version: 7,
+      name: 'keas-mobile-store-v11',
+      version: 11,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -833,6 +958,48 @@ export const useStore = create<AppState>()(
             }));
           }
         }
+        if (version < 8) {
+          if (!state.shelters || !Array.isArray(state.shelters)) {
+            state.shelters = seedShelters;
+          }
+        }
+        if (version < 9) {
+          if (Array.isArray(state?.users) && !state.users.find((u: any) => u.badge === '200001')) {
+            state.users.push({
+              id: 51, name: 'Contractor Demo', badge: '200001', password: 'demo1234',
+              role: 'User', zone: 'CPF', zoneId: 1, location: 'OT-1', locationId: 1,
+              status: 'confirmed', accountStatus: 'active',
+              lastActivity: new Date().toISOString(), isActive: true,
+            });
+          }
+        }
+        if (version < 10) {
+          if (Array.isArray(state?.users)) {
+            state.users = state.users.map((u: any) => ({
+              ...u,
+              userType: u.userType ?? (u.badge === '200001' ? 'Contract' : 'Aramco'),
+              mobileNumber: u.mobileNumber ?? '',
+              approvalStatus: u.approvalStatus ?? 'approved',
+              approvedBy: u.approvedBy ?? null,
+              approvedAt: u.approvedAt ?? null,
+              rejectionReason: u.rejectionReason ?? null,
+            }));
+          }
+        }
+        if (version < 11) {
+          if (Array.isArray(state?.locations)) {
+            state.locations = state.locations.map((l: any) => ({
+              ...l,
+              polygonPoints: l.polygonPoints ?? [],
+            }));
+          }
+          if (Array.isArray(state?.shelters)) {
+            state.shelters = state.shelters.map((s: any) => ({
+              ...s,
+              linkedLocationIds: s.linkedLocationIds ?? [],
+            }));
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -847,9 +1014,35 @@ export const useStore = create<AppState>()(
         activityLogs: state.activityLogs,
         ecoAssignments: state.ecoAssignments,
         supervisorAssignments: state.supervisorAssignments,
+        shelters: state.shelters,
       }),
     },
   ),
 );
 
-export const selectActiveAlert = (s: AppState) => s.alerts.find(a => a.isActive) || null;
+export const selectActiveAlert = (s: AppState) => {
+  const fromAlerts = s.alerts.find(a => a.isActive);
+  if (fromAlerts) return fromAlerts;
+  const activeZones = s.zones.filter(z => z.alertActive);
+  if (activeZones.length === 0) return null;
+  const first = activeZones[0];
+  return {
+    id: -1,
+    type: first.alertType || 'Zone Alert',
+    zone: activeZones.map(z => z.name).join(', '),
+    title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+    message: first.alertMessage || '',
+    timestamp: first.alertUpdatedAt || new Date().toISOString(),
+    sentBy: 'System',
+    priority: first.alertPriority || 'High',
+    status: 'active' as const,
+    isActive: true,
+    stats: {
+      confirmed: s.users.filter(u => u.status === 'confirmed').length,
+      pending: s.users.filter(u => u.status === 'pending').length,
+      needHelp: s.users.filter(u => u.status === 'need_help').length,
+      total: s.users.length,
+    },
+  } as import('@/types').Alert;
+};
+export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);

@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Dimensions,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,11 +12,17 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import * as ExpoLocation from "expo-location";
 
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert } from "@/store";
+import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
+import { useDetectedLocation } from "@/hooks/useDetectedLocation";
+import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
+import { formatDistance, findBestShelter } from "@/utils/geo";
+import type { LatLng } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -37,6 +45,7 @@ function formatTimeAgo(timestamp: string): string {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
 }
+
 
 function PulsingDot() {
   const scale = useRef(new Animated.Value(1)).current;
@@ -67,6 +76,8 @@ function PulsingDot() {
   );
 }
 
+const MAP_HEIGHT = 260;
+
 export default function UserHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -74,8 +85,72 @@ export default function UserHomeScreen() {
   const activeAlert = useStore(selectActiveAlert);
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
+  const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
+
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
+  const [gpsError, setGpsError] = useState(false);
 
   const firstName = currentUser?.name?.split(" ")[0] || "User";
+
+  const { detectedLocationId } = useDetectedLocation(userLocation);
+
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelTracking(hasActiveAlert);
+
+  const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
+
+  const nearestShelter = useMemo(() => {
+    if (!userLocation) return null;
+    return findBestShelter(
+      userLocation,
+      shelters,
+      detectedLocationId,
+      currentUser?.zoneId ?? null
+    );
+  }, [userLocation, shelters, detectedLocationId, currentUser?.zoneId]);
+
+  const userHighlightedLocationIds = useMemo(() => {
+    const ids: number[] = [];
+    if (detectedLocationId != null) ids.push(detectedLocationId);
+    else if (currentUser?.locationId) ids.push(currentUser.locationId);
+    return ids;
+  }, [detectedLocationId, currentUser?.locationId]);
+
+  useEffect(() => {
+    let sub: ExpoLocation.LocationSubscription | undefined;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status !== "granted" || cancelled) {
+          if (!cancelled) setGpsError(true);
+          return;
+        }
+        sub = await ExpoLocation.watchPositionAsync(
+          { accuracy: ExpoLocation.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
+          (loc) => {
+            setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+            setGpsError(false);
+          },
+        );
+      } catch {
+        if (!cancelled) setGpsError(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+  }, []);
+
+  const handleShelterPress = useCallback((id: number) => {
+    setSelectedShelterId((prev) => (prev === id ? null : id));
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -217,6 +292,64 @@ export default function UserHomeScreen() {
             </View>
           </View>
         </Card>
+
+        {/* ═══ SHELTER MAP ═══ */}
+        <View style={styles.shelterSection}>
+          <View style={styles.shelterHeader}>
+            <View style={styles.shelterHeaderLeft}>
+              <Feather name="home" size={18} color="#F59E0B" />
+              <Text style={styles.shelterTitle}>Nearby Shelters</Text>
+            </View>
+            <Text style={styles.shelterCount}>{activeShelters.length} available</Text>
+          </View>
+
+          {nearestShelter && (
+            <Card style={styles.nearestCard}>
+              <View style={styles.nearestRow}>
+                <View style={styles.nearestIcon}>
+                  <Feather name="navigation" size={18} color="#22C55E" />
+                </View>
+                <View style={styles.nearestInfo}>
+                  <Text style={styles.nearestLabel}>Nearest Shelter</Text>
+                  <Text style={styles.nearestName}>{nearestShelter.shelter.name}</Text>
+                </View>
+                <View style={styles.distanceBadge}>
+                  <Text style={styles.distanceText}>{formatDistance(nearestShelter.distance)}</Text>
+                </View>
+              </View>
+            </Card>
+          )}
+
+          <View style={styles.mapContainer}>
+            <ZoneMap
+              zones={zones}
+              selectedZoneId={null}
+              onZonePress={() => {}}
+              height={MAP_HEIGHT}
+              shelters={activeShelters}
+              selectedShelterId={selectedShelterId}
+              onShelterPress={handleShelterPress}
+              nearestShelterId={nearestShelter?.shelter.id ?? null}
+              userLocation={userLocation}
+              showLocationButton
+              locations={locations}
+              highlightedLocationIds={userHighlightedLocationIds}
+            />
+          </View>
+
+          {!userLocation && !gpsError && (
+            <View style={styles.gpsHint}>
+              <Feather name="loader" size={14} color={Colors.textTertiary} />
+              <Text style={styles.gpsHintText}>Acquiring GPS location...</Text>
+            </View>
+          )}
+          {gpsError && (
+            <View style={styles.gpsHint}>
+              <Feather name="alert-circle" size={14} color={Colors.destructive} />
+              <Text style={[styles.gpsHintText, { color: Colors.destructive }]}>GPS unavailable</Text>
+            </View>
+          )}
+        </View>
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
@@ -500,5 +633,89 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_500Medium",
     color: Colors.text,
+  },
+  shelterSection: {
+    gap: Spacing.sm,
+  },
+  shelterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.xs,
+  },
+  shelterHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  shelterTitle: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  shelterCount: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textSecondary,
+  },
+  nearestCard: {
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
+    paddingVertical: Spacing.md,
+  },
+  nearestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  nearestIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#DCFCE7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nearestInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  nearestLabel: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+  },
+  nearestName: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  distanceBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  distanceText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_700Bold",
+    color: "#16A34A",
+  },
+  mapContainer: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  gpsHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+  },
+  gpsHintText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
   },
 });

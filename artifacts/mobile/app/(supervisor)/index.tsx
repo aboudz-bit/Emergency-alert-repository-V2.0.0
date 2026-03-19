@@ -17,8 +17,11 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectHasActiveAlert } from "@/store";
+import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
+import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
@@ -27,6 +30,7 @@ export default function SupervisorDashboardScreen() {
   const alerts = useStore((s) => s.alerts);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
@@ -81,8 +85,23 @@ export default function SupervisorDashboardScreen() {
     const zoneAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { actual, expected, safe, pending, needHelp, zoneAlerts };
+    return { actual, expected, safe, pending, needHelp, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
+
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelSimulation(hasActiveAlert);
+  const visiblePersonnel = useVisiblePersonnel({
+    scope: "location",
+    locationId: myLocation?.id ?? null,
+    enabled: hasActiveAlert,
+  });
+
+  const myLinkedShelters = useMemo(() => {
+    if (!myLocation) return [];
+    return shelters.filter(
+      (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
+    );
+  }, [shelters, myLocation]);
 
   const recentLogs = useMemo(
     () => activityLogs.slice(0, 5),
@@ -234,6 +253,39 @@ export default function SupervisorDashboardScreen() {
             icon="clock"
             color={Colors.missing}
             dimColor={Colors.missingDim}
+          />
+        </View>
+        {myLinkedShelters.length > 0 && (
+          <View style={styles.kpiRow}>
+            <KPICard
+              title="Linked Shelters"
+              value={myLinkedShelters.length}
+              icon="home"
+              color={Colors.info}
+              dimColor={Colors.surfaceElevated}
+            />
+            <KPICard
+              title="Need Help"
+              value={stats.needHelp}
+              icon="alert-circle"
+              color={stats.needHelp > 0 ? Colors.primary : Colors.safe}
+              dimColor={stats.needHelp > 0 ? Colors.missingDim : Colors.safeDim}
+            />
+          </View>
+        )}
+
+        {/* ── Live Personnel Map ── */}
+        <Text style={styles.sectionTitle}>Live Personnel Map</Text>
+        <View style={styles.mapContainer}>
+          <ZoneMap
+            zones={myZone ? [myZone] : []}
+            selectedZoneId={null}
+            onZonePress={() => {}}
+            height={220}
+            locations={myLocation ? [myLocation] : []}
+            highlightedLocationIds={myLocation ? [myLocation.id] : []}
+            shelters={myLinkedShelters}
+            personnelLocations={visiblePersonnel}
           />
         </View>
 
@@ -517,6 +569,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_700Bold",
     color: Colors.white,
+  },
+  mapContainer: {
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: FontSize.lg,

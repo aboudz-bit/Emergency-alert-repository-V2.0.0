@@ -7,19 +7,12 @@
  *
  *   Platform     │ Provider              │ Status
  *   ─────────────┼───────────────────────┼──────────────────
- *   iOS native   │ Google Maps (native)  │ FINAL — via react-native-maps
- *   Android      │ Google Maps (native)  │ FINAL — via react-native-maps
- *   Web preview  │ Leaflet (iframe)      │ TEMPORARY — dev preview only
+ *   iOS native   │ Google Maps (native)  │ FINAL — needs EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+ *   Android      │ Google Maps (native)  │ FINAL — needs EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+ *   All (no key) │ Leaflet (iframe/WV)   │ FALLBACK — iframe on web, WebView on native
  *
- * To activate Google Maps on native:
- *   1. Get a Google Maps API key from Google Cloud Console
- *   2. Set EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in environment
- *   3. For iOS: add the key to app.json under expo.ios.config.googleMapsApiKey
- *   4. For Android: add the key to app.json under expo.android.config.googleMaps.apiKey
- *   5. Build with EAS (expo build / eas build)
- *
- * The Google Maps native component (GoogleMapsView) is already built and ready.
- * It will automatically be used on native platforms once the API key is configured.
+ * The Leaflet fallback works everywhere so the app is functional during
+ * development and testing before Google Maps is configured.
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
@@ -27,47 +20,34 @@ import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
-import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { Colors, FontSize, Spacing } from "@/constants/theme";
 import type { ZoneMapProps } from "./types";
 
 const IS_WEB = Platform.OS === "web";
 
-let GoogleMapsViewComponent: React.ComponentType<ZoneMapProps> | null = null;
-let LeafletFallbackComponent: React.ComponentType<ZoneMapProps> | null = null;
+let MapComponent: React.ComponentType<ZoneMapProps> | null = null;
 
 if (IS_WEB) {
-  try {
-    LeafletFallbackComponent =
-      require("./LeafletPreviewFallback").LeafletPreviewFallback;
-  } catch {}
-} else {
-  try {
-    GoogleMapsViewComponent = require("./GoogleMapsView").GoogleMapsView;
-  } catch {}
+  MapComponent = require("./LeafletPreviewFallback").LeafletPreviewFallback;
 }
 
-function NativeMapPlaceholder({ height }: { height: number }) {
+function MapPlaceholder({ height }: { height: number }) {
   return (
     <View style={[styles.placeholder, { height }]}>
       <Feather name="map" size={48} color={Colors.textTertiary} />
-      <Text style={styles.placeholderTitle}>Google Maps Required</Text>
+      <Text style={styles.placeholderTitle}>Map Unavailable</Text>
       <Text style={styles.placeholderDesc}>
-        Set EXPO_PUBLIC_GOOGLE_MAPS_API_KEY and rebuild with EAS to enable the native Google Maps view.
+        Open in Expo web preview or configure Google Maps API key for native.
       </Text>
     </View>
   );
 }
 
 export function ZoneMap(props: ZoneMapProps) {
-  if (!IS_WEB && GoogleMapsViewComponent) {
-    return <GoogleMapsViewComponent {...props} />;
+  if (MapComponent) {
+    return <MapComponent {...props} />;
   }
-
-  if (IS_WEB && LeafletFallbackComponent) {
-    return <LeafletFallbackComponent {...props} />;
-  }
-
-  return <NativeMapPlaceholder height={props.height} />;
+  return <MapPlaceholder height={props.height} />;
 }
 
 const styles = StyleSheet.create({
@@ -79,12 +59,12 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   placeholderTitle: {
-    fontSize: FontSize.lg,
+    fontSize: 17,
     fontFamily: "Inter_700Bold",
     color: Colors.textSecondary,
   },
   placeholderDesc: {
-    fontSize: FontSize.sm,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
     color: Colors.textTertiary,
     textAlign: "center",
