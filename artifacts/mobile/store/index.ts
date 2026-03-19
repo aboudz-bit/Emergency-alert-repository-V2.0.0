@@ -778,9 +778,9 @@ export const useStore = create<AppState>()(
           locationId: locationId ?? null,
           centerLat,
           centerLng,
-          redRadius: settings.hazardRedRadius,
-          yellowRadius: settings.hazardYellowRadius,
-          greenRadius: settings.hazardGreenRadius,
+          redRadius: settings.hazardRedRadius || 200,
+          yellowRadius: settings.hazardYellowRadius || 500,
+          greenRadius: settings.hazardGreenRadius || 1000,
           alertId: activeAlert.id,
           isActive: true,
           createdBy: currentUser?.name || 'System',
@@ -927,8 +927,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v12',
-      version: 12,
+      name: 'keas-mobile-store-v13',
+      version: 13,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1077,6 +1077,22 @@ export const useStore = create<AppState>()(
         if (version < 12) {
           if (!Array.isArray(state?.zoneNotifications)) {
             state.zoneNotifications = [];
+          }
+        }
+        if (version < 13) {
+          if (!Array.isArray(state?.hazardZones)) {
+            state.hazardZones = [];
+          }
+          if (state?.settings) {
+            if (typeof state.settings.hazardRedRadius !== 'number' || isNaN(state.settings.hazardRedRadius)) {
+              state.settings.hazardRedRadius = 200;
+            }
+            if (typeof state.settings.hazardYellowRadius !== 'number' || isNaN(state.settings.hazardYellowRadius)) {
+              state.settings.hazardYellowRadius = 500;
+            }
+            if (typeof state.settings.hazardGreenRadius !== 'number' || isNaN(state.settings.hazardGreenRadius)) {
+              state.settings.hazardGreenRadius = 1000;
+            }
           }
         }
         return persisted as AppState;

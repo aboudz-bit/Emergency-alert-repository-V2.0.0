@@ -503,7 +503,7 @@ export default function ZonesScreen() {
           {hazardCenter && (
             <View style={styles.modeCount}>
               <Text style={styles.modeCountText}>
-                Hot:{settings.hazardRedRadius}m Warm:{settings.hazardYellowRadius}m Cold:{settings.hazardGreenRadius}m
+                Hot:{settings.hazardRedRadius || 200}m Warm:{settings.hazardYellowRadius || 500}m Cold:{settings.hazardGreenRadius || 1000}m
               </Text>
             </View>
           )}

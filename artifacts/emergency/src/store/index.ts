@@ -642,9 +642,9 @@ export const useStore = create<AppState>()(
           locationId: locationId ?? null,
           centerLat,
           centerLng,
-          redRadius: settings.hazardRedRadius,
-          yellowRadius: settings.hazardYellowRadius,
-          greenRadius: settings.hazardGreenRadius,
+          redRadius: settings.hazardRedRadius || 200,
+          yellowRadius: settings.hazardYellowRadius || 500,
+          greenRadius: settings.hazardGreenRadius || 1000,
           alertId: activeAlert.id,
           isActive: true,
           createdBy: currentUser?.name || 'System',
@@ -1251,6 +1251,20 @@ export const useStore = create<AppState>()(
         }
         if (!merged.supervisorAssignments || merged.supervisorAssignments.length === 0) {
           merged.supervisorAssignments = seedSupervisorAssignments;
+        }
+        if (!Array.isArray(merged.hazardZones)) {
+          merged.hazardZones = [];
+        }
+        if (merged.settings) {
+          if (typeof merged.settings.hazardRedRadius !== 'number' || isNaN(merged.settings.hazardRedRadius)) {
+            merged.settings.hazardRedRadius = 200;
+          }
+          if (typeof merged.settings.hazardYellowRadius !== 'number' || isNaN(merged.settings.hazardYellowRadius)) {
+            merged.settings.hazardYellowRadius = 500;
+          }
+          if (typeof merged.settings.hazardGreenRadius !== 'number' || isNaN(merged.settings.hazardGreenRadius)) {
+            merged.settings.hazardGreenRadius = 1000;
+          }
         }
         return merged;
       },

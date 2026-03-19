@@ -106,13 +106,13 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Stepper
-                value={settings.hazardRedRadius}
+                value={settings.hazardRedRadius || 200}
                 suffix="m"
                 onDecrement={() =>
-                  updateSettings({ hazardRedRadius: Math.max(50, settings.hazardRedRadius - 50) })
+                  updateSettings({ hazardRedRadius: Math.max(50, (settings.hazardRedRadius || 200) - 50) })
                 }
                 onIncrement={() =>
-                  updateSettings({ hazardRedRadius: settings.hazardRedRadius + 50 })
+                  updateSettings({ hazardRedRadius: (settings.hazardRedRadius || 200) + 50 })
                 }
               />
             </View>
@@ -125,13 +125,13 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Stepper
-                value={settings.hazardYellowRadius}
+                value={settings.hazardYellowRadius || 500}
                 suffix="m"
                 onDecrement={() =>
-                  updateSettings({ hazardYellowRadius: Math.max(100, settings.hazardYellowRadius - 50) })
+                  updateSettings({ hazardYellowRadius: Math.max(100, (settings.hazardYellowRadius || 500) - 50) })
                 }
                 onIncrement={() =>
-                  updateSettings({ hazardYellowRadius: settings.hazardYellowRadius + 50 })
+                  updateSettings({ hazardYellowRadius: (settings.hazardYellowRadius || 500) + 50 })
                 }
               />
             </View>
@@ -144,13 +144,13 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Stepper
-                value={settings.hazardGreenRadius}
+                value={settings.hazardGreenRadius || 1000}
                 suffix="m"
                 onDecrement={() =>
-                  updateSettings({ hazardGreenRadius: Math.max(200, settings.hazardGreenRadius - 100) })
+                  updateSettings({ hazardGreenRadius: Math.max(200, (settings.hazardGreenRadius || 1000) - 100) })
                 }
                 onIncrement={() =>
-                  updateSettings({ hazardGreenRadius: settings.hazardGreenRadius + 100 })
+                  updateSettings({ hazardGreenRadius: (settings.hazardGreenRadius || 1000) + 100 })
                 }
               />
             </View>
