@@ -100,9 +100,9 @@ export default function SettingsScreen() {
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: "#EF4444" }]}>Red Radius (Danger)</Text>
+                <Text style={[styles.settingLabel, { color: "#EF4444" }]}>Hot Zone Radius (Red)</Text>
                 <Text style={styles.settingDescription}>
-                  Inner danger zone radius
+                  Immediate danger area
                 </Text>
               </View>
               <Stepper
@@ -119,9 +119,9 @@ export default function SettingsScreen() {
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: "#EAB308" }]}>Yellow Radius (Hazard)</Text>
+                <Text style={[styles.settingLabel, { color: "#EAB308" }]}>Warm Zone Radius (Yellow)</Text>
                 <Text style={styles.settingDescription}>
-                  Middle caution zone radius
+                  Buffer / decontamination area
                 </Text>
               </View>
               <Stepper
@@ -138,9 +138,9 @@ export default function SettingsScreen() {
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingLabel, { color: "#22C55E" }]}>Green Radius (Safe)</Text>
+                <Text style={[styles.settingLabel, { color: "#22C55E" }]}>Cold Zone Radius (Green)</Text>
                 <Text style={styles.settingDescription}>
-                  Outer safe perimeter radius
+                  Safe perimeter / staging area
                 </Text>
               </View>
               <Stepper

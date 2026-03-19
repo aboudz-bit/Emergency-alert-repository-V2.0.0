@@ -670,7 +670,7 @@ export default function Zones() {
                       <p className="text-sm font-bold text-slate-800">Place Warning Zone</p>
                       <p className="text-xs text-slate-500">
                         {hazardCenter
-                          ? `Selected: ${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E — Red: ${settings.hazardRedRadius}m, Yellow: ${settings.hazardYellowRadius}m, Green: ${settings.hazardGreenRadius}m`
+                          ? `Selected: ${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E — Hot: ${settings.hazardRedRadius}m, Warm: ${settings.hazardYellowRadius}m, Cold: ${settings.hazardGreenRadius}m`
                           : 'Click on the map to place the center of the warning zone'
                         }
                       </p>
@@ -814,15 +814,15 @@ export default function Zones() {
               <>
                 <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardGreenRadius}
                   pathOptions={{ color: '#22c55e', weight: 2, fillOpacity: 0.15, fillColor: '#22c55e', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Green — Safe ({settings.hazardGreenRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Cold Zone — Safe ({settings.hazardGreenRadius}m)</Tooltip>
                 </Circle>
                 <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardYellowRadius}
                   pathOptions={{ color: '#eab308', weight: 2, fillOpacity: 0.2, fillColor: '#eab308', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Yellow — Hazard ({settings.hazardYellowRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Warm Zone — Buffer ({settings.hazardYellowRadius}m)</Tooltip>
                 </Circle>
                 <Circle center={[hazardCenter.lat, hazardCenter.lng]} radius={settings.hazardRedRadius}
                   pathOptions={{ color: '#ef4444', weight: 3, fillOpacity: 0.25, fillColor: '#ef4444', dashArray: '6 4' }}>
-                  <Tooltip direction="top" className="zone-label">Red — Danger ({settings.hazardRedRadius}m)</Tooltip>
+                  <Tooltip direction="top" className="zone-label">Hot Zone — Danger ({settings.hazardRedRadius}m)</Tooltip>
                 </Circle>
               </>
             )}

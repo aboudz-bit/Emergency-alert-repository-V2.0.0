@@ -169,10 +169,10 @@ export default function SettingsPage() {
         <SettingsCard
           icon={AlertTriangle}
           title="Hazard Zone Defaults"
-          description="Default radius values for Red / Yellow / Green warning zones (in meters)"
+          description="Default radius values for Hot / Warm / Cold warning zones (in meters)"
           onSave={() => {}}
         >
-          <SettingRow label="Red Zone Radius (Danger)" description="Inner danger zone radius in meters">
+          <SettingRow label="Hot Zone Radius (Red)" description="Immediate danger area radius in meters">
             <Input
               type="number"
               min={10}
@@ -182,7 +182,7 @@ export default function SettingsPage() {
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
-          <SettingRow label="Yellow Zone Radius (Hazard)" description="Middle hazard zone radius in meters">
+          <SettingRow label="Warm Zone Radius (Yellow)" description="Buffer / decontamination area radius in meters">
             <Input
               type="number"
               min={10}
@@ -192,7 +192,7 @@ export default function SettingsPage() {
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
-          <SettingRow label="Green Zone Radius (Safe)" description="Outer safe perimeter radius in meters">
+          <SettingRow label="Cold Zone Radius (Green)" description="Safe perimeter / staging area radius in meters">
             <Input
               type="number"
               min={10}
