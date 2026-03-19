@@ -96,6 +96,68 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Hazard Zone Defaults</Text>
+          <Card>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: "#EF4444" }]}>Hot Zone Radius (Red)</Text>
+                <Text style={styles.settingDescription}>
+                  Immediate danger area
+                </Text>
+              </View>
+              <Stepper
+                value={settings.hazardRedRadius}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({ hazardRedRadius: Math.max(50, settings.hazardRedRadius - 50) })
+                }
+                onIncrement={() =>
+                  updateSettings({ hazardRedRadius: settings.hazardRedRadius + 50 })
+                }
+              />
+            </View>
+            <Divider />
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: "#EAB308" }]}>Warm Zone Radius (Yellow)</Text>
+                <Text style={styles.settingDescription}>
+                  Buffer / decontamination area
+                </Text>
+              </View>
+              <Stepper
+                value={settings.hazardYellowRadius}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({ hazardYellowRadius: Math.max(100, settings.hazardYellowRadius - 50) })
+                }
+                onIncrement={() =>
+                  updateSettings({ hazardYellowRadius: settings.hazardYellowRadius + 50 })
+                }
+              />
+            </View>
+            <Divider />
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: "#22C55E" }]}>Cold Zone Radius (Green)</Text>
+                <Text style={styles.settingDescription}>
+                  Safe perimeter / staging area
+                </Text>
+              </View>
+              <Stepper
+                value={settings.hazardGreenRadius}
+                suffix="m"
+                onDecrement={() =>
+                  updateSettings({ hazardGreenRadius: Math.max(200, settings.hazardGreenRadius - 100) })
+                }
+                onIncrement={() =>
+                  updateSettings({ hazardGreenRadius: settings.hazardGreenRadius + 100 })
+                }
+              />
+            </View>
+          </Card>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
           <Card>
             <View style={styles.settingRow}>
