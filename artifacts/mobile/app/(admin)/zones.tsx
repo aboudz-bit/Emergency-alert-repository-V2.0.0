@@ -194,24 +194,37 @@ export default function ZonesScreen() {
   }, []);
 
   const handleConfirmHazard = useCallback(() => {
-    if (!hazardCenter || !activeAlert) return;
+    if (!hazardCenter) return;
+    // Read activeAlert fresh from the store to avoid stale-closure edge-cases
+    const currentAlert = useStore.getState().alerts.find((a: { isActive: boolean }) => a.isActive);
+    if (!currentAlert) {
+      setPlacingHazard(false);
+      setHazardCenter(null);
+      return;
+    }
     addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
     setPlacingHazard(false);
     setHazardCenter(null);
-  }, [hazardCenter, activeAlert, addHazardZone]);
+  }, [hazardCenter, addHazardZone]);
 
   const handleCancelHazard = useCallback(() => {
     setPlacingHazard(false);
     setHazardCenter(null);
   }, []);
 
+  // Derive a stable primitive for alert identity — avoids useMemo recomputing
+  // when the activeAlert object reference changes but the id is the same.
+  const alertId = activeAlert?.id ?? null;
+
   const activeHazardZones = useMemo(
-    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
-    [hazardZones, activeAlert]
+    () => {
+      if (alertId == null) return [];
+      return hazardZones.filter((hz) => hz.isActive && hz.alertId === alertId);
+    },
+    [hazardZones, alertId]
   );
 
   // Reset hazard placement state when alert changes or disappears
-  const alertId = activeAlert?.id ?? null;
   useEffect(() => {
     setPlacingHazard(false);
     setHazardCenter(null);
