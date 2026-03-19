@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   Dimensions,
   Modal,
@@ -209,6 +209,14 @@ export default function ZonesScreen() {
     () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
     [hazardZones, activeAlert]
   );
+
+  // Reset hazard placement state when alert changes or disappears
+  const alertId = activeAlert?.id ?? null;
+  useEffect(() => {
+    setPlacingHazard(false);
+    setHazardCenter(null);
+    setSelectedHazardId(null);
+  }, [alertId]);
 
   // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {

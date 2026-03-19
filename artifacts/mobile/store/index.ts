@@ -301,6 +301,7 @@ export const useStore = create<AppState>()(
         set(s => ({
           alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a),
           users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
+          hazardZones: [],
         }));
         const newAlert: Alert = {
           ...data, id: Date.now(), status: 'active', isActive: true,

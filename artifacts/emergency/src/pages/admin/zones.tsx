@@ -351,6 +351,15 @@ export default function Zones() {
     if (!activeAlert) return [];
     return hazardZones.filter(hz => hz.isActive && hz.alertId === activeAlert.id);
   }, [hazardZones, activeAlert]);
+
+  // Reset hazard placement state when alert changes or disappears
+  const alertId = activeAlert?.id ?? null;
+  useEffect(() => {
+    setPlacingHazard(false);
+    setHazardCenter(null);
+    setSelectedHazardId(null);
+  }, [alertId]);
+
   const mapRef = useRef<L.Map | null>(null);
   const locationMarkerRef = useRef<L.Marker | null>(null);
 
@@ -931,8 +940,8 @@ export default function Zones() {
             )}
           </MapContainer>
 
-          {/* Compass overlay — fixed top-right */}
-          <div className="absolute top-4 right-4 z-[900] pointer-events-none select-none" title="North is up">
+          {/* Compass overlay — fixed right side, below top controls */}
+          <div className="absolute top-20 right-4 z-[900] pointer-events-none select-none" title="North is up">
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Background circle */}
               <circle cx="28" cy="28" r="27" fill="white" fillOpacity="0.92" stroke="#cbd5e1" strokeWidth="1"/>
