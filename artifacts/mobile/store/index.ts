@@ -6,7 +6,7 @@ import type {
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   AlertHistoryEntry, ZoneAlertHistoryEntry,
   EcoAssignment, SupervisorAssignment, Shelter,
-  UserType, ApprovalStatus, PersonnelLocation,
+  UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -33,6 +33,7 @@ interface AppState {
   supervisorAssignments: SupervisorAssignment[];
   shelters: Shelter[];
   personnelLocations: Record<number, PersonnelLocation>;
+  zoneNotifications: ZoneNotification[];
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -88,6 +89,8 @@ interface AppState {
   updatePersonnelLocation: (loc: PersonnelLocation) => void;
   clearPersonnelLocations: () => void;
 
+  sendZoneNotification: (zoneId: number, message: string) => void;
+
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
 
@@ -116,6 +119,7 @@ export const useStore = create<AppState>()(
       supervisorAssignments: seedSupervisorAssignments,
       shelters: seedShelters,
       personnelLocations: {},
+      zoneNotifications: [],
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
@@ -752,6 +756,21 @@ export const useStore = create<AppState>()(
 
       clearPersonnelLocations: () => set({ personnelLocations: {} }),
 
+      sendZoneNotification: (zoneId, message) => {
+        const { zones, currentUser } = get();
+        const zone = zones.find(z => z.id === zoneId);
+        if (!zone) return;
+        const notification: ZoneNotification = {
+          id: Date.now(),
+          zoneId,
+          zoneName: zone.name,
+          message: message.trim(),
+          sentBy: currentUser?.name || 'Admin',
+          sentAt: new Date().toISOString(),
+        };
+        set(s => ({ zoneNotifications: [notification, ...s.zoneNotifications] }));
+      },
+
       assignEco: (slot, userId, zoneId) => {
         const { users: allUsers, zones: allZones } = get();
         const user = userId ? allUsers.find(u => u.id === userId) : null;
@@ -853,8 +872,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v11',
-      version: 11,
+      name: 'keas-mobile-store-v12',
+      version: 12,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1000,6 +1019,11 @@ export const useStore = create<AppState>()(
             }));
           }
         }
+        if (version < 12) {
+          if (!Array.isArray(state?.zoneNotifications)) {
+            state.zoneNotifications = [];
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -1015,6 +1039,7 @@ export const useStore = create<AppState>()(
         ecoAssignments: state.ecoAssignments,
         supervisorAssignments: state.supervisorAssignments,
         shelters: state.shelters,
+        zoneNotifications: state.zoneNotifications,
       }),
     },
   ),

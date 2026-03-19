@@ -45,6 +45,7 @@ export default function AlertManagementScreen() {
   const editZoneAlert = useStore((s) => s.editZoneAlert);
   const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
   const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
+  const sendZoneNotification = useStore((s) => s.sendZoneNotification);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,6 +83,10 @@ export default function AlertManagementScreen() {
 
   // Zone actions menu
   const [menuTarget, setMenuTarget] = useState<Zone | null>(null);
+
+  // Notification modal
+  const [notifyTarget, setNotifyTarget] = useState<Zone | null>(null);
+  const [notifyMessage, setNotifyMessage] = useState("");
 
   // ─── Derived counts ───
   const zoneStats = useMemo(() => {
@@ -899,17 +904,6 @@ export default function AlertManagementScreen() {
               onPress={() => {
                 const z = menuTarget;
                 setMenuTarget(null);
-                if (z) handleOpenEdit(z);
-              }}
-            >
-              <Feather name="settings" size={16} color={Colors.textSecondary} />
-              <Text style={styles.menuItemText}>Edit</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-              onPress={() => {
-                const z = menuTarget;
-                setMenuTarget(null);
                 if (z) setDetailsTarget(z);
               }}
             >
@@ -927,18 +921,94 @@ export default function AlertManagementScreen() {
               <Feather name="clock" size={16} color={Colors.textSecondary} />
               <Text style={styles.menuItemText}>History</Text>
             </Pressable>
-            <View style={styles.menuDivider} />
             <Pressable
               style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
               onPress={() => {
+                const z = menuTarget;
                 setMenuTarget(null);
+                if (z) {
+                  setNotifyTarget(z);
+                  setNotifyMessage("");
+                }
               }}
             >
-              <Feather name="bell" size={16} color={Colors.primary} />
-              <Text style={[styles.menuItemText, { color: Colors.primary }]}>Notification</Text>
+              <Feather name="bell" size={16} color={Colors.textSecondary} />
+              <Text style={styles.menuItemText}>Notification</Text>
             </Pressable>
           </View>
         </Pressable>
+      </Modal>
+
+      {/* ═══ SEND NOTIFICATION MODAL ═══ */}
+      <Modal
+        visible={notifyTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotifyTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalTitleIcon, { backgroundColor: Colors.info + "18" }]}>
+                  <Feather name="bell" size={14} color={Colors.info} />
+                </View>
+                <Text style={styles.modalTitle}>Send Notification</Text>
+              </View>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setNotifyTarget(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalTarget}>
+              <View style={[styles.modalTargetDot, { backgroundColor: notifyTarget?.color || Colors.textTertiary }]} />
+              <Text style={styles.modalTargetText}>{notifyTarget?.name}</Text>
+              {notifyTarget && zoneStats.get(notifyTarget.id) && (
+                <View style={styles.modalTargetZoneBadge}>
+                  <Text style={styles.modalTargetZoneText}>
+                    {zoneStats.get(notifyTarget.id)!.userCount} user{zoneStats.get(notifyTarget.id)!.userCount !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.modalLabel}>Message</Text>
+            <TextInput
+              style={[styles.messageInput, { minHeight: 100 }]}
+              value={notifyMessage}
+              onChangeText={setNotifyMessage}
+              placeholder="Type notification message..."
+              placeholderTextColor={Colors.textTertiary}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            <View style={styles.modalBtnRow}>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtnCancel, pressed && { opacity: 0.8 }]}
+                onPress={() => setNotifyTarget(null)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtnSave, pressed && { opacity: 0.8 }, !notifyMessage.trim() && { opacity: 0.4 }]}
+                onPress={() => {
+                  if (!notifyTarget || !notifyMessage.trim()) return;
+                  sendZoneNotification(notifyTarget.id, notifyMessage);
+                  setNotifyTarget(null);
+                  setNotifyMessage("");
+                }}
+                disabled={!notifyMessage.trim()}
+              >
+                <Feather name="send" size={14} color="#fff" />
+                <Text style={styles.modalBtnConfirmText}>Send</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* ═══ BULK ACTIVATE MODAL ═══ */}

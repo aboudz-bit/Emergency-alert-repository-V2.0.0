@@ -204,6 +204,17 @@ export interface PersonnelLocation {
   zoneId: number | null;
 }
 
+// ─── Zone Notifications ──────────────────────────────────────────────────────
+
+export interface ZoneNotification {
+  id: number;
+  zoneId: number;
+  zoneName: string;
+  message: string;
+  sentBy: string;
+  sentAt: string;
+}
+
 // ─── Activity Log ─────────────────────────────────────────────────────────────
 
 export type ActivityLogType = 'alert' | 'action' | 'report' | 'info' | 'user';
