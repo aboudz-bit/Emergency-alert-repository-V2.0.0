@@ -91,6 +91,10 @@ interface AppState {
   batchUpdatePersonnelLocations: (locs: PersonnelLocation[]) => void;
   clearPersonnelLocations: () => void;
 
+  addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
+  removeHazardZone: (id: number) => void;
+  clearHazardZones: () => void;
+
   sendZoneNotification: (zoneId: number, message: string) => void;
 
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
@@ -762,6 +766,36 @@ export const useStore = create<AppState>()(
       linkShelterToLocations: (shelterId, locationIds) => set(s => ({
         shelters: s.shelters.map(sh => sh.id === shelterId ? { ...sh, linkedLocationIds: locationIds } : sh),
       })),
+
+      addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
+        const { settings, currentUser, alerts } = get();
+        const activeAlert = alerts.find(a => a.isActive);
+        if (!activeAlert) return;
+        const now = new Date().toISOString();
+        const hz: import('@/types').HazardZone = {
+          id: Date.now(),
+          zoneId: zoneId ?? null,
+          locationId: locationId ?? null,
+          centerLat,
+          centerLng,
+          redRadius: settings.hazardRedRadius,
+          yellowRadius: settings.hazardYellowRadius,
+          greenRadius: settings.hazardGreenRadius,
+          alertId: activeAlert.id,
+          isActive: true,
+          createdBy: currentUser?.name || 'System',
+          createdAt: now,
+        };
+        set(s => ({ hazardZones: [...s.hazardZones, hz] }));
+      },
+
+      removeHazardZone: (id) => {
+        set(s => ({ hazardZones: s.hazardZones.filter(hz => hz.id !== id) }));
+      },
+
+      clearHazardZones: () => {
+        set({ hazardZones: [] });
+      },
 
       updatePersonnelLocation: (loc) => set(s => ({
         personnelLocations: { ...s.personnelLocations, [loc.userId]: loc },
