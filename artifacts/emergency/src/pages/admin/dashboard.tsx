@@ -42,17 +42,16 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title="Command Center Dashboard">
       {activeAlert && (
-        <div className="mb-6 lg:mb-8 bg-destructive/10 border-2 border-destructive shadow-lg shadow-destructive/10 rounded-2xl p-4 lg:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-destructive/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="mb-6 lg:mb-8 bg-primary/8 border-2 border-primary/30 shadow-lg shadow-primary/5 rounded-2xl p-4 lg:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
           <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center relative z-10">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <div className="flex items-center justify-center w-3 h-3 rounded-full bg-destructive animate-pulse" />
+                <div className="flex items-center justify-center w-3 h-3 rounded-full bg-primary animate-pulse" />
                 <AlertTypeBadge type={activeAlert.type} />
-                <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-border bg-background text-foreground">ZONE: {activeAlert.zone}</span>
+                <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-border bg-card text-foreground">ZONE: {activeAlert.zone}</span>
                 <span className="text-sm text-muted-foreground font-mono">{new Date(activeAlert.timestamp).toLocaleTimeString()}</span>
-                {/* Channel indicators */}
                 {activeAlert.deliveryChannels && (
                   <div className="flex items-center gap-1.5 ml-2">
                     {activeAlert.deliveryChannels.includes('app') && (
@@ -83,7 +82,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">
               <button
                 onClick={() => setLocation('/admin/alert-monitor')}
-                className="w-full px-6 py-3 bg-card border border-border hover:bg-muted text-foreground font-semibold rounded-lg transition-colors flex items-center justify-between group"
+                className="w-full px-6 py-3 bg-card border border-border hover:bg-secondary text-foreground font-semibold rounded-lg transition-colors flex items-center justify-between group"
               >
                 View Live Monitor
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-transform group-hover:translate-x-1" />
@@ -99,7 +98,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="mt-4 lg:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative z-10">
-            <div className="bg-background/50 border border-border rounded-xl p-4 flex flex-col">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col">
               <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Confirmed Safe</span>
               <span className="text-3xl font-bold text-safe">{activeAlert.stats.confirmed}</span>
             </div>
@@ -107,18 +106,18 @@ export default function AdminDashboard() {
               <span className="text-xs text-missing font-semibold uppercase mb-1">Missing / Unresponsive</span>
               <span className="text-3xl font-bold text-missing">{activeAlert.stats.missing}</span>
             </div>
-            <div className="bg-background/50 border border-border rounded-xl p-4 flex flex-col">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col">
               <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">No Reply Yet</span>
               <span className="text-3xl font-bold text-noreply">{activeAlert.stats.noReply}</span>
             </div>
-            <div className="bg-background/50 border border-border rounded-xl p-4 flex flex-col justify-center">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-center">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-foreground font-medium">Response Rate</span>
                 <span className="text-primary font-bold">
                   {activeAlert.stats.total > 0 ? Math.round((activeAlert.stats.confirmed / activeAlert.stats.total) * 100) : 0}%
                 </span>
               </div>
-              <div className="w-full h-3 bg-card rounded-full overflow-hidden border border-border">
+              <div className="w-full h-3 bg-secondary rounded-full overflow-hidden border border-border">
                 <div
                   className="h-full bg-primary transition-all duration-1000"
                   style={{ width: `${activeAlert.stats.total > 0 ? (activeAlert.stats.confirmed / activeAlert.stats.total) * 100 : 0}%` }}
@@ -184,7 +183,7 @@ export default function AdminDashboard() {
                   {i !== Math.min(activityLogs.length - 1, 5) && (
                     <div className="absolute left-[9px] top-6 bottom-[-24px] w-px bg-border" />
                   )}
-                  <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 bg-background z-10 ${
+                  <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 bg-card z-10 ${
                     act.type === 'alert' ? 'border-primary' : act.type === 'action' ? 'border-blue-500' : 'border-muted-foreground'
                   }`} />
                   <div>

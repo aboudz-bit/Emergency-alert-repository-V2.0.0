@@ -36,7 +36,7 @@ function SettingsCard({ icon: Icon, title, description, children }: {
       <div className="space-y-4">{children}</div>
       <div className="flex items-center justify-end gap-2 pt-1">
         {saved && (
-          <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+          <span className="text-xs text-safe font-medium flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /> Saved
           </span>
         )}
@@ -209,7 +209,7 @@ export default function SettingsPage() {
               className="w-32 h-8 text-sm"
             />
           </SettingRow>
-          <p className="text-xs text-muted-foreground bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
+          <p className="text-xs text-muted-foreground bg-secondary/50 border border-border rounded-lg px-3 py-2">
             These defaults apply to <span className="font-semibold text-foreground">newly created</span> warning zones.
             To update an existing zone, use "Apply Defaults" from the Zones page.
           </p>
@@ -272,7 +272,7 @@ export default function SettingsPage() {
           <SettingRow label="Login Method" description="How users authenticate into the system">
             <Badge className="bg-primary/15 text-primary border-primary/20 text-xs">Badge Number + Password</Badge>
           </SettingRow>
-          <div className="pt-2 space-y-2.5 rounded-lg bg-muted/30 border border-border/50 p-4">
+          <div className="pt-2 space-y-2.5 rounded-lg bg-secondary/50 border border-border p-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">System Policies</p>
             <PolicyRow icon={UserCheck} text="Badge number is used as the username — no email required" />
             <PolicyRow icon={MapPin} text="Location permission is mandatory for app functionality" />
@@ -291,7 +291,7 @@ export default function SettingsPage() {
             <Badge variant="outline" className="font-mono text-xs">{settings.systemVersion}</Badge>
           </SettingRow>
           <SettingRow label="Environment">
-            <Badge className="bg-green-500/15 text-green-400 border-green-500/20 text-xs">Development</Badge>
+            <Badge className="bg-safe/10 text-safe border-safe/20 text-xs">Development</Badge>
           </SettingRow>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button variant="outline" size="sm" className="gap-2 flex-1">

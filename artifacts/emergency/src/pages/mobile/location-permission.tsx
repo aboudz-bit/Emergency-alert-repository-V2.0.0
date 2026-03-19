@@ -15,7 +15,7 @@ export default function MobileLocationPermission() {
             <MapPin className="w-14 h-14 text-primary" />
           </div>
           <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-green-400" />
+            <ShieldCheck className="w-5 h-5 text-[#16A34A]" />
           </div>
         </div>
 
