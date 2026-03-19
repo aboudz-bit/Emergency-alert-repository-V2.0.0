@@ -983,7 +983,6 @@ export default function AlertManagementScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              autoFocus
             />
 
             <View style={styles.modalBtnRow}>
