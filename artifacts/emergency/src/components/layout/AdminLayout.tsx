@@ -67,16 +67,16 @@ export function AdminLayout({
 
   const sidebarContent = (
     <>
-      <div className="h-14 lg:h-16 flex items-center px-4 border-b border-border shrink-0">
-        <ShieldAlert className="w-7 h-7 lg:w-8 lg:h-8 text-primary shrink-0" />
+      <div className="h-14 lg:h-16 flex items-center px-4 border-b border-border shrink-0 bg-primary">
+        <ShieldAlert className="w-7 h-7 lg:w-8 lg:h-8 text-white shrink-0" />
         {(!collapsed || mobileOpen) && (
           <div className="ml-3 font-display font-bold leading-tight">
-            <span className="text-foreground block text-sm lg:text-base">Khurais</span>
-            <span className="text-primary text-xs lg:text-sm">Emergency System</span>
+            <span className="text-white block text-sm lg:text-base">Khurais</span>
+            <span className="text-white/70 text-xs lg:text-sm">Emergency System</span>
           </div>
         )}
         {mobileOpen && (
-          <button onClick={() => setMobileOpen(false)} className="ml-auto p-1 text-muted-foreground hover:text-foreground lg:hidden">
+          <button onClick={() => setMobileOpen(false)} className="ml-auto p-1 text-white/70 hover:text-white lg:hidden">
             <X className="w-5 h-5" />
           </button>
         )}
@@ -94,7 +94,7 @@ export function AdminLayout({
                 'flex items-center px-3 py-2.5 lg:py-3 rounded-lg transition-all duration-200 group relative',
                 isActive
                   ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
               )}
               title={collapsed && !mobileOpen ? item.label : undefined}
             >
@@ -121,7 +121,7 @@ export function AdminLayout({
       <div className="p-3 lg:p-4 border-t border-border shrink-0">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center px-3 py-2.5 lg:py-3 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="w-full flex items-center px-3 py-2.5 lg:py-3 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           {(!collapsed || mobileOpen) && <span className="ml-3 font-medium text-sm">Sign Out</span>}
@@ -148,7 +148,7 @@ export function AdminLayout({
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 bg-border text-foreground rounded-full p-1 border border-card hover:bg-muted transition-colors z-[2002]"
+          className="absolute -right-3 top-20 bg-border text-foreground rounded-full p-1 border border-card hover:bg-secondary transition-colors z-[2002]"
         >
           {collapsed ? <Menu className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
@@ -166,21 +166,21 @@ export function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 lg:h-16 bg-card/50 backdrop-blur-sm border-b border-border flex items-center justify-between px-4 lg:px-8 shrink-0 gap-3">
+        <header className="h-14 lg:h-16 bg-primary border-b border-primary/80 flex items-center justify-between px-4 lg:px-8 shrink-0 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => setMobileOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted lg:hidden shrink-0">
+            <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10 lg:hidden shrink-0">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-base lg:text-xl font-bold text-foreground font-display tracking-tight truncate">{pageTitle}</h1>
+            <h1 className="text-base lg:text-xl font-bold text-white font-display tracking-tight truncate">{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {currentUser && (
               <div className="text-right hidden md:block">
-                <p className="text-sm font-semibold text-foreground">{currentUser.name}</p>
-                <p className="text-xs text-muted-foreground">{currentUser.role}</p>
+                <p className="text-sm font-semibold text-white">{currentUser.name}</p>
+                <p className="text-xs text-white/70">{currentUser.role}</p>
               </div>
             )}
-            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold text-xs lg:text-sm shrink-0">
+            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white font-bold text-xs lg:text-sm shrink-0">
               {initials}
             </div>
           </div>
@@ -196,11 +196,11 @@ export function AdminLayout({
             <span className="uppercase tracking-wider text-xs font-black">
               {activeBroadcast.priority} PRIORITY
             </span>
-            <span className="mx-1">•</span>
+            <span className="mx-1">&bull;</span>
             <span>{activeBroadcast.alertType.toUpperCase()}</span>
-            <span className="mx-1">•</span>
+            <span className="mx-1">&bull;</span>
             <span>ZONE {activeBroadcast.zone.toUpperCase()}</span>
-            <span className="hidden sm:inline mx-1">—</span>
+            <span className="hidden sm:inline mx-1">&mdash;</span>
             <span className="hidden sm:inline font-medium truncate flex-1">{activeBroadcast.message}</span>
             <span className="ml-auto text-xs font-mono opacity-80 shrink-0">
               {new Date(activeBroadcast.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -210,7 +210,7 @@ export function AdminLayout({
 
         {/* Sound Active Indicator */}
         {activeAlert?.soundActive && (
-          <div className="px-4 py-1.5 bg-orange-500/10 border-b border-orange-500/20 flex items-center gap-2 text-orange-500 text-xs font-bold shrink-0">
+          <div className="px-4 py-1.5 bg-orange-500/10 border-b border-orange-500/20 flex items-center gap-2 text-orange-600 text-xs font-bold shrink-0">
             <Volume2 className="w-3.5 h-3.5 animate-pulse" />
             ALARM SOUND ACTIVE — {activeAlert.type} — Zone {activeAlert.zone}
           </div>

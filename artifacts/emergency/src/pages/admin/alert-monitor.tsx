@@ -21,7 +21,7 @@ export default function AlertMonitor() {
     return (
       <AdminLayout title="Live Alert Monitor">
         <div className="h-[60vh] flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
+          <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-4">
             <ShieldAlert className="w-10 h-10 text-muted-foreground" />
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">No Active Alerts</h2>
@@ -59,12 +59,12 @@ export default function AlertMonitor() {
             <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
             <h2 className="text-xl font-bold text-foreground">{alert.title}</h2>
             <AlertTypeBadge type={alert.type} />
-            <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">ID: #{alert.id}</span>
+            <span className="text-xs bg-secondary px-2 py-1 rounded text-muted-foreground">ID: #{alert.id}</span>
           </div>
           <p className="text-sm text-muted-foreground">Initiated by {alert.sentBy} at {new Date(alert.timestamp).toLocaleTimeString()}</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none px-4 py-2 bg-background border border-border hover:bg-muted text-foreground rounded-lg font-medium transition-colors">
+          <button className="flex-1 md:flex-none px-4 py-2 bg-card border border-border hover:bg-secondary text-foreground rounded-lg font-medium transition-colors">
             Send Update
           </button>
           <button
@@ -91,7 +91,7 @@ export default function AlertMonitor() {
               'flex-1 min-w-[160px] p-4 rounded-xl border text-left transition-all relative overflow-hidden',
               activeTab === tab.id
                 ? 'bg-card border-foreground/30 shadow-md'
-                : 'bg-background border-border hover:border-muted-foreground/50 opacity-70',
+                : 'bg-card border-border hover:border-muted-foreground/50 opacity-70',
             )}
           >
             {activeTab === tab.id && <div className={`absolute top-0 left-0 w-full h-1 ${tab.bg}`} />}
@@ -103,7 +103,7 @@ export default function AlertMonitor() {
 
       {/* Main Table Area */}
       <div className="bg-card border border-border rounded-xl flex flex-col h-[calc(100vh-420px)] lg:h-[600px] relative overflow-hidden">
-        <div className="p-3 lg:p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-card/50">
+        <div className="p-3 lg:p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-card">
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -114,7 +114,7 @@ export default function AlertMonitor() {
               className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm bg-background border border-border hover:bg-muted text-foreground rounded-lg transition-colors shrink-0">
+          <button className="flex items-center gap-2 px-3 py-2 text-sm bg-card border border-border hover:bg-secondary text-foreground rounded-lg transition-colors shrink-0">
             <Download className="w-4 h-4" /> Export
           </button>
         </div>
@@ -143,7 +143,7 @@ export default function AlertMonitor() {
                   <tr
                     key={u.id}
                     onClick={() => setSelectedUser(u)}
-                    className="border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                   >
                     <td className="p-4 font-medium text-foreground">
                       <div className="flex items-center gap-3">
@@ -210,9 +210,9 @@ export default function AlertMonitor() {
           <div className="fixed inset-0 z-50 flex justify-end lg:absolute lg:inset-auto lg:top-0 lg:right-0 lg:w-[400px] lg:h-full lg:z-20">
             <div className="absolute inset-0 bg-black/40 lg:hidden" onClick={() => setSelectedUser(null)} />
             <div className="relative w-full max-w-[420px] lg:max-w-none h-full bg-card border-l border-border shadow-2xl flex flex-col">
-              <div className="p-4 border-b border-border flex justify-between items-center bg-background/50">
+              <div className="p-4 border-b border-border flex justify-between items-center bg-background">
                 <h3 className="font-bold text-foreground">Personnel Details</h3>
-                <button onClick={() => setSelectedUser(null)} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground">
+                <button onClick={() => setSelectedUser(null)} className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -272,7 +272,7 @@ export default function AlertMonitor() {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-border bg-background/50 flex gap-3">
+              <div className="p-4 border-t border-border bg-background flex gap-3">
                 <button
                   onClick={() => handleMarkConfirmed(selectedUser.id)}
                   disabled={selectedUser.status === 'confirmed'}
@@ -280,7 +280,7 @@ export default function AlertMonitor() {
                 >
                   Mark Confirmed
                 </button>
-                <button className="flex-1 py-2.5 bg-card border border-border hover:bg-muted text-foreground rounded-lg font-bold transition-colors">
+                <button className="flex-1 py-2.5 bg-card border border-border hover:bg-secondary text-foreground rounded-lg font-bold transition-colors">
                   Ping Device
                 </button>
               </div>

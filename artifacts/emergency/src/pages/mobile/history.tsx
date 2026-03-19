@@ -2,112 +2,115 @@ import React from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useStore, useShallow } from '@/store';
 import { format } from 'date-fns';
-import { CheckCircle2, AlertTriangle, Clock, ShieldOff } from 'lucide-react';
+import { MapPin, Tag, Inbox } from 'lucide-react';
 
-const typeColors: Record<string, string> = {
-  'Blackout': 'bg-red-500/15 text-red-400 border-red-500/20',
-  'Security Alert': 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-  'Shelter-in': 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-  'Drill': 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-  'Restricted Movement': 'bg-purple-500/15 text-purple-400 border-purple-500/20',
-  'All Clear': 'bg-green-500/15 text-green-400 border-green-500/20',
-  'Custom': 'bg-muted/50 text-muted-foreground border-border',
-};
+function getAlertIconColor(type: string): string {
+  switch (type) {
+    case 'All Clear': return '#16A34A';
+    case 'Drill': return '#5B3A8E';
+    default: return '#5B3A8E';
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'closed': return 'Closed';
+    case 'active': return 'Active';
+    default: return status;
+  }
+}
+
+function getStatusClasses(status: string): string {
+  switch (status) {
+    case 'closed': return 'bg-[#F0F1F4] text-[#6B7280] border-[#E5E7EB]';
+    case 'active': return 'bg-[rgba(91,58,142,0.08)] text-[#5B3A8E] border-[rgba(91,58,142,0.16)]';
+    default: return 'bg-[#F0F1F4] text-[#6B7280] border-[#E5E7EB]';
+  }
+}
 
 export default function MobileHistory() {
-  const { alerts, currentUser, mobileUserResponse } = useStore(useShallow(s => ({
+  const { alerts } = useStore(useShallow(s => ({
     alerts: s.alerts,
-    currentUser: s.currentUser,
-    mobileUserResponse: s.mobileUserResponse,
   })));
 
-  // Show all alerts in history; if there's a response recorded show it on the most recent active one
-  const historyAlerts = alerts.filter(a => !a.isActive);
-  const activeAlert = alerts.find(a => a.isActive);
+  const closedAlerts = alerts.filter(a => a.status === 'closed');
 
   return (
     <MobileLayout>
-      {/* Header */}
-      <div className="px-5 pt-8 pb-4">
-        <h1 className="text-xl font-bold text-foreground">Alert History</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Your past emergency responses</p>
+      {/* Header — matches mobile Header component */}
+      <div className="bg-[#5B3A8E] px-[18px] pt-[14px] pb-[18px]">
+        <h1 className="text-[20px] font-bold text-white">Alert History</h1>
+        <p className="text-[13px] text-white/70 mt-0.5">{closedAlerts.length} past alerts</p>
       </div>
 
-      {/* Active alert response (if any) */}
-      {activeAlert && mobileUserResponse && (
-        <div className="mx-4 mb-3 bg-card rounded-xl border border-border/60 overflow-hidden">
-          <div className="px-4 py-2 bg-primary/10 border-b border-border/60">
-            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Currently Active</span>
-          </div>
-          <div className="px-4 py-3 flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeColors[activeAlert.type] || 'bg-muted text-muted-foreground border-border'}`}>
-                  {activeAlert.type.toUpperCase()}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium">{activeAlert.zone}</span>
-              </div>
-              <p className="font-semibold text-sm text-foreground truncate">{activeAlert.title}</p>
-            </div>
-            <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-              mobileUserResponse === 'confirmed'
-                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            }`}>
-              {mobileUserResponse === 'confirmed' ? 'Confirmed' : 'Need Help'}
-            </span>
-          </div>
-          <div className="px-4 pb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{format(new Date(activeAlert.timestamp), 'dd MMM yyyy, HH:mm')}</span>
-          </div>
-        </div>
-      )}
-
       {/* Alerts list */}
-      <div className="px-4 pb-4 space-y-3">
-        {historyAlerts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <ShieldOff className="w-12 h-12 mb-3 opacity-20" />
-            <p className="text-sm">No historical alerts yet.</p>
+      <div className="flex-1 overflow-y-auto p-[18px] space-y-[14px]">
+        {closedAlerts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center pt-[120px] px-10 space-y-[14px]">
+            <div className="w-[72px] h-[72px] rounded-full bg-[#F0F1F4] flex items-center justify-center mb-2">
+              <Inbox className="w-10 h-10 text-[#9CA3AF]" />
+            </div>
+            <p className="text-[24px] font-bold text-[#111111]">No Alert History</p>
+            <p className="text-[15px] text-[#6B7280] text-center leading-[22px]">
+              Past emergency alerts will appear here once they have been closed.
+            </p>
           </div>
         ) : (
-          historyAlerts.map((alert, i) => {
-            const userResponse = i === 0 ? 'Confirmed' : i < 4 ? 'Confirmed' : 'No Reply';
-            const isConfirmed = userResponse === 'Confirmed';
+          closedAlerts.map((alert) => {
+            const formattedDate = format(new Date(alert.timestamp), "MMM d, yyyy 'at' h:mm a");
+            const iconColor = getAlertIconColor(alert.type);
+
             return (
-              <div key={alert.id} className="bg-card rounded-xl border border-border/60 overflow-hidden">
-                <div className="px-4 py-3 flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeColors[alert.type] || 'bg-muted text-muted-foreground border-border'}`}>
-                        {alert.type.toUpperCase()}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">{alert.zone}</span>
-                    </div>
-                    <p className="font-semibold text-sm text-foreground truncate">{alert.title}</p>
+              <div key={alert.id} className="bg-white border border-[#E5E7EB] rounded-xl p-[18px] space-y-[14px]">
+                {/* Header row: icon + title/timestamp + status badge */}
+                <div className="flex items-center gap-[14px]">
+                  <div
+                    className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${iconColor}20` }}
+                  >
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
                   </div>
-                  <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    isConfirmed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-muted/50 text-muted-foreground border-border'
-                  }`}>
-                    {userResponse}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[17px] font-semibold text-[#111111] truncate">{alert.title}</p>
+                    <p className="text-[11px] text-[#6B7280] mt-0.5">{formattedDate}</p>
+                  </div>
+                  <span className={`text-[11px] font-bold px-2 py-1 rounded-full border shrink-0 ${getStatusClasses(alert.status)}`}>
+                    {getStatusLabel(alert.status)}
                   </span>
                 </div>
 
-                <div className="px-4 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{format(new Date(alert.timestamp), 'dd MMM yyyy, HH:mm')}</span>
+                {/* Meta chips */}
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 bg-[#F0F1F4] px-2 py-1 rounded-md">
+                    <MapPin className="w-[11px] h-[11px] text-[#6B7280]" />
+                    <span className="text-[11px] font-medium text-[#6B7280]">{alert.zone}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                      {alert.stats.confirmed}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      {alert.stats.missing}
-                    </span>
+                  <div className="flex items-center gap-1 bg-[#F0F1F4] px-2 py-1 rounded-md">
+                    <Tag className="w-[11px] h-[11px] text-[#6B7280]" />
+                    <span className="text-[11px] font-medium text-[#6B7280]">{alert.type}</span>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="flex justify-around bg-[#F0F1F4] rounded-md py-[14px] px-2">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] mb-0.5" />
+                    <span className="text-[17px] font-bold text-[#111111]">{alert.stats.confirmed}</span>
+                    <span className="text-[11px] text-[#6B7280]">Safe</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#6B7280] mb-0.5" />
+                    <span className="text-[17px] font-bold text-[#111111]">{alert.stats.missing}</span>
+                    <span className="text-[11px] text-[#6B7280]">Pending</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#5B3A8E] mb-0.5" />
+                    <span className="text-[17px] font-bold text-[#111111]">{alert.stats.needHelp}</span>
+                    <span className="text-[11px] text-[#6B7280]">Need Help</span>
                   </div>
                 </div>
               </div>

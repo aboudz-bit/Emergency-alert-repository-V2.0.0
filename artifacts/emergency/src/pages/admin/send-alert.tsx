@@ -101,7 +101,7 @@ export default function SendAlert() {
                       className={cn(
                         'p-3 lg:p-4 rounded-lg border text-left transition-all',
                         type === at.type
-                          ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                          ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(91,58,142,0.15)]'
                           : 'bg-background border-border hover:border-muted-foreground',
                       )}
                     >
@@ -278,7 +278,7 @@ export default function SendAlert() {
                   <div className="w-full py-4 bg-safe rounded-xl text-white font-bold text-center opacity-80 cursor-not-allowed">
                     I AM SAFE
                   </div>
-                  <div className="w-full py-4 bg-amber-500 rounded-xl text-white font-bold text-center opacity-80 cursor-not-allowed">
+                  <div className="w-full py-4 bg-primary rounded-xl text-white font-bold text-center opacity-80 cursor-not-allowed">
                     NEED HELP
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function SendAlert() {
             <button
               onClick={handleSend}
               disabled={isSending || !message.trim()}
-              className="w-full max-w-[320px] mx-auto bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full max-w-[320px] mx-auto bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(91,58,142,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSending ? 'BROADCASTING...' : 'BROADCAST ALERT'}
               <Send className="w-5 h-5" />
@@ -301,7 +301,7 @@ export default function SendAlert() {
           <button
             onClick={handleSend}
             disabled={isSending || !message.trim()}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-[0_0_20px_rgba(91,58,142,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSending ? 'BROADCASTING...' : 'BROADCAST ALERT'}
             <Send className="w-5 h-5" />
