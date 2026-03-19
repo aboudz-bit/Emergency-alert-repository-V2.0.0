@@ -196,7 +196,8 @@ function generateLeafletHtml(
   @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
   .nearest-line{stroke:#22C55E;stroke-width:2;stroke-dasharray:8,6;fill:none;opacity:0.7}
   .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
-  .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+  .personnel-dot-wrap{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);pointer-events:none}
   .personnel-dot.safe{background:#22C55E}
   .personnel-dot.outside{background:#F59E0B}
   .personnel-dot.contractor{background:#F97316}
@@ -424,16 +425,22 @@ function generateLeafletHtml(
           if (dot) dot.className = 'personnel-dot ' + statusClass;
         }
       } else {
-        personnelMarkers[p.userId] = L.marker([p.lat, p.lng], {
+        var m = L.marker([p.lat, p.lng], {
           icon: L.divIcon({
             className: 'shelter-icon',
-            html: '<div class="personnel-dot ' + statusClass + '"></div>',
-            iconAnchor: [5, 5],
-            iconSize: [10, 10],
+            html: '<div class="personnel-dot-wrap"><div class="personnel-dot ' + statusClass + '"></div></div>',
+            iconAnchor: [12, 12],
+            iconSize: [24, 24],
           }),
           zIndexOffset: 500,
-          interactive: false,
+          interactive: true,
         }).addTo(map);
+        (function(uid) {
+          m.on('click', function() {
+            window.parent.postMessage(JSON.stringify({type:'personnel_select', userId: uid}), '*');
+          });
+        })(p.userId);
+        personnelMarkers[p.userId] = m;
       }
     });
     Object.keys(personnelMarkers).forEach(function(id) {
@@ -732,6 +739,7 @@ export function LeafletPreviewFallback({
   editingLocationPoints,
   onEditingLocationPointsChange,
   personnelLocations,
+  onPersonnelPress,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -873,11 +881,14 @@ export function LeafletPreviewFallback({
         if (data.type === "loc_edit_points" && Array.isArray(data.points) && onEditingLocationPointsChange) {
           onEditingLocationPointsChange(data.points);
         }
+        if (data.type === "personnel_select" && typeof data.userId === "number" && onPersonnelPress) {
+          onPersonnelPress(data.userId);
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange]);
+  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange, onPersonnelPress]);
 
   // ── Sync shelters via postMessage (no iframe reload) ──
   const prevSheltersRef = useRef<string>("");

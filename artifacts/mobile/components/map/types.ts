@@ -50,6 +50,7 @@ export interface ZoneMapProps {
   editingLocationPoints?: LatLng[];
   onEditingLocationPointsChange?: (points: LatLng[]) => void;
   personnelLocations?: PersonnelMapEntry[];
+  onPersonnelPress?: (userId: number) => void;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

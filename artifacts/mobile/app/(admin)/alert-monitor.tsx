@@ -75,6 +75,11 @@ export default function AlertMonitorScreen() {
   const [selectedTab, setSelectedTab] = useState<TabKey>("confirmed");
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
 
+  const handlePersonnelPress = useCallback((userId: number) => {
+    const p = visiblePersonnel.find((v) => v.userId === userId);
+    if (p) setPersonnelDetail(p);
+  }, [visiblePersonnel]);
+
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
   const isMultiZone = zoneStats.length > 1;
@@ -181,6 +186,7 @@ export default function AlertMonitorScreen() {
                 locations={locations}
                 shelters={shelters}
                 personnelLocations={visiblePersonnel}
+                onPersonnelPress={handlePersonnelPress}
               />
             </View>
             <View style={styles.mapLegend}>
@@ -322,6 +328,11 @@ export default function AlertMonitorScreen() {
                 <Feather name="shield" size={14} color={Colors.textTertiary} />
                 <Text style={styles.detailLabel}>Role</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.role || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="phone" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Phone</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.mobileNumber || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Feather name="activity" size={14} color={Colors.textTertiary} />
