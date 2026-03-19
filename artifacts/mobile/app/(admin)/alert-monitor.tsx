@@ -40,6 +40,7 @@ export default function AlertMonitorScreen() {
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
+  const hazardZones = useStore((s) => s.hazardZones);
   const sendAllClear = useStore((s) => s.sendAllClear);
   const closeAlert = useStore((s) => s.closeAlert);
 
@@ -82,6 +83,11 @@ export default function AlertMonitorScreen() {
     const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
     if (p) setPersonnelDetail(p);
   }, []);
+
+  const activeHazardZones = useMemo(
+    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
+    [hazardZones, activeAlert]
+  );
 
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
@@ -185,6 +191,7 @@ export default function AlertMonitorScreen() {
                 shelters={shelters}
                 personnelLocations={visiblePersonnel}
                 onPersonnelPress={handlePersonnelPress}
+                hazardZones={activeHazardZones}
               />
             </View>
             <View style={styles.mapLegend}>

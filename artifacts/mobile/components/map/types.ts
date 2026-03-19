@@ -1,4 +1,4 @@
-import type { LatLng, Zone, Shelter, Location } from "@/types";
+import type { LatLng, Zone, Shelter, Location, HazardZone } from "@/types";
 import type { PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 
 export interface MapRegion {
@@ -51,6 +51,7 @@ export interface ZoneMapProps {
   onEditingLocationPointsChange?: (points: LatLng[]) => void;
   personnelLocations?: PersonnelMapEntry[];
   onPersonnelPress?: (userId: number) => void;
+  hazardZones?: HazardZone[];
 }
 
 export type MapProvider = "google" | "leaflet-fallback";
