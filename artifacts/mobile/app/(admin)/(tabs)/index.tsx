@@ -268,6 +268,16 @@ export default function DashboardScreen() {
               <Text style={styles.quickActionText}>Supervisor Management</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+              onPress={() => router.push("/(admin)/permissions")}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + "1A" }]}>
+                <Feather name="lock" size={20} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Permissions</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
           </View>
         </View>
 

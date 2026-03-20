@@ -1,0 +1,506 @@
+import React, { useState, useMemo, useCallback, useRef } from "react";
+import {
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { format } from "date-fns";
+
+import { Header } from "@/components/ui/Header";
+import { Card } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
+import { ZoneMap } from "@/components/map";
+import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
+import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
+import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
+import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import type { UserResponseStatus } from "@/types";
+
+const MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.4, 340);
+
+type TabKey = "confirmed" | "pending" | "need_help";
+
+const TABS: { key: TabKey; label: string; color: string }[] = [
+  { key: "confirmed", label: "Safe", color: Colors.safe },
+  { key: "pending", label: "Pending", color: Colors.noreply },
+  { key: "need_help", label: "Help", color: Colors.primary },
+];
+
+export default function ECOLiveMapScreen() {
+  const activeAlert = useStore(selectActiveAlert);
+  const users = useStore((s) => s.users);
+  const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
+  const hazardZones = useStore((s) => s.hazardZones);
+
+  const hasActiveAlert = useStore(selectHasActiveAlert);
+  usePersonnelSimulation(hasActiveAlert);
+
+  // ECO gets global visibility — same as Super Admin
+  const visiblePersonnel = useVisiblePersonnel({
+    scope: "all",
+    enabled: hasActiveAlert,
+  });
+
+  const visiblePersonnelRef = useRef(visiblePersonnel);
+  visiblePersonnelRef.current = visiblePersonnel;
+
+  const [selectedTab, setSelectedTab] = useState<TabKey>("confirmed");
+  const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
+
+  const handlePersonnelPress = useCallback((userId: number) => {
+    const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
+    if (p) setPersonnelDetail(p);
+  }, []);
+
+  const activeHazardZones = useMemo(
+    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
+    [hazardZones, activeAlert]
+  );
+
+  const zoneStats = useZoneBreakdown(users, zones, activeAlert);
+  const isMultiZone = zoneStats.length > 1;
+
+  const getTabCount = useCallback(
+    (key: TabKey) => {
+      if (!activeAlert) return 0;
+      switch (key) {
+        case "confirmed": return activeAlert.stats.confirmed;
+        case "pending": return activeAlert.stats.pending;
+        case "need_help": return activeAlert.stats.needHelp;
+      }
+    },
+    [activeAlert]
+  );
+
+  if (!activeAlert) {
+    return (
+      <View style={styles.container}>
+        <Header title="Live Map" />
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIcon}>
+            <Feather name="check-circle" size={48} color={Colors.safe} />
+          </View>
+          <Text style={styles.emptyTitle}>No Active Alert</Text>
+          <Text style={styles.emptyText}>
+            All clear. No emergency alerts are currently active.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Header title="Live Map" />
+
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+        <Card style={styles.alertCard}>
+          <View style={styles.alertHeader}>
+            <View style={styles.alertHeaderLeft}>
+              <View style={styles.alertIconWrap}>
+                <Feather name="alert-triangle" size={16} color={Colors.primary} />
+              </View>
+              <View style={styles.alertTitleWrap}>
+                <Text style={styles.alertType}>{activeAlert.type}</Text>
+                <Text style={styles.alertMeta}>
+                  {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "MMM d, HH:mm")}
+                </Text>
+              </View>
+            </View>
+            <StatusBadge status="active" />
+          </View>
+        </Card>
+
+        <View style={styles.tabBar}>
+          <Text style={styles.tabBarLabel}>Total</Text>
+          <View style={styles.tabBarRow}>
+            {TABS.map((tab) => {
+              const isActive = selectedTab === tab.key;
+              const count = getTabCount(tab.key);
+              return (
+                <Pressable
+                  key={tab.key}
+                  style={[styles.tab, isActive && { borderBottomColor: tab.color }]}
+                  onPress={() => setSelectedTab(tab.key)}
+                >
+                  <Text style={[styles.tabCount, { color: isActive ? tab.color : Colors.textTertiary }]}>
+                    {count}
+                  </Text>
+                  <Text style={[styles.tabLabel, isActive && { color: tab.color }]}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {zoneStats.length > 0 && (
+          <View style={styles.zoneBreakdownSection}>
+            <Text style={styles.zoneSectionTitle}>
+              {isMultiZone ? "Per-Zone Breakdown" : `${zoneStats[0].zoneName} Zone`}
+            </Text>
+            <ZoneBreakdown zoneStats={zoneStats} />
+          </View>
+        )}
+
+        {hasActiveAlert && (
+          <View style={styles.mapSection}>
+            <Text style={styles.zoneSectionTitle}>Live Personnel Map</Text>
+            <View style={styles.mapContainer}>
+              <ZoneMap
+                zones={zones}
+                selectedZoneId={null}
+                onZonePress={() => {}}
+                height={MAP_HEIGHT}
+                showLabels
+                locations={locations}
+                shelters={shelters}
+                personnelLocations={visiblePersonnel}
+                onPersonnelPress={handlePersonnelPress}
+                hazardZones={activeHazardZones}
+              />
+            </View>
+            <View style={styles.mapLegend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
+                <Text style={styles.legendText}>Inside</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
+                <Text style={styles.legendText}>Outside</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
+                <Text style={styles.legendText}>Contractor</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
+                <Text style={styles.legendText}>Help</Text>
+              </View>
+              <Text style={styles.legendCount}>
+                {visiblePersonnel.length} tracked
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      {/* Personnel Detail Modal */}
+      <Modal
+        visible={personnelDetail !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPersonnelDetail(null)}
+      >
+        <Pressable style={styles.detailOverlay} onPress={() => setPersonnelDetail(null)}>
+          <View style={styles.detailSheet}>
+            <View style={styles.detailHeader}>
+              <View style={[styles.detailAvatar, {
+                backgroundColor: personnelDetail?.status === 'confirmed' ? Colors.safeDim
+                  : personnelDetail?.status === 'need_help' ? Colors.primaryDim
+                  : Colors.surfaceElevated
+              }]}>
+                <Text style={[styles.detailAvatarText, {
+                  color: personnelDetail?.status === 'confirmed' ? Colors.safe
+                    : personnelDetail?.status === 'need_help' ? Colors.primary
+                    : Colors.textSecondary
+                }]}>
+                  {personnelDetail?.name?.charAt(0)?.toUpperCase() ?? "?"}
+                </Text>
+              </View>
+              <View style={styles.detailHeaderInfo}>
+                <Text style={styles.detailName}>{personnelDetail?.name}</Text>
+                <Text style={styles.detailBadge}>{personnelDetail?.badge}</Text>
+              </View>
+              <Pressable style={styles.detailClose} onPress={() => setPersonnelDetail(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textTertiary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.detailBody}>
+              <View style={styles.detailRow}>
+                <Feather name="shield" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Role</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.role || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="phone" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Phone</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.mobileNumber || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="activity" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Status</Text>
+                <StatusBadge status={personnelDetail?.status as UserResponseStatus ?? "pending"} />
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="map-pin" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Assigned</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.assignedLocation || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="navigation" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Detected</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.detectedLocation || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="clock" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Last Update</Text>
+                <Text style={styles.detailValue}>
+                  {personnelDetail?.lastUpdate
+                    ? format(new Date(personnelDetail.lastUpdate), "HH:mm:ss")
+                    : "N/A"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Spacing.xxl,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.xxl,
+    gap: Spacing.md,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.safeDim,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+  },
+  emptyTitle: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  alertCard: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    borderColor: Colors.primaryBorder,
+    backgroundColor: Colors.primaryDim,
+  },
+  alertHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  alertHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    flex: 1,
+  },
+  alertIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primaryBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  alertTitleWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  alertType: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_700Bold",
+    color: Colors.primary,
+  },
+  alertMeta: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+  },
+  tabBar: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+  },
+  tabBarLabel: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
+    marginBottom: Spacing.sm,
+  },
+  tabBarRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
+  },
+  tabCount: {
+    fontSize: FontSize.xxl,
+    fontFamily: "Inter_700Bold",
+  },
+  tabLabel: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
+    marginTop: 2,
+  },
+  zoneBreakdownSection: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+  },
+  zoneSectionTitle: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  mapSection: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+  },
+  mapContainer: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  mapLegend: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.sm,
+    gap: Spacing.md,
+    flexWrap: "wrap",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+  },
+  legendCount: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
+    marginLeft: "auto",
+  },
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  detailSheet: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+  },
+  detailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  detailAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailAvatarText: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_700Bold",
+  },
+  detailHeaderInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  detailName: {
+    fontSize: FontSize.lg,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  detailBadge: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+  },
+  detailClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailBody: {
+    gap: Spacing.md,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  detailLabel: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textSecondary,
+    width: 80,
+  },
+  detailValue: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.text,
+    flex: 1,
+  },
+});

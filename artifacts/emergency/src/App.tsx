@@ -20,6 +20,8 @@ import AuditLogPage from '@/pages/admin/audit-log';
 import ECOManagementPage from '@/pages/admin/eco-management';
 import SettingsPage from '@/pages/admin/settings';
 import ECODashboard from '@/pages/eco/dashboard';
+import ECOLiveMap from '@/pages/eco/live-map';
+import PermissionsPage from '@/pages/admin/permissions';
 import SupervisorManagementPage from '@/pages/admin/supervisor-management';
 import SupervisorDashboard from '@/pages/supervisor/dashboard';
 import MobileHome from '@/pages/mobile/home';
@@ -116,6 +118,11 @@ function Router() {
           <SupervisorManagementPage />
         </Guard>
       </Route>
+      <Route path="/admin/permissions">
+        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
+          <PermissionsPage />
+        </Guard>
+      </Route>
       <Route path="/admin/settings">
         <Guard allowedRoles={['Super Admin']} redirectTo="/login">
           <SettingsPage />
@@ -126,6 +133,11 @@ function Router() {
       <Route path="/eco">
         <Guard allowedRoles={['User']} redirectTo="/login">
           <ECODashboard />
+        </Guard>
+      </Route>
+      <Route path="/eco/live-map">
+        <Guard allowedRoles={['User']} redirectTo="/login">
+          <ECOLiveMap />
         </Guard>
       </Route>
 

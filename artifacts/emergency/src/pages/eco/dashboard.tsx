@@ -103,6 +103,13 @@ export default function ECODashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLocation('/eco/live-map')}
+              className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              Live Map
+            </button>
             <div className="px-2.5 py-1 rounded-full bg-safe/10 text-safe text-xs font-bold border border-safe/20">
               ACTIVE
             </div>

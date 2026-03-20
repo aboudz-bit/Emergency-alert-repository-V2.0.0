@@ -6,6 +6,36 @@ export type EcoSlot = 'A' | 'B' | 'C';
 export type UserType = 'Aramco' | 'Contract';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
+// ─── Permissions ─────────────────────────────────────────────────────────────
+
+export type PermissionKey =
+  | 'canViewGlobalLiveMap'
+  | 'canPlaceWarningZone'
+  | 'canEditHazardZone'
+  | 'canDeleteHazardZone'
+  | 'canUnlockHazardZone'
+  | 'canManageShelters'
+  | 'canReviewAlertMonitor';
+
+export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: string }[] = [
+  { key: 'canViewGlobalLiveMap', label: 'View Global Live Map', description: 'Access the full live alert map with all zones, locations, shelters, personnel, and hazard zones' },
+  { key: 'canPlaceWarningZone', label: 'Place Warning Zone', description: 'Place new hazard/warning zones on the map during active alerts' },
+  { key: 'canEditHazardZone', label: 'Edit Hazard Zone', description: 'Modify existing hazard zone settings (radius, shape, wind)' },
+  { key: 'canDeleteHazardZone', label: 'Delete Hazard Zone', description: 'Remove hazard zones from the map' },
+  { key: 'canUnlockHazardZone', label: 'Unlock Hazard Zone', description: 'Unlock locked hazard zones for editing' },
+  { key: 'canManageShelters', label: 'Manage Shelters', description: 'Add, edit, and delete shelter locations' },
+  { key: 'canReviewAlertMonitor', label: 'Review Alert Monitor', description: 'Access the alert monitor with personnel tracking and response stats' },
+];
+
+export interface UserPermissionAssignment {
+  userId: number;
+  permissions: PermissionKey[];
+  assignedBy: number;
+  assignedByName: string;
+  assignedAt: string;
+  updatedAt: string;
+}
+
 export interface EcoAssignment {
   ecoSlot: EcoSlot;
   assignedUserId: number | null;
@@ -144,6 +174,9 @@ export interface User {
   supervisorLocationName?: string;
   supervisorZoneName?: string;
   supervisorAssignmentActive?: boolean;
+
+  // Granular permissions assigned by Super Admin
+  permissions?: PermissionKey[];
 }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────

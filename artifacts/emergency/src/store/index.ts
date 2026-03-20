@@ -8,6 +8,7 @@ import type {
   EcoAssignment, EcoSlot,
   SupervisorAssignment,
   HazardZone,
+  PermissionKey, UserPermissionAssignment,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -124,6 +125,14 @@ interface AppState {
   // ── Activity log ─────────────────────────────────────────────────────────────
   addActivityLog: (log: Omit<ActivityLog, 'id'>) => void;
 
+  // ── Permission management ─────────────────────────────────────────────────────
+  permissionAssignments: UserPermissionAssignment[];
+  assignPermission: (userId: number, permission: PermissionKey) => void;
+  removePermission: (userId: number, permission: PermissionKey) => void;
+  setUserPermissions: (userId: number, permissions: PermissionKey[]) => void;
+  getUserPermissions: (userId: number) => PermissionKey[];
+  hasPermission: (userId: number, permission: PermissionKey) => boolean;
+
   // ── Computed helpers ─────────────────────────────────────────────────────────
   getActiveAlert: () => Alert | null;
   getAlertHistory: () => Alert[];
@@ -151,6 +160,7 @@ export const useStore = create<AppState>()(
       hazardZones: [],
       auditLog: [],
       activeBroadcast: null,
+      permissionAssignments: [],
 
       // ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -1244,6 +1254,101 @@ export const useStore = create<AppState>()(
       getUsersByZone: (zone) => get().users.filter(u => u.zone === zone),
 
       getLocationsByZone: (zone) => get().locations.filter(l => l.zone === zone && l.isActive),
+
+      // ── Permission Management ─────────────────────────────────────────────────
+      assignPermission: (userId, permission) => {
+        const { currentUser, permissionAssignments } = get();
+        const now = new Date().toISOString();
+        const existing = permissionAssignments.find(pa => pa.userId === userId);
+        if (existing) {
+          if (existing.permissions.includes(permission)) return;
+          set({
+            permissionAssignments: permissionAssignments.map(pa =>
+              pa.userId === userId
+                ? { ...pa, permissions: [...pa.permissions, permission], updatedAt: now }
+                : pa
+            ),
+            users: get().users.map(u =>
+              u.id === userId ? { ...u, permissions: [...(u.permissions || []), permission] } : u
+            ),
+          });
+        } else {
+          set({
+            permissionAssignments: [...permissionAssignments, {
+              userId,
+              permissions: [permission],
+              assignedBy: currentUser?.id ?? 0,
+              assignedByName: currentUser?.name ?? 'System',
+              assignedAt: now,
+              updatedAt: now,
+            }],
+            users: get().users.map(u =>
+              u.id === userId ? { ...u, permissions: [...(u.permissions || []), permission] } : u
+            ),
+          });
+        }
+      },
+
+      removePermission: (userId, permission) => {
+        const { permissionAssignments } = get();
+        const now = new Date().toISOString();
+        set({
+          permissionAssignments: permissionAssignments.map(pa =>
+            pa.userId === userId
+              ? { ...pa, permissions: pa.permissions.filter(p => p !== permission), updatedAt: now }
+              : pa
+          ),
+          users: get().users.map(u =>
+            u.id === userId ? { ...u, permissions: (u.permissions || []).filter(p => p !== permission) } : u
+          ),
+        });
+      },
+
+      setUserPermissions: (userId, permissions) => {
+        const { currentUser, permissionAssignments } = get();
+        const now = new Date().toISOString();
+        const existing = permissionAssignments.find(pa => pa.userId === userId);
+        if (existing) {
+          set({
+            permissionAssignments: permissionAssignments.map(pa =>
+              pa.userId === userId ? { ...pa, permissions, updatedAt: now } : pa
+            ),
+            users: get().users.map(u => u.id === userId ? { ...u, permissions } : u),
+          });
+        } else {
+          set({
+            permissionAssignments: [...permissionAssignments, {
+              userId,
+              permissions,
+              assignedBy: currentUser?.id ?? 0,
+              assignedByName: currentUser?.name ?? 'System',
+              assignedAt: now,
+              updatedAt: now,
+            }],
+            users: get().users.map(u => u.id === userId ? { ...u, permissions } : u),
+          });
+        }
+      },
+
+      getUserPermissions: (userId) => {
+        const { users } = get();
+        const user = users.find(u => u.id === userId);
+        if (!user) return [];
+        if (user.role === 'Super Admin' || user.role === 'IT') return [
+          'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
+          'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
+        ] as PermissionKey[];
+        if (user.isECOAssigned && user.ecoAssignmentActive) {
+          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor'];
+          const extra = user.permissions || [];
+          return [...new Set([...base, ...extra])] as PermissionKey[];
+        }
+        return (user.permissions || []) as PermissionKey[];
+      },
+
+      hasPermission: (userId, permission) => {
+        return get().getUserPermissions(userId).includes(permission);
+      },
     }),
     {
       name: 'keas-store-v5',
@@ -1263,6 +1368,7 @@ export const useStore = create<AppState>()(
         hazardZones: state.hazardZones,
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
+        permissionAssignments: state.permissionAssignments,
       }),
       merge: (persistedState: any, currentState: any) => {
         if (!persistedState) return currentState;
@@ -1275,6 +1381,9 @@ export const useStore = create<AppState>()(
         }
         if (!Array.isArray(merged.hazardZones)) {
           merged.hazardZones = [];
+        }
+        if (!Array.isArray(merged.permissionAssignments)) {
+          merged.permissionAssignments = [];
         }
         if (merged.settings) {
           // Migrate old field names if present
