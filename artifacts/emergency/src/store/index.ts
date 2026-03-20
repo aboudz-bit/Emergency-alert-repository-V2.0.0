@@ -9,6 +9,7 @@ import type {
   SupervisorAssignment,
   HazardZone,
   PermissionKey, UserPermissionAssignment,
+  EmergencyModes,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -78,6 +79,11 @@ interface AppState {
 
   // ── Broadcast actions ──────────────────────────────────────────────────────
   clearBroadcast: () => void;
+
+  // ── Emergency mode actions ──────────────────────────────────────────────
+  emergencyModes: EmergencyModes;
+  toggleShelterIn: () => void;
+  toggleBlackout: () => void;
 
   // ── ECO actions ────────────────────────────────────────────────────────────
   assignECO: (slot: EcoSlot, userId: number, zoneId: number, zoneName: string, notes?: string) => void;
@@ -161,6 +167,14 @@ export const useStore = create<AppState>()(
       auditLog: [],
       activeBroadcast: null,
       permissionAssignments: [],
+      emergencyModes: {
+        shelterIn: false,
+        blackout: false,
+        shelterInActivatedAt: null,
+        shelterInActivatedBy: null,
+        blackoutActivatedAt: null,
+        blackoutActivatedBy: null,
+      },
 
       // ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -734,6 +748,33 @@ export const useStore = create<AppState>()(
 
       clearBroadcast: () => {
         set({ activeBroadcast: null });
+      },
+
+      // ── Emergency Modes ──────────────────────────────────────────────────
+      toggleShelterIn: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            shelterIn: !emergencyModes.shelterIn,
+            shelterInActivatedAt: !emergencyModes.shelterIn ? now : null,
+            shelterInActivatedBy: !emergencyModes.shelterIn ? (currentUser?.name ?? 'System') : null,
+          },
+        });
+      },
+
+      toggleBlackout: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            blackout: !emergencyModes.blackout,
+            blackoutActivatedAt: !emergencyModes.blackout ? now : null,
+            blackoutActivatedBy: !emergencyModes.blackout ? (currentUser?.name ?? 'System') : null,
+          },
+        });
       },
 
       // ── Supervisor actions ─────────────────────────────────────────────────
@@ -1369,6 +1410,7 @@ export const useStore = create<AppState>()(
         auditLog: state.auditLog,
         activeBroadcast: state.activeBroadcast,
         permissionAssignments: state.permissionAssignments,
+        emergencyModes: state.emergencyModes,
       }),
       merge: (persistedState: any, currentState: any) => {
         if (!persistedState) return currentState;
@@ -1384,6 +1426,13 @@ export const useStore = create<AppState>()(
         }
         if (!Array.isArray(merged.permissionAssignments)) {
           merged.permissionAssignments = [];
+        }
+        if (!merged.emergencyModes) {
+          merged.emergencyModes = {
+            shelterIn: false, blackout: false,
+            shelterInActivatedAt: null, shelterInActivatedBy: null,
+            blackoutActivatedAt: null, blackoutActivatedBy: null,
+          };
         }
         if (merged.settings) {
           // Migrate old field names if present

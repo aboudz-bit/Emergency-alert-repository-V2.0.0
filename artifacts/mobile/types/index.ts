@@ -286,6 +286,17 @@ export interface HazardZone {
   hazardShape?: HazardShape | null;
 }
 
+// ─── Emergency Modes ─────────────────────────────────────────────────────────
+
+export interface EmergencyModes {
+  shelterIn: boolean;
+  blackout: boolean;
+  shelterInActivatedAt: string | null;
+  shelterInActivatedBy: string | null;
+  blackoutActivatedAt: string | null;
+  blackoutActivatedBy: string | null;
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface NotificationPolicy {

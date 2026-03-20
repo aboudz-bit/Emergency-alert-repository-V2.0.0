@@ -8,6 +8,7 @@ import type {
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
+  EmergencyModes,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -36,6 +37,11 @@ interface AppState {
   hazardZones: HazardZone[];
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
+  emergencyModes: EmergencyModes;
+
+  // Emergency mode actions
+  toggleShelterIn: () => void;
+  toggleBlackout: () => void;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -139,6 +145,40 @@ export const useStore = create<AppState>()(
       personnelLocations: {},
       zoneNotifications: [],
       permissionAssignments: [],
+      emergencyModes: {
+        shelterIn: false,
+        blackout: false,
+        shelterInActivatedAt: null,
+        shelterInActivatedBy: null,
+        blackoutActivatedAt: null,
+        blackoutActivatedBy: null,
+      },
+
+      toggleShelterIn: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            shelterIn: !emergencyModes.shelterIn,
+            shelterInActivatedAt: !emergencyModes.shelterIn ? now : null,
+            shelterInActivatedBy: !emergencyModes.shelterIn ? (currentUser?.name ?? 'System') : null,
+          },
+        });
+      },
+
+      toggleBlackout: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            blackout: !emergencyModes.blackout,
+            blackoutActivatedAt: !emergencyModes.blackout ? now : null,
+            blackoutActivatedBy: !emergencyModes.blackout ? (currentUser?.name ?? 'System') : null,
+          },
+        });
+      },
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();

@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectHasActiveAlert, selectActiveAlert } from "@/store";
+import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 
@@ -164,6 +165,7 @@ export default function SupervisorDashboardScreen() {
 
   return (
     <View style={styles.container}>
+      <EmergencyModeBanner />
       <Header
         title={`${roleLabel} — ${locName}`}
         subtitle={`${currentUser?.name} • ${zoneName} • ${locName}`}

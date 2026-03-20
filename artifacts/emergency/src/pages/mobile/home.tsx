@@ -7,6 +7,7 @@ import {
   Home as HomeIcon, Navigation, Loader, Crosshair,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
+import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
 
 function PulsingDot() {
   return (
@@ -67,6 +68,7 @@ export default function MobileHome() {
 
   return (
     <MobileLayout>
+      <EmergencyModeBanner />
       {/* Header Area — white surface with greeting + chips */}
       <div className="bg-white border-b border-[#E5E7EB] px-[18px] pt-[14px] pb-[18px]">
         <div className="flex flex-row items-baseline gap-2">

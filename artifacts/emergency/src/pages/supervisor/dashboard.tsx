@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn, AlertTypeBadge } from '@/components/shared/Badges';
 import { useStore, useShallow } from '@/store';
+import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
 
 export default function SupervisorDashboard() {
   const [, setLocation] = useLocation();
@@ -79,6 +80,7 @@ export default function SupervisorDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <EmergencyModeBanner />
       {/* Header */}
       <header className="bg-card border-b border-border px-4 lg:px-8 shrink-0">
         <div className="h-14 lg:h-16 flex items-center justify-between">

@@ -23,6 +23,7 @@ import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
+import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -160,6 +161,7 @@ export default function UserHomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <EmergencyModeBanner />
       <View style={styles.headerArea}>
         <View style={styles.greetingRow}>
           <View style={styles.greetingTextWrap}>
