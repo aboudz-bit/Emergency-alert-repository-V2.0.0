@@ -1481,9 +1481,10 @@ export const useStore = create<AppState>()(
         if (user.role === 'Super Admin' || user.role === 'IT') return [
           'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
           'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
+          'canChangeWindDirection',
         ] as PermissionKey[];
         if (user.isECOAssigned && user.ecoAssignmentActive) {
-          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor'];
+          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor', 'canChangeWindDirection'];
           const extra = user.permissions || [];
           return [...new Set([...base, ...extra])] as PermissionKey[];
         }

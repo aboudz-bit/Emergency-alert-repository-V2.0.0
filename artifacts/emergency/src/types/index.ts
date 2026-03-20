@@ -12,7 +12,8 @@ export type PermissionKey =
   | 'canDeleteHazardZone'
   | 'canUnlockHazardZone'
   | 'canManageShelters'
-  | 'canReviewAlertMonitor';
+  | 'canReviewAlertMonitor'
+  | 'canChangeWindDirection';
 
 export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: string }[] = [
   { key: 'canViewGlobalLiveMap', label: 'View Global Live Map', description: 'Access the full live alert map with all zones, locations, shelters, personnel, and hazard zones' },
@@ -22,6 +23,7 @@ export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: 
   { key: 'canUnlockHazardZone', label: 'Unlock Hazard Zone', description: 'Unlock locked hazard zones for editing' },
   { key: 'canManageShelters', label: 'Manage Shelters', description: 'Add, edit, and delete shelter locations' },
   { key: 'canReviewAlertMonitor', label: 'Review Alert Monitor', description: 'Access the alert monitor with personnel tracking and response stats' },
+  { key: 'canChangeWindDirection', label: 'Change Wind Direction', description: 'Update the wind direction indicator used in the map overlay during alerts' },
 ];
 
 export interface UserPermissionAssignment {
