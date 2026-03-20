@@ -1448,8 +1448,26 @@ export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActi
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
 
-/** Check if the current user has a specific permission */
-export const selectCurrentUserHasPermission = (permission: import('@/types').PermissionKey) => (s: AppState): boolean => {
-  if (!s.currentUser) return false;
-  return s.hasPermission(s.currentUser.id, permission);
-};
+/**
+ * Pre-built permission selectors — safe to use inline with useStore().
+ * These are stable references that will never cause re-render loops.
+ */
+const _permSel = (permission: import('@/types').PermissionKey) =>
+  (s: AppState): boolean => s.currentUser ? s.hasPermission(s.currentUser.id, permission) : false;
+
+export const selectCanViewGlobalLiveMap = _permSel('canViewGlobalLiveMap');
+export const selectCanPlaceWarningZone = _permSel('canPlaceWarningZone');
+export const selectCanEditHazardZone = _permSel('canEditHazardZone');
+export const selectCanDeleteHazardZone = _permSel('canDeleteHazardZone');
+export const selectCanUnlockHazardZone = _permSel('canUnlockHazardZone');
+export const selectCanManageShelters = _permSel('canManageShelters');
+export const selectCanReviewAlertMonitor = _permSel('canReviewAlertMonitor');
+export const selectCanChangeWindDirection = _permSel('canChangeWindDirection');
+
+/**
+ * @deprecated Use the pre-built selectCan* selectors instead.
+ * This factory is unsafe when called inline inside a component render
+ * (e.g. useStore(selectCurrentUserHasPermission('x'))) because it creates
+ * a new function reference every render, causing infinite re-render loops.
+ */
+export const selectCurrentUserHasPermission = _permSel;

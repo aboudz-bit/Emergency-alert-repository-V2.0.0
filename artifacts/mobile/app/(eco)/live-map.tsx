@@ -15,15 +15,15 @@ import { WindIndicator } from "@/components/ui/WindIndicator";
 import { WindDirectionPicker } from "@/components/ui/WindDirectionPicker";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, selectHasActiveAlert, selectCurrentUserHasPermission } from "@/store";
+import { useStore, selectActiveAlert, selectHasActiveAlert, selectCanChangeWindDirection } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-// Hoist selector outside component to avoid creating a new function reference each render
-const selectCanChangeWind = selectCurrentUserHasPermission('canChangeWindDirection');
+// Pre-built selector — stable reference, safe to use inline with useStore()
+const selectCanChangeWind = selectCanChangeWindDirection;
 
 export default function ECOLiveMapScreen() {
   const activeAlert = useStore(selectActiveAlert);
