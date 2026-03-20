@@ -1148,8 +1148,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v16',
-      version: 16,
+      name: 'keas-mobile-store-v17',
+      version: 17,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1352,6 +1352,19 @@ export const useStore = create<AppState>()(
           // canChangeWindDirection added — no data migration needed
           // (getUserPermissions grants it dynamically for Super Admin/IT/ECO roles)
         }
+        if (version < 17) {
+          // emergencyModes was not persisted before — seed a safe default
+          if (!state.emergencyModes) {
+            state.emergencyModes = {
+              shelterIn: false,
+              blackout: false,
+              shelterInActivatedAt: null,
+              shelterInActivatedBy: null,
+              blackoutActivatedAt: null,
+              blackoutActivatedBy: null,
+            };
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -1372,6 +1385,7 @@ export const useStore = create<AppState>()(
         windDirection: state.windDirection,
         windSetBy: state.windSetBy,
         windSetAt: state.windSetAt,
+        emergencyModes: state.emergencyModes,
       }),
     },
   ),
