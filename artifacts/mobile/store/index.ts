@@ -1148,8 +1148,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v17',
-      version: 17,
+      name: 'keas-mobile-store-v18',
+      version: 18,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1365,6 +1365,12 @@ export const useStore = create<AppState>()(
             };
           }
         }
+        if (version < 18) {
+          // permissionAssignments was not persisted before — seed empty array
+          if (!Array.isArray(state.permissionAssignments)) {
+            state.permissionAssignments = [];
+          }
+        }
         return persisted as AppState;
       },
       partialize: (state) => ({
@@ -1386,6 +1392,7 @@ export const useStore = create<AppState>()(
         windSetBy: state.windSetBy,
         windSetAt: state.windSetAt,
         emergencyModes: state.emergencyModes,
+        permissionAssignments: state.permissionAssignments,
       }),
     },
   ),
