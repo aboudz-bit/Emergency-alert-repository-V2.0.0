@@ -6,6 +6,32 @@ import type { PersonnelLocation } from "@/types";
 const SIMULATION_INTERVAL_MS = 8000;
 const JITTER = 0.0003;
 
+/** Compute a base position for a user from their location or zone. */
+function computeBasePosition(
+  user: { locationId?: number | null; zoneId?: number | null },
+  locations: { id: number; polygonPoints: { lat: number; lng: number }[] }[],
+  zones: { id: number; center?: { lat: number; lng: number } | null; polygonPoints: { lat: number; lng: number }[] }[],
+): { lat: number; lng: number } | null {
+  const loc = locations.find((l) => l.id === user.locationId);
+  if (loc && loc.polygonPoints.length >= 3) {
+    return loc.polygonPoints.reduce(
+      (acc, p) => ({ lat: acc.lat + p.lat / loc.polygonPoints.length, lng: acc.lng + p.lng / loc.polygonPoints.length }),
+      { lat: 0, lng: 0 },
+    );
+  }
+  const zone = zones.find((z) => z.id === user.zoneId);
+  if (zone && zone.center) {
+    return { lat: zone.center.lat, lng: zone.center.lng };
+  }
+  if (zone && zone.polygonPoints.length > 0) {
+    return zone.polygonPoints.reduce(
+      (acc, p) => ({ lat: acc.lat + p.lat / zone.polygonPoints.length, lng: acc.lng + p.lng / zone.polygonPoints.length }),
+      { lat: 0, lng: 0 },
+    );
+  }
+  return null;
+}
+
 export function usePersonnelSimulation(enabled: boolean = true) {
   const currentUser = useStore((s) => s.currentUser);
   const batchUpdatePersonnelLocations = useStore((s) => s.batchUpdatePersonnelLocations);
@@ -15,50 +41,50 @@ export function usePersonnelSimulation(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled || !currentUser) return;
 
-    const { users, locations, zones } = useStore.getState();
+    const currentUserId = currentUser.id;
 
-    function initBasePositions() {
-      const bases: Record<number, { lat: number; lng: number }> = {};
+    /** Sync basePositions with current store state — add new, remove gone, update moved. */
+    function refreshBasePositions() {
+      const { users, locations, zones } = useStore.getState();
       const activeUsers = users.filter(
-        (u) => u.isActive && u.id !== currentUser!.id && u.accountStatus === "active"
+        (u) => u.isActive && u.id !== currentUserId && u.accountStatus === "active",
       );
 
+      const bases = basePositionsRef.current;
+      const activeIds = new Set<number>();
+
       for (const u of activeUsers) {
-        const loc = locations.find((l) => l.id === u.locationId);
-        if (loc && loc.polygonPoints.length >= 3) {
-          const center = loc.polygonPoints.reduce(
-            (acc, p) => ({ lat: acc.lat + p.lat / loc.polygonPoints.length, lng: acc.lng + p.lng / loc.polygonPoints.length }),
-            { lat: 0, lng: 0 }
-          );
-          bases[u.id] = center;
-        } else {
-          const zone = zones.find((z) => z.id === u.zoneId);
-          if (zone && zone.center) {
-            bases[u.id] = { lat: zone.center.lat, lng: zone.center.lng };
-          } else if (zone && zone.polygonPoints.length > 0) {
-            const center = zone.polygonPoints.reduce(
-              (acc, p) => ({ lat: acc.lat + p.lat / zone.polygonPoints.length, lng: acc.lng + p.lng / zone.polygonPoints.length }),
-              { lat: 0, lng: 0 }
-            );
-            bases[u.id] = center;
-          }
+        activeIds.add(u.id);
+        if (!bases[u.id]) {
+          // New user — compute and add a base position
+          const pos = computeBasePosition(u, locations, zones);
+          if (pos) bases[u.id] = pos;
         }
       }
-      basePositionsRef.current = bases;
+
+      // Remove users that are no longer active
+      for (const idStr of Object.keys(bases)) {
+        const id = parseInt(idStr);
+        if (!activeIds.has(id)) {
+          delete bases[id];
+        }
+      }
     }
 
     function simulate() {
+      refreshBasePositions();
+
       const { users: liveUsers, locations: liveLocs } = useStore.getState();
       const bases = basePositionsRef.current;
       const batch: PersonnelLocation[] = [];
-      Object.entries(bases).forEach(([idStr, base]) => {
+
+      for (const [idStr, base] of Object.entries(bases)) {
         const userId = parseInt(idStr);
         const jitterLat = (Math.random() - 0.5) * JITTER * 2;
         const jitterLng = (Math.random() - 0.5) * JITTER * 2;
         const lat = base.lat + jitterLat;
         const lng = base.lng + jitterLng;
         const detectedLocationId = findContainingLocationId({ lat, lng }, liveLocs);
-
         const user = liveUsers.find((u) => u.id === userId);
 
         batch.push({
@@ -70,13 +96,16 @@ export function usePersonnelSimulation(enabled: boolean = true) {
           detectedLocationId,
           zoneId: user?.zoneId ?? null,
         });
-      });
+      }
+
       if (batch.length > 0) {
         batchUpdatePersonnelLocations(batch);
       }
     }
 
-    initBasePositions();
+    // Initial run
+    basePositionsRef.current = {};
+    refreshBasePositions();
     simulate();
     intervalRef.current = setInterval(simulate, SIMULATION_INTERVAL_MS);
 
