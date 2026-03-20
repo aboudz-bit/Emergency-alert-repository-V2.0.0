@@ -480,7 +480,7 @@ export default function ZonesScreen() {
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
       {mode === "view" && !addingShelter && !placingHazard && (
         <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
+          <Pressable style={styles.fhBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
             <Feather name="chevron-left" size={20} color="#fff" />
           </Pressable>
           <View style={styles.fhTitle}>
