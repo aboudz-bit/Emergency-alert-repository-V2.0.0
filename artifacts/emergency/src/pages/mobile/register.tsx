@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cpfLocations, campLocations } from '@/lib/mock-data';
 import { useStore } from '@/store';
+import type { EmploymentType } from '@/types';
 
 export default function MobileRegister() {
   const [, navigate] = useLocation();
@@ -19,6 +20,7 @@ export default function MobileRegister() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [location, setLocation] = useState('');
+  const [employmentType, setEmploymentType] = useState<EmploymentType | ''>('');
   const [showPw, setShowPw] = useState(false);
   const [showCPw, setShowCPw] = useState(false);
   const [error, setError] = useState('');
@@ -42,12 +44,16 @@ export default function MobileRegister() {
       setError('Passwords do not match.');
       return;
     }
+    if (!employmentType) {
+      setError('Please select an employment type.');
+      return;
+    }
     if (!location) {
       setError('Please select a location.');
       return;
     }
 
-    const result = registerUser({ name, badge, password, zone, location });
+    const result = registerUser({ name, badge, password, zone, location, employmentType });
     if (!result.success) {
       setError(result.error || 'Registration failed.');
       return;
@@ -142,6 +148,28 @@ export default function MobileRegister() {
               <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowCPw(v => !v)}>
                 {showCPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Employment Type</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {([{ value: 'aramco', label: 'Aramco' }, { value: 'contract', label: 'Contract' }] as const).map(et => (
+                <button
+                  key={et.value}
+                  type="button"
+                  onClick={() => setEmploymentType(et.value)}
+                  className={`h-12 rounded-lg border text-sm font-semibold transition-all ${
+                    employmentType === et.value
+                      ? et.value === 'aramco'
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-yellow-500 text-white border-yellow-500'
+                      : 'bg-card text-muted-foreground border-border hover:border-primary/40'
+                  }`}
+                >
+                  {et.label}
+                </button>
+              ))}
             </div>
           </div>
 

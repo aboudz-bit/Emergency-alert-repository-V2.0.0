@@ -84,6 +84,9 @@ export type UserResponseStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_he
 // legacy alias kept for backward compat
 export type UserStatus = UserResponseStatus;
 
+export type EmploymentType = 'aramco' | 'contract';
+export type AlertResponseStatus = 'safe' | 'need_help' | null;
+
 export interface User {
   id: number;
   name: string;
@@ -96,6 +99,8 @@ export interface User {
   accountStatus: AccountStatus;
   lastActivity: string;
   isActive: boolean;
+  employmentType: EmploymentType;
+  alertResponseStatus?: AlertResponseStatus;
 
   // ECO assignment fields (user remains role='User' with ECO overlay)
   // NOTE: currentOperationalLocation='CCR' is a string-only value for now.

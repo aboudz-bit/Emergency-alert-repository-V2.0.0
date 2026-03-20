@@ -10,6 +10,7 @@ export type {
   UserRole,
   AlertType,
   ZoneType,
+  EmploymentType,
   User,
   Alert,
   Zone,
@@ -59,7 +60,7 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment } from '@/types';
+import type { User, Alert, Zone, Location, ActivityLog, AppSettings, EcoAssignment, SupervisorAssignment, EmploymentType } from '@/types';
 
 export const seedUsers: User[] = names.map((name, i) => {
   const isCpf = i < 30;
@@ -71,6 +72,9 @@ export const seedUsers: User[] = names.map((name, i) => {
   let role: User['role'] = 'User';
   if (i === 0) role = 'Super Admin';
   else if (i === 1) role = 'IT';
+
+  // Alternate employment type: even index = aramco, odd index = contract
+  const employmentType: EmploymentType = i % 2 === 0 ? 'aramco' : 'contract';
 
   return {
     id: i + 1,
@@ -84,6 +88,8 @@ export const seedUsers: User[] = names.map((name, i) => {
     accountStatus: i === 3 ? 'disabled' : 'active',
     lastActivity: new Date(Date.now() - Math.floor(Math.random() * 10_000_000)).toISOString(),
     isActive: i !== 3,
+    employmentType,
+    alertResponseStatus: null,
   };
 });
 

@@ -10,6 +10,7 @@ import type {
   HazardZone,
   PermissionKey, UserPermissionAssignment,
   EmergencyModes,
+  EmploymentType,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -61,7 +62,7 @@ interface AppState {
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
   resetToSeedData: () => void;
-  registerUser: (data: { name: string; badge: string; password: string; zone: 'CPF' | 'Camp'; location: string }) => { success: boolean; error?: string };
+  registerUser: (data: { name: string; badge: string; password: string; zone: 'CPF' | 'Camp'; location: string; employmentType: EmploymentType }) => { success: boolean; error?: string };
 
   // ── User/Admin management ────────────────────────────────────────────────────
   createSuperAdmin: (data: { name: string; badge: string; password: string }) => { success: boolean; error?: string };
@@ -298,7 +299,7 @@ export const useStore = create<AppState>()(
         });
       },
 
-      registerUser: ({ name, badge, password, zone, location }) => {
+      registerUser: ({ name, badge, password, zone, location, employmentType }) => {
         const { users } = get();
         if (users.find(u => u.badge === badge)) {
           return { success: false, error: 'Badge number already registered.' };
@@ -315,6 +316,8 @@ export const useStore = create<AppState>()(
           accountStatus: 'active',
           lastActivity: new Date().toISOString(),
           isActive: true,
+          employmentType,
+          alertResponseStatus: null,
         };
         set(s => ({ users: [...s.users, newUser] }));
         get().addActivityLog({
@@ -345,6 +348,8 @@ export const useStore = create<AppState>()(
           accountStatus: 'active',
           lastActivity: new Date().toISOString(),
           isActive: true,
+          employmentType: 'aramco',
+          alertResponseStatus: null,
         };
         set(s => ({ users: [...s.users, newAdmin] }));
         get().addActivityLog({
@@ -612,7 +617,14 @@ export const useStore = create<AppState>()(
         const { currentUser } = get();
         if (!currentUser) return;
         get().updateUserResponse(currentUser.id, response);
-        set({ mobileUserResponse: response });
+        // Map response to alertResponseStatus: confirmed → safe, need_help → need_help
+        const alertResponseStatus = response === 'confirmed' ? 'safe' as const : 'need_help' as const;
+        set(s => ({
+          mobileUserResponse: response,
+          users: s.users.map(u =>
+            u.id === currentUser.id ? { ...u, alertResponseStatus } : u,
+          ),
+        }));
       },
 
       // ── Zone actions ──────────────────────────────────────────────────────────
