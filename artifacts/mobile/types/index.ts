@@ -4,6 +4,7 @@ export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Supe
 export type AccountStatus = 'active' | 'disabled';
 export type EcoSlot = 'A' | 'B' | 'C';
 export type UserType = 'Aramco' | 'Contract';
+export type Language = 'en' | 'ar' | 'ur';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 // ─── Wind ────────────────────────────────────────────────────────────────────
@@ -183,6 +184,7 @@ export interface User {
   approvedBy?: string | null;
   approvedAt?: string | null;
   rejectionReason?: string | null;
+  language?: Language;
   isECOAssigned?: boolean;
   ecoSlot?: EcoSlot;
   ecoZoneName?: string;

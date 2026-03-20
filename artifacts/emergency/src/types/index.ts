@@ -12,7 +12,8 @@ export type PermissionKey =
   | 'canDeleteHazardZone'
   | 'canUnlockHazardZone'
   | 'canManageShelters'
-  | 'canReviewAlertMonitor';
+  | 'canReviewAlertMonitor'
+  | 'canChangeWindDirection';
 
 export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: string }[] = [
   { key: 'canViewGlobalLiveMap', label: 'View Global Live Map', description: 'Access the full live alert map with all zones, locations, shelters, personnel, and hazard zones' },
@@ -22,6 +23,7 @@ export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: 
   { key: 'canUnlockHazardZone', label: 'Unlock Hazard Zone', description: 'Unlock locked hazard zones for editing' },
   { key: 'canManageShelters', label: 'Manage Shelters', description: 'Add, edit, and delete shelter locations' },
   { key: 'canReviewAlertMonitor', label: 'Review Alert Monitor', description: 'Access the alert monitor with personnel tracking and response stats' },
+  { key: 'canChangeWindDirection', label: 'Change Wind Direction', description: 'Update the wind direction indicator used in the map overlay during alerts' },
 ];
 
 export interface UserPermissionAssignment {
@@ -43,6 +45,27 @@ export interface AuthState {
 
 export type ZoneType = 'CPF' | 'Camp' | 'Custom';
 export type ZoneBoundaryType = 'Polygon' | 'Circle';
+
+export type LocationAlertType =
+  | 'Blackout'
+  | 'Security Alert'
+  | 'Shelter-in'
+  | 'Drill'
+  | 'Restricted Movement'
+  | 'Custom';
+
+export type AlertHistoryAction = 'activated' | 'deactivated' | 'edited';
+
+export interface ZoneAlertHistoryEntry {
+  id: number;
+  zoneId: number;
+  action: AlertHistoryAction;
+  alertType: LocationAlertType | null;
+  priority: AlertPriority | null;
+  message: string;
+  timestamp: string;
+  user: string | null;
+}
 
 export interface ZonePoint {
   x: number;
@@ -66,6 +89,12 @@ export interface Zone {
   radius?: number;
   isActive: boolean;
   color: string;
+  alertActive: boolean;
+  alertType: LocationAlertType | null;
+  alertPriority: AlertPriority | null;
+  alertMessage: string;
+  alertUpdatedAt: string | null;
+  alertHistory: ZoneAlertHistoryEntry[];
 }
 
 // ─── Locations ────────────────────────────────────────────────────────────────
@@ -84,7 +113,7 @@ export type UserResponseStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_he
 // legacy alias kept for backward compat
 export type UserStatus = UserResponseStatus;
 
-export type EmploymentType = 'aramco' | 'contract';
+export type EmploymentType = 'Aramco' | 'Contract';
 export type AlertResponseStatus = 'safe' | 'need_help' | null;
 
 export interface User {

@@ -4,6 +4,7 @@ import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
+import { useTranslation } from "@/i18n";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -14,6 +15,8 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
 }
 
 export default function UserLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -28,28 +31,28 @@ export default function UserLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t.dashboard,
           tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          title: "Map",
+          title: t.map,
           tabBarIcon: ({ color, focused }) => <TabIcon name="map" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: "Alerts",
+          title: t.alerts,
           tabBarIcon: ({ color, focused }) => <TabIcon name="bell" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t.profile,
           tabBarIcon: ({ color, focused }) => <TabIcon name="user" color={color} focused={focused} />,
         }}
       />

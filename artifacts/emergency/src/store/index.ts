@@ -11,12 +11,16 @@ import type {
   PermissionKey, UserPermissionAssignment,
   EmergencyModes,
   EmploymentType,
+  LocationAlertType, AlertPriority,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
   seedActivityLogs, seedSettings, seedEcoAssignments,
   seedSupervisorAssignments,
 } from '@/lib/mock-data';
+
+let _historyIdCounter = Date.now();
+function nextHistoryId() { return ++_historyIdCounter; }
 
 // ─── State shape ──────────────────────────────────────────────────────────────
 
@@ -111,6 +115,9 @@ interface AppState {
   updateZone: (id: number, partial: Partial<Zone>) => void;
   disableZone: (id: number) => void;
   deleteZone: (id: number) => void;
+  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  deactivateZoneAlert: (zoneId: number) => void;
+  editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
   // ── Location actions ─────────────────────────────────────────────────────────
   addLocation: (location: Omit<Location, 'id'>) => void;
@@ -348,7 +355,7 @@ export const useStore = create<AppState>()(
           accountStatus: 'active',
           lastActivity: new Date().toISOString(),
           isActive: true,
-          employmentType: 'aramco',
+          employmentType: 'Aramco',
           alertResponseStatus: null,
         };
         set(s => ({ users: [...s.users, newAdmin] }));
@@ -630,7 +637,11 @@ export const useStore = create<AppState>()(
       // ── Zone actions ──────────────────────────────────────────────────────────
 
       addZone: (zone) => {
-        set(s => ({ zones: [...s.zones, { ...zone, id: Date.now() }] }));
+        set(s => ({ zones: [...s.zones, {
+          alertActive: false, alertType: null, alertPriority: null,
+          alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+          ...zone, id: Date.now(),
+        }] }));
       },
 
       updateZone: (id, partial) => {
@@ -643,6 +654,86 @@ export const useStore = create<AppState>()(
 
       deleteZone: (id) => {
         set(s => ({ zones: s.zones.filter(z => z.id !== id) }));
+      },
+
+      activateZoneAlert: (zoneId, alertType, priority, message) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone) return;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...z.alertHistory, {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+        }));
+      },
+
+      deactivateZoneAlert: (zoneId) => {
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone) return;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...z.alertHistory, {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'deactivated' as const,
+              alertType: z.alertType,
+              priority: z.alertPriority,
+              message: z.alertMessage,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+        }));
+      },
+
+      editZoneAlert: (zoneId, alertType, priority, message) => {
+        const zone = get().zones.find(z => z.id === zoneId);
+        if (!zone || !zone.alertActive) return;
+        const now = new Date().toISOString();
+        const user = get().currentUser?.name || null;
+        set(s => ({
+          zones: s.zones.map(z => z.id === zoneId ? {
+            ...z,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...z.alertHistory, {
+              id: nextHistoryId(),
+              zoneId,
+              action: 'edited' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : z),
+        }));
       },
 
       // ── Location actions ──────────────────────────────────────────────────────
@@ -1390,9 +1481,10 @@ export const useStore = create<AppState>()(
         if (user.role === 'Super Admin' || user.role === 'IT') return [
           'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
           'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
+          'canChangeWindDirection',
         ] as PermissionKey[];
         if (user.isECOAssigned && user.ecoAssignmentActive) {
-          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor'];
+          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor', 'canChangeWindDirection'];
           const extra = user.permissions || [];
           return [...new Set([...base, ...extra])] as PermissionKey[];
         }
@@ -1470,6 +1562,18 @@ export const useStore = create<AppState>()(
             merged.settings.hazardColdRadius = 1000;
           }
         }
+        // Backfill zone alert fields for persisted zones that predate this change
+        if (Array.isArray(merged.zones)) {
+          merged.zones = merged.zones.map((z: any) => ({
+            ...z,
+            alertActive: z.alertActive ?? false,
+            alertType: z.alertType ?? null,
+            alertPriority: z.alertPriority ?? null,
+            alertMessage: z.alertMessage ?? '',
+            alertUpdatedAt: z.alertUpdatedAt ?? null,
+            alertHistory: z.alertHistory ?? [],
+          }));
+        }
         // Migrate old hazard zone field names
         if (Array.isArray(merged.hazardZones)) {
           merged.hazardZones = merged.hazardZones.map((hz: any) => ({
@@ -1506,14 +1610,14 @@ export const selectActiveAlert = (s: AppState) => {
     _cachedZoneAlertKey = '';
     return fromAlerts;
   }
-  // Synthesize an alert from active zone-level alerts (if zones support it)
-  const activeZones = s.zones.filter((z: any) => z.alertActive);
+  // Synthesize an alert from active zone-level alerts
+  const activeZones = s.zones.filter(z => z.alertActive);
   if (activeZones.length === 0) {
     _cachedZoneAlert = null;
     _cachedZoneAlertKey = '';
     return null;
   }
-  const first = activeZones[0] as any;
+  const first = activeZones[0];
   const activeZoneIds = new Set(activeZones.map(z => z.id));
   const zoneUsers = s.users.filter(u => activeZoneIds.has((u as any).zoneId) && u.isActive);
   const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
@@ -1546,7 +1650,7 @@ export const selectActiveAlert = (s: AppState) => {
 
 /** True when ANY alert or zone-level alert is active (includes synthetic id:-1). */
 export const selectHasActiveAlert = (s: AppState) =>
-  s.alerts.some(a => a.isActive) || s.zones.some((z: any) => z.alertActive);
+  s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
 
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);

@@ -1,7 +1,9 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { BackHandler, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import * as ExpoLocation from "expo-location";
+import { useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
@@ -25,13 +27,41 @@ const BENEFITS: { icon: React.ComponentProps<typeof Feather>["name"]; title: str
 ];
 
 export default function LocationPermissionScreen() {
-  const handleEnableLocation = () => {
-    // TODO: Request location permissions via expo-location
-    // e.g. Location.requestForegroundPermissionsAsync()
+  const router = useRouter();
+  const [denied, setDenied] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  const handleEnableLocation = async () => {
+    setRequesting(true);
+    setDenied(false);
+    try {
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        router.replace("/");
+      } else {
+        setDenied(true);
+      }
+    } catch {
+      setDenied(true);
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handleContinueWithout = () => {
+    router.replace("/");
+  };
+
+  const handleOpenSettings = () => {
+    Linking.openSettings();
   };
 
   const handleExit = () => {
-    // TODO: Exit / close app
+    if (Platform.OS === "web") {
+      router.back();
+    } else {
+      BackHandler.exitApp();
+    }
   };
 
   return (
@@ -74,20 +104,50 @@ export default function LocationPermissionScreen() {
         {/* Spacer */}
         <View style={styles.flex} />
 
+        {/* Denied banner */}
+        {denied && (
+          <View style={styles.deniedBanner}>
+            <Feather name="alert-triangle" size={16} color={Colors.destructive} />
+            <Text style={styles.deniedText}>
+              Location permission was denied. Some features like zone detection
+              and live tracking will not work. You can grant it later in Settings.
+            </Text>
+          </View>
+        )}
+
         {/* Actions */}
         <View style={styles.actions}>
-          <Button
-            title="Enable Location"
-            onPress={handleEnableLocation}
-            fullWidth
-          />
-          <Button
-            title="Exit App"
-            onPress={handleExit}
-            variant="ghost"
-            fullWidth
-            style={styles.exitButton}
-          />
+          {denied ? (
+            <>
+              <Button
+                title="Open Settings"
+                onPress={handleOpenSettings}
+                fullWidth
+              />
+              <Button
+                title="Continue Without Location"
+                onPress={handleContinueWithout}
+                variant="ghost"
+                fullWidth
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                title={requesting ? "Requesting…" : "Enable Location"}
+                onPress={handleEnableLocation}
+                fullWidth
+                disabled={requesting}
+              />
+              <Button
+                title="Exit App"
+                onPress={handleExit}
+                variant="ghost"
+                fullWidth
+                style={styles.exitButton}
+              />
+            </>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -180,6 +240,26 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+
+  /* Denied banner */
+  deniedBanner: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    backgroundColor: "rgba(220,38,38,0.08)",
+    borderWidth: 1,
+    borderColor: Colors.destructive,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    alignItems: "flex-start",
+  },
+  deniedText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.text,
     lineHeight: 18,
   },
 

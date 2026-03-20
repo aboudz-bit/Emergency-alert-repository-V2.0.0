@@ -14,7 +14,7 @@ import type { User, AlertResponseStatus } from '@/types';
 export function getPersonnelMarkerColor(user: User): string {
   if (user.alertResponseStatus === 'need_help') return '#EF4444'; // red
   if (user.alertResponseStatus === 'safe') return '#22c55e';      // green
-  if (user.employmentType === 'contract') return '#eab308';       // yellow
+  if (user.employmentType === 'Contract') return '#eab308';       // yellow
   return '#3b82f6'; // blue (aramco default)
 }
 

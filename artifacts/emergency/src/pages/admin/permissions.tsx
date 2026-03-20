@@ -46,7 +46,7 @@ export default function PermissionsPage() {
   const saveAndClose = () => {
     if (selectedUser) {
       const isECO = selectedUser.isECOAssigned && selectedUser.ecoAssignmentActive;
-      const defaults: PermissionKey[] = isECO ? ['canViewGlobalLiveMap', 'canReviewAlertMonitor'] : [];
+      const defaults: PermissionKey[] = isECO ? ['canViewGlobalLiveMap', 'canReviewAlertMonitor', 'canChangeWindDirection'] : [];
       const explicit = localPerms.filter(p => !defaults.includes(p));
       setUserPermissions(selectedUser.id, explicit);
     }
@@ -227,7 +227,7 @@ export default function PermissionsPage() {
                 {ALL_PERMISSIONS.map(perm => {
                   const isActive = localPerms.includes(perm.key);
                   const isECO = selectedUser.isECOAssigned && selectedUser.ecoAssignmentActive;
-                  const isDefault = isECO && (perm.key === 'canViewGlobalLiveMap' || perm.key === 'canReviewAlertMonitor');
+                  const isDefault = isECO && (perm.key === 'canViewGlobalLiveMap' || perm.key === 'canReviewAlertMonitor' || perm.key === 'canChangeWindDirection');
 
                   return (
                     <button

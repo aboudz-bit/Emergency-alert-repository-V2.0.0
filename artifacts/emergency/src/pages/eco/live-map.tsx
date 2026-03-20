@@ -198,7 +198,7 @@ export default function ECOLiveMap() {
                   { icon: '🆔', label: 'Badge', value: selectedUser.badge },
                   { icon: '📍', label: 'Zone', value: selectedUser.zone },
                   { icon: '🏢', label: 'Location', value: selectedUser.location },
-                  { icon: '🏷️', label: 'Employment', value: selectedUser.employmentType === 'aramco' ? 'Aramco' : selectedUser.employmentType === 'contract' ? 'Contract' : '—' },
+                  { icon: '🏷️', label: 'Employment', value: selectedUser.employmentType === 'Aramco' ? 'Aramco' : selectedUser.employmentType === 'Contract' ? 'Contract' : '—' },
                   { icon: '⏰', label: 'Last Activity', value: new Date(selectedUser.lastActivity).toLocaleTimeString() },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center gap-3 py-2 border-b border-[#F0F1F4] last:border-0">
