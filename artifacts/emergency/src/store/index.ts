@@ -348,7 +348,7 @@ export const useStore = create<AppState>()(
           accountStatus: 'active',
           lastActivity: new Date().toISOString(),
           isActive: true,
-          employmentType: 'aramco',
+          employmentType: 'Aramco',
           alertResponseStatus: null,
         };
         set(s => ({ users: [...s.users, newAdmin] }));

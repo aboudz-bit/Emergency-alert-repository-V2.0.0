@@ -84,7 +84,7 @@ export type UserResponseStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_he
 // legacy alias kept for backward compat
 export type UserStatus = UserResponseStatus;
 
-export type EmploymentType = 'aramco' | 'contract';
+export type EmploymentType = 'Aramco' | 'Contract';
 export type AlertResponseStatus = 'safe' | 'need_help' | null;
 
 export interface User {

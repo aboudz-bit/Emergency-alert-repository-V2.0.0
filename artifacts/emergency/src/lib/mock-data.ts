@@ -74,7 +74,7 @@ export const seedUsers: User[] = names.map((name, i) => {
   else if (i === 1) role = 'IT';
 
   // Alternate employment type: even index = aramco, odd index = contract
-  const employmentType: EmploymentType = i % 2 === 0 ? 'aramco' : 'contract';
+  const employmentType: EmploymentType = i % 2 === 0 ? 'Aramco' : 'Contract';
 
   return {
     id: i + 1,

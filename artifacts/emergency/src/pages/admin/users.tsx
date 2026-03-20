@@ -49,12 +49,12 @@ function UserDrawer({ user, onClose }: { user: User; onClose: () => void }) {
               <p className="font-semibold text-foreground text-sm">
                 <span className={cn(
                   'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border',
-                  user.employmentType === 'aramco'
+                  user.employmentType === 'Aramco'
                     ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                     : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
                 )}>
-                  <span className={cn('w-2 h-2 rounded-full', user.employmentType === 'aramco' ? 'bg-blue-500' : 'bg-yellow-500')} />
-                  {user.employmentType === 'aramco' ? 'Aramco' : 'Contract'}
+                  <span className={cn('w-2 h-2 rounded-full', user.employmentType === 'Aramco' ? 'bg-blue-500' : 'bg-yellow-500')} />
+                  {user.employmentType === 'Aramco' ? 'Aramco' : 'Contract'}
                 </span>
               </p>
             </div>
