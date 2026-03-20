@@ -1,13 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Colors, FontSize, BorderRadius } from "@/constants/theme";
+import { Colors, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { WIND_DIRECTIONS } from "@/types";
 
 /**
  * Small floating wind indicator overlay for map screens.
- * Reads windDirection from global store and shows a rotated arrow with label.
+ * Reads windDirection from global store and shows "Wind" label + rotated arrow.
  * Renders nothing when no wind direction is set.
  */
 export function WindIndicator() {
@@ -26,7 +26,6 @@ export function WindIndicator() {
           <Feather name="arrow-down" size={18} color={Colors.primary} />
         </View>
       </View>
-      <Text style={styles.dirLabel}>{entry.label}</Text>
     </View>
   );
 }
@@ -63,11 +62,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dirLabel: {
-    fontSize: 9,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
-    marginTop: 2,
   },
 });
