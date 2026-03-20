@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { WindIndicator } from "@/components/ui/WindIndicator";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
@@ -37,6 +38,7 @@ const TABS: { key: TabKey; label: string; color: string }[] = [
 ];
 
 export default function AlertMonitorScreen() {
+  const focusCount = useRefreshOnFocus();
   const activeAlert = useStore(selectActiveAlert);
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
@@ -184,6 +186,7 @@ export default function AlertMonitorScreen() {
             <Text style={styles.zoneSectionTitle}>Live Personnel Map</Text>
             <View style={styles.mapContainer}>
               <ZoneMap
+                key={focusCount}
                 zones={zones}
                 selectedZoneId={null}
                 onZonePress={() => {}}

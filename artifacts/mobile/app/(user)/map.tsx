@@ -13,12 +13,14 @@ import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function ContractorMapScreen() {
+  const focusCount = useRefreshOnFocus();
   const currentUser = useStore((s) => s.currentUser);
   const activeAlert = useStore(selectActiveAlert);
   const zones = useStore((s) => s.zones);
@@ -93,6 +95,7 @@ export default function ContractorMapScreen() {
     <View style={styles.container}>
       {/* Full-screen map */}
       <ZoneMap
+        key={focusCount}
         zones={zones}
         selectedZoneId={null}
         onZonePress={() => {}}
