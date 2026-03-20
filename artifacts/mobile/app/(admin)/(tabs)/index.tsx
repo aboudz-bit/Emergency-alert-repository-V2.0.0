@@ -232,16 +232,6 @@ export default function DashboardScreen() {
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
-              onPress={() => router.push("/(admin)/zones")}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: Colors.infoDim }]}>
-                <Feather name="map" size={20} color={Colors.info} />
-              </View>
-              <Text style={styles.quickActionText}>Zone Map</Text>
-              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
               onPress={() => router.push("/(admin)/locations")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.safeDim }]}>
