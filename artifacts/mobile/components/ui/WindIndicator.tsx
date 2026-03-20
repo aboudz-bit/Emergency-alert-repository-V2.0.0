@@ -1,13 +1,13 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Colors, FontSize, BorderRadius } from "@/constants/theme";
+import { Colors, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { WIND_DIRECTIONS } from "@/types";
 
 /**
  * Small floating wind indicator overlay for map screens.
- * Reads windDirection from global store and shows a rotated arrow with label.
+ * Reads windDirection from global store and shows a rotated arrow.
  * Renders nothing when no wind direction is set.
  */
 export function WindIndicator() {
@@ -20,13 +20,11 @@ export function WindIndicator() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Wind</Text>
       <View style={styles.arrowWrap}>
         <View style={{ transform: [{ rotate: `${entry.degrees}deg` }] }}>
           <Feather name="arrow-down" size={18} color={Colors.primary} />
         </View>
       </View>
-      <Text style={styles.dirLabel}>{entry.label}</Text>
     </View>
   );
 }
@@ -39,22 +37,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: BorderRadius.md,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    padding: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
     zIndex: 20,
-  },
-  label: {
-    fontSize: 9,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 2,
   },
   arrowWrap: {
     width: 28,
@@ -63,11 +52,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dirLabel: {
-    fontSize: 9,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
-    marginTop: 2,
   },
 });
