@@ -111,7 +111,7 @@ export function GoogleMapsView({
                     longitude: poly.center.lng,
                   }}
                   onPress={() => handlePolygonPress(poly.id)}
-                  anchor={{ x: 0.5, y: 0.5 }}
+                  anchor={{ x: 0.5, y: 1.0 }}
                 >
                   <View
                     style={[
@@ -188,14 +188,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 6,
   },
   labelText: {
     color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "600",
   },
   vertexMarker: {
     width: 28,

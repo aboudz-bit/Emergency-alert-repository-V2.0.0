@@ -885,7 +885,7 @@ export default function Zones() {
                   <Circle key={zone.id} center={[zone.center.lat, zone.center.lng]} radius={zone.radius}
                     pathOptions={{ color: zone.color, weight: isSel ? 4 : 2.5, fillOpacity: isSel ? 0.25 : 0.12, fillColor: zone.color }}
                     eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}>
-                    <Tooltip permanent direction="center" className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
+                    <Tooltip permanent direction="top" offset={[0, -6]} className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
                   </Circle>
                 );
               }
@@ -895,7 +895,7 @@ export default function Zones() {
                     positions={zone.polygonPoints.map(p => [p.lat, p.lng] as [number, number])}
                     pathOptions={{ color: zone.color, weight: isSel ? 4 : 2.5, fillOpacity: isSel ? 0.25 : 0.12, fillColor: zone.color }}
                     eventHandlers={{ click: () => !isEditing && setSelectedZoneId(zone.id) }}>
-                    <Tooltip permanent direction="center" className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
+                    <Tooltip permanent direction="top" offset={[0, -6]} className={isSel ? 'zone-label-selected' : 'zone-label'}>{zone.name}</Tooltip>
                   </Polygon>
                 );
               }
