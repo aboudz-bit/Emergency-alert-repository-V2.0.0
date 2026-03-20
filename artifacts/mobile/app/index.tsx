@@ -14,7 +14,10 @@ export default function Index() {
     return <Redirect href="/(eco)" />;
   }
 
-  if (currentUser.isSupervisorAssigned || currentUser.isBackupSupervisorAssigned) {
+  if (
+    (currentUser.isSupervisorAssigned || currentUser.isBackupSupervisorAssigned) &&
+    currentUser.supervisorAssignmentActive
+  ) {
     return <Redirect href="/(supervisor)" />;
   }
 
