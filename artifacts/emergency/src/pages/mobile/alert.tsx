@@ -7,10 +7,11 @@ import { useStore, useShallow } from '@/store';
 
 export default function MobileAlert() {
   const [, navigate] = useLocation();
-  const { alerts, mobileUserResponse, respondToAlert } = useStore(useShallow(s => ({
+  const { alerts, mobileUserResponse, respondToAlert, hazardZones } = useStore(useShallow(s => ({
     alerts: s.alerts,
     mobileUserResponse: s.mobileUserResponse,
     respondToAlert: s.respondToAlert,
+    hazardZones: s.hazardZones,
   })));
 
   const alert = alerts.find(a => a.isActive);
@@ -142,6 +143,39 @@ export default function MobileAlert() {
               <p className="text-[11px] text-[#6B7280]">Need Help</p>
             </div>
           </div>
+
+          {/* Hazard Zones */}
+          {(() => {
+            const activeHz = hazardZones.filter(hz => hz.isActive && hz.alertId === alert.id);
+            if (activeHz.length === 0) return null;
+            return (
+              <div className="bg-white rounded-xl p-[18px] border border-[#E5E7EB]">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4 text-[#EF4444]" />
+                  <span className="text-[13px] font-bold text-[#111111]">Hazard Zones ({activeHz.length})</span>
+                </div>
+                <div className="space-y-2">
+                  {activeHz.map(hz => (
+                    <div key={hz.id} className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                        <span className="text-[11px] font-semibold text-[#111111]">Hot {hz.hotRadius}m</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                        <span className="text-[11px] font-semibold text-[#111111]">Warm {hz.warmRadius}m</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-[#4CAF50]" />
+                        <span className="text-[11px] font-semibold text-[#111111]">Cold {hz.coldRadius}m</span>
+                      </span>
+                      <span className="text-[10px] text-[#9CA3AF] ml-auto">{hz.isLocked ? '🔒' : '🔓'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Response Buttons — matching mobile app (2-column) */}
           <div className="pt-2 space-y-3">

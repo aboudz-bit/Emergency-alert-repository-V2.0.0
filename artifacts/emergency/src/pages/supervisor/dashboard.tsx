@@ -11,7 +11,7 @@ export default function SupervisorDashboard() {
   const [, setLocation] = useLocation();
   const {
     currentUser, users, locations, alerts, auditLog, supervisorAssignments,
-    logout, activeBroadcast,
+    logout, activeBroadcast, hazardZones, zones,
   } = useStore(useShallow(s => ({
     currentUser: s.currentUser,
     users: s.users,
@@ -21,6 +21,8 @@ export default function SupervisorDashboard() {
     supervisorAssignments: s.supervisorAssignments,
     logout: s.logout,
     activeBroadcast: s.activeBroadcast,
+    hazardZones: s.hazardZones,
+    zones: s.zones,
   })));
 
   // Determine role: Supervisor or Backup Supervisor
@@ -216,6 +218,47 @@ export default function SupervisorDashboard() {
               <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
             </div>
           ))}
+
+          {/* Active Hazard Zones for this location */}
+          {(() => {
+            const activeAlert = alerts.find(a => a.isActive);
+            const zone = zones.find(z => z.name === zoneName);
+            const scopedHazardZones = activeAlert
+              ? hazardZones.filter(hz => {
+                  if (!hz.isActive || hz.alertId !== activeAlert.id) return false;
+                  if (loc && hz.locationId === loc.id) return true;
+                  if (zone && hz.zoneId === zone.id) return true;
+                  if (hz.locationId == null && hz.zoneId == null) return true;
+                  return false;
+                })
+              : [];
+            if (scopedHazardZones.length === 0) return null;
+            return (
+              <div className="bg-card border-2 border-amber-500/30 rounded-xl p-4 lg:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-bold text-foreground">Hazard Zones ({scopedHazardZones.length})</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {scopedHazardZones.map(hz => (
+                    <div key={hz.id} className="bg-background border border-border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500" />
+                        <span className="text-xs font-bold text-foreground">Hot: {hz.hotRadius}m</span>
+                        <span className="w-3 h-3 rounded-full bg-amber-400" />
+                        <span className="text-xs font-bold text-foreground">Warm: {hz.warmRadius}m</span>
+                        <span className="w-3 h-3 rounded-full bg-green-500" />
+                        <span className="text-xs font-bold text-foreground">Cold: {hz.coldRadius}m</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Created by {hz.createdBy} · {hz.isLocked ? 'Locked' : 'Unlocked'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* User Accountability List */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">

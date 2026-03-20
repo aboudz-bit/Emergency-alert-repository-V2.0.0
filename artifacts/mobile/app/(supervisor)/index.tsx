@@ -19,7 +19,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectHasActiveAlert } from "@/store";
+import { useStore, selectHasActiveAlert, selectActiveAlert } from "@/store";
 import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 
@@ -31,6 +31,8 @@ export default function SupervisorDashboardScreen() {
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
+  const hazardZones = useStore((s) => s.hazardZones);
+  const activeAlert = useStore(selectActiveAlert);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
@@ -102,6 +104,20 @@ export default function SupervisorDashboardScreen() {
       (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
     );
   }, [shelters, myLocation]);
+
+  // Hazard zones scoped to supervisor's location (or zone)
+  const activeHazardZones = useMemo(() => {
+    if (!activeAlert) return [];
+    return hazardZones.filter((hz) => {
+      if (!hz.isActive || hz.alertId !== activeAlert.id) return false;
+      // Show hazard zones that are in the supervisor's location or zone
+      if (myLocation && hz.locationId === myLocation.id) return true;
+      if (myZone && hz.zoneId === myZone.id) return true;
+      // Also show hazard zones with no specific location/zone scope
+      if (hz.locationId == null && hz.zoneId == null) return true;
+      return false;
+    });
+  }, [hazardZones, activeAlert, myLocation, myZone]);
 
   const recentLogs = useMemo(
     () => activityLogs.slice(0, 5),
@@ -286,6 +302,7 @@ export default function SupervisorDashboardScreen() {
             highlightedLocationIds={myLocation ? [myLocation.id] : []}
             shelters={myLinkedShelters}
             personnelLocations={visiblePersonnel}
+            hazardZones={activeHazardZones}
           />
         </View>
 

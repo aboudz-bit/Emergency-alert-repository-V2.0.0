@@ -88,6 +88,7 @@ export default function UserHomeScreen() {
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
+  const hazardZones = useStore((s) => s.hazardZones);
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
@@ -101,6 +102,11 @@ export default function UserHomeScreen() {
   usePersonnelTracking(hasActiveAlert);
 
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
+
+  const activeHazardZones = useMemo(
+    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
+    [hazardZones, activeAlert]
+  );
 
   const nearestShelter = useMemo(() => {
     if (!userLocation) return null;
@@ -334,6 +340,7 @@ export default function UserHomeScreen() {
               showLocationButton
               locations={locations}
               highlightedLocationIds={userHighlightedLocationIds}
+              hazardZones={activeHazardZones}
             />
           </View>
 
