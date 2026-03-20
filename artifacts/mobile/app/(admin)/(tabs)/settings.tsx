@@ -270,6 +270,22 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Navigation</Text>
+          <Card>
+            <Pressable
+              style={styles.navRow}
+              onPress={() => router.push("/(admin)/(tabs)/history")}
+            >
+              <View style={styles.navIcon}>
+                <Feather name="clock" size={18} color={Colors.info} />
+              </View>
+              <Text style={styles.navLabel}>Alert History</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          </Card>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <Card>
             <SettingRow label="Application" value="KEAS" />
@@ -398,6 +414,26 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: Colors.border,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  navIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.infoDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navLabel: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontFamily: "Inter_500Medium",
+    color: Colors.text,
   },
   stepper: {
     flexDirection: "row",

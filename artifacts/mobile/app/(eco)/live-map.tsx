@@ -59,15 +59,6 @@ export default function ECOLiveMapScreen() {
   if (!activeAlert) {
     return (
       <View style={styles.container}>
-        <View style={styles.noAlertOverlay}>
-          <View style={styles.emptyIcon}>
-            <Feather name="check-circle" size={48} color={Colors.safe} />
-          </View>
-          <Text style={styles.emptyTitle}>No Active Alert</Text>
-          <Text style={styles.emptyText}>
-            The live map will display all zones, locations, shelters, and personnel when an alert is active.
-          </Text>
-        </View>
         <ZoneMap
           zones={zones}
           selectedZoneId={null}
@@ -244,40 +235,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  noAlertOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    alignItems: "center",
-    paddingTop: 80,
-    paddingHorizontal: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.safeDim,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-    textAlign: "center",
-  },
-  emptyText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-
   // Floating alert bar
   floatingBar: {
     position: "absolute",
