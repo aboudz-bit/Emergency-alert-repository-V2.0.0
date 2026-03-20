@@ -44,6 +44,27 @@ export interface AuthState {
 export type ZoneType = 'CPF' | 'Camp' | 'Custom';
 export type ZoneBoundaryType = 'Polygon' | 'Circle';
 
+export type LocationAlertType =
+  | 'Blackout'
+  | 'Security Alert'
+  | 'Shelter-in'
+  | 'Drill'
+  | 'Restricted Movement'
+  | 'Custom';
+
+export type AlertHistoryAction = 'activated' | 'deactivated' | 'edited';
+
+export interface ZoneAlertHistoryEntry {
+  id: number;
+  zoneId: number;
+  action: AlertHistoryAction;
+  alertType: LocationAlertType | null;
+  priority: AlertPriority | null;
+  message: string;
+  timestamp: string;
+  user: string | null;
+}
+
 export interface ZonePoint {
   x: number;
   y: number;
@@ -66,6 +87,12 @@ export interface Zone {
   radius?: number;
   isActive: boolean;
   color: string;
+  alertActive: boolean;
+  alertType: LocationAlertType | null;
+  alertPriority: AlertPriority | null;
+  alertMessage: string;
+  alertUpdatedAt: string | null;
+  alertHistory: ZoneAlertHistoryEntry[];
 }
 
 // ─── Locations ────────────────────────────────────────────────────────────────

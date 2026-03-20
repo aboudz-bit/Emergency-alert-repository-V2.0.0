@@ -180,6 +180,12 @@ export const seedZones: Zone[] = [
     center: { lat: 25.078, lng: 48.165 },
     isActive: true,
     color: '#EF4444',
+    alertActive: false,
+    alertType: null,
+    alertPriority: null,
+    alertMessage: '',
+    alertUpdatedAt: null,
+    alertHistory: [],
   },
   {
     id: 2,
@@ -198,6 +204,12 @@ export const seedZones: Zone[] = [
     center: { lat: 25.085, lng: 48.1925 },
     isActive: true,
     color: '#3B82F6',
+    alertActive: false,
+    alertType: null,
+    alertPriority: null,
+    alertMessage: '',
+    alertUpdatedAt: null,
+    alertHistory: [],
   },
 ];
 
