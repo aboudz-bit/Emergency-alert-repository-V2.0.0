@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
+import { useTranslation } from "@/i18n";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -114,6 +115,7 @@ export default function AlertDetailScreen() {
   const activeAlert = useStore(selectActiveAlert);
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
+  const { t } = useTranslation();
 
   const handleRespond = (response: "confirmed" | "need_help") => {
     respondToAlert(response);
@@ -132,10 +134,9 @@ export default function AlertDetailScreen() {
           <View style={styles.noAlertIconWrap}>
             <Feather name="check-circle" size={48} color={Colors.safe} />
           </View>
-          <Text style={styles.noAlertTitle}>No Active Alert</Text>
+          <Text style={styles.noAlertTitle}>{t.noActiveAlert}</Text>
           <Text style={styles.noAlertSubtitle}>
-            There are no emergency alerts at this time. You will be notified
-            immediately if one is issued.
+            {t.noEmergencyAlerts}
           </Text>
           <Pressable
             style={({ pressed }) => [
@@ -145,7 +146,7 @@ export default function AlertDetailScreen() {
             onPress={() => router.back()}
           >
             <Feather name="arrow-left" size={18} color={Colors.text} />
-            <Text style={styles.backButtonText}>Back to Home</Text>
+            <Text style={styles.backButtonText}>{t.backToHome}</Text>
           </Pressable>
         </View>
       </View>
@@ -164,7 +165,7 @@ export default function AlertDetailScreen() {
         </Pressable>
         <View style={styles.topBarCenter}>
           <PulsingDot size={10} />
-          <Text style={styles.topBarLabel}>ACTIVE EMERGENCY</Text>
+          <Text style={styles.topBarLabel}>{t.activeEmergency}</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -192,7 +193,7 @@ export default function AlertDetailScreen() {
 
         {/* Full Message */}
         <Card style={styles.messageCard}>
-          <Text style={styles.messageSectionLabel}>Alert Message</Text>
+          <Text style={styles.messageSectionLabel}>{t.alertMessage}</Text>
           <Text style={styles.messageText}>{activeAlert.message}</Text>
         </Card>
 
@@ -201,7 +202,7 @@ export default function AlertDetailScreen() {
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
               <Feather name="clock" size={14} color={Colors.textSecondary} />
-              <Text style={styles.infoLabel}>Issued</Text>
+              <Text style={styles.infoLabel}>{t.issued}</Text>
               <Text style={styles.infoValue}>
                 {formatTimeAgo(activeAlert.timestamp)}
               </Text>
@@ -209,7 +210,7 @@ export default function AlertDetailScreen() {
             <View style={styles.infoDivider} />
             <View style={styles.infoItem}>
               <Feather name="user" size={14} color={Colors.textSecondary} />
-              <Text style={styles.infoLabel}>Sent By</Text>
+              <Text style={styles.infoLabel}>{t.sentBy}</Text>
               <Text style={styles.infoValue} numberOfLines={1}>
                 {activeAlert.sentBy}
               </Text>
@@ -217,7 +218,7 @@ export default function AlertDetailScreen() {
             <View style={styles.infoDivider} />
             <View style={styles.infoItem}>
               <Feather name="map-pin" size={14} color={Colors.textSecondary} />
-              <Text style={styles.infoLabel}>Zone</Text>
+              <Text style={styles.infoLabel}>{t.zone}</Text>
               <Text style={styles.infoValue}>{activeAlert.zone}</Text>
             </View>
           </View>
@@ -225,7 +226,7 @@ export default function AlertDetailScreen() {
 
         {/* Live Stats */}
         <Card style={styles.statsCard}>
-          <Text style={styles.statsSectionLabel}>Live Response Status</Text>
+          <Text style={styles.statsSectionLabel}>{t.liveResponseStatus}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View
@@ -234,7 +235,7 @@ export default function AlertDetailScreen() {
               <Text style={styles.statCount}>
                 {activeAlert.stats.confirmed}
               </Text>
-              <Text style={styles.statLabel}>Safe</Text>
+              <Text style={styles.statLabel}>{t.safe}</Text>
             </View>
             <View style={styles.statItem}>
               <View
@@ -243,7 +244,7 @@ export default function AlertDetailScreen() {
               <Text style={styles.statCount}>
                 {activeAlert.stats.pending}
               </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t.pending}</Text>
             </View>
             <View style={styles.statItem}>
               <View
@@ -252,7 +253,7 @@ export default function AlertDetailScreen() {
               <Text style={styles.statCount}>
                 {activeAlert.stats.needHelp}
               </Text>
-              <Text style={styles.statLabel}>Need Help</Text>
+              <Text style={styles.statLabel}>{t.needHelp}</Text>
             </View>
           </View>
         </Card>
@@ -288,13 +289,13 @@ export default function AlertDetailScreen() {
               </View>
               <Text style={styles.confirmedTitle}>
                 {mobileUserResponse === "confirmed"
-                  ? "Response Confirmed"
-                  : "Help Requested"}
+                  ? t.responseConfirmed
+                  : t.helpRequested}
               </Text>
               <Text style={styles.confirmedSubtitle}>
                 {mobileUserResponse === "confirmed"
-                  ? "You have been marked as safe. No further action required."
-                  : "Your request for help has been received. Assistance is on the way."}
+                  ? t.noFurtherAction
+                  : t.assistanceOnTheWay}
               </Text>
               <StatusBadge status={mobileUserResponse} />
             </View>
@@ -310,9 +311,9 @@ export default function AlertDetailScreen() {
               onPress={() => handleRespond("confirmed")}
             >
               <Feather name="shield" size={28} color={Colors.white} />
-              <Text style={styles.responseBtnTitle}>I AM SAFE</Text>
+              <Text style={styles.responseBtnTitle}>{t.iAmSafe}</Text>
               <Text style={styles.responseBtnSubtitle}>
-                Confirm you are safe
+                {t.confirmYouAreSafe}
               </Text>
             </Pressable>
             <Pressable
@@ -324,9 +325,9 @@ export default function AlertDetailScreen() {
               onPress={() => handleRespond("need_help")}
             >
               <Feather name="alert-circle" size={28} color={Colors.white} />
-              <Text style={styles.responseBtnTitle}>NEED HELP</Text>
+              <Text style={styles.responseBtnTitle}>{t.needHelp}</Text>
               <Text style={styles.responseBtnSubtitle}>
-                Request assistance
+                {t.requestAssistance}
               </Text>
             </Pressable>
           </View>

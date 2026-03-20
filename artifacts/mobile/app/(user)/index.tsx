@@ -23,6 +23,7 @@ import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { useTranslation } from "@/i18n";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -84,6 +85,7 @@ export default function UserHomeScreen() {
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const shelters = useStore((s) => s.shelters);
+  const { t } = useTranslation();
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
 
@@ -137,7 +139,7 @@ export default function UserHomeScreen() {
       <View style={styles.headerArea}>
         <View style={styles.greetingRow}>
           <View style={styles.greetingTextWrap}>
-            <Text style={styles.greetingLabel}>Hello,</Text>
+            <Text style={styles.greetingLabel}>{t.hello}</Text>
             <Text style={styles.greetingName}>{firstName}</Text>
           </View>
           <View style={styles.badgeRow}>
@@ -164,7 +166,7 @@ export default function UserHomeScreen() {
               <Card style={styles.alertCard}>
                 <View style={styles.alertCardHeader}>
                   <PulsingDot />
-                  <Text style={styles.alertCardLabel}>ACTIVE EMERGENCY</Text>
+                  <Text style={styles.alertCardLabel}>{t.activeEmergency}</Text>
                 </View>
                 <View style={styles.alertTypeRow}>
                   <View style={styles.alertIconWrap}>
@@ -205,12 +207,12 @@ export default function UserHomeScreen() {
                   </View>
                   <View style={styles.confirmedTextWrap}>
                     <Text style={styles.confirmedTitle}>
-                      {mobileUserResponse === "confirmed" ? "Response Confirmed" : "Help Requested"}
+                      {mobileUserResponse === "confirmed" ? t.responseConfirmed : t.helpRequested}
                     </Text>
                     <Text style={styles.confirmedSubtitle}>
                       {mobileUserResponse === "confirmed"
-                        ? "You have been marked as safe"
-                        : "Help is on the way"}
+                        ? t.markedAsSafe
+                        : t.helpOnTheWay}
                     </Text>
                   </View>
                   <StatusBadge status={mobileUserResponse} />
@@ -223,14 +225,14 @@ export default function UserHomeScreen() {
                   onPress={() => respondToAlert("confirmed")}
                 >
                   <Feather name="shield" size={28} color={Colors.white} />
-                  <Text style={styles.responseBtnText}>I AM SAFE</Text>
+                  <Text style={styles.responseBtnText}>{t.iAmSafe}</Text>
                 </Pressable>
                 <Pressable
                   style={({ pressed }) => [styles.responseBtn, styles.helpBtnBg, pressed && styles.pressed]}
                   onPress={() => respondToAlert("need_help")}
                 >
                   <Feather name="alert-circle" size={28} color={Colors.white} />
-                  <Text style={styles.responseBtnText}>NEED HELP</Text>
+                  <Text style={styles.responseBtnText}>{t.needHelp}</Text>
                 </Pressable>
               </View>
             )}
@@ -241,9 +243,9 @@ export default function UserHomeScreen() {
               <View style={styles.allClearIconWrap}>
                 <Feather name="check-circle" size={44} color={Colors.safe} />
               </View>
-              <Text style={styles.allClearTitle}>No Active Alerts</Text>
+              <Text style={styles.allClearTitle}>{t.noActiveAlerts}</Text>
               <Text style={styles.allClearSubtitle}>
-                All systems operational. You will be notified immediately if an emergency alert is issued.
+                {t.allSystemsOperational}
               </Text>
             </View>
           </Card>
@@ -253,7 +255,7 @@ export default function UserHomeScreen() {
           <View style={styles.infoRow}>
             <View style={styles.gpsIndicator}>
               <View style={styles.gpsActiveDot} />
-              <Text style={styles.gpsText}>GPS Active</Text>
+              <Text style={styles.gpsText}>{t.gpsActive}</Text>
             </View>
             <StatusBadge status="enabled" label="Online" />
           </View>
@@ -264,7 +266,7 @@ export default function UserHomeScreen() {
             <View style={styles.locationInfo}>
               <Feather name="map-pin" size={16} color={Colors.textSecondary} />
               <View style={styles.locationTextWrap}>
-                <Text style={styles.locationLabel}>Current Location</Text>
+                <Text style={styles.locationLabel}>{t.currentLocation}</Text>
                 <Text style={styles.locationValue}>
                   {currentUser?.location || "Unknown"} · {currentUser?.zone || "Unknown"}
                 </Text>
@@ -278,9 +280,9 @@ export default function UserHomeScreen() {
           <View style={styles.shelterHeader}>
             <View style={styles.shelterHeaderLeft}>
               <Feather name="home" size={18} color="#F59E0B" />
-              <Text style={styles.shelterTitle}>Nearby Shelters</Text>
+              <Text style={styles.shelterTitle}>{t.nearbyShelters}</Text>
             </View>
-            <Text style={styles.shelterCount}>{activeShelters.length} available</Text>
+            <Text style={styles.shelterCount}>{activeShelters.length} {t.available}</Text>
           </View>
 
           {nearestShelter && (
@@ -290,7 +292,7 @@ export default function UserHomeScreen() {
                   <Feather name="navigation" size={18} color="#22C55E" />
                 </View>
                 <View style={styles.nearestInfo}>
-                  <Text style={styles.nearestLabel}>Nearest Shelter</Text>
+                  <Text style={styles.nearestLabel}>{t.nearestShelter}</Text>
                   <Text style={styles.nearestName}>{nearestShelter.shelter.name}</Text>
                 </View>
                 <View style={styles.distanceBadge}>

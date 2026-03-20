@@ -13,6 +13,7 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+import { useTranslation } from "@/i18n";
 import type { Alert } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
@@ -45,7 +46,7 @@ function getAlertIconColor(type: string): string {
   }
 }
 
-function AlertHistoryCard({ alert }: { alert: Alert }) {
+function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n").TranslationStrings }) {
   const formattedDate = format(new Date(alert.timestamp), "MMM d, yyyy 'at' h:mm a");
   const iconName = getAlertIcon(alert.type);
   const iconColor = getAlertIconColor(alert.type);
@@ -80,17 +81,17 @@ function AlertHistoryCard({ alert }: { alert: Alert }) {
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.safe }]} />
           <Text style={styles.statValue}>{alert.stats.confirmed}</Text>
-          <Text style={styles.statLabel}>Safe</Text>
+          <Text style={styles.statLabel}>{t.safe}</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.noreply }]} />
           <Text style={styles.statValue}>{alert.stats.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statLabel}>{t.pending}</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statDot, { backgroundColor: Colors.primary }]} />
           <Text style={styles.statValue}>{alert.stats.needHelp}</Text>
-          <Text style={styles.statLabel}>Need Help</Text>
+          <Text style={styles.statLabel}>{t.needHelp}</Text>
         </View>
       </View>
     </Card>
@@ -100,15 +101,16 @@ function AlertHistoryCard({ alert }: { alert: Alert }) {
 export default function HistoryScreen() {
   const alerts = useStore((s) => s.alerts);
   const closedAlerts = alerts.filter((a) => a.status === "closed");
+  const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
-      <Header title="Alert History" subtitle={`${closedAlerts.length} past alerts`} />
+      <Header title={t.alertHistory} subtitle={`${closedAlerts.length} ${t.pastAlerts}`} />
 
       <FlatList
         data={closedAlerts}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => <AlertHistoryCard alert={item} />}
+        renderItem={({ item }) => <AlertHistoryCard alert={item} t={t} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -116,9 +118,9 @@ export default function HistoryScreen() {
             <View style={styles.emptyIconWrap}>
               <Feather name="inbox" size={40} color={Colors.textTertiary} />
             </View>
-            <Text style={styles.emptyTitle}>No Alert History</Text>
+            <Text style={styles.emptyTitle}>{t.noAlertHistory}</Text>
             <Text style={styles.emptySubtitle}>
-              Past emergency alerts will appear here once they have been closed.
+              {t.pastAlertsWillAppear}
             </Text>
           </View>
         }

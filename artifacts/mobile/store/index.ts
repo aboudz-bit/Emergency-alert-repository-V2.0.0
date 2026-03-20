@@ -8,7 +8,7 @@ import type {
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
-  EmergencyModes, WindDirection,
+  EmergencyModes, WindDirection, Language,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -127,6 +127,8 @@ interface AppState {
   setUserPermissions: (userId: number, permissions: PermissionKey[]) => void;
   getUserPermissions: (userId: number) => PermissionKey[];
   hasPermission: (userId: number, permission: PermissionKey) => boolean;
+
+  setLanguage: (language: Language) => void;
 
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
@@ -1132,6 +1134,17 @@ export const useStore = create<AppState>()(
 
       hasPermission: (userId, permission) => {
         return get().getUserPermissions(userId).includes(permission);
+      },
+
+      setLanguage: (language) => {
+        const { currentUser } = get();
+        if (!currentUser || currentUser.userType !== 'Contract') return;
+        set({
+          currentUser: { ...currentUser, language },
+          users: get().users.map(u =>
+            u.id === currentUser.id ? { ...u, language } : u
+          ),
+        });
       },
     }),
     {
