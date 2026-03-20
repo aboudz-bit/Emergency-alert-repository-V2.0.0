@@ -35,15 +35,7 @@ export default function ECOLiveMap() {
             <p className="text-[13px] text-white/60 mt-1">Global alert monitoring view</p>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center px-8">
-            <div className="w-20 h-20 bg-[#E8F5E9] rounded-full flex items-center justify-center mb-4">
-              <ShieldAlert className="w-10 h-10 text-[#4CAF50]" />
-            </div>
-            <h2 className="text-[20px] font-bold text-[#1A1A2E] mb-2">No Active Alert</h2>
-            <p className="text-[13px] text-[#6B7280] text-center leading-5">
-              All clear. No emergency alerts are currently active.
-            </p>
-          </div>
+          <div className="flex-1 bg-[#F0F1F4]" />
           <BottomTabBar role="eco" />
         </div>
       </MobileLayout>
