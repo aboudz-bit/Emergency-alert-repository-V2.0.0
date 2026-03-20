@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
@@ -35,6 +36,7 @@ const ZONE_TYPES: { key: ZoneType; label: string }[] = [
 type Mode = "view" | "pick_shape" | "draw" | "edit";
 
 export default function ZonesScreen() {
+  const focusCount = useRefreshOnFocus();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const zones = useStore((s) => s.zones);
@@ -454,6 +456,7 @@ export default function ZonesScreen() {
     <View style={styles.root}>
       {/* ═══ FULL-SCREEN MAP ═══ */}
       <ZoneMap
+        key={focusCount}
         zones={zones}
         selectedZoneId={selectedZoneId}
         onZonePress={handleZonePress}

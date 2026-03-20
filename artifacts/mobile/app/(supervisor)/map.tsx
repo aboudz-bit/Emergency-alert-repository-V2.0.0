@@ -17,11 +17,13 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import type { UserResponseStatus } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function SupervisorMapScreen() {
+  const focusCount = useRefreshOnFocus();
   const currentUser = useStore((s) => s.currentUser);
   const activeAlert = useStore(selectActiveAlert);
   const zones = useStore((s) => s.zones);
@@ -93,6 +95,7 @@ export default function SupervisorMapScreen() {
     <View style={styles.container}>
       {/* Full-screen map scoped to supervisor's location */}
       <ZoneMap
+        key={focusCount}
         zones={myZone ? [myZone] : []}
         selectedZoneId={null}
         onZonePress={() => {}}

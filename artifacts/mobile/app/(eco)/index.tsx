@@ -85,7 +85,7 @@ export default function ECODashboardScreen() {
     [alerts, zoneName]
   );
 
-  const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
+  const recentLogs = useMemo(() => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5), [activityLogs]);
 
   const handleLogout = useCallback(() => {
     logout();

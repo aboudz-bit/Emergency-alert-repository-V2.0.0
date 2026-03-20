@@ -94,7 +94,7 @@ export default function SupervisorDashboardScreen() {
   }, [shelters, myLocation]);
 
   const recentLogs = useMemo(
-    () => activityLogs.slice(0, 5),
+    () => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5),
     [activityLogs]
   );
 

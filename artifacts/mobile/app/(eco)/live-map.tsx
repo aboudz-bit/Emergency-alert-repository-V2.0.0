@@ -18,6 +18,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert, selectCanChangeWindDirection } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -26,6 +27,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const selectCanChangeWind = selectCanChangeWindDirection;
 
 export default function ECOLiveMapScreen() {
+  const focusCount = useRefreshOnFocus();
   const activeAlert = useStore(selectActiveAlert);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
@@ -64,6 +66,7 @@ export default function ECOLiveMapScreen() {
     return (
       <View style={styles.container}>
         <ZoneMap
+          key={focusCount}
           zones={zones}
           selectedZoneId={null}
           onZonePress={() => {}}
@@ -97,6 +100,7 @@ export default function ECOLiveMapScreen() {
     <View style={styles.container}>
       {/* Full-screen map */}
       <ZoneMap
+        key={focusCount}
         zones={zones}
         selectedZoneId={null}
         onZonePress={() => {}}

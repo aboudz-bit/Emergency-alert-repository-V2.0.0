@@ -62,8 +62,8 @@ function generateLeafletHtml(
         L.marker([${labelCoord}], {
           icon: L.divIcon({
             className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
-            iconAnchor: [30, 10],
+            html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);${!z.isActive ? "opacity:0.5;" : ""}">${z.name}</div>',
+            iconAnchor: [30, 22],
           })
         }).addTo(map);`;
     })
@@ -138,8 +138,8 @@ function generateLeafletHtml(
         L.marker([${z.center!.lat}, ${z.center!.lng}], {
           icon: L.divIcon({
             className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);">${z.name}</div>',
-            iconAnchor: [30, -12],
+            html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);">${z.name}</div>',
+            iconAnchor: [30, -4],
           })
         }).addTo(map);`;
     })
@@ -189,13 +189,13 @@ function generateLeafletHtml(
   .shelter-marker.selected{transform:scale(1.3);border-color:#F59E0B;box-shadow:0 0 12px rgba(245,158,11,0.5)}
   .shelter-marker.nearest{border-color:#22C55E;box-shadow:0 0 12px rgba(34,197,94,0.5)}
   .shelter-marker.inactive{opacity:0.4}
-  .shelter-label{background:#fff;color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0e0e0}
+  .shelter-label{background:#fff;color:#333;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0e0e0}
   .user-loc-marker{width:16px;height:16px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 10px rgba(59,130,246,0.6)}
   .user-loc-pulse{width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,0.15);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 2s infinite}
   .user-loc-wrap{position:relative;display:flex;align-items:center;justify-content:center}
   @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
   .nearest-line{stroke:#22C55E;stroke-width:2;stroke-dasharray:8,6;fill:none;opacity:0.7}
-  .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
+  .loc-label-inner{background:rgba(255,255,255,0.92);color:#333;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);border:1px solid rgba(0,0,0,0.08)}
   .personnel-dot-wrap{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);pointer-events:none}
   .personnel-dot.safe{background:#22C55E}
@@ -360,7 +360,7 @@ function generateLeafletHtml(
       icon: L.divIcon({
         className: 'shelter-icon',
         html: '<div class="shelter-label">' + s.name + '</div>',
-        iconAnchor: [40, -20],
+        iconAnchor: [40, -6],
       }),
       interactive: false,
     }).addTo(map);
@@ -529,7 +529,7 @@ function generateLeafletHtml(
       icon: L.divIcon({
         className: 'shelter-icon',
         html: '<div class="loc-label-inner">' + loc.name + '</div>',
-        iconAnchor: [30, 8],
+        iconAnchor: [30, 18],
       }),
       interactive: false,
       zIndexOffset: 200,

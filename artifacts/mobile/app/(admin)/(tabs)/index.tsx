@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { format } from "date-fns";
 
+import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
@@ -23,6 +24,7 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
 
 export default function DashboardScreen() {
+  const focusCount = useRefreshOnFocus();
   const router = useRouter();
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
@@ -54,7 +56,7 @@ export default function DashboardScreen() {
     return { total, zoneCounts, affectedLocations, affectedUsers };
   }, [users, zones, locations, alertZones, hasActiveAlerts]);
 
-  const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
+  const recentLogs = useMemo(() => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5), [activityLogs]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -279,6 +281,7 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.dashMapContainer}>
             <ZoneMap
+              key={focusCount}
               zones={zones}
               selectedZoneId={null}
               onZonePress={() => {}}
