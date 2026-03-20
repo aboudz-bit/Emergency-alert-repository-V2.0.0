@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
+import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
@@ -194,6 +195,7 @@ export default function AlertMonitorScreen() {
                 onPersonnelPress={handlePersonnelPress}
                 hazardZones={activeHazardZones}
               />
+              <WindIndicator />
             </View>
             <View style={styles.mapLegend}>
               <View style={styles.legendItem}>

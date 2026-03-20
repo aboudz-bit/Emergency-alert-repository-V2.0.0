@@ -8,7 +8,7 @@ import type {
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
-  EmergencyModes,
+  EmergencyModes, WindDirection,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -38,6 +38,12 @@ interface AppState {
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
   emergencyModes: EmergencyModes;
+
+  // Wind direction (set by ECO)
+  windDirection: WindDirection | null;
+  windSetBy: string | null;
+  windSetAt: string | null;
+  setWindDirection: (direction: WindDirection | null) => void;
 
   // Emergency mode actions
   toggleShelterIn: () => void;
@@ -152,6 +158,18 @@ export const useStore = create<AppState>()(
         shelterInActivatedBy: null,
         blackoutActivatedAt: null,
         blackoutActivatedBy: null,
+      },
+
+      windDirection: null,
+      windSetBy: null,
+      windSetAt: null,
+      setWindDirection: (direction) => {
+        const { currentUser } = get();
+        set({
+          windDirection: direction,
+          windSetBy: direction ? (currentUser?.name ?? 'ECO') : null,
+          windSetAt: direction ? new Date().toISOString() : null,
+        });
       },
 
       toggleShelterIn: () => {
@@ -1324,6 +1342,9 @@ export const useStore = create<AppState>()(
         shelters: state.shelters,
         hazardZones: state.hazardZones,
         zoneNotifications: state.zoneNotifications,
+        windDirection: state.windDirection,
+        windSetBy: state.windSetBy,
+        windSetAt: state.windSetAt,
       }),
     },
   ),

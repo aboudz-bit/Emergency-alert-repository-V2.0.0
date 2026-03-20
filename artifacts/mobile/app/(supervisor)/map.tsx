@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import { format } from "date-fns";
 
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
@@ -104,6 +105,9 @@ export default function SupervisorMapScreen() {
         onPersonnelPress={handlePersonnelPress}
         hazardZones={activeHazardZones}
       />
+
+      {/* Wind indicator overlay */}
+      <WindIndicator />
 
       {/* Floating info bar */}
       <View style={styles.floatingBar}>

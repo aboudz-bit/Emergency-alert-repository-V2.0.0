@@ -8,6 +8,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
 
+import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
@@ -107,6 +108,9 @@ export default function ContractorMapScreen() {
         highlightedLocationIds={userHighlightedLocationIds}
         hazardZones={activeHazardZones}
       />
+
+      {/* Wind indicator overlay */}
+      <WindIndicator />
 
       {/* Floating info bar */}
       <View style={styles.floatingBar}>

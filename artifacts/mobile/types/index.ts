@@ -6,6 +6,21 @@ export type EcoSlot = 'A' | 'B' | 'C';
 export type UserType = 'Aramco' | 'Contract';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
+// ─── Wind ────────────────────────────────────────────────────────────────────
+
+export type WindDirection = 'N_S' | 'S_N' | 'E_W' | 'W_E' | 'NE_SW' | 'NW_SE' | 'SE_NW' | 'SW_NE';
+
+export const WIND_DIRECTIONS: { key: WindDirection; label: string; degrees: number }[] = [
+  { key: 'N_S',   label: 'N \u2192 S',   degrees: 180 },
+  { key: 'S_N',   label: 'S \u2192 N',   degrees: 0 },
+  { key: 'E_W',   label: 'E \u2192 W',   degrees: 270 },
+  { key: 'W_E',   label: 'W \u2192 E',   degrees: 90 },
+  { key: 'NE_SW', label: 'NE \u2192 SW', degrees: 225 },
+  { key: 'NW_SE', label: 'NW \u2192 SE', degrees: 135 },
+  { key: 'SE_NW', label: 'SE \u2192 NW', degrees: 315 },
+  { key: 'SW_NE', label: 'SW \u2192 NE', degrees: 45 },
+];
+
 // ─── Permissions ─────────────────────────────────────────────────────────────
 
 export type PermissionKey =

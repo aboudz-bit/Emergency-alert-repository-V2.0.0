@@ -11,12 +11,14 @@ import { Feather } from "@expo/vector-icons";
 import { format } from "date-fns";
 
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { WindIndicator } from "@/components/ui/WindIndicator";
+import { WindDirectionPicker } from "@/components/ui/WindDirectionPicker";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
-import type { UserResponseStatus } from "@/types";
+import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -37,6 +39,10 @@ export default function ECOLiveMapScreen() {
 
   const visiblePersonnelRef = useRef(visiblePersonnel);
   visiblePersonnelRef.current = visiblePersonnel;
+
+  const windDirection = useStore((s) => s.windDirection);
+  const setWindDirection = useStore((s) => s.setWindDirection);
+  const [windPickerVisible, setWindPickerVisible] = useState(false);
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
 
@@ -71,6 +77,19 @@ export default function ECOLiveMapScreen() {
           locations={locations}
           shelters={shelters}
         />
+        <WindIndicator />
+        <Pressable
+          style={[styles.windButton, windDirection != null && styles.windButtonActive]}
+          onPress={() => setWindPickerVisible(true)}
+        >
+          <Feather name="wind" size={18} color={windDirection ? Colors.white : Colors.primary} />
+        </Pressable>
+        <WindDirectionPicker
+          visible={windPickerVisible}
+          current={windDirection}
+          onSelect={(dir) => setWindDirection(dir)}
+          onClose={() => setWindPickerVisible(false)}
+        />
       </View>
     );
   }
@@ -104,6 +123,25 @@ export default function ECOLiveMapScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Wind indicator overlay */}
+      <WindIndicator />
+
+      {/* Wind control button (ECO only) */}
+      <Pressable
+        style={[styles.windButton, windDirection != null && styles.windButtonActive]}
+        onPress={() => setWindPickerVisible(true)}
+      >
+        <Feather name="wind" size={18} color={windDirection ? Colors.white : Colors.primary} />
+      </Pressable>
+
+      {/* Wind direction picker modal */}
+      <WindDirectionPicker
+        visible={windPickerVisible}
+        current={windDirection}
+        onSelect={(dir) => setWindDirection(dir)}
+        onClose={() => setWindPickerVisible(false)}
+      />
 
       {/* Floating legend + count */}
       <View style={styles.floatingLegend}>
@@ -285,6 +323,28 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
     color: Colors.textTertiary,
+  },
+
+  // Wind control button
+  windButton: {
+    position: "absolute",
+    top: 56,
+    left: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 20,
+  },
+  windButtonActive: {
+    backgroundColor: Colors.primary,
   },
 
   // Floating legend
