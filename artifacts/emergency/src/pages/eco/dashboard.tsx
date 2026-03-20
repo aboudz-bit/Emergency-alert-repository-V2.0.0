@@ -8,6 +8,7 @@ import { cn } from '@/components/shared/Badges';
 import { AlertTypeBadge } from '@/components/shared/Badges';
 import { useStore, useShallow } from '@/store';
 import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
+import { BottomTabBar } from '@/components/shared/BottomTabBar';
 
 export default function ECODashboard() {
   const [, setLocation] = useLocation();
@@ -88,7 +89,7 @@ export default function ECODashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-14">
       <EmergencyModeBanner />
       {/* Header */}
       <header className="bg-card border-b border-border px-4 lg:px-8 shrink-0">
@@ -105,13 +106,6 @@ export default function ECODashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setLocation('/eco/live-map')}
-              className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-colors flex items-center gap-1.5"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              Live Map
-            </button>
             <div className="px-2.5 py-1 rounded-full bg-safe/10 text-safe text-xs font-bold border border-safe/20">
               ACTIVE
             </div>
@@ -336,6 +330,7 @@ export default function ECODashboard() {
 
         </div>
       </main>
+      <BottomTabBar role="eco" />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 import { cn, AlertTypeBadge } from '@/components/shared/Badges';
 import { useStore, useShallow } from '@/store';
 import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
+import { BottomTabBar } from '@/components/shared/BottomTabBar';
 
 export default function SupervisorDashboard() {
   const [, setLocation] = useLocation();
@@ -79,7 +80,7 @@ export default function SupervisorDashboard() {
   const handleLogout = () => { logout(); setLocation('/login'); };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-14">
       <EmergencyModeBanner />
       {/* Header */}
       <header className="bg-card border-b border-border px-4 lg:px-8 shrink-0">
@@ -363,6 +364,7 @@ export default function SupervisorDashboard() {
 
         </div>
       </main>
+      <BottomTabBar role="supervisor" />
     </div>
   );
 }

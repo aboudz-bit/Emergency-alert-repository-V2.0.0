@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
+import { BottomTabBar } from '@/components/shared/BottomTabBar';
 
 function PulsingDot() {
   return (
@@ -259,6 +260,7 @@ export default function MobileHome() {
 
         <div className="h-8" />
       </div>
+      <BottomTabBar role="mobile" />
     </MobileLayout>
   );
 }

@@ -3,6 +3,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useStore, useShallow } from '@/store';
 import { StatusBadge, AlertTypeBadge, cn } from '@/components/shared/Badges';
 import { ShieldAlert, Clock, MapPin, Search, ChevronRight, Map, AlertTriangle } from 'lucide-react';
+import { BottomTabBar } from '@/components/shared/BottomTabBar';
 import type { User, UserResponseStatus } from '@/types';
 
 function selectActiveAlert(s: any) {
@@ -43,6 +44,7 @@ export default function ECOLiveMap() {
               All clear. No emergency alerts are currently active.
             </p>
           </div>
+          <BottomTabBar role="eco" />
         </div>
       </MobileLayout>
     );
@@ -212,6 +214,7 @@ export default function ECOLiveMap() {
             </div>
           </div>
         )}
+        <BottomTabBar role="eco" />
       </div>
     </MobileLayout>
   );

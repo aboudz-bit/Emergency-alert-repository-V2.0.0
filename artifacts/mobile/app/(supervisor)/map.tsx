@@ -20,18 +20,50 @@ import type { UserResponseStatus } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-export default function ECOLiveMapScreen() {
+export default function SupervisorMapScreen() {
+  const currentUser = useStore((s) => s.currentUser);
   const activeAlert = useStore(selectActiveAlert);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
   const hazardZones = useStore((s) => s.hazardZones);
 
+  const isBackup =
+    currentUser?.isBackupSupervisorAssigned === true &&
+    !currentUser?.isSupervisorAssigned;
+  const locName = currentUser?.supervisorLocationName ?? "";
+  const zoneName = currentUser?.supervisorZoneName ?? currentUser?.zone ?? "";
+
+  const myLocationId = useMemo(() => {
+    const sa = useStore.getState().supervisorAssignments.find(
+      (a) => a.supervisorUserId === currentUser?.id || a.backupSupervisorUserId === currentUser?.id
+    );
+    return sa?.locationId ?? null;
+  }, [currentUser]);
+
+  const myLocation = useMemo(
+    () => myLocationId ? locations.find((l) => l.id === myLocationId) : locations.find((l) => l.name === locName && l.zone === zoneName),
+    [locations, myLocationId, locName, zoneName]
+  );
+
+  const myZone = useMemo(
+    () => zones.find((z) => z.name === zoneName),
+    [zones, zoneName]
+  );
+
+  const myLinkedShelters = useMemo(() => {
+    if (!myLocation) return [];
+    return shelters.filter(
+      (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
+    );
+  }, [shelters, myLocation]);
+
   const hasActiveAlert = useStore(selectHasActiveAlert);
   usePersonnelSimulation(hasActiveAlert);
 
   const visiblePersonnel = useVisiblePersonnel({
-    scope: "all",
+    scope: "location",
+    locationId: myLocation?.id ?? null,
     enabled: hasActiveAlert,
   });
 
@@ -45,86 +77,82 @@ export default function ECOLiveMapScreen() {
     if (p) setPersonnelDetail(p);
   }, []);
 
-  const activeHazardZones = useMemo(
-    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
-    [hazardZones, activeAlert]
-  );
-
-  if (!activeAlert) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.noAlertOverlay}>
-          <View style={styles.emptyIcon}>
-            <Feather name="check-circle" size={48} color={Colors.safe} />
-          </View>
-          <Text style={styles.emptyTitle}>No Active Alert</Text>
-          <Text style={styles.emptyText}>
-            The live map will display all zones, locations, shelters, and personnel when an alert is active.
-          </Text>
-        </View>
-        <ZoneMap
-          zones={zones}
-          selectedZoneId={null}
-          onZonePress={() => {}}
-          height={SCREEN_HEIGHT}
-          showLabels
-          locations={locations}
-          shelters={shelters}
-        />
-      </View>
-    );
-  }
+  const activeHazardZones = useMemo(() => {
+    if (!activeAlert) return [];
+    return hazardZones.filter((hz) => {
+      if (!hz.isActive || hz.alertId !== activeAlert.id) return false;
+      if (myLocation && hz.locationId === myLocation.id) return true;
+      if (myZone && hz.zoneId === myZone.id) return true;
+      if (hz.locationId == null && hz.zoneId == null) return true;
+      return false;
+    });
+  }, [hazardZones, activeAlert, myLocation, myZone]);
 
   return (
     <View style={styles.container}>
-      {/* Full-screen map */}
+      {/* Full-screen map scoped to supervisor's location */}
       <ZoneMap
-        zones={zones}
+        zones={myZone ? [myZone] : []}
         selectedZoneId={null}
         onZonePress={() => {}}
         height={SCREEN_HEIGHT}
         showLabels
-        locations={locations}
-        shelters={shelters}
+        locations={myLocation ? [myLocation] : []}
+        highlightedLocationIds={myLocation ? [myLocation.id] : []}
+        shelters={myLinkedShelters}
         personnelLocations={visiblePersonnel}
         onPersonnelPress={handlePersonnelPress}
         hazardZones={activeHazardZones}
       />
 
-      {/* Floating alert info bar */}
+      {/* Floating info bar */}
       <View style={styles.floatingBar}>
-        <View style={styles.alertInfoRow}>
-          <View style={styles.alertDot} />
-          <Text style={styles.alertTypeText}>{activeAlert.type}</Text>
-          <Text style={styles.alertSep}>{"\u00B7"}</Text>
-          <Text style={styles.alertZoneText}>{activeAlert.zone}</Text>
-          <Text style={styles.alertSep}>{"\u00B7"}</Text>
-          <Text style={styles.alertTimeText}>
-            {format(new Date(activeAlert.timestamp), "HH:mm")}
-          </Text>
+        <View style={styles.infoRow}>
+          <Feather name="map-pin" size={14} color={Colors.primary} />
+          <Text style={styles.locationText} numberOfLines={1}>{locName}</Text>
+          <Text style={styles.sep}>{"\u00B7"}</Text>
+          <Text style={styles.zoneText}>{zoneName}</Text>
+          {isBackup && (
+            <>
+              <Text style={styles.sep}>{"\u00B7"}</Text>
+              <View style={styles.backupBadge}>
+                <Text style={styles.backupText}>BACKUP</Text>
+              </View>
+            </>
+          )}
         </View>
+        {hasActiveAlert && (
+          <View style={styles.alertRow}>
+            <View style={styles.alertDot} />
+            <Text style={styles.alertText}>
+              {activeAlert?.type} · {visiblePersonnel.length} personnel tracked
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Floating legend + count */}
-      <View style={styles.floatingLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
-          <Text style={styles.legendText}>Inside</Text>
+      {/* Floating legend */}
+      {hasActiveAlert && (
+        <View style={styles.floatingLegend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
+            <Text style={styles.legendText}>Inside</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
+            <Text style={styles.legendText}>Outside</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
+            <Text style={styles.legendText}>Contractor</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
+            <Text style={styles.legendText}>Help</Text>
+          </View>
+          <Text style={styles.legendCount}>{visiblePersonnel.length} tracked</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
-          <Text style={styles.legendText}>Outside</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
-          <Text style={styles.legendText}>Contractor</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-          <Text style={styles.legendText}>Help</Text>
-        </View>
-        <Text style={styles.legendCount}>{visiblePersonnel.length} tracked</Text>
-      </View>
+      )}
 
       {/* Personnel Detail Modal */}
       <Modal
@@ -160,16 +188,6 @@ export default function ECOLiveMapScreen() {
 
             <View style={styles.detailBody}>
               <View style={styles.detailRow}>
-                <Feather name="shield" size={14} color={Colors.textTertiary} />
-                <Text style={styles.detailLabel}>Role</Text>
-                <Text style={styles.detailValue}>{personnelDetail?.role || "N/A"}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Feather name="phone" size={14} color={Colors.textTertiary} />
-                <Text style={styles.detailLabel}>Phone</Text>
-                <Text style={styles.detailValue}>{personnelDetail?.mobileNumber || "N/A"}</Text>
-              </View>
-              <View style={styles.detailRow}>
                 <Feather name="activity" size={14} color={Colors.textTertiary} />
                 <Text style={styles.detailLabel}>Status</Text>
                 <StatusBadge status={personnelDetail?.status as UserResponseStatus ?? "pending"} />
@@ -183,6 +201,11 @@ export default function ECOLiveMapScreen() {
                 <Feather name="navigation" size={14} color={Colors.textTertiary} />
                 <Text style={styles.detailLabel}>Detected</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.detectedLocation || "N/A"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Feather name="phone" size={14} color={Colors.textTertiary} />
+                <Text style={styles.detailLabel}>Phone</Text>
+                <Text style={styles.detailValue}>{personnelDetail?.mobileNumber || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Feather name="clock" size={14} color={Colors.textTertiary} />
@@ -202,45 +225,9 @@ export default function ECOLiveMapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  noAlertOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    alignItems: "center",
-    paddingTop: 80,
-    paddingHorizontal: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.safeDim,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-    textAlign: "center",
-  },
-  emptyText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
 
-  // Floating alert bar
+  // Floating info bar
   floatingBar: {
     position: "absolute",
     top: 8,
@@ -250,41 +237,57 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    gap: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 6,
   },
-  alertInfoRow: {
+  infoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  alertDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-  },
-  alertTypeText: {
+  locationText: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_700Bold",
-    color: Colors.primary,
+    color: Colors.text,
+    flexShrink: 1,
   },
-  alertSep: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-  },
-  alertZoneText: {
+  sep: { fontSize: 10, color: Colors.textTertiary },
+  zoneText: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_500Medium",
-    color: Colors.text,
+    color: Colors.textSecondary,
   },
-  alertTimeText: {
+  backupBadge: {
+    backgroundColor: Colors.amberDim,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  backupText: {
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    color: Colors.amber,
+    letterSpacing: 0.5,
+  },
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  alertDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+  },
+  alertText: {
     fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
+    fontFamily: "Inter_500Medium",
+    color: Colors.primary,
   },
 
   // Floating legend
@@ -306,34 +309,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  legendCount: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textTertiary,
-    marginLeft: "auto",
-  },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
+  legendCount: { fontSize: FontSize.xs, fontFamily: "Inter_500Medium", color: Colors.textTertiary, marginLeft: "auto" },
 
   // Personnel detail modal
-  detailOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
+  detailOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   detailSheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: BorderRadius.xl,
@@ -341,63 +323,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxxl,
   },
-  detailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  detailAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  detailAvatarText: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-  },
-  detailHeaderInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  detailName: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  detailBadge: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  detailClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  detailBody: {
-    gap: Spacing.md,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  detailLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
-    width: 80,
-  },
-  detailValue: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.text,
-    flex: 1,
-  },
+  detailHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.md, marginBottom: Spacing.lg },
+  detailAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  detailAvatarText: { fontSize: FontSize.lg, fontFamily: "Inter_700Bold" },
+  detailHeaderInfo: { flex: 1, gap: 2 },
+  detailName: { fontSize: FontSize.lg, fontFamily: "Inter_600SemiBold", color: Colors.text },
+  detailBadge: { fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
+  detailClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center" },
+  detailBody: { gap: Spacing.md },
+  detailRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
+  detailLabel: { fontSize: FontSize.sm, fontFamily: "Inter_500Medium", color: Colors.textSecondary, width: 80 },
+  detailValue: { fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.text, flex: 1 },
 });

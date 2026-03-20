@@ -17,12 +17,9 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectHasActiveAlert, selectActiveAlert } from "@/store";
+import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
-import { useVisiblePersonnel } from "@/hooks/useVisiblePersonnel";
-import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
@@ -32,8 +29,6 @@ export default function SupervisorDashboardScreen() {
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
-  const hazardZones = useStore((s) => s.hazardZones);
-  const activeAlert = useStore(selectActiveAlert);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
@@ -91,34 +86,12 @@ export default function SupervisorDashboardScreen() {
     return { actual, expected, safe, pending, needHelp, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
 
-  const hasActiveAlert = useStore(selectHasActiveAlert);
-  usePersonnelSimulation(hasActiveAlert);
-  const visiblePersonnel = useVisiblePersonnel({
-    scope: "location",
-    locationId: myLocation?.id ?? null,
-    enabled: hasActiveAlert,
-  });
-
   const myLinkedShelters = useMemo(() => {
     if (!myLocation) return [];
     return shelters.filter(
       (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
     );
   }, [shelters, myLocation]);
-
-  // Hazard zones scoped to supervisor's location (or zone)
-  const activeHazardZones = useMemo(() => {
-    if (!activeAlert) return [];
-    return hazardZones.filter((hz) => {
-      if (!hz.isActive || hz.alertId !== activeAlert.id) return false;
-      // Show hazard zones that are in the supervisor's location or zone
-      if (myLocation && hz.locationId === myLocation.id) return true;
-      if (myZone && hz.zoneId === myZone.id) return true;
-      // Also show hazard zones with no specific location/zone scope
-      if (hz.locationId == null && hz.zoneId == null) return true;
-      return false;
-    });
-  }, [hazardZones, activeAlert, myLocation, myZone]);
 
   const recentLogs = useMemo(
     () => activityLogs.slice(0, 5),
@@ -291,22 +264,6 @@ export default function SupervisorDashboardScreen() {
             />
           </View>
         )}
-
-        {/* ── Live Personnel Map ── */}
-        <Text style={styles.sectionTitle}>Live Personnel Map</Text>
-        <View style={styles.mapContainer}>
-          <ZoneMap
-            zones={myZone ? [myZone] : []}
-            selectedZoneId={null}
-            onZonePress={() => {}}
-            height={220}
-            locations={myLocation ? [myLocation] : []}
-            highlightedLocationIds={myLocation ? [myLocation.id] : []}
-            shelters={myLinkedShelters}
-            personnelLocations={visiblePersonnel}
-            hazardZones={activeHazardZones}
-          />
-        </View>
 
         {/* ── Action Buttons (supervisor only, not backup) ── */}
         {!isBackup && (
@@ -588,11 +545,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_700Bold",
     color: Colors.white,
-  },
-  mapContainer: {
-    borderRadius: BorderRadius.md,
-    overflow: "hidden",
-    marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
