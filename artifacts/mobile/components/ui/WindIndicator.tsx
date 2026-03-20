@@ -20,10 +20,10 @@ export function WindIndicator() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Wind</Text>
+      <Text style={styles.label}>WIND</Text>
       <View style={styles.arrowWrap}>
         <View style={{ transform: [{ rotate: `${entry.degrees}deg` }] }}>
-          <Feather name="navigation" size={20} color={Colors.primary} />
+          <Feather name="arrow-down" size={22} color={Colors.primary} />
         </View>
       </View>
     </View>
@@ -36,30 +36,30 @@ const styles = StyleSheet.create({
     top: 56,
     right: 12,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 4,
     zIndex: 20,
-    minWidth: 44,
+    minWidth: 56,
   },
   label: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    color: Colors.textSecondary,
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
   arrowWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
