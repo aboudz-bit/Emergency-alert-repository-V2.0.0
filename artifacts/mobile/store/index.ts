@@ -1134,8 +1134,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v14',
-      version: 14,
+      name: 'keas-mobile-store-v15',
+      version: 15,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1322,6 +1322,15 @@ export const useStore = create<AppState>()(
               windDirectionDeg: hz.windDirectionDeg ?? null,
               windMode: hz.windMode ?? null,
               hazardShape: hz.hazardShape ?? 'circle',
+            }));
+          }
+        }
+        if (version < 15) {
+          // Backfill locationId on existing zones
+          if (Array.isArray(state?.zones)) {
+            state.zones = state.zones.map((z: any) => ({
+              ...z,
+              locationId: z.locationId ?? null,
             }));
           }
         }

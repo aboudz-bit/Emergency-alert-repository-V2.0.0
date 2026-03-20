@@ -92,6 +92,7 @@ export default function ZonesScreen() {
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<ZoneType>("Custom");
   const [formColor, setFormColor] = useState(ZONE_COLORS[0]);
+  const [formLocationId, setFormLocationId] = useState<number | null>(null);
 
   const pendingPointsRef = useRef<LatLng[]>([]);
   const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
@@ -297,18 +298,21 @@ export default function ZonesScreen() {
     addZone({
       name: formName.trim(), type: formType, boundaryType: "Polygon",
       polygonPoints: pts, center: { lat, lng }, isActive: true, color: formColor,
+      locationId: formLocationId,
       alertActive: false, alertType: null, alertPriority: null,
       alertMessage: "", alertUpdatedAt: null, alertHistory: [],
     });
     setShowSaveSheet(false);
     setTapPoints([]);
+    setFormLocationId(null);
     pendingPointsRef.current = [];
-  }, [formName, formType, formColor, addZone]);
+  }, [formName, formType, formColor, formLocationId, addZone]);
 
   const handleDiscardSave = useCallback(() => {
     setShowSaveSheet(false);
     pendingPointsRef.current = [];
     setTapPoints([]);
+    setFormLocationId(null);
   }, []);
 
   // ─── EDIT flow — direct to boundary ───
@@ -480,7 +484,7 @@ export default function ZonesScreen() {
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
       {mode === "view" && !addingShelter && !placingHazard && (
         <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={() => router.back()} hitSlop={8}>
+          <Pressable style={styles.fhBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
             <Feather name="chevron-left" size={20} color="#fff" />
           </Pressable>
           <View style={styles.fhTitle}>
@@ -842,6 +846,7 @@ export default function ZonesScreen() {
               <Text style={styles.bsName} numberOfLines={1}>{selectedZone.name}</Text>
               <Text style={styles.bsMeta}>
                 {selectedZone.type} · {selectedZone.polygonPoints.length} pts · {selectedZone.isActive ? "Active" : "Off"}
+                {selectedZone.locationId ? ` · ${locations.find((l) => l.id === selectedZone.locationId)?.name ?? "Location"}` : ""}
               </Text>
             </View>
             <Pressable style={styles.bsClose} onPress={() => setSelectedZoneId(null)} hitSlop={8}>
@@ -1037,6 +1042,28 @@ export default function ZonesScreen() {
                 />
               ))}
             </View>
+
+            {/* Location link picker */}
+            <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary, marginTop: 8, marginBottom: 4 }}>
+              LINK TO LOCATION (optional)
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              <Pressable
+                style={[styles.typeBtn, formLocationId === null && styles.typeBtnActive]}
+                onPress={() => setFormLocationId(null)}
+              >
+                <Text style={[styles.typeBtnText, formLocationId === null && { color: "#fff" }]}>None</Text>
+              </Pressable>
+              {locations.map((loc) => (
+                <Pressable
+                  key={loc.id}
+                  style={[styles.typeBtn, formLocationId === loc.id && styles.typeBtnActive]}
+                  onPress={() => setFormLocationId(loc.id)}
+                >
+                  <Text style={[styles.typeBtnText, formLocationId === loc.id && { color: "#fff" }]} numberOfLines={1}>{loc.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
             <View style={styles.saveBtnRow}>
               <Pressable style={styles.discardBtn} onPress={handleDiscardSave}>
