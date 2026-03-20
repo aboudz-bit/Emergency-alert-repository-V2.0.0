@@ -22,6 +22,9 @@ import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
+// Hoist selector outside component to avoid creating a new function reference each render
+const selectCanChangeWind = selectCurrentUserHasPermission('canChangeWindDirection');
+
 export default function ECOLiveMapScreen() {
   const activeAlert = useStore(selectActiveAlert);
   const zones = useStore((s) => s.zones);
@@ -42,7 +45,7 @@ export default function ECOLiveMapScreen() {
 
   const windDirection = useStore((s) => s.windDirection);
   const setWindDirection = useStore((s) => s.setWindDirection);
-  const canChangeWind = useStore(selectCurrentUserHasPermission('canChangeWindDirection'));
+  const canChangeWind = useStore(selectCanChangeWind);
   const [windPickerVisible, setWindPickerVisible] = useState(false);
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
