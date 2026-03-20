@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 
 const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
 
@@ -72,6 +73,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.container}>
+      <EmergencyModeBanner />
       <Header
         title="Dashboard"
         subtitle="Khurais Emergency Alert System"
@@ -266,6 +268,16 @@ export default function DashboardScreen() {
                 <Feather name="clipboard" size={20} color={Colors.info} />
               </View>
               <Text style={styles.quickActionText}>Supervisor Management</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+              onPress={() => router.push("/(admin)/permissions")}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + "1A" }]}>
+                <Feather name="lock" size={20} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Permissions</Text>
               <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
             </Pressable>
           </View>

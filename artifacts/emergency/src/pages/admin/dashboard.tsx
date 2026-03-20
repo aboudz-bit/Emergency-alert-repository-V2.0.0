@@ -5,6 +5,7 @@ import { KPICard } from '@/components/shared/KPICard';
 import { Users, Activity, Bell, Shield, ChevronRight, UserCheck, AlertCircle, RadioTower, History, Map, Volume2, Radio } from 'lucide-react';
 import { useStore, useShallow, selectActiveAlert } from '@/store';
 import { AlertTypeBadge } from '@/components/shared/Badges';
+import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -41,6 +42,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title="Command Center Dashboard">
+      <EmergencyModeBanner />
       {activeAlert && (
         <div className="mb-6 lg:mb-8 bg-primary/8 border-2 border-primary/30 shadow-lg shadow-primary/5 rounded-2xl p-4 lg:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />

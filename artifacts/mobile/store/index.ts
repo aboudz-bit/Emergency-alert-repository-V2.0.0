@@ -7,6 +7,8 @@ import type {
   AlertHistoryEntry, ZoneAlertHistoryEntry,
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, ApprovalStatus, PersonnelLocation, ZoneNotification,
+  PermissionKey, UserPermissionAssignment,
+  EmergencyModes, WindDirection,
 } from '@/types';
 import {
   seedUsers, seedAlerts, seedZones, seedLocations,
@@ -35,6 +37,17 @@ interface AppState {
   hazardZones: HazardZone[];
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
+  emergencyModes: EmergencyModes;
+
+  // Wind direction (set by ECO)
+  windDirection: WindDirection | null;
+  windSetBy: string | null;
+  windSetAt: string | null;
+  setWindDirection: (direction: WindDirection | null) => void;
+
+  // Emergency mode actions
+  toggleShelterIn: () => void;
+  toggleBlackout: () => void;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;
@@ -107,6 +120,14 @@ interface AppState {
   toggleSupervisorActive: (locationId: number) => void;
   toggleBackupActive: (locationId: number) => void;
 
+  // Permission management
+  permissionAssignments: UserPermissionAssignment[];
+  assignPermission: (userId: number, permission: PermissionKey) => void;
+  removePermission: (userId: number, permission: PermissionKey) => void;
+  setUserPermissions: (userId: number, permissions: PermissionKey[]) => void;
+  getUserPermissions: (userId: number) => PermissionKey[];
+  hasPermission: (userId: number, permission: PermissionKey) => boolean;
+
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
 }
@@ -129,6 +150,53 @@ export const useStore = create<AppState>()(
       hazardZones: [],
       personnelLocations: {},
       zoneNotifications: [],
+      permissionAssignments: [],
+      emergencyModes: {
+        shelterIn: false,
+        blackout: false,
+        shelterInActivatedAt: null,
+        shelterInActivatedBy: null,
+        blackoutActivatedAt: null,
+        blackoutActivatedBy: null,
+      },
+
+      windDirection: null,
+      windSetBy: null,
+      windSetAt: null,
+      setWindDirection: (direction) => {
+        const { currentUser } = get();
+        set({
+          windDirection: direction,
+          windSetBy: direction ? (currentUser?.name ?? 'ECO') : null,
+          windSetAt: direction ? new Date().toISOString() : null,
+        });
+      },
+
+      toggleShelterIn: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            shelterIn: !emergencyModes.shelterIn,
+            shelterInActivatedAt: !emergencyModes.shelterIn ? now : null,
+            shelterInActivatedBy: !emergencyModes.shelterIn ? (currentUser?.name ?? 'System') : null,
+          },
+        });
+      },
+
+      toggleBlackout: () => {
+        const { emergencyModes, currentUser } = get();
+        const now = new Date().toISOString();
+        set({
+          emergencyModes: {
+            ...emergencyModes,
+            blackout: !emergencyModes.blackout,
+            blackoutActivatedAt: !emergencyModes.blackout ? now : null,
+            blackoutActivatedBy: !emergencyModes.blackout ? (currentUser?.name ?? 'System') : null,
+          },
+        });
+      },
 
       login: (badge, password, roleOverride) => {
         const { users, ecoAssignments, supervisorAssignments } = get();
@@ -961,6 +1029,109 @@ export const useStore = create<AppState>()(
           z ? l.zoneId === z.id && l.isActive : l.zone === zone && l.isActive
         );
       },
+
+      // ─── Permission Management ─────────────────────────────────────────
+      assignPermission: (userId, permission) => {
+        const { currentUser, permissionAssignments } = get();
+        const now = new Date().toISOString();
+        const existing = permissionAssignments.find(pa => pa.userId === userId);
+        if (existing) {
+          if (existing.permissions.includes(permission)) return;
+          set({
+            permissionAssignments: permissionAssignments.map(pa =>
+              pa.userId === userId
+                ? { ...pa, permissions: [...pa.permissions, permission], updatedAt: now }
+                : pa
+            ),
+            users: get().users.map(u =>
+              u.id === userId
+                ? { ...u, permissions: [...(u.permissions || []), permission] }
+                : u
+            ),
+          });
+        } else {
+          set({
+            permissionAssignments: [...permissionAssignments, {
+              userId,
+              permissions: [permission],
+              assignedBy: currentUser?.id ?? 0,
+              assignedByName: currentUser?.name ?? 'System',
+              assignedAt: now,
+              updatedAt: now,
+            }],
+            users: get().users.map(u =>
+              u.id === userId
+                ? { ...u, permissions: [...(u.permissions || []), permission] }
+                : u
+            ),
+          });
+        }
+      },
+
+      removePermission: (userId, permission) => {
+        const { permissionAssignments } = get();
+        const now = new Date().toISOString();
+        set({
+          permissionAssignments: permissionAssignments.map(pa =>
+            pa.userId === userId
+              ? { ...pa, permissions: pa.permissions.filter(p => p !== permission), updatedAt: now }
+              : pa
+          ),
+          users: get().users.map(u =>
+            u.id === userId
+              ? { ...u, permissions: (u.permissions || []).filter(p => p !== permission) }
+              : u
+          ),
+        });
+      },
+
+      setUserPermissions: (userId, permissions) => {
+        const { currentUser, permissionAssignments } = get();
+        const now = new Date().toISOString();
+        const existing = permissionAssignments.find(pa => pa.userId === userId);
+        if (existing) {
+          set({
+            permissionAssignments: permissionAssignments.map(pa =>
+              pa.userId === userId ? { ...pa, permissions, updatedAt: now } : pa
+            ),
+            users: get().users.map(u => u.id === userId ? { ...u, permissions } : u),
+          });
+        } else {
+          set({
+            permissionAssignments: [...permissionAssignments, {
+              userId,
+              permissions,
+              assignedBy: currentUser?.id ?? 0,
+              assignedByName: currentUser?.name ?? 'System',
+              assignedAt: now,
+              updatedAt: now,
+            }],
+            users: get().users.map(u => u.id === userId ? { ...u, permissions } : u),
+          });
+        }
+      },
+
+      getUserPermissions: (userId) => {
+        const { users } = get();
+        const user = users.find(u => u.id === userId);
+        if (!user) return [];
+        // Super Admin and IT have all permissions implicitly
+        if (user.role === 'Super Admin' || user.role === 'IT') return [
+          'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
+          'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
+        ];
+        // ECO users get canViewGlobalLiveMap and canReviewAlertMonitor by default
+        if (user.isECOAssigned && user.ecoAssignmentActive) {
+          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor'];
+          const extra = user.permissions || [];
+          return [...new Set([...base, ...extra])];
+        }
+        return user.permissions || [];
+      },
+
+      hasPermission: (userId, permission) => {
+        return get().getUserPermissions(userId).includes(permission);
+      },
     }),
     {
       name: 'keas-mobile-store-v14',
@@ -1171,6 +1342,9 @@ export const useStore = create<AppState>()(
         shelters: state.shelters,
         hazardZones: state.hazardZones,
         zoneNotifications: state.zoneNotifications,
+        windDirection: state.windDirection,
+        windSetBy: state.windSetBy,
+        windSetAt: state.windSetAt,
       }),
     },
   ),
@@ -1225,3 +1399,9 @@ export const selectActiveAlert = (s: AppState) => {
 export const selectHasActiveAlert = (s: AppState) => s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
+
+/** Check if the current user has a specific permission */
+export const selectCurrentUserHasPermission = (permission: import('@/types').PermissionKey) => (s: AppState): boolean => {
+  if (!s.currentUser) return false;
+  return s.hasPermission(s.currentUser.id, permission);
+};

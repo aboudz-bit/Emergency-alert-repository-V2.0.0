@@ -3,13 +3,11 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import type { AlertType } from '@/types';
 import { useStore, useShallow } from '@/store';
 import { useLocation } from 'wouter';
-import { ShieldAlert, Send, Clock, MapPin, Smartphone, Bell, Volume2, Radio } from 'lucide-react';
+import { ShieldAlert, Send, Clock, MapPin, Smartphone, Bell, Volume2, Radio, Shield, ZapOff } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
 import type { DeliveryChannel } from '@/types';
 
 const alertTypes: { type: AlertType; desc: string; isCritical: boolean }[] = [
-  { type: 'Blackout', desc: 'Total power loss in facility', isCritical: true },
-  { type: 'Shelter-in', desc: 'Toxic gas or environmental hazard', isCritical: true },
   { type: 'Security Alert', desc: 'Unauthorized access or threat', isCritical: true },
   { type: 'Restricted Movement', desc: 'Limit personnel movement', isCritical: false },
   { type: 'Drill', desc: 'Scheduled emergency practice', isCritical: false },
@@ -28,17 +26,20 @@ const defaultMessages: Record<AlertType, string> = {
 
 export default function SendAlert() {
   const [, setLocation] = useLocation();
-  const { createAlert, currentUser, zones } = useStore(useShallow(s => ({
+  const { createAlert, currentUser, zones, emergencyModes, toggleShelterIn, toggleBlackout } = useStore(useShallow(s => ({
     createAlert: s.createAlert,
     currentUser: s.currentUser,
     zones: s.zones,
+    emergencyModes: s.emergencyModes,
+    toggleShelterIn: s.toggleShelterIn,
+    toggleBlackout: s.toggleBlackout,
   })));
 
   const activeZoneNames = zones.filter(z => z.isActive).map(z => z.name);
-  const [type, setType] = useState<AlertType>('Blackout');
+  const [type, setType] = useState<AlertType>('Security Alert');
   const [zone, setZone] = useState(activeZoneNames[0] ?? 'All Zones');
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
-  const [message, setMessage] = useState(defaultMessages['Blackout']);
+  const [message, setMessage] = useState(defaultMessages['Security Alert']);
   const [isSending, setIsSending] = useState(false);
   const [channels, setChannels] = useState<DeliveryChannel[]>(['app']);
 
@@ -79,6 +80,39 @@ export default function SendAlert() {
 
   return (
     <AdminLayout title="Broadcast Emergency Alert">
+      {/* Emergency Modes */}
+      <div className="bg-card border border-border rounded-xl p-4 lg:p-6 shadow-sm mb-6">
+        <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Emergency Modes</h2>
+        <div className="flex gap-3">
+          <button
+            onClick={toggleShelterIn}
+            className={cn(
+              'flex-1 py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-2',
+              emergencyModes.shelterIn
+                ? 'bg-amber-500 border-amber-500 text-white shadow-[0_0_15px_rgba(217,119,6,0.3)]'
+                : 'bg-background border-border text-muted-foreground hover:border-amber-500 hover:text-amber-500',
+            )}
+          >
+            <Shield className="w-5 h-5" />
+            {emergencyModes.shelterIn ? 'Shelter In — ACTIVE' : 'Shelter In'}
+            {emergencyModes.shelterIn && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+          </button>
+          <button
+            onClick={toggleBlackout}
+            className={cn(
+              'flex-1 py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-2',
+              emergencyModes.blackout
+                ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(91,58,142,0.3)]'
+                : 'bg-background border-border text-muted-foreground hover:border-primary hover:text-primary',
+            )}
+          >
+            <ZapOff className="w-5 h-5" />
+            {emergencyModes.blackout ? 'Blackout — ACTIVE' : 'Blackout'}
+            {emergencyModes.blackout && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
 
         {/* Form Column */}

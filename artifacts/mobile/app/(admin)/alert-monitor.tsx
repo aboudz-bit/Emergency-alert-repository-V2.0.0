@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
+  Alert,
   Dimensions,
   Modal,
   Pressable,
@@ -16,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
+import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
@@ -193,6 +195,7 @@ export default function AlertMonitorScreen() {
                 onPersonnelPress={handlePersonnelPress}
                 hazardZones={activeHazardZones}
               />
+              <WindIndicator />
             </View>
             <View style={styles.mapLegend}>
               <View style={styles.legendItem}>
@@ -224,23 +227,18 @@ export default function AlertMonitorScreen() {
       <View style={styles.bottomActions}>
         <Button
           title="All Clear"
-          onPress={sendAllClear}
+          onPress={() => {
+            Alert.alert(
+              "Send All Clear",
+              "This will close the alert and mark everyone as safe. Continue?",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Confirm", style: "default", onPress: sendAllClear },
+              ]
+            );
+          }}
           variant="safe"
           icon="check-circle"
-          size="lg"
-          style={{ flex: 1 }}
-        />
-        <Button
-          title="Close"
-          onPress={() => {
-            if (activeAlert.id === -1) {
-              sendAllClear();
-            } else {
-              closeAlert(activeAlert.id);
-            }
-          }}
-          variant="secondary"
-          icon="x"
           size="lg"
           style={{ flex: 1 }}
         />

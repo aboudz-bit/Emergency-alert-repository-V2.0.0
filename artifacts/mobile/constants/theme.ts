@@ -72,8 +72,6 @@ export const BorderRadius = {
 } as const;
 
 export const ALERT_TYPES = [
-  'Blackout',
-  'Shelter-in',
   'Security Alert',
   'Restricted Movement',
   'Drill',
@@ -82,8 +80,6 @@ export const ALERT_TYPES = [
 ] as const;
 
 export const DEFAULT_MESSAGES: Record<string, string> = {
-  'Blackout': 'A blackout condition has been detected. All personnel must immediately proceed to their designated muster points and await further instructions.',
-  'Shelter-in': 'A hazardous condition has been detected. All personnel must shelter in place immediately. Do not leave your current location until further notice.',
   'Security Alert': 'A security incident is in progress. Remain indoors, lock all doors and windows, and await further instructions from security personnel.',
   'Restricted Movement': 'Movement across zones is currently restricted. Remain at your current location and await further instructions.',
   'Drill': 'This is an emergency evacuation drill. Proceed to your designated muster points in a calm and orderly fashion. This is only a drill.',

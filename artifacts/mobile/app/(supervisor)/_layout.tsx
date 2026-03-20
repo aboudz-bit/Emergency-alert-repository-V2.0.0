@@ -33,6 +33,13 @@ export default function SupervisorLayout() {
         }}
       />
       <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="map" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="personnel"
         options={{
           title: "Personnel",

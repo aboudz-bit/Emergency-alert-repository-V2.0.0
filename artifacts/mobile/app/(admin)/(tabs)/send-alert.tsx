@@ -18,9 +18,7 @@ import { useStore } from "@/store";
 import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
-  "Blackout",
   "Security Alert",
-  "Shelter-in",
   "Drill",
   "Restricted Movement",
   "Custom",
@@ -46,6 +44,9 @@ export default function AlertManagementScreen() {
   const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
   const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
   const sendZoneNotification = useStore((s) => s.sendZoneNotification);
+  const emergencyModes = useStore((s) => s.emergencyModes);
+  const toggleShelterIn = useStore((s) => s.toggleShelterIn);
+  const toggleBlackout = useStore((s) => s.toggleBlackout);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,13 +57,13 @@ export default function AlertManagementScreen() {
 
   // Bulk activate modal
   const [bulkActivateVisible, setBulkActivateVisible] = useState(false);
-  const [bulkType, setBulkType] = useState<LocationAlertType>("Blackout");
+  const [bulkType, setBulkType] = useState<LocationAlertType>("Security Alert");
   const [bulkPriority, setBulkPriority] = useState<AlertPriority>("High");
   const [bulkMessage, setBulkMessage] = useState("");
 
   // Activate modal
   const [activateTarget, setActivateTarget] = useState<Zone | null>(null);
-  const [activateType, setActivateType] = useState<LocationAlertType>("Blackout");
+  const [activateType, setActivateType] = useState<LocationAlertType>("Security Alert");
   const [activatePriority, setActivatePriority] = useState<AlertPriority>("High");
   const [activateMessage, setActivateMessage] = useState("");
 
@@ -71,7 +72,7 @@ export default function AlertManagementScreen() {
 
   // Edit modal
   const [editTarget, setEditTarget] = useState<Zone | null>(null);
-  const [editType, setEditType] = useState<LocationAlertType>("Blackout");
+  const [editType, setEditType] = useState<LocationAlertType>("Security Alert");
   const [editPriority, setEditPriority] = useState<AlertPriority>("High");
   const [editMessage, setEditMessage] = useState("");
 
@@ -133,9 +134,9 @@ export default function AlertManagementScreen() {
       if (zone.alertActive) {
         setDeactivateTarget(zone);
       } else {
-        setActivateType("Blackout");
+        setActivateType("Security Alert");
         setActivatePriority("High");
-        setActivateMessage(DEFAULT_MESSAGES["Blackout"] || "");
+        setActivateMessage(DEFAULT_MESSAGES["Security Alert"] || "");
         setActivateTarget(zone);
       }
     },
@@ -166,9 +167,9 @@ export default function AlertManagementScreen() {
 
   const handleOpenBulkActivate = useCallback(() => {
     if (selectedZoneIds.size === 0) return;
-    setBulkType("Blackout");
+    setBulkType("Security Alert");
     setBulkPriority("High");
-    setBulkMessage(DEFAULT_MESSAGES["Blackout"] || "");
+    setBulkMessage(DEFAULT_MESSAGES["Security Alert"] || "");
     setBulkActivateVisible(true);
   }, [selectedZoneIds]);
 
@@ -194,7 +195,7 @@ export default function AlertManagementScreen() {
 
   // ─── Edit flow ───
   const handleOpenEdit = useCallback((zone: Zone) => {
-    setEditType(zone.alertType || "Blackout");
+    setEditType(zone.alertType || "Security Alert");
     setEditPriority(zone.alertPriority || "High");
     setEditMessage(zone.alertMessage || "");
     setEditTarget(zone);
@@ -410,6 +411,60 @@ export default function AlertManagementScreen() {
   return (
     <View style={styles.container}>
       <Header title="Alert Management" />
+
+      {/* ─── Emergency Modes ─── */}
+      <View style={styles.emergencyModesBar}>
+        <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
+        <View style={styles.emergencyModesRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.emergencyModeBtn,
+              emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={toggleShelterIn}
+          >
+            <Feather
+              name="shield"
+              size={16}
+              color={emergencyModes.shelterIn ? "#fff" : Colors.amber}
+            />
+            <Text
+              style={[
+                styles.emergencyModeBtnText,
+                emergencyModes.shelterIn && styles.emergencyModeBtnTextActive,
+              ]}
+            >
+              {emergencyModes.shelterIn ? "Shelter In ON" : "Shelter In"}
+            </Text>
+            {emergencyModes.shelterIn && <View style={styles.emergencyModePulse} />}
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.emergencyModeBtn,
+              emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={toggleBlackout}
+          >
+            <Feather
+              name="zap-off"
+              size={16}
+              color={emergencyModes.blackout ? "#fff" : Colors.primary}
+            />
+            <Text
+              style={[
+                styles.emergencyModeBtnText,
+                emergencyModes.blackout && styles.emergencyModeBtnTextActive,
+              ]}
+            >
+              {emergencyModes.blackout ? "Blackout ON" : "Blackout"}
+            </Text>
+            {emergencyModes.blackout && <View style={styles.emergencyModePulse} />}
+          </Pressable>
+        </View>
+      </View>
 
       {/* ─── Summary strip ─── */}
       <View style={styles.summaryStrip}>
@@ -1123,6 +1178,41 @@ export default function AlertManagementScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+
+  // ─── Emergency Modes ───
+  emergencyModesBar: {
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  emergencyModesLabel: {
+    fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.textTertiary,
+    textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8,
+  },
+  emergencyModesRow: {
+    flexDirection: "row", gap: 10,
+  },
+  emergencyModeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, height: 44, borderRadius: 10,
+    borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated,
+  },
+  emergencyModeBtnActiveShelter: {
+    backgroundColor: Colors.amber, borderColor: Colors.amber,
+  },
+  emergencyModeBtnActiveBlackout: {
+    backgroundColor: Colors.primary, borderColor: Colors.primary,
+  },
+  emergencyModeBtnText: {
+    fontSize: 13, fontFamily: "Inter_700Bold", color: Colors.textSecondary,
+  },
+  emergencyModeBtnTextActive: {
+    color: "#fff",
+  },
+  emergencyModePulse: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff",
+  },
 
   // ─── Summary ───
   summaryStrip: {

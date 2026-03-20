@@ -18,6 +18,7 @@ export default function AdminLayout() {
       <Stack.Screen name="locations" />
       <Stack.Screen name="eco-management" />
       <Stack.Screen name="supervisor-management" />
+      <Stack.Screen name="permissions" />
     </Stack>
   );
 }

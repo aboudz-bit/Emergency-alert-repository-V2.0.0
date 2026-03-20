@@ -20,9 +20,13 @@ import AuditLogPage from '@/pages/admin/audit-log';
 import ECOManagementPage from '@/pages/admin/eco-management';
 import SettingsPage from '@/pages/admin/settings';
 import ECODashboard from '@/pages/eco/dashboard';
+import ECOLiveMap from '@/pages/eco/live-map';
+import PermissionsPage from '@/pages/admin/permissions';
 import SupervisorManagementPage from '@/pages/admin/supervisor-management';
 import SupervisorDashboard from '@/pages/supervisor/dashboard';
+import SupervisorMap from '@/pages/supervisor/map';
 import MobileHome from '@/pages/mobile/home';
+import MobileMap from '@/pages/mobile/map';
 import MobileRegister from '@/pages/mobile/register';
 import MobileLocationPermission from '@/pages/mobile/location-permission';
 import MobileAlert from '@/pages/mobile/alert';
@@ -116,6 +120,11 @@ function Router() {
           <SupervisorManagementPage />
         </Guard>
       </Route>
+      <Route path="/admin/permissions">
+        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
+          <PermissionsPage />
+        </Guard>
+      </Route>
       <Route path="/admin/settings">
         <Guard allowedRoles={['Super Admin']} redirectTo="/login">
           <SettingsPage />
@@ -128,11 +137,21 @@ function Router() {
           <ECODashboard />
         </Guard>
       </Route>
+      <Route path="/eco/live-map">
+        <Guard allowedRoles={['User']} redirectTo="/login">
+          <ECOLiveMap />
+        </Guard>
+      </Route>
 
       {/* Supervisor Dashboard — accessible by User (Supervisor/Backup is a User with assignment) */}
       <Route path="/supervisor">
         <Guard allowedRoles={['User']} redirectTo="/login">
           <SupervisorDashboard />
+        </Guard>
+      </Route>
+      <Route path="/supervisor/map">
+        <Guard allowedRoles={['User']} redirectTo="/login">
+          <SupervisorMap />
         </Guard>
       </Route>
 
@@ -142,6 +161,11 @@ function Router() {
       <Route path="/mobile/home">
         <Guard allowedRoles={['User', 'Super Admin', 'IT']} redirectTo="/login">
           <MobileHome />
+        </Guard>
+      </Route>
+      <Route path="/mobile/map">
+        <Guard allowedRoles={['User', 'Super Admin', 'IT']} redirectTo="/login">
+          <MobileMap />
         </Guard>
       </Route>
       <Route path="/mobile/alert/:id">

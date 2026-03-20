@@ -7,6 +7,8 @@ import {
   Home as HomeIcon, Navigation, Loader, Crosshair,
 } from 'lucide-react';
 import { cn } from '@/components/shared/Badges';
+import { EmergencyModeBanner } from '@/components/shared/EmergencyModeBanner';
+import { BottomTabBar } from '@/components/shared/BottomTabBar';
 
 function PulsingDot() {
   return (
@@ -40,12 +42,13 @@ function formatTimeAgo(timestamp: string): string {
 }
 
 export default function MobileHome() {
-  const { currentUser, respondToAlert, mobileUserResponse, zones, locations } = useStore(useShallow(s => ({
+  const { currentUser, respondToAlert, mobileUserResponse, zones, locations, hazardZones } = useStore(useShallow(s => ({
     currentUser: s.currentUser,
     respondToAlert: s.respondToAlert,
     mobileUserResponse: s.mobileUserResponse,
     zones: s.zones,
     locations: s.locations,
+    hazardZones: s.hazardZones,
   })));
   const activeAlert = useStore(selectActiveAlert);
 
@@ -66,6 +69,7 @@ export default function MobileHome() {
 
   return (
     <MobileLayout>
+      <EmergencyModeBanner />
       {/* Header Area — white surface with greeting + chips */}
       <div className="bg-white border-b border-[#E5E7EB] px-[18px] pt-[14px] pb-[18px]">
         <div className="flex flex-row items-baseline gap-2">
@@ -196,6 +200,44 @@ export default function MobileHome() {
           </div>
         </div>
 
+        {/* Active Hazard Zones */}
+        {(() => {
+          const activeHz = activeAlert
+            ? hazardZones.filter(hz => hz.isActive && hz.alertId === activeAlert.id)
+            : [];
+          if (activeHz.length === 0) return null;
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 py-1">
+                <AlertTriangle className="w-[18px] h-[18px] text-[#EF4444]" />
+                <span className="text-[17px] font-semibold text-[#111111]">Hazard Zones</span>
+                <span className="ml-auto text-[13px] font-medium text-[#EF4444]">{activeHz.length} active</span>
+              </div>
+              {activeHz.map(hz => (
+                <div key={hz.id} className="bg-white border border-[#E5E7EB] rounded-xl px-[14px] py-[12px]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
+                      <span className="text-[12px] font-semibold text-[#111111]">Hot {hz.hotRadius}m</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+                      <span className="text-[12px] font-semibold text-[#111111]">Warm {hz.warmRadius}m</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#4CAF50]" />
+                      <span className="text-[12px] font-semibold text-[#111111]">Cold {hz.coldRadius}m</span>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#9CA3AF] mt-1">
+                    By {hz.createdBy} · {hz.isLocked ? 'Locked' : 'Unlocked'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Shelter Section */}
         <div className="space-y-2">
           <div className="flex items-center justify-between py-1">
@@ -218,6 +260,7 @@ export default function MobileHome() {
 
         <div className="h-8" />
       </div>
+      <BottomTabBar role="mobile" />
     </MobileLayout>
   );
 }

@@ -16,13 +16,13 @@ import * as ExpoLocation from "expo-location";
 
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
+import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -76,8 +76,6 @@ function PulsingDot() {
   );
 }
 
-const MAP_HEIGHT = 260;
-
 export default function UserHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -85,13 +83,9 @@ export default function UserHomeScreen() {
   const activeAlert = useStore(selectActiveAlert);
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
-  const zones = useStore((s) => s.zones);
-  const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
-  const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
-  const [gpsError, setGpsError] = useState(false);
 
   const firstName = currentUser?.name?.split(" ")[0] || "User";
 
@@ -112,13 +106,6 @@ export default function UserHomeScreen() {
     );
   }, [userLocation, shelters, detectedLocationId, currentUser?.zoneId]);
 
-  const userHighlightedLocationIds = useMemo(() => {
-    const ids: number[] = [];
-    if (detectedLocationId != null) ids.push(detectedLocationId);
-    else if (currentUser?.locationId) ids.push(currentUser.locationId);
-    return ids;
-  }, [detectedLocationId, currentUser?.locationId]);
-
   useEffect(() => {
     let sub: ExpoLocation.LocationSubscription | undefined;
     let cancelled = false;
@@ -126,19 +113,15 @@ export default function UserHomeScreen() {
     (async () => {
       try {
         const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (status !== "granted" || cancelled) {
-          if (!cancelled) setGpsError(true);
-          return;
-        }
+        if (status !== "granted" || cancelled) return;
         sub = await ExpoLocation.watchPositionAsync(
           { accuracy: ExpoLocation.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
           (loc) => {
             setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-            setGpsError(false);
           },
         );
       } catch {
-        if (!cancelled) setGpsError(true);
+        // GPS unavailable
       }
     })();
 
@@ -148,12 +131,9 @@ export default function UserHomeScreen() {
     };
   }, []);
 
-  const handleShelterPress = useCallback((id: number) => {
-    setSelectedShelterId((prev) => (prev === id ? null : id));
-  }, []);
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <EmergencyModeBanner />
       <View style={styles.headerArea}>
         <View style={styles.greetingRow}>
           <View style={styles.greetingTextWrap}>
@@ -293,7 +273,7 @@ export default function UserHomeScreen() {
           </View>
         </Card>
 
-        {/* ═══ SHELTER MAP ═══ */}
+        {/* ═══ SHELTER INFO ═══ */}
         <View style={styles.shelterSection}>
           <View style={styles.shelterHeader}>
             <View style={styles.shelterHeaderLeft}>
@@ -318,36 +298,6 @@ export default function UserHomeScreen() {
                 </View>
               </View>
             </Card>
-          )}
-
-          <View style={styles.mapContainer}>
-            <ZoneMap
-              zones={zones}
-              selectedZoneId={null}
-              onZonePress={() => {}}
-              height={MAP_HEIGHT}
-              shelters={activeShelters}
-              selectedShelterId={selectedShelterId}
-              onShelterPress={handleShelterPress}
-              nearestShelterId={nearestShelter?.shelter.id ?? null}
-              userLocation={userLocation}
-              showLocationButton
-              locations={locations}
-              highlightedLocationIds={userHighlightedLocationIds}
-            />
-          </View>
-
-          {!userLocation && !gpsError && (
-            <View style={styles.gpsHint}>
-              <Feather name="loader" size={14} color={Colors.textTertiary} />
-              <Text style={styles.gpsHintText}>Acquiring GPS location...</Text>
-            </View>
-          )}
-          {gpsError && (
-            <View style={styles.gpsHint}>
-              <Feather name="alert-circle" size={14} color={Colors.destructive} />
-              <Text style={[styles.gpsHintText, { color: Colors.destructive }]}>GPS unavailable</Text>
-            </View>
           )}
         </View>
 
@@ -700,22 +650,5 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontFamily: "Inter_700Bold",
     color: "#16A34A",
-  },
-  mapContainer: {
-    borderRadius: BorderRadius.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  gpsHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
-  gpsHintText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textTertiary,
   },
 });

@@ -33,6 +33,13 @@ export default function ECOLayout() {
         }}
       />
       <Tabs.Screen
+        name="live-map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="map" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="alerts"
         options={{
           title: "Alerts",
