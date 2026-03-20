@@ -180,9 +180,9 @@ export default function AdminDashboard() {
               System Activity
             </h3>
             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-              {activityLogs.slice(0, 6).map((act, i) => (
+              {activityLogs.filter(a => a.type === 'alert' || a.type === 'action').slice(0, 6).map((act, i, arr) => (
                 <div key={act.id} className="flex gap-4 relative">
-                  {i !== Math.min(activityLogs.length - 1, 5) && (
+                  {i !== arr.length - 1 && (
                     <div className="absolute left-[9px] top-6 bottom-[-24px] w-px bg-border" />
                   )}
                   <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 bg-card z-10 ${

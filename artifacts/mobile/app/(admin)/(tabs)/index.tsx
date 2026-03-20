@@ -54,7 +54,7 @@ export default function DashboardScreen() {
     return { total, zoneCounts, affectedLocations, affectedUsers };
   }, [users, zones, locations, alertZones, hasActiveAlerts]);
 
-  const recentLogs = useMemo(() => activityLogs.slice(0, 5), [activityLogs]);
+  const recentLogs = useMemo(() => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5), [activityLogs]);
 
   const handleLogout = useCallback(() => {
     logout();
