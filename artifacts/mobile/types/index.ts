@@ -103,6 +103,7 @@ export interface Zone {
   name: string;
   type: ZoneType;
   parentZoneId?: number | null;
+  locationId?: number | null;
   boundaryType: ZoneBoundaryType;
   polygonPoints: LatLng[];
   center?: LatLng;

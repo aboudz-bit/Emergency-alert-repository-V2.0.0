@@ -111,6 +111,7 @@ export const seedAlerts: Alert[] = [
 export const seedZones: Zone[] = [
   {
     id: 1, name: 'CPF', type: 'CPF', boundaryType: 'Polygon',
+    locationId: null,
     polygonPoints: [
       { lat: 25.084, lng: 48.155 }, { lat: 25.084, lng: 48.175 },
       { lat: 25.072, lng: 48.175 }, { lat: 25.072, lng: 48.155 },
