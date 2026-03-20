@@ -195,8 +195,10 @@ export default function ECOLiveMap() {
               <div className="space-y-3">
                 {[
                   { icon: '🛡️', label: 'Role', value: selectedUser.role },
+                  { icon: '🆔', label: 'Badge', value: selectedUser.badge },
                   { icon: '📍', label: 'Zone', value: selectedUser.zone },
                   { icon: '🏢', label: 'Location', value: selectedUser.location },
+                  { icon: '🏷️', label: 'Employment', value: selectedUser.employmentType === 'aramco' ? 'Aramco' : selectedUser.employmentType === 'contract' ? 'Contract' : '—' },
                   { icon: '⏰', label: 'Last Activity', value: new Date(selectedUser.lastActivity).toLocaleTimeString() },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center gap-3 py-2 border-b border-[#F0F1F4] last:border-0">
@@ -205,11 +207,25 @@ export default function ECOLiveMap() {
                     <span className="text-[13px] text-[#1A1A2E] font-medium flex-1">{row.value}</span>
                   </div>
                 ))}
-                <div className="flex items-center gap-3 py-2">
+                <div className="flex items-center gap-3 py-2 border-b border-[#F0F1F4]">
                   <span className="text-[15px]">📊</span>
                   <span className="text-[13px] text-[#6B7280] w-20">Status</span>
                   <StatusBadge status={selectedUser.status} />
                 </div>
+                {selectedUser.alertResponseStatus && (
+                  <div className="flex items-center gap-3 py-2">
+                    <span className="text-[15px]">🚨</span>
+                    <span className="text-[13px] text-[#6B7280] w-20">Alert</span>
+                    <span className={cn(
+                      'text-[12px] font-semibold px-2 py-0.5 rounded-full',
+                      selectedUser.alertResponseStatus === 'safe'
+                        ? 'bg-[#E8F5E9] text-[#4CAF50]'
+                        : 'bg-red-100 text-red-600'
+                    )}>
+                      {selectedUser.alertResponseStatus === 'safe' ? 'Safe' : 'Need Help'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -44,6 +44,36 @@ function UserDrawer({ user, onClose }: { user: User; onClose: () => void }) {
               <p className="text-xs text-muted-foreground mb-1">Current Status</p>
               <StatusBadge status={user.status} />
             </div>
+            <div className="bg-background border border-border rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">Employment Type</p>
+              <p className="font-semibold text-foreground text-sm">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border',
+                  user.employmentType === 'aramco'
+                    ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                )}>
+                  <span className={cn('w-2 h-2 rounded-full', user.employmentType === 'aramco' ? 'bg-blue-500' : 'bg-yellow-500')} />
+                  {user.employmentType === 'aramco' ? 'Aramco' : 'Contract'}
+                </span>
+              </p>
+            </div>
+            <div className="bg-background border border-border rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">Alert Response</p>
+              <p className="font-semibold text-foreground text-sm">
+                {user.alertResponseStatus === 'safe' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-600 border border-green-500/20">
+                    <span className="w-2 h-2 rounded-full bg-green-500" /> Safe
+                  </span>
+                ) : user.alertResponseStatus === 'need_help' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 border border-red-500/20">
+                    <span className="w-2 h-2 rounded-full bg-red-500" /> Need Help
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </p>
+            </div>
             <div className="col-span-2 bg-background border border-border rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> Location</p>
               <p className="font-medium text-foreground">{user.zone} — {user.location}</p>

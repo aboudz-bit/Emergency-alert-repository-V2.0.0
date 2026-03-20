@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
@@ -17,6 +16,59 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { ALL_PERMISSIONS } from "@/types";
 import type { PermissionKey, User } from "@/types";
+import {
+  PermissionModuleCard,
+  type PermissionSubItem,
+} from "@/components/ui/PermissionModuleCard";
+
+// ─── Permission Module Groupings ────────────────────────────────────────────
+
+interface PermissionModule {
+  id: string;
+  title: string;
+  icon: keyof typeof Feather.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  permissions: PermissionSubItem[];
+}
+
+const PERMISSION_MODULES: PermissionModule[] = [
+  {
+    id: "live-map",
+    title: "Live Map",
+    icon: "map",
+    iconColor: "#3B82F6",
+    iconBg: "rgba(59, 130, 246, 0.10)",
+    permissions: [
+      { key: "canViewGlobalLiveMap", label: "View Global Live Map" },
+      { key: "canReviewAlertMonitor", label: "Review Alert Monitor" },
+    ],
+  },
+  {
+    id: "eco-controls",
+    title: "ECO / Alert Controls",
+    icon: "alert-triangle",
+    iconColor: "#F59E0B",
+    iconBg: "rgba(245, 158, 11, 0.10)",
+    permissions: [
+      { key: "canChangeWindDirection", label: "Change Wind Direction" },
+      { key: "canPlaceWarningZone", label: "Place Warning Zone" },
+      { key: "canEditHazardZone", label: "Edit Hazard Zone" },
+      { key: "canDeleteHazardZone", label: "Delete Hazard Zone" },
+      { key: "canUnlockHazardZone", label: "Unlock Hazard Zone" },
+    ],
+  },
+  {
+    id: "shelters",
+    title: "Shelters",
+    icon: "home",
+    iconColor: "#16A34A",
+    iconBg: "rgba(22, 163, 74, 0.10)",
+    permissions: [{ key: "canManageShelters", label: "Manage Shelters" }],
+  },
+];
+
+// ─── Screen ─────────────────────────────────────────────────────────────────
 
 export default function PermissionsScreen() {
   const insets = useSafeAreaInsets();
@@ -29,7 +81,14 @@ export default function PermissionsScreen() {
   const [localPerms, setLocalPerms] = useState<PermissionKey[]>([]);
 
   const eligibleUsers = useMemo(
-    () => users.filter((u) => u.accountStatus === "active" && u.isActive && u.role !== "Super Admin" && u.role !== "IT"),
+    () =>
+      users.filter(
+        (u) =>
+          u.accountStatus === "active" &&
+          u.isActive &&
+          u.role !== "Super Admin" &&
+          u.role !== "IT"
+      ),
     [users]
   );
 
@@ -38,22 +97,29 @@ export default function PermissionsScreen() {
     [eligibleUsers]
   );
 
-  const openEditor = useCallback((user: User) => {
-    setSelectedUser(user);
-    setLocalPerms(getUserPermissions(user.id));
-  }, [getUserPermissions]);
+  const openEditor = useCallback(
+    (user: User) => {
+      setSelectedUser(user);
+      setLocalPerms(getUserPermissions(user.id));
+    },
+    [getUserPermissions]
+  );
 
   const togglePerm = useCallback((perm: PermissionKey) => {
     setLocalPerms((prev) =>
-      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
+      prev.includes(perm)
+        ? prev.filter((p) => p !== perm)
+        : [...prev, perm]
     );
   }, []);
 
   const saveAndClose = useCallback(() => {
     if (selectedUser) {
-      // Filter out role-based defaults to only store explicitly granted perms
-      const isECO = selectedUser.isECOAssigned && selectedUser.ecoAssignmentActive;
-      const defaults: PermissionKey[] = isECO ? ["canViewGlobalLiveMap", "canReviewAlertMonitor"] : [];
+      const isECO =
+        selectedUser.isECOAssigned && selectedUser.ecoAssignmentActive;
+      const defaults: PermissionKey[] = isECO
+        ? ["canViewGlobalLiveMap", "canReviewAlertMonitor", "canChangeWindDirection"]
+        : [];
       const explicit = localPerms.filter((p) => !defaults.includes(p));
       setUserPermissions(selectedUser.id, explicit);
     }
@@ -61,63 +127,92 @@ export default function PermissionsScreen() {
     setLocalPerms([]);
   }, [selectedUser, localPerms, setUserPermissions]);
 
-  const renderUserCard = useCallback(({ item }: { item: User }) => {
-    const perms = item.permissions || [];
-    const isECO = item.isECOAssigned && item.ecoAssignmentActive;
-    return (
-      <Pressable
-        style={({ pressed }) => [styles.userCard, pressed && styles.pressed]}
-        onPress={() => openEditor(item)}
-      >
-        <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.name}</Text>
-          <Text style={styles.userMeta}>
-            {item.badge} · {item.role}
-            {isECO ? " · ECO" : ""}
-            {item.isSupervisorAssigned ? " · Supervisor" : ""}
-          </Text>
-          {perms.length > 0 && (
-            <View style={styles.permChips}>
-              {perms.slice(0, 3).map((p) => (
-                <View key={p} style={styles.permChip}>
-                  <Text style={styles.permChipText}>
-                    {ALL_PERMISSIONS.find((ap) => ap.key === p)?.label || p}
-                  </Text>
-                </View>
-              ))}
-              {perms.length > 3 && (
-                <View style={[styles.permChip, styles.permChipMore]}>
-                  <Text style={styles.permChipText}>+{perms.length - 3}</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-        <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
-      </Pressable>
-    );
-  }, [openEditor]);
+  // Compute default perms for selected user
+  const defaultPerms = useMemo((): PermissionKey[] => {
+    if (!selectedUser) return [];
+    const isECO =
+      selectedUser.isECOAssigned && selectedUser.ecoAssignmentActive;
+    return isECO
+      ? ["canViewGlobalLiveMap", "canReviewAlertMonitor", "canChangeWindDirection"]
+      : [];
+  }, [selectedUser]);
+
+  const renderUserCard = useCallback(
+    ({ item }: { item: User }) => {
+      const perms = item.permissions || [];
+      const isECO = item.isECOAssigned && item.ecoAssignmentActive;
+      return (
+        <Pressable
+          style={({ pressed }) => [styles.userCard, pressed && styles.pressed]}
+          onPress={() => openEditor(item)}
+        >
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>
+              {item.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.name}</Text>
+            <Text style={styles.userMeta}>
+              {item.badge} · {item.role}
+              {isECO ? " · ECO" : ""}
+              {item.isSupervisorAssigned ? " · Supervisor" : ""}
+            </Text>
+            {perms.length > 0 && (
+              <View style={styles.permChips}>
+                {perms.slice(0, 3).map((p) => (
+                  <View key={p} style={styles.permChip}>
+                    <Text style={styles.permChipText}>
+                      {ALL_PERMISSIONS.find((ap) => ap.key === p)?.label || p}
+                    </Text>
+                  </View>
+                ))}
+                {perms.length > 3 && (
+                  <View style={[styles.permChip, styles.permChipMore]}>
+                    <Text style={styles.permChipText}>
+                      +{perms.length - 3}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+          <Feather
+            name="chevron-right"
+            size={16}
+            color={Colors.textTertiary}
+          />
+        </Pressable>
+      );
+    },
+    [openEditor]
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()} hitSlop={8}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          hitSlop={8}
+        >
           <Feather name="arrow-left" size={22} color={Colors.text} />
         </Pressable>
         <View style={styles.headerTitleArea}>
           <Text style={styles.headerTitle}>Permissions</Text>
-          <Text style={styles.headerSubtitle}>Assign granular permissions to users</Text>
+          <Text style={styles.headerSubtitle}>
+            Assign granular permissions to users
+          </Text>
         </View>
       </View>
 
       {/* Users with assigned permissions */}
       {usersWithPerms.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Users with Custom Permissions</Text>
+          <Text style={styles.sectionTitle}>
+            Users with Custom Permissions
+          </Text>
           {usersWithPerms.map((u) => (
             <React.Fragment key={u.id}>
               {renderUserCard({ item: u })}
@@ -128,7 +223,9 @@ export default function PermissionsScreen() {
 
       {/* All eligible users */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>All Users ({eligibleUsers.length})</Text>
+        <Text style={styles.sectionTitle}>
+          All Users ({eligibleUsers.length})
+        </Text>
       </View>
       <FlatList
         data={eligibleUsers}
@@ -138,79 +235,115 @@ export default function PermissionsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      {/* Permission Editor Modal */}
+      {/* ═══ Permission Editor Modal ═══ */}
       <Modal
         visible={selectedUser !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => { setSelectedUser(null); setLocalPerms([]); }}
+        onRequestClose={() => {
+          setSelectedUser(null);
+          setLocalPerms([]);
+        }}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + Spacing.lg }]}>
+          <View
+            style={[
+              styles.modalSheet,
+              { paddingBottom: insets.bottom + Spacing.lg },
+            ]}
+          >
+            {/* ── Modal Handle ── */}
+            <View style={styles.modalHandle}>
+              <View style={styles.handleBar} />
+            </View>
+
+            {/* ── Modal Header ── */}
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderLeft}>
-                <View style={styles.modalAvatar}>
-                  <Text style={styles.modalAvatarText}>
-                    {selectedUser?.name.charAt(0).toUpperCase()}
-                  </Text>
+                <View style={styles.modalIconWrap}>
+                  <Feather name="shield" size={22} color={Colors.primary} />
                 </View>
-                <View>
-                  <Text style={styles.modalName}>{selectedUser?.name}</Text>
-                  <Text style={styles.modalBadge}>
-                    {selectedUser?.badge} · {selectedUser?.role}
+                <View style={styles.modalHeaderText}>
+                  <Text style={styles.modalTitle}>Edit Permissions</Text>
+                  <Text style={styles.modalUserName}>
+                    {selectedUser?.name}
                   </Text>
                 </View>
               </View>
               <Pressable
                 style={styles.modalCloseBtn}
-                onPress={() => { setSelectedUser(null); setLocalPerms([]); }}
+                onPress={() => {
+                  setSelectedUser(null);
+                  setLocalPerms([]);
+                }}
                 hitSlop={8}
               >
                 <Feather name="x" size={18} color={Colors.textTertiary} />
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
-              <Text style={styles.modalSectionTitle}>Permissions</Text>
-              <Text style={styles.modalSectionDesc}>
-                Toggle permissions for this user. Role-based defaults are shown but cannot be removed.
-              </Text>
+            {/* ── User info strip ── */}
+            <View style={styles.userStrip}>
+              <View style={styles.userStripAvatar}>
+                <Text style={styles.userStripAvatarText}>
+                  {selectedUser?.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.userStripInfo}>
+                <Text style={styles.userStripName}>
+                  {selectedUser?.name}
+                </Text>
+                <Text style={styles.userStripMeta}>
+                  {selectedUser?.badge} · {selectedUser?.role}
+                  {selectedUser?.isECOAssigned &&
+                  selectedUser?.ecoAssignmentActive
+                    ? " · ECO"
+                    : ""}
+                </Text>
+              </View>
+            </View>
 
-              {ALL_PERMISSIONS.map((perm) => {
-                const isActive = localPerms.includes(perm.key);
-                const isECO = selectedUser?.isECOAssigned && selectedUser?.ecoAssignmentActive;
-                const isDefault =
-                  isECO && (perm.key === "canViewGlobalLiveMap" || perm.key === "canReviewAlertMonitor");
+            {/* ── Module cards ── */}
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={styles.modalBodyContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {defaultPerms.length > 0 && (
+                <View style={styles.roleNote}>
+                  <Feather
+                    name="info"
+                    size={14}
+                    color={Colors.textSecondary}
+                  />
+                  <Text style={styles.roleNoteText}>
+                    Role-based defaults are shown but cannot be removed.
+                  </Text>
+                </View>
+              )}
 
-                return (
-                  <View key={perm.key} style={styles.permRow}>
-                    <View style={styles.permInfo}>
-                      <Text style={styles.permLabel}>{perm.label}</Text>
-                      <Text style={styles.permDesc}>{perm.description}</Text>
-                      {isDefault && (
-                        <View style={styles.defaultBadge}>
-                          <Text style={styles.defaultBadgeText}>Role Default</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Switch
-                      value={isActive}
-                      onValueChange={() => {
-                        if (isDefault) return;
-                        togglePerm(perm.key);
-                      }}
-                      disabled={isDefault}
-                      trackColor={{ false: Colors.border, true: Colors.primary + "60" }}
-                      thumbColor={isActive ? Colors.primary : Colors.surfaceElevated}
-                    />
-                  </View>
-                );
-              })}
+              {PERMISSION_MODULES.map((mod) => (
+                <PermissionModuleCard
+                  key={mod.id}
+                  icon={mod.icon}
+                  iconColor={mod.iconColor}
+                  iconBg={mod.iconBg}
+                  title={mod.title}
+                  permissions={mod.permissions}
+                  activePerms={localPerms}
+                  defaultPerms={defaultPerms}
+                  onToggle={togglePerm}
+                />
+              ))}
             </ScrollView>
 
+            {/* ── Save button ── */}
             <View style={styles.modalActions}>
               <Pressable
-                style={({ pressed }) => [styles.saveBtn, pressed && styles.saveBtnPressed]}
+                style={({ pressed }) => [
+                  styles.saveBtn,
+                  pressed && styles.saveBtnPressed,
+                ]}
                 onPress={saveAndClose}
               >
                 <Feather name="check" size={18} color="#fff" />
@@ -223,6 +356,8 @@ export default function PermissionsScreen() {
     </View>
   );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -337,120 +472,138 @@ const styles = StyleSheet.create({
     height: Spacing.sm,
   },
 
-  // Modal
+  // ─── Modal ──────────────────────────────────────────────────────────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
   modalSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: "85%",
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: BorderRadius.xxl + 4,
+    borderTopRightRadius: BorderRadius.xxl + 4,
+    maxHeight: "92%",
+  },
+  modalHandle: {
+    alignItems: "center",
+    paddingTop: Spacing.sm + 2,
+    paddingBottom: Spacing.xs,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   modalHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
+    flex: 1,
   },
-  modalAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.lg,
     backgroundColor: Colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
   },
-  modalAvatarText: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.primary,
+  modalHeaderText: {
+    flex: 1,
+    gap: 2,
   },
-  modalName: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_600SemiBold",
+  modalTitle: {
+    fontSize: FontSize.xxl,
+    fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
-  modalBadge: {
+  modalUserName: {
     fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
     color: Colors.textSecondary,
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
+  },
+  userStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  userStripAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primaryDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userStripAvatarText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_700Bold",
+    color: Colors.primary,
+  },
+  userStripInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  userStripName: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  userStripMeta: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+  },
+  roleNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  roleNoteText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary,
+    flex: 1,
+    lineHeight: 16,
   },
   modalBody: {
     flex: 1,
   },
   modalBodyContent: {
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     gap: Spacing.md,
-  },
-  modalSectionTitle: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  modalSectionDesc: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: Spacing.sm,
-  },
-  permRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.surfaceElevated,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  permInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  permLabel: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-  },
-  permDesc: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    lineHeight: 16,
-  },
-  defaultBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: Colors.safe + "20",
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
-  defaultBadgeText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.safe,
   },
   modalActions: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
@@ -460,14 +613,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: Spacing.sm,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md + 2,
   },
   saveBtnPressed: {
-    opacity: 0.8,
+    opacity: 0.85,
   },
   saveBtnText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontFamily: "Inter_600SemiBold",
     color: "#fff",
   },

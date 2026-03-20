@@ -1119,10 +1119,11 @@ export const useStore = create<AppState>()(
         if (user.role === 'Super Admin' || user.role === 'IT') return [
           'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
           'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
+          'canChangeWindDirection',
         ];
-        // ECO users get canViewGlobalLiveMap and canReviewAlertMonitor by default
+        // ECO users get these permissions by default
         if (user.isECOAssigned && user.ecoAssignmentActive) {
-          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor'];
+          const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor', 'canChangeWindDirection'];
           const extra = user.permissions || [];
           return [...new Set([...base, ...extra])];
         }
@@ -1134,8 +1135,8 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-mobile-store-v15',
-      version: 15,
+      name: 'keas-mobile-store-v16',
+      version: 16,
       storage: createJSONStorage(() => AsyncStorage),
       migrate: (persisted: any, version: number) => {
         const state = persisted as any;
@@ -1333,6 +1334,10 @@ export const useStore = create<AppState>()(
               locationId: z.locationId ?? null,
             }));
           }
+        }
+        if (version < 16) {
+          // canChangeWindDirection added — no data migration needed
+          // (getUserPermissions grants it dynamically for Super Admin/IT/ECO roles)
         }
         return persisted as AppState;
       },
