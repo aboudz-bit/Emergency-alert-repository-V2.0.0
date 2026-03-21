@@ -67,6 +67,7 @@ export const seedUsers: User[] = [
     accountStatus: 'active' as const,
     lastActivity: new Date().toISOString(),
     isActive: true,
+    userType: 'Contract' as const,
   },
 ];
 
