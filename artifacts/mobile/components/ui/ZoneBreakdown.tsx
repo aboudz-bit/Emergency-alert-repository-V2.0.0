@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { useTranslation } from "@/i18n";
 
 export interface ZoneStats {
   zoneName: string;
@@ -18,6 +19,7 @@ interface ZoneBreakdownProps {
 }
 
 export function ZoneBreakdown({ zoneStats, compact = false }: ZoneBreakdownProps) {
+  const { t } = useTranslation();
   if (zoneStats.length === 0) return null;
 
   return (
@@ -34,21 +36,21 @@ export function ZoneBreakdown({ zoneStats, compact = false }: ZoneBreakdownProps
               <Text style={[styles.statValue, { color: Colors.safe }]}>
                 {zone.confirmed}
               </Text>
-              <Text style={styles.statLabel}>Safe</Text>
+              <Text style={styles.statLabel}>{t.safe}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: Colors.noreply }]}>
                 {zone.pending}
               </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t.pending}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: Colors.primary }]}>
                 {zone.needHelp}
               </Text>
-              <Text style={styles.statLabel}>Help</Text>
+              <Text style={styles.statLabel}>{t.help}</Text>
             </View>
           </View>
         </View>

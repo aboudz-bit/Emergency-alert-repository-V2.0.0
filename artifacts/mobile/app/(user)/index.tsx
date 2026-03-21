@@ -23,7 +23,7 @@ import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
-import { useTranslation } from "@/i18n";
+import { useTranslation, translateAlertType, translateAlertTitle, translateAlertMessage, translateShelterName } from "@/i18n";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -178,13 +178,13 @@ export default function UserHomeScreen() {
                     <Feather name={getAlertIcon(activeAlert.type)} size={22} color={Colors.white} />
                   </View>
                   <View style={styles.alertTypeText}>
-                    <Text style={styles.alertTitle}>{activeAlert.title}</Text>
-                    <Text style={styles.alertType}>{activeAlert.type}</Text>
+                    <Text style={styles.alertTitle}>{translateAlertTitle(activeAlert.title, t)}</Text>
+                    <Text style={styles.alertType}>{translateAlertType(activeAlert.type, t)}</Text>
                   </View>
                   <Feather name="chevron-right" size={20} color={Colors.textSecondary} />
                 </View>
                 <Text style={styles.alertMessage} numberOfLines={2}>
-                  {activeAlert.message}
+                  {translateAlertMessage(activeAlert.message, t)}
                 </Text>
                 <Text style={styles.alertTimestamp}>
                   {formatTimeAgo(activeAlert.timestamp, t)}
@@ -298,7 +298,7 @@ export default function UserHomeScreen() {
                 </View>
                 <View style={styles.nearestInfo}>
                   <Text style={styles.nearestLabel}>{t.nearestShelter}</Text>
-                  <Text style={styles.nearestName}>{nearestShelter.shelter.name}</Text>
+                  <Text style={styles.nearestName}>{translateShelterName(nearestShelter.shelter.name, t)}</Text>
                 </View>
                 <View style={styles.distanceBadge}>
                   <Text style={styles.distanceText}>{formatDistance(nearestShelter.distance)}</Text>

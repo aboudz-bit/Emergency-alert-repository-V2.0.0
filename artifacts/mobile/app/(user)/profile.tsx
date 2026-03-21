@@ -15,7 +15,7 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import { useTranslation, LANGUAGE_OPTIONS } from "@/i18n";
+import { useTranslation, LANGUAGE_OPTIONS, translateRole } from "@/i18n";
 import type { Language } from "@/types";
 
 function InfoRow({
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
               <View style={styles.profileRoleChip}>
                 <Feather name="user" size={12} color={Colors.info} />
                 <Text style={styles.profileRoleText}>
-                  {currentUser?.role || "User"}
+                  {translateRole(currentUser?.role || "User", t)}
                 </Text>
               </View>
             </View>

@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
-import { useTranslation } from "@/i18n";
+import { useTranslation, translateAlertType, translateAlertTitle, translateAlertMessage, translateZone } from "@/i18n";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -187,14 +187,14 @@ export default function AlertDetailScreen() {
               color={Colors.white}
             />
           </View>
-          <Text style={styles.heroTitle}>{activeAlert.title}</Text>
-          <Text style={styles.heroType}>{activeAlert.type}</Text>
+          <Text style={styles.heroTitle}>{translateAlertTitle(activeAlert.title, t)}</Text>
+          <Text style={styles.heroType}>{translateAlertType(activeAlert.type, t)}</Text>
         </View>
 
         {/* Full Message */}
         <Card style={styles.messageCard}>
           <Text style={styles.messageSectionLabel}>{t.alertMessage}</Text>
-          <Text style={styles.messageText}>{activeAlert.message}</Text>
+          <Text style={styles.messageText}>{translateAlertMessage(activeAlert.message, t)}</Text>
         </Card>
 
         {/* Info Row */}
@@ -219,7 +219,7 @@ export default function AlertDetailScreen() {
             <View style={styles.infoItem}>
               <Feather name="map-pin" size={14} color={Colors.textSecondary} />
               <Text style={styles.infoLabel}>{t.zone}</Text>
-              <Text style={styles.infoValue}>{activeAlert.zone}</Text>
+              <Text style={styles.infoValue}>{translateZone(activeAlert.zone, t)}</Text>
             </View>
           </View>
         </Card>
