@@ -1,12 +1,21 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { MapPin, Navigation, CheckCircle2, Crosshair, Bell, Smartphone, LogOut, CreditCard, User as UserIcon } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle2, Crosshair, Bell, Smartphone, LogOut, CreditCard, User as UserIcon, Globe } from 'lucide-react';
 import { useStore, useShallow } from '@/store';
+import type { Language } from '@/types';
+
+const LANGUAGE_OPTIONS: { value: Language; label: string; nativeLabel: string }[] = [
+  { value: 'en', label: 'English', nativeLabel: 'English' },
+  { value: 'ar', label: 'Arabic', nativeLabel: 'العربية' },
+  { value: 'ur', label: 'Urdu', nativeLabel: 'اردو' },
+];
 
 export default function MobileProfile() {
   const [, navigate] = useLocation();
-  const { currentUser, logout } = useStore(useShallow(s => ({ currentUser: s.currentUser, logout: s.logout })));
+  const { currentUser, logout, setLanguage } = useStore(useShallow(s => ({ currentUser: s.currentUser, logout: s.logout, setLanguage: s.setLanguage })));
+  const isContractor = currentUser?.employmentType === 'Contract';
+  const currentLanguage = currentUser?.language || 'en';
 
   if (!currentUser) {
     navigate('/login');
@@ -23,8 +32,17 @@ export default function MobileProfile() {
   return (
     <MobileLayout>
       {/* Header — matches mobile Header component */}
-      <div className="bg-[#5B3A8E] px-[18px] pt-[14px] pb-[18px]">
+      <div className="bg-[#5B3A8E] px-[18px] pt-[14px] pb-[18px] flex items-center justify-between">
         <h1 className="text-[20px] font-bold text-white">Profile</h1>
+        {isContractor && (
+          <button
+            onClick={() => setLanguage(currentLanguage === 'en' ? 'ar' : 'en')}
+            className="px-2 py-1 rounded-md text-white font-semibold text-[13px]"
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+          >
+            {currentLanguage === 'en' ? 'AR' : 'EN'}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-[18px] space-y-[18px]">
@@ -47,6 +65,47 @@ export default function MobileProfile() {
             </div>
           </div>
         </div>
+
+        {/* Language Selector — Contractor only */}
+        {isContractor && (
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-[18px] space-y-[14px]">
+            <p className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.8px]">Language</p>
+            <div className="space-y-2">
+              {LANGUAGE_OPTIONS.map((opt) => {
+                const isSelected = currentLanguage === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setLanguage(opt.value)}
+                    className={`w-full flex items-center gap-[14px] p-[14px] rounded-lg border transition-colors ${
+                      isSelected
+                        ? 'border-[#5B3A8E] bg-[rgba(91,58,142,0.06)]'
+                        : 'border-[#E5E7EB] bg-white'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-[#5B3A8E]' : 'border-[#E5E7EB]'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="w-[10px] h-[10px] rounded-full bg-[#5B3A8E]" />
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className={`text-[15px] font-semibold ${isSelected ? 'text-[#5B3A8E]' : 'text-[#111111]'}`}>
+                        {opt.nativeLabel}
+                      </p>
+                      {opt.nativeLabel !== opt.label && (
+                        <p className="text-[11px] text-[#6B7280]">{opt.label}</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Information Section */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl p-[18px] space-y-[18px]">

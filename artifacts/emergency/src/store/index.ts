@@ -11,6 +11,7 @@ import type {
   PermissionKey, UserPermissionAssignment,
   EmergencyModes,
   EmploymentType,
+  Language,
   LocationAlertType, AlertPriority,
 } from '@/types';
 import {
@@ -67,6 +68,8 @@ interface AppState {
   logout: () => void;
   resetToSeedData: () => void;
   registerUser: (data: { name: string; badge: string; password: string; zone: 'CPF' | 'Camp'; location: string; employmentType: EmploymentType }) => { success: boolean; error?: string };
+
+  setLanguage: (language: Language) => void;
 
   // ── User/Admin management ────────────────────────────────────────────────────
   createSuperAdmin: (data: { name: string; badge: string; password: string }) => { success: boolean; error?: string };
@@ -285,6 +288,17 @@ export const useStore = create<AppState>()(
 
       logout: () => {
         set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null });
+      },
+
+      setLanguage: (language) => {
+        const { currentUser } = get();
+        if (!currentUser || currentUser.employmentType !== 'Contract') return;
+        set({
+          currentUser: { ...currentUser, language },
+          users: get().users.map(u =>
+            u.id === currentUser.id ? { ...u, language } : u,
+          ),
+        });
       },
 
       resetToSeedData: () => {
