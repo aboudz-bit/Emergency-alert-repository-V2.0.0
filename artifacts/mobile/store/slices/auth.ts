@@ -61,11 +61,13 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
       if (users.find(u => u.badge === badge)) {
         return { success: false, error: 'Badge number already registered.' };
       }
+      const SAFE_ROLES: UserRole[] = ['User', 'Supervisor', 'Back Superior'];
+      const safeRole: UserRole = (role && SAFE_ROLES.includes(role)) ? role : 'User';
       const matchedZone = zones.find(z => z.name === zone);
       const matchedLoc = location ? locs.find(l => l.name === location && l.zone === zone) : null;
       const newUser: User = {
         id: Date.now(), name, badge, password,
-        role: role ?? 'User',
+        role: safeRole,
         zone, location: location || '',
         zoneId: matchedZone?.id ?? 0,
         locationId: matchedLoc?.id ?? 0,

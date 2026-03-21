@@ -109,6 +109,10 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
     },
 
     closeAlert: (alertId) => {
+      if (alertId === -1) {
+        get().sendAllClear();
+        return;
+      }
       set(s => {
         const updatedAlerts = s.alerts.map(a =>
           a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,

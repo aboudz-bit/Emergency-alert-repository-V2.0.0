@@ -1,0 +1,223 @@
+Act as a senior React Native / Expo mobile architect, state-management auditor, and emergency workflow engineer.
+
+You are working on the MOBILE APP only.
+
+Do not review web unless it directly affects mobile behavior.
+
+Your task is to fix the most important current production risks in the mobile app, especially around:
+- alert lifecycle
+- all clear behavior
+- shelter-in / blackout emergency logic
+- map emergency activation
+- route protection
+- registration role safety
+- zone deletion safety
+- map status/state consistency
+
+==================================================
+IMPORTANT CONTEXT
+==================================================
+
+This app has:
+- registration / login
+- Aramco vs Contractor users
+- roles
+- approvals
+- zones
+- live map
+- alerts
+- shelter-in
+- blackout
+- emergency banners
+- user response states (safe / need help)
+
+Expected map colors / logic:
+- contractor has its own base company color
+- aramco has its own base company color
+- safe = emergency-safe state
+- need help = emergency-help state
+
+Users should appear live on map in emergency situations.
+
+==================================================
+CRITICAL CORRECTION
+==================================================
+
+There is NO “Shelter-out” in this system.
+
+Only these emergency modes exist:
+- Shelter-in
+- Blackout
+
+==================================================
+TOP PRIORITIES TO FIX NOW
+==================================================
+
+1) FIX ALERT / ZONE ALERT / ALL CLEAR FLOW
+2) MAKE SHELTER-IN AND BLACKOUT ACT LIKE ALERT MODE
+3) ADD ROUTE GUARDS TO MOBILE ROLE GROUPS
+4) PREVENT REGISTRATION FROM CREATING SUPER ADMIN
+5) PREVENT DELETING ACTIVE ZONES
+6) ENSURE MAP STATE / PERSONNEL STATE FULLY RESET AFTER ALL CLEAR
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+A) ALERT / ALL CLEAR
+When All Clear is triggered, the app must return to a true normal state.
+
+All Clear must fully reset:
+- active alerts
+- zone alert flags
+- emergency banners
+- personnel emergency markers
+- user response state
+- safe / need_help alert-related state
+- Shelter-in
+- Blackout
+- wind direction / eco emergency state
+- any emergency overlays on the map
+
+After All Clear:
+- no emergency mode remains active
+- map returns to normal mode
+- no leftover red/green emergency markers remain
+- no stale emergency UI remains visible
+
+B) SHELTER-IN / BLACKOUT MUST ACT LIKE ALERT MODE
+When Shelter-in OR Blackout is activated:
+- the map must switch to emergency mode
+- live personnel visibility must be enabled
+- personnel tracking must be active
+- users must be visible on the map
+- users must be able to respond with Safe / Need Help
+- emergency banners must appear
+- the app must behave as if an alert is active, even if no formal alert record exists
+
+Use this concept:
+
+isEmergencyActive =
+  hasActiveAlert ||
+  shelterIn ||
+  blackout
+
+All mobile logic must rely on isEmergencyActive instead of only hasActiveAlert.
+
+This includes:
+- map visibility
+- personnel visibility
+- alert banners
+- emergency controls
+- safe / need_help actions
+- tracking logic
+- emergency UI states
+
+C) ZONE ALERT BUG
+Fix the known problem where zone-only alert close logic can fail.
+If closeAlert(-1) or synthetic alert closing exists, it must not no-op and leave the app stuck in alert mode.
+
+D) USER RESPONSE RESET
+When a new zone alert is activated, previous mobile user response state must reset.
+A user must not appear already confirmed for a new emergency.
+
+E) ROUTE GUARDS
+Add proper auth + role guards for mobile route groups:
+- (admin)
+- (it)
+- (eco)
+- (supervisor)
+- any other protected group
+
+Prevent unauthorized deep-link access.
+
+F) REGISTRATION SAFETY
+Registration must NOT allow creating Super Admin directly.
+Registration role must be locked to normal user-safe role only.
+Any admin elevation must happen later via approval/admin flow.
+
+G) ZONE DELETE SAFETY
+Prevent deleting a zone while it is active in emergency / alert state.
+Either:
+- block deletion, or
+- do safe cascade cleanup
+
+But do NOT leave orphaned active state.
+
+==================================================
+WORKFLOW
+==================================================
+
+PHASE 1 — READ FIRST
+Inspect and identify all relevant mobile files involved in:
+- alerts
+- emergency state
+- shelter-in
+- blackout
+- wind state
+- user responses
+- map rendering
+- personnel tracking
+- visible personnel selectors
+- auth guards / route layouts
+- registration
+- zones
+- zone deletion
+- selectors
+- store slices
+
+List the exact files you will modify before editing.
+
+PHASE 2 — IMPLEMENT FIXES
+Make the smallest safe changes necessary to implement the required behavior above.
+
+PHASE 3 — VERIFY LOGIC
+After editing, verify:
+- alert lifecycle
+- zone alert lifecycle
+- shelter-in lifecycle
+- blackout lifecycle
+- all clear reset behavior
+- protected route behavior
+- registration role behavior
+- zone deletion behavior
+
+PHASE 4 — REPORT
+Return:
+1) files changed
+2) exact fixes made
+3) why each fix was needed
+4) any remaining risks
+5) regression scenarios to test manually
+
+==================================================
+NON-NEGOTIABLE RULES
+==================================================
+
+- Do not remove test/demo accounts right now
+- Do not spend time on demo-account cleanup for this task
+- Focus on real emergency workflow and access-control fixes
+- Do not do broad refactors unless required
+- Preserve current architecture as much as possible
+- Make focused, production-safe patches
+- If you see uncertainty, state it clearly
+- If a bug is confirmed, say exactly where it was fixed
+
+==================================================
+MANUAL TESTS THAT MUST PASS AFTER FIX
+==================================================
+
+1. Create full alert → user responds safe → All Clear → all emergency state fully clears
+2. Create full alert → user responds need help → All Clear → all emergency state fully clears
+3. Activate zone-only alert → close / clear → app does not stay stuck
+4. Activate Shelter-in → map enters emergency mode and shows live personnel
+5. Activate Blackout → map enters emergency mode and shows live personnel
+6. During Shelter-in, user can respond safe / need help
+7. During Blackout, user can respond safe / need help
+8. All Clear after Shelter-in resets everything
+9. All Clear after Blackout resets everything
+10. User deep-links to admin route without permission → blocked
+11. Registration cannot create Super Admin
+12. Deleting active zone is blocked or safely cleaned
+
+Now start by identifying the exact mobile files you need to inspect and modify before making changes.

@@ -24,7 +24,6 @@ const ARAMCO_ROLES: { label: string; value: UserRole }[] = [
   { label: "User", value: "User" },
   { label: "Supervisor", value: "Supervisor" },
   { label: "Back Superior", value: "Back Superior" },
-  { label: "Super Admin", value: "Super Admin" },
 ];
 
 export default function RegisterScreen() {

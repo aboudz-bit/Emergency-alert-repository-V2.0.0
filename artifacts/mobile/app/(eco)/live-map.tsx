@@ -15,7 +15,7 @@ import { WindIndicator } from "@/components/ui/WindIndicator";
 import { WindDirectionPicker } from "@/components/ui/WindDirectionPicker";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, selectHasActiveAlert, selectCanChangeWindDirection } from "@/store";
+import { useStore, selectActiveAlert, selectIsEmergencyActive, selectCanChangeWindDirection } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
@@ -34,7 +34,7 @@ export default function ECOLiveMapScreen() {
   const shelters = useStore((s) => s.shelters);
   const hazardZones = useStore((s) => s.hazardZones);
 
-  const hasActiveAlert = useStore(selectHasActiveAlert);
+  const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);
 
   const visiblePersonnel = useVisiblePersonnel({

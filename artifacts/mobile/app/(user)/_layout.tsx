@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
+import { useStore } from "@/store";
 import { useTranslation } from "@/i18n/useTranslation";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
@@ -15,7 +16,13 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
 }
 
 export default function UserLayout() {
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const currentUser = useStore((s) => s.currentUser);
   const { t } = useTranslation();
+
+  if (!isAuthenticated || !currentUser) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <Tabs

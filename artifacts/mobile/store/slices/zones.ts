@@ -11,7 +11,17 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
   return {
     addZone: (zone) => set(s => ({ zones: [...s.zones, { ...zone, id: Date.now() }] })),
     updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
-    deleteZone: (id) => set(s => ({ zones: s.zones.filter(z => z.id !== id) })),
+    deleteZone: (id) => {
+      const { zones, locations } = get();
+      const zone = zones.find(z => z.id === id);
+      if (zone?.alertActive) return;
+      const hasActiveChildAlert = locations.some(l => l.zoneId === id && l.alertActive);
+      if (hasActiveChildAlert) return;
+      set(s => ({
+        zones: s.zones.filter(z => z.id !== id),
+        locations: s.locations.filter(l => l.zoneId !== id),
+      }));
+    },
 
     activateZoneAlert: (zoneId, alertType, priority, message) => {
       const now = new Date().toISOString();
@@ -43,6 +53,8 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
             alertType, priority, message, timestamp: now, user,
           }],
         } : l),
+        mobileUserResponse: null,
+        users: s.users.map(u => ({ ...u, status: 'pending' as const })),
       }));
     },
 

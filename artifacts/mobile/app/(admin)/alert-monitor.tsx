@@ -21,7 +21,7 @@ import { WindIndicator } from "@/components/ui/WindIndicator";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
+import { useStore, selectActiveAlert, selectIsEmergencyActive } from "@/store";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
@@ -51,7 +51,7 @@ export default function AlertMonitorScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
 
-  const hasActiveAlert = useStore(selectHasActiveAlert);
+  const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);
 
   // Scope: Super Admin sees all, Supervisor/Backup sees only their assigned location

@@ -1,8 +1,19 @@
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 
 import { Colors } from "@/constants/theme";
+import { useStore } from "@/store";
 
 export default function ITLayout() {
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const currentUser = useStore((s) => s.currentUser);
+
+  if (!isAuthenticated || !currentUser) {
+    return <Redirect href="/(auth)/login" />;
+  }
+  if (currentUser.role !== "IT" && currentUser.role !== "Super Admin") {
+    return <Redirect href="/(user)" />;
+  }
+
   return (
     <Stack
       screenOptions={{

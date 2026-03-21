@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, selectHasActiveAlert } from "@/store";
+import { useStore, selectActiveAlert, selectIsEmergencyActive } from "@/store";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
@@ -61,7 +61,7 @@ export default function SupervisorMapScreen() {
     );
   }, [shelters, myLocation]);
 
-  const hasActiveAlert = useStore(selectHasActiveAlert);
+  const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);
 
   const visiblePersonnel = useVisiblePersonnel({
