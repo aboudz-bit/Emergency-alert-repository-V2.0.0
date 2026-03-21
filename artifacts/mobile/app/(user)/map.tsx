@@ -14,6 +14,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
+import { useTranslation } from "@/i18n";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 
@@ -27,6 +28,7 @@ export default function ContractorMapScreen() {
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
   const hazardZones = useStore((s) => s.hazardZones);
+  const { t } = useTranslation();
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
@@ -125,14 +127,14 @@ export default function ContractorMapScreen() {
         <View style={styles.infoRow}>
           <Feather name="map-pin" size={14} color={Colors.info} />
           <Text style={styles.locationText}>
-            {currentUser?.location || "Unknown"} · {currentUser?.zone || "Unknown"}
+            {currentUser?.location || t.unknown} · {currentUser?.zone || t.unknown}
           </Text>
         </View>
         {nearestShelter && (
           <View style={styles.shelterRow}>
             <Feather name="navigation" size={12} color="#22C55E" />
             <Text style={styles.shelterText}>
-              Nearest: {nearestShelter.shelter.name}
+              {t.nearest}: {nearestShelter.shelter.name}
             </Text>
             <View style={styles.distanceBadge}>
               <Text style={styles.distanceText}>{formatDistance(nearestShelter.distance)}</Text>
@@ -142,7 +144,7 @@ export default function ContractorMapScreen() {
         {gpsError && (
           <View style={styles.gpsRow}>
             <Feather name="alert-circle" size={12} color={Colors.destructive} />
-            <Text style={styles.gpsErrorText}>GPS unavailable</Text>
+            <Text style={styles.gpsErrorText}>{t.gpsUnavailable}</Text>
           </View>
         )}
       </View>
@@ -150,12 +152,12 @@ export default function ContractorMapScreen() {
       {/* Floating shelter count */}
       <View style={styles.floatingLegend}>
         <Feather name="home" size={14} color="#F59E0B" />
-        <Text style={styles.legendText}>{activeShelters.length} shelters available</Text>
+        <Text style={styles.legendText}>{activeShelters.length} {t.sheltersAvailable}</Text>
         {activeAlert && (
           <>
             <View style={styles.legendSep} />
             <View style={styles.alertDot} />
-            <Text style={styles.alertText}>{activeAlert.type} active</Text>
+            <Text style={styles.alertText}>{activeAlert.type} {t.active}</Text>
           </>
         )}
       </View>

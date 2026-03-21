@@ -36,14 +36,14 @@ function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   }
 }
 
-function formatTimeAgo(timestamp: string): string {
+function formatTimeAgo(timestamp: string, t: import("@/i18n").TranslationStrings): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t.justNow;
+  if (mins < 60) return `${mins} ${t.minutesAgo}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `${hours} ${t.hoursAgo}`;
+  return `${Math.floor(hours / 24)} ${t.daysAgo}`;
 }
 
 function PulsingDot({ size = 14 }: { size?: number }) {
@@ -204,7 +204,7 @@ export default function AlertDetailScreen() {
               <Feather name="clock" size={14} color={Colors.textSecondary} />
               <Text style={styles.infoLabel}>{t.issued}</Text>
               <Text style={styles.infoValue}>
-                {formatTimeAgo(activeAlert.timestamp)}
+                {formatTimeAgo(activeAlert.timestamp, t)}
               </Text>
             </View>
             <View style={styles.infoDivider} />

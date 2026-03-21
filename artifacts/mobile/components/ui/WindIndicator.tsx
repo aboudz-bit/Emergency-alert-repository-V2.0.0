@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+import { useTranslation } from "@/i18n";
 import { WIND_DIRECTIONS } from "@/types";
 
 /**
@@ -12,6 +13,7 @@ import { WIND_DIRECTIONS } from "@/types";
  */
 export function WindIndicator() {
   const windDirection = useStore((s) => s.windDirection);
+  const { t } = useTranslation();
 
   if (!windDirection) return null;
 
@@ -20,7 +22,7 @@ export function WindIndicator() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>WIND</Text>
+      <Text style={styles.label}>{t.wind.toUpperCase()}</Text>
       <View style={styles.arrowWrap}>
         <View style={{ transform: [{ rotate: `${entry.degrees}deg` }] }}>
           <Feather name="arrow-down" size={22} color={Colors.primary} />
