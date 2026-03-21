@@ -1,0 +1,344 @@
+We need to redefine the Users screen behavior, permissions, and visibility scope.
+
+This is a MOBILE APP task only.
+
+Do not touch unrelated screens.
+Do not break existing alert, map, permissions, grouping, or filtering logic unless required for this change.
+
+==================================================
+GOAL
+==================================================
+
+Users screen is an emergency-only operational screen.
+
+It must only become active when there is an active emergency.
+
+Emergency conditions:
+- active alert
+- Shelter-in active
+- Blackout active
+
+Use:
+isEmergencyActive =
+  hasActiveAlert ||
+  shelterIn ||
+  blackout
+
+==================================================
+ROLE ACCESS RULES
+==================================================
+
+During emergency mode, the Users screen must be available to:
+
+- Super Admin
+- ECO
+- Supervisor
+- Backup Supervisor
+
+Access scope rules:
+
+1. Super Admin
+- can view all users across all zones and locations
+
+2. ECO
+- must have the same visibility scope as Super Admin
+- can view all users across all zones and locations
+
+3. Supervisor
+- can only view users inside the location(s) assigned to that supervisor
+- example:
+  Supervisor assigned to OT-1 → only sees users in OT-1
+
+4. Backup Supervisor
+- same scoped visibility logic as Supervisor
+- can only view users inside the location(s) assigned to that backup supervisor
+
+Outside emergency mode:
+- Users screen must NOT operate as a live personnel monitoring screen
+- do not show full user list
+- do not show operational filters
+- do not show grouped live personnel monitoring
+- do not show emergency counts
+- do not show update status controls
+
+Instead show a clean empty state message.
+
+==================================================
+EMPTY STATE (NO EMERGENCY)
+==================================================
+
+If isEmergencyActive = false:
+
+Show a clean empty state like:
+
+Title:
+No active emergency
+
+Message:
+Personnel monitoring becomes available only during an active Alert, Shelter-in, or Blackout.
+
+Do NOT render:
+- grouped user list
+- status counts
+- quick jump
+- emergency grouping
+- emergency-only filters
+- user emergency update controls
+
+==================================================
+EMERGENCY MODE (ACTIVE)
+==================================================
+
+If isEmergencyActive = true:
+
+Show full operational Users screen with:
+
+1. Search
+2. Zone filter
+3. Location filter
+4. Company type filter
+5. Status filter
+6. Summary row
+7. Grouped list by location
+8. Collapse / expand by location
+9. Quick jump to location
+10. User detail modal (read-only for emergency state)
+
+IMPORTANT VISIBILITY RULE:
+- Super Admin and ECO see all matching users
+- Supervisor and Backup Supervisor only see users inside their assigned location scope
+- all filters/search/grouping must apply only within the viewer’s allowed visibility scope
+
+==================================================
+COMPANY SUPPORT
+==================================================
+
+Users must support:
+- Aramco
+- Contractor
+
+Registration rules:
+- If user selects Contractor:
+  - show required field: Company Name
+  - English text
+  - save:
+    companyType = "Contractor"
+    companyName = entered value
+- If user selects Aramco:
+  - hide company input
+  - save:
+    companyType = "Aramco"
+    companyName = "Saudi Aramco"
+
+Backward compatibility:
+- old Aramco users without companyName → show Saudi Aramco
+- old Contractor users without companyName → show Not provided
+
+==================================================
+USERS SCREEN FILTERS
+==================================================
+
+Add / keep these filters in this order:
+
+1. Zone filter
+2. Location filter
+3. Company type filter
+4. Status filter
+
+Search must still work across:
+- name
+- badge
+- zone
+- location
+- optionally companyName if easy
+
+Filtering order:
+1. zone
+2. location
+3. companyType
+4. status
+5. search
+
+For Supervisor / Backup Supervisor:
+- zone/location filters must only show values inside their allowed scope
+- they must never see locations outside their assignment
+
+==================================================
+GROUPING
+==================================================
+
+Keep grouping by LOCATION only.
+
+Do NOT group by company type.
+
+Each location section must show:
+- location name
+- total users
+- safe count
+- pending count
+- need help count
+
+Sort location groups by operational priority:
+1. locations containing Need Help users
+2. then locations containing Pending users
+3. then fully Safe locations
+
+Inside each location group sort users by:
+1. Need Help
+2. Pending
+3. Safe
+4. alphabetically by name
+
+==================================================
+COLLAPSE / EXPAND
+==================================================
+
+Each location group must be collapsible.
+
+Default behavior:
+- expanded if it contains Need Help
+- expanded if it contains Pending and no Need Help
+- collapsed if fully Safe
+
+Provide:
+- Expand all
+- Collapse all
+
+Keep expanded state locally while on screen.
+
+==================================================
+BADGES
+==================================================
+
+Each user row must show:
+- emergency status badge
+- company type badge
+
+Examples:
+[Pending] [Aramco]
+[Need Help] [Contractor]
+
+Do not let company badge override emergency status colors.
+
+Status colors:
+- Need Help = red
+- Pending = neutral
+- Safe = green
+
+==================================================
+USER DETAIL MODAL
+==================================================
+
+User detail modal must include:
+
+- Badge
+- Role
+- Zone
+- Location
+- Company
+- Account
+- Last Active
+
+Display company logic:
+- Aramco → Saudi Aramco
+- Contractor → saved companyName
+- Missing → Not provided
+
+==================================================
+CRITICAL PERMISSION RULE
+==================================================
+
+Super Admin / ECO / Supervisor / Backup Supervisor must be able to MONITOR only.
+
+They must NOT be able to change another user’s emergency status from the Users screen.
+
+Remove or hide emergency status update controls from admin-side monitoring modal.
+
+Safe / Pending / Need Help must be self-updated by the actual user only from their own flow/screen.
+
+If admin override is needed in the future, it must be a separate feature with:
+- separate permission
+- confirmation dialog
+- mandatory reason
+- audit log
+
+For now:
+Users screen = monitoring only.
+
+==================================================
+DO NOT BREAK
+==================================================
+
+- existing alert logic
+- emergency mode logic
+- route guards
+- map logic
+- grouping logic
+- search logic
+- collapse / expand logic
+- quick jump logic
+- company type filtering
+- registration approval flow
+
+==================================================
+FILES / IMPLEMENTATION APPROACH
+==================================================
+
+Implement the smallest clean changes needed.
+
+Likely affected areas:
+- registration screen
+- user model / types
+- store persistence / migration if needed
+- Users screen
+- user detail modal
+- permission/render guards for modal actions
+- role-based visibility selector for Users screen
+
+Do not do broad refactors unless necessary.
+
+==================================================
+OUTPUT
+==================================================
+
+After implementing, return:
+
+1. files changed
+2. role visibility logic for Users screen
+3. emergency-only activation logic
+4. supervisor / backup supervisor scoped visibility logic
+5. registration changes for company
+6. user model fields used
+7. filtering logic summary
+8. grouping logic summary
+9. modal changes
+10. confirmation that all roles are monitor-only
+11. fallback behavior for old users
+12. manual test checklist
+
+==================================================
+MANUAL TESTS
+==================================================
+
+1. No active emergency → Users screen shows empty emergency-only state
+2. Active alert → Users screen becomes operational
+3. Shelter-in active → Users screen becomes operational
+4. Blackout active → Users screen becomes operational
+5. Super Admin can view all users during emergency
+6. ECO can view all users during emergency
+7. Supervisor only sees users in assigned location
+8. Backup Supervisor only sees users in assigned location
+9. Supervisor does not see users outside assigned location
+10. Backup Supervisor does not see users outside assigned location
+11. Admin cannot update another user’s Safe / Pending / Need Help state
+12. ECO cannot update another user’s Safe / Pending / Need Help state
+13. Supervisor cannot update another user’s Safe / Pending / Need Help state
+14. Backup Supervisor cannot update another user’s Safe / Pending / Need Help state
+15. Contractor registration requires Company Name
+16. Aramco registration auto-saves Saudi Aramco
+17. Company badge appears in user row
+18. Company field appears in user detail modal
+19. Zone + Location + Company + Status filters work together
+20. Grouping by location still works
+21. Search still works
+22. Layout remains clean on mobile

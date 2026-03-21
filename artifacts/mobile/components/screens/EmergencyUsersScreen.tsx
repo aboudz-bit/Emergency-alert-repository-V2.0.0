@@ -46,6 +46,8 @@ export default function EmergencyUsersScreen() {
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
+  const currentUser = useStore((s) => s.currentUser);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
   const isEmergencyActive = useStore(selectIsEmergencyActive);
 
   const sectionListRef = useRef<SectionList>(null);
@@ -59,6 +61,24 @@ export default function EmergencyUsersScreen() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [jumpMenuOpen, setJumpMenuOpen] = useState(false);
 
+  const isSupervisorScoped = useMemo(() => {
+    if (!currentUser) return false;
+    const isAdmin = currentUser.role === "Super Admin" || currentUser.role === "IT";
+    const isECO = currentUser.isECOAssigned && currentUser.ecoAssignmentActive;
+    return !isAdmin && !isECO;
+  }, [currentUser]);
+
+  const allowedLocationIds = useMemo(() => {
+    if (!isSupervisorScoped || !currentUser) return null;
+    const ids = new Set<number>();
+    for (const sa of supervisorAssignments) {
+      if (sa.supervisorUserId === currentUser.id || sa.backupSupervisorUserId === currentUser.id) {
+        ids.add(sa.locationId);
+      }
+    }
+    return ids;
+  }, [isSupervisorScoped, currentUser, supervisorAssignments]);
+
   const activeZones = useMemo(
     () => zones.filter((z) => z.isActive),
     [zones]
@@ -70,19 +90,31 @@ export default function EmergencyUsersScreen() {
     return map;
   }, [locations]);
 
-  const zoneOptions = useMemo(
-    () => ["All", ...activeZones.map((z) => z.name)],
-    [activeZones]
-  );
+  const scopedLocations = useMemo(() => {
+    let locs = locations.filter((l) => l.isActive);
+    if (allowedLocationIds) {
+      locs = locs.filter((l) => allowedLocationIds.has(l.id));
+    }
+    return locs;
+  }, [locations, allowedLocationIds]);
+
+  const zoneOptions = useMemo(() => {
+    if (isSupervisorScoped) {
+      const zoneIds = new Set(scopedLocations.map((l) => l.zoneId));
+      const scopedZones = activeZones.filter((z) => zoneIds.has(z.id));
+      return ["All", ...scopedZones.map((z) => z.name)];
+    }
+    return ["All", ...activeZones.map((z) => z.name)];
+  }, [activeZones, scopedLocations, isSupervisorScoped]);
 
   const filteredLocations = useMemo(() => {
-    let locs = locations.filter((l) => l.isActive);
+    let locs = scopedLocations;
     if (selectedZone !== "All") {
       const zone = activeZones.find((z) => z.name === selectedZone);
       if (zone) locs = locs.filter((l) => l.zoneId === zone.id);
     }
     return locs;
-  }, [locations, activeZones, selectedZone]);
+  }, [scopedLocations, activeZones, selectedZone]);
 
   useEffect(() => {
     if (selectedLocationId !== null && !filteredLocations.some((l) => l.id === selectedLocationId)) {
@@ -92,6 +124,10 @@ export default function EmergencyUsersScreen() {
 
   const locationGroups = useMemo(() => {
     let filtered = users.filter((u) => u.isActive);
+
+    if (allowedLocationIds) {
+      filtered = filtered.filter((u) => u.locationId != null && allowedLocationIds.has(u.locationId));
+    }
 
     if (selectedZone !== "All") {
       const zone = activeZones.find((z) => z.name === selectedZone);
@@ -173,7 +209,7 @@ export default function EmergencyUsersScreen() {
     });
 
     return groups;
-  }, [users, zones, locationById, activeZones, selectedZone, selectedLocationId, selectedCompanyType, selectedStatus, searchQuery]);
+  }, [users, zones, locationById, activeZones, selectedZone, selectedLocationId, selectedCompanyType, selectedStatus, searchQuery, allowedLocationIds]);
 
   useEffect(() => {
     const map: Record<string, boolean> = {};
