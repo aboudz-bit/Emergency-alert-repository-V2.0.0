@@ -1,4 +1,20 @@
+import { I18nManager } from 'react-native';
+import * as Updates from 'expo-updates';
 import type { Language } from '@/types';
+
+/**
+ * Apply RTL layout globally based on language.
+ * If the layout direction changes, forces a full app reload so every screen picks it up.
+ */
+export async function applyRTL(lang: Language): Promise<void> {
+  const shouldBeRTL = lang === 'ar' || lang === 'ur';
+
+  if (I18nManager.isRTL !== shouldBeRTL) {
+    I18nManager.allowRTL(shouldBeRTL);
+    I18nManager.forceRTL(shouldBeRTL);
+    await Updates.reloadAsync();
+  }
+}
 
 export interface TranslationStrings {
   // Tab names
