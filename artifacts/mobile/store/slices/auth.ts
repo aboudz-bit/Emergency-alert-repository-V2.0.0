@@ -1,4 +1,4 @@
-import { applyRTL } from '@/i18n';
+import { applyRTL } from '@/i18n/translations';
 import type { User, UserRole, UserResponseStatus } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
 
