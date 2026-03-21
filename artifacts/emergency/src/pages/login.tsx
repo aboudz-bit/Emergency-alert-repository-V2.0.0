@@ -4,6 +4,19 @@ import { ShieldAlert, AlertCircle } from 'lucide-react';
 import { useStore } from '@/store';
 import type { UserRole } from '@/types';
 
+const DEMO_ROLES: { label: string; role: UserRole }[] = [
+  { label: 'Super Admin', role: 'Super Admin' },
+  { label: 'IT', role: 'IT' },
+  { label: 'User', role: 'User' },
+];
+
+const DEMO_BADGES: { label: string; badge: string; color: string }[] = [
+  { label: 'ECO (Nasser)', badge: '103618', color: '#3B82F6' },
+  { label: 'Supervisor (Mohammed)', badge: '108291', color: '#F59E0B' },
+  { label: 'Backup Sup (Faisal)', badge: '105477', color: '#EF4444' },
+  { label: 'Contractor (Demo)', badge: '200001', color: '#6B7280' },
+];
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const login = useStore(s => s.login);
@@ -54,6 +67,26 @@ export default function Login() {
       routeUser(currentUser);
     }
   }, [isAuthenticated, currentUser, routeUser]);
+
+  const handleDemoLogin = (role: UserRole) => {
+    setError('');
+    const result = login('demo', 'demo', role);
+    if (result.success) {
+      routeUser(useStore.getState().currentUser);
+    } else {
+      setError(result.error || 'Demo login failed.');
+    }
+  };
+
+  const handleBadgeLogin = (badgeNum: string) => {
+    setError('');
+    const result = login(badgeNum, 'demo1234');
+    if (result.success) {
+      routeUser(useStore.getState().currentUser);
+    } else {
+      setError(result.error || 'Demo login failed.');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +166,40 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        {/* Quick Demo Access */}
+        <div style={styles.demoSection}>
+          <span style={styles.demoLabel}>Quick Demo Access</span>
+          <div style={styles.chipRow}>
+            {DEMO_ROLES.map((item) => (
+              <button
+                key={item.role}
+                type="button"
+                style={styles.chip}
+                onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#5B3A8E'; }}
+                onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E5E7EB'; }}
+                onClick={() => handleDemoLogin(item.role)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <span style={{ ...styles.demoLabel, marginTop: 16 }}>ECO / Supervisor / Contractor</span>
+          <div style={styles.chipRow}>
+            {DEMO_BADGES.map((item) => (
+              <button
+                key={item.badge}
+                type="button"
+                style={{ ...styles.chip, borderColor: item.color + '30', color: item.color }}
+                onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = item.color; }}
+                onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = item.color + '30'; }}
+                onClick={() => handleBadgeLogin(item.badge)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Register link */}
         <div style={styles.linkRow}>
@@ -263,6 +330,43 @@ const styles: Record<string, React.CSSProperties> = {
     borderTopColor: '#FFFFFF',
     borderRadius: 9999,
     animation: 'spin 0.6s linear infinite',
+  },
+
+  // Demo section
+  demoSection: {
+    marginTop: 40,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 14,
+    width: '100%',
+  },
+  demoLabel: {
+    fontSize: 11,
+    fontWeight: 500,
+    color: '#9CA3AF',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    fontFamily: "'Inter', sans-serif",
+  },
+  chipRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap' as const,
+    gap: 8,
+    justifyContent: 'center',
+  },
+  chip: {
+    padding: '8px 18px',
+    borderRadius: 9999,
+    border: '1px solid #E5E7EB',
+    backgroundColor: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#6B7280',
+    cursor: 'pointer',
+    fontFamily: "'Inter', sans-serif",
+    transition: 'border-color 0.15s',
   },
 
   // Register link
