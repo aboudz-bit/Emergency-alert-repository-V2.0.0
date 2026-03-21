@@ -109,19 +109,24 @@ export default function UserHomeScreen() {
   }, [userLocation, shelters, detectedLocationId, currentUser?.zoneId]);
 
   useEffect(() => {
-    let sub: ExpoLocation.LocationSubscription | undefined;
     let cancelled = false;
+    let sub: ExpoLocation.LocationSubscription | undefined;
 
     (async () => {
       try {
         const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
         if (status !== "granted" || cancelled) return;
-        sub = await ExpoLocation.watchPositionAsync(
+        const watcher = await ExpoLocation.watchPositionAsync(
           { accuracy: ExpoLocation.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
           (loc) => {
             setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
           },
         );
+        if (cancelled) {
+          watcher.remove();
+          return;
+        }
+        sub = watcher;
       } catch {
         // GPS unavailable
       }
