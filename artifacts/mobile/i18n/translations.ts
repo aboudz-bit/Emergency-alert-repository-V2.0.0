@@ -24,6 +24,7 @@ export interface TranslationStrings {
   wind: string;
 
   // Profile screen
+  contractorProfile: string;
   language: string;
   information: string;
   system: string;
@@ -89,6 +90,7 @@ const en: TranslationStrings = {
   safe: 'Safe',
   wind: 'Wind',
 
+  contractorProfile: 'Contractor',
   language: 'Language',
   information: 'Information',
   system: 'System',
@@ -151,6 +153,7 @@ const ar: TranslationStrings = {
   safe: 'آمن',
   wind: 'الرياح',
 
+  contractorProfile: 'مقاول',
   language: 'اللغة',
   information: 'المعلومات',
   system: 'النظام',
@@ -213,6 +216,7 @@ const ur: TranslationStrings = {
   safe: 'محفوظ',
   wind: 'ہوا',
 
+  contractorProfile: 'ٹھیکیدار',
   language: 'زبان',
   information: 'معلومات',
   system: 'سسٹم',

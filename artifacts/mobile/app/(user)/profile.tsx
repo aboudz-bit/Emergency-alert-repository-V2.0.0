@@ -3,8 +3,8 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -46,6 +46,7 @@ export default function ProfileScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const logout = useStore((s) => s.logout);
   const setLanguage = useStore((s) => s.setLanguage);
+  const setUserType = useStore((s) => s.setUserType);
   const { t, language, isContractor, rtl } = useTranslation();
 
   const handleLogout = () => {
@@ -55,6 +56,10 @@ export default function ProfileScreen() {
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
+  };
+
+  const handleContractorToggle = (value: boolean) => {
+    setUserType(value ? "Contract" : "Aramco");
   };
 
   const initials = currentUser?.name
@@ -75,16 +80,15 @@ export default function ProfileScreen() {
       <Header
         title={t.profile}
         rightAction={
-          isContractor ? (
-            <TouchableOpacity
-              onPress={() => handleLanguageChange(language === "en" ? "ar" : "en")}
-              style={styles.langToggleBtn}
-            >
-              <Text style={styles.langToggleText}>
-                {language === "en" ? "AR" : "EN"}
-              </Text>
-            </TouchableOpacity>
-          ) : undefined
+          <View style={styles.headerSwitch}>
+            <Text style={styles.headerSwitchLabel}>{t.contractorProfile}</Text>
+            <Switch
+              value={isContractor}
+              onValueChange={handleContractorToggle}
+              trackColor={{ false: "rgba(255,255,255,0.3)", true: Colors.safe }}
+              thumbColor="#fff"
+            />
+          </View>
         }
       />
 
@@ -122,47 +126,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         </Card>
-
-        {/* Language Selector — Contractor only */}
-        {isContractor && (
-          <Card style={styles.sectionCard}>
-            <Text style={[styles.sectionTitle, textAlign ? { textAlign } : undefined]}>
-              {t.language}
-            </Text>
-            <View style={styles.languageOptions}>
-              {LANGUAGE_OPTIONS.map((opt) => {
-                const isSelected = language === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[
-                      styles.languageOption,
-                      isSelected && styles.languageOptionSelected,
-                    ]}
-                    onPress={() => handleLanguageChange(opt.value)}
-                  >
-                    <View style={[styles.languageRadio, isSelected && styles.languageRadioSelected]}>
-                      {isSelected && <View style={styles.languageRadioDot} />}
-                    </View>
-                    <View style={styles.languageLabelWrap}>
-                      <Text
-                        style={[
-                          styles.languageLabel,
-                          isSelected && styles.languageLabelSelected,
-                        ]}
-                      >
-                        {opt.nativeLabel}
-                      </Text>
-                      {opt.nativeLabel !== opt.label && (
-                        <Text style={styles.languageSublabel}>{opt.label}</Text>
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Card>
-        )}
 
         {/* User Information */}
         <Card style={styles.sectionCard}>
@@ -253,6 +216,47 @@ export default function ProfileScreen() {
             />
           </View>
         </Card>
+
+        {/* Language Selector — Contractor only, moved to bottom */}
+        {isContractor && (
+          <Card style={styles.sectionCard}>
+            <Text style={[styles.sectionTitle, textAlign ? { textAlign } : undefined]}>
+              {t.language}
+            </Text>
+            <View style={styles.languageOptions}>
+              {LANGUAGE_OPTIONS.map((opt) => {
+                const isSelected = language === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.languageOption,
+                      isSelected && styles.languageOptionSelected,
+                    ]}
+                    onPress={() => handleLanguageChange(opt.value)}
+                  >
+                    <View style={[styles.languageRadio, isSelected && styles.languageRadioSelected]}>
+                      {isSelected && <View style={styles.languageRadioDot} />}
+                    </View>
+                    <View style={styles.languageLabelWrap}>
+                      <Text
+                        style={[
+                          styles.languageLabel,
+                          isSelected && styles.languageLabelSelected,
+                        ]}
+                      >
+                        {opt.nativeLabel}
+                      </Text>
+                      {opt.nativeLabel !== opt.label && (
+                        <Text style={styles.languageSublabel}>{opt.label}</Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Card>
+        )}
 
         {/* Logout Button */}
         <Button
@@ -413,6 +417,16 @@ const styles = StyleSheet.create({
   logoutBtn: {
     marginTop: Spacing.md,
   },
+  headerSwitch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  headerSwitchLabel: {
+    color: "#fff",
+    fontFamily: "Inter_500Medium",
+    fontSize: FontSize.xs,
+  },
   languageOptions: {
     gap: Spacing.sm,
   },
@@ -465,17 +479,5 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
-  },
-  langToggleBtn: {
-    marginRight: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  langToggleText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: FontSize.sm,
   },
 });
