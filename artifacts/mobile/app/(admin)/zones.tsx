@@ -18,7 +18,7 @@ import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert } from "@/store";
+import { useStore, selectActiveAlert, alertEq } from "@/store";
 import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
@@ -50,7 +50,7 @@ export default function ZonesScreen() {
   const updateShelter = useStore((s) => s.updateShelter);
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
-  const activeAlert = useStore(selectActiveAlert);
+  const activeAlert = useStore(selectActiveAlert, alertEq);
   // Show Warning Zone button when there is ANY active alert — either a real
   // alert record in alerts[] or a zone-level alert (zones[].alertActive).
   const hasRealAlert = useStore((s) => s.alerts.some((a) => a.isActive) || s.zones.some((z) => z.alertActive));

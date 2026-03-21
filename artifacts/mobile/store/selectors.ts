@@ -3,24 +3,32 @@ import type { AppState } from './types';
 
 // ─── Alert selectors ─────────────────────────────────────────────────────────
 
-let _cachedSyntheticAlert: Alert | null = null;
-let _cachedSyntheticKey = '';
+export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.type === b.type &&
+    a.isActive === b.isActive &&
+    a.zone === b.zone &&
+    a.status === b.status &&
+    a.timestamp === b.timestamp &&
+    a.stats.confirmed === b.stats.confirmed &&
+    a.stats.pending === b.stats.pending &&
+    a.stats.needHelp === b.stats.needHelp &&
+    a.stats.total === b.stats.total
+  );
+};
 
-export const selectActiveAlert = (s: AppState) => {
+export const selectActiveAlert = (s: AppState): Alert | null => {
   const fromAlerts = s.alerts.find(a => a.isActive);
-  if (fromAlerts) {
-    _cachedSyntheticAlert = null;
-    _cachedSyntheticKey = '';
-    return fromAlerts;
-  }
+  if (fromAlerts) return fromAlerts;
 
   const activeZones = s.zones.filter(z => z.alertActive);
   const hasShelterIn = s.emergencyModes.shelterIn;
   const hasBlackout = s.emergencyModes.blackout;
 
   if (activeZones.length === 0 && !hasShelterIn && !hasBlackout) {
-    _cachedSyntheticAlert = null;
-    _cachedSyntheticKey = '';
     return null;
   }
 
@@ -30,59 +38,52 @@ export const selectActiveAlert = (s: AppState) => {
   const needHelp = activeUsers.filter(u => u.status === 'need_help').length;
   const total = activeUsers.length;
 
-  let type: string;
-  let zone: string;
-  let title: string;
-  let message: string;
-  let timestamp: string;
-  let priority: string;
-
   if (activeZones.length > 0) {
     const first = activeZones[0];
-    type = first.alertType || 'Zone Alert';
-    zone = activeZones.map(z => z.name).join(', ');
-    title = `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`;
-    message = first.alertMessage || '';
-    timestamp = first.alertUpdatedAt || new Date().toISOString();
-    priority = first.alertPriority || 'High';
-  } else if (hasBlackout) {
-    type = 'Blackout';
-    zone = 'All Zones';
-    title = 'Blackout Active';
-    message = 'Blackout mode is active. All lights and non-essential systems should be turned off.';
-    timestamp = s.emergencyModes.blackoutActivatedAt || new Date().toISOString();
-    priority = 'High';
-  } else {
-    type = 'Shelter In Place';
-    zone = 'All Zones';
-    title = 'Shelter In Place Active';
-    message = 'Shelter-in-place mode is active. All personnel should remain in their current location.';
-    timestamp = s.emergencyModes.shelterInActivatedAt || new Date().toISOString();
-    priority = 'High';
+    return {
+      id: -1,
+      type: first.alertType || 'Zone Alert',
+      zone: activeZones.map(z => z.name).join(', '),
+      title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+      message: first.alertMessage || '',
+      timestamp: first.alertUpdatedAt || new Date().toISOString(),
+      sentBy: 'System',
+      priority: first.alertPriority || 'High',
+      status: 'active' as const,
+      isActive: true,
+      stats: { confirmed, pending, needHelp, total },
+    } as Alert;
   }
 
-  const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
-  const cacheKey = `zones:${zoneIdKey}|type:${type}|si:${hasShelterIn}|bo:${hasBlackout}|c:${confirmed}|p:${pending}|h:${needHelp}|t:${total}`;
-
-  if (_cachedSyntheticAlert && _cachedSyntheticKey === cacheKey) {
-    return _cachedSyntheticAlert;
+  if (hasBlackout) {
+    return {
+      id: -1,
+      type: 'Blackout',
+      zone: 'All Zones',
+      title: 'Blackout Active',
+      message: 'Blackout mode is active. All lights and non-essential systems should be turned off.',
+      timestamp: s.emergencyModes.blackoutActivatedAt || new Date().toISOString(),
+      sentBy: 'System',
+      priority: 'High',
+      status: 'active' as const,
+      isActive: true,
+      stats: { confirmed, pending, needHelp, total },
+    } as Alert;
   }
 
-  _cachedSyntheticAlert = {
+  return {
     id: -1,
-    type,
-    zone,
-    title,
-    message,
-    timestamp,
+    type: 'Shelter In Place',
+    zone: 'All Zones',
+    title: 'Shelter In Place Active',
+    message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',
+    timestamp: s.emergencyModes.shelterInActivatedAt || new Date().toISOString(),
     sentBy: 'System',
-    priority,
+    priority: 'High',
     status: 'active' as const,
     isActive: true,
     stats: { confirmed, pending, needHelp, total },
   } as Alert;
-  _cachedSyntheticKey = cacheKey;
-  return _cachedSyntheticAlert;
 };
 
 export const selectHasActiveAlert = (s: AppState) =>

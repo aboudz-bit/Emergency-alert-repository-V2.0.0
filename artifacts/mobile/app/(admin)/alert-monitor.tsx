@@ -22,7 +22,7 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, selectIsEmergencyActive } from "@/store";
+import { useStore, selectActiveAlert, alertEq, selectIsEmergencyActive } from "@/store";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
@@ -40,7 +40,7 @@ const TABS: { key: TabKey; label: string; color: string }[] = [
 
 export default function AlertMonitorScreen() {
   const focusCount = useRefreshOnFocus();
-  const activeAlert = useStore(selectActiveAlert);
+  const activeAlert = useStore(selectActiveAlert, alertEq);
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
