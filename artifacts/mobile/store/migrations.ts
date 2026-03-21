@@ -130,6 +130,7 @@ export function migrate(persisted: any, version: number): AppState {
         role: 'User', zone: 'CPF', zoneId: 1, location: 'OT-1', locationId: 1,
         status: 'confirmed', accountStatus: 'active',
         lastActivity: new Date().toISOString(), isActive: true,
+        userType: 'Contract',
       });
     }
   }
