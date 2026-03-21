@@ -4,7 +4,7 @@ import type { SetState, GetState, AppState } from '../types';
 export function createAuthSlice(set: SetState, get: GetState): Pick<
   AppState,
   'login' | 'logout' | 'registerUser' | 'approveUser' | 'rejectUser' |
-  'createSuperAdmin' | 'toggleAccountStatus' | 'resetPassword' | 'setLanguage' | 'setUserType'
+  'createSuperAdmin' | 'toggleAccountStatus' | 'resetPassword' | 'setLanguage'
 > {
   return {
     login: (badge, password, roleOverride) => {
@@ -155,21 +155,5 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
       });
     },
 
-    setUserType: (userType) => {
-      const { currentUser } = get();
-      if (!currentUser) return;
-      const updated = {
-        ...currentUser,
-        userType,
-        // Reset language to English when switching away from Contract
-        ...(userType !== 'Contract' ? { language: 'en' as const } : {}),
-      };
-      set({
-        currentUser: updated,
-        users: get().users.map(u =>
-          u.id === currentUser.id ? { ...u, userType, ...(userType !== 'Contract' ? { language: 'en' as const } : {}) } : u
-        ),
-      });
-    },
   };
 }

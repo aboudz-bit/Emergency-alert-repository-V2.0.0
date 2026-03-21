@@ -3,7 +3,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
@@ -46,7 +45,6 @@ export default function ProfileScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const logout = useStore((s) => s.logout);
   const setLanguage = useStore((s) => s.setLanguage);
-  const setUserType = useStore((s) => s.setUserType);
   const { t, language, isContractor, rtl } = useTranslation();
 
   const handleLogout = () => {
@@ -56,10 +54,6 @@ export default function ProfileScreen() {
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
-  };
-
-  const handleContractorToggle = (value: boolean) => {
-    setUserType(value ? "Contract" : "Aramco");
   };
 
   const initials = currentUser?.name
@@ -77,20 +71,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Header
-        title={t.profile}
-        rightAction={
-          <View style={styles.headerSwitch}>
-            <Text style={styles.headerSwitchLabel}>{t.contractorProfile}</Text>
-            <Switch
-              value={isContractor}
-              onValueChange={handleContractorToggle}
-              trackColor={{ false: "rgba(255,255,255,0.3)", true: Colors.safe }}
-              thumbColor="#fff"
-            />
-          </View>
-        }
-      />
+      <Header title={t.profile} />
 
       <ScrollView
         style={styles.scrollView}
@@ -416,16 +397,6 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     marginTop: Spacing.md,
-  },
-  headerSwitch: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  headerSwitchLabel: {
-    color: "#fff",
-    fontFamily: "Inter_500Medium",
-    fontSize: FontSize.xs,
   },
   languageOptions: {
     gap: Spacing.sm,
