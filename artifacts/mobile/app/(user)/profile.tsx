@@ -4,6 +4,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -69,7 +70,19 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title={t.profile} />
+      <Header
+        title={t.profile}
+        rightAction={
+          <TouchableOpacity
+            onPress={() => handleLanguageChange(language === "en" ? "ar" : "en")}
+            style={styles.langToggleBtn}
+          >
+            <Text style={styles.langToggleText}>
+              {language === "en" ? "AR" : "EN"}
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -448,5 +461,17 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+  },
+  langToggleBtn: {
+    marginRight: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  langToggleText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: FontSize.sm,
   },
 });
