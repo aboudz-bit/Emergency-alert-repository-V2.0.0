@@ -115,6 +115,54 @@ export interface TranslationStrings {
   minutesAgo: string;
   hoursAgo: string;
   daysAgo: string;
+
+  // Alert types (data-driven)
+  typeBlackout: string;
+  typeShelterIn: string;
+  typeSecurityAlert: string;
+  typeDrill: string;
+  typeAllClear: string;
+  typeRestrictedMovement: string;
+
+  // Alert titles (data-driven)
+  titleBlackoutActivated: string;
+  titleSecurityIncident: string;
+  titleShelterInPlace: string;
+  titleEmergencyEvacDrill: string;
+  titleAllClear: string;
+
+  // Alert messages (data-driven)
+  msgBlackout: string;
+  msgSecurity: string;
+  msgShelterIn: string;
+  msgDrill: string;
+  msgAllClear: string;
+  msgAllClearResolved: string;
+
+  // Shelter names (data-driven)
+  shelterAMainGate: string;
+  shelterBControlRoom: string;
+  shelterCSouthWing: string;
+  shelterDEmergencyBay: string;
+
+  // Zone names (data-driven)
+  allZones: string;
+
+  // Role labels
+  roleUser: string;
+  roleContractor: string;
+
+  // Priority labels
+  priorityHigh: string;
+  priorityMedium: string;
+  priorityLow: string;
+
+  // Wind picker
+  windDirection: string;
+  clearWind: string;
+
+  // Zone breakdown short labels
+  help: string;
 }
 
 const en: TranslationStrings = {
@@ -204,6 +252,45 @@ const en: TranslationStrings = {
   minutesAgo: 'm ago',
   hoursAgo: 'h ago',
   daysAgo: 'd ago',
+
+  typeBlackout: 'Blackout',
+  typeShelterIn: 'Shelter-in',
+  typeSecurityAlert: 'Security Alert',
+  typeDrill: 'Drill',
+  typeAllClear: 'All Clear',
+  typeRestrictedMovement: 'Restricted Movement',
+
+  titleBlackoutActivated: 'BLACKOUT ACTIVATED',
+  titleSecurityIncident: 'SECURITY INCIDENT',
+  titleShelterInPlace: 'SHELTER IN PLACE',
+  titleEmergencyEvacDrill: 'EMERGENCY EVACUATION DRILL',
+  titleAllClear: 'ALL CLEAR',
+
+  msgBlackout: 'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
+  msgSecurity: 'Please remain indoors and lock all doors until further notice.',
+  msgShelterIn: 'Toxic gas alarm triggered. Shelter in place immediately.',
+  msgDrill: 'This is a drill. Proceed to muster points.',
+  msgAllClear: 'The previous emergency condition has been resolved. Return to normal operations.',
+  msgAllClearResolved: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
+
+  shelterAMainGate: 'Shelter A - Main Gate',
+  shelterBControlRoom: 'Shelter B - Control Room',
+  shelterCSouthWing: 'Shelter C - South Wing',
+  shelterDEmergencyBay: 'Shelter D - Emergency Bay',
+
+  allZones: 'All Zones',
+
+  roleUser: 'User',
+  roleContractor: 'Contractor',
+
+  priorityHigh: 'High',
+  priorityMedium: 'Medium',
+  priorityLow: 'Low',
+
+  windDirection: 'Wind Direction',
+  clearWind: 'Clear Wind',
+
+  help: 'Help',
 };
 
 const ar: TranslationStrings = {
@@ -293,6 +380,45 @@ const ar: TranslationStrings = {
   minutesAgo: 'د مضت',
   hoursAgo: 'س مضت',
   daysAgo: 'ي مضت',
+
+  typeBlackout: 'انقطاع الكهرباء',
+  typeShelterIn: 'احتمِ بالمكان',
+  typeSecurityAlert: 'تنبيه أمني',
+  typeDrill: 'تمرين',
+  typeAllClear: 'انتهاء الطوارئ',
+  typeRestrictedMovement: 'تقييد الحركة',
+
+  titleBlackoutActivated: 'تم تفعيل انقطاع الكهرباء',
+  titleSecurityIncident: 'حادث أمني',
+  titleShelterInPlace: 'احتمِ في مكانك',
+  titleEmergencyEvacDrill: 'تمرين إخلاء طوارئ',
+  titleAllClear: 'انتهاء الطوارئ',
+
+  msgBlackout: 'تم اكتشاف حالة انقطاع كهرباء في منطقة CPF. يجب على جميع الأفراد التوجه فوراً إلى نقاط التجمع المخصصة وانتظار تعليمات منسق الطوارئ.',
+  msgSecurity: 'يرجى البقاء في الداخل وقفل جميع الأبواب حتى إشعار آخر.',
+  msgShelterIn: 'تم تفعيل إنذار الغاز السام. احتمِ في مكانك فوراً.',
+  msgDrill: 'هذا تمرين. توجه إلى نقاط التجمع.',
+  msgAllClear: 'تم حل حالة الطوارئ السابقة. عُد إلى العمليات العادية.',
+  msgAllClearResolved: 'تم حل حالة الطوارئ بالكامل. يمكن لجميع الأفراد العودة إلى العمليات العادية.',
+
+  shelterAMainGate: 'ملجأ أ - البوابة الرئيسية',
+  shelterBControlRoom: 'ملجأ ب - غرفة التحكم',
+  shelterCSouthWing: 'ملجأ ج - الجناح الجنوبي',
+  shelterDEmergencyBay: 'ملجأ د - خليج الطوارئ',
+
+  allZones: 'جميع المناطق',
+
+  roleUser: 'مستخدم',
+  roleContractor: 'مقاول',
+
+  priorityHigh: 'عالية',
+  priorityMedium: 'متوسطة',
+  priorityLow: 'منخفضة',
+
+  windDirection: 'اتجاه الرياح',
+  clearWind: 'مسح الرياح',
+
+  help: 'مساعدة',
 };
 
 const ur: TranslationStrings = {
@@ -382,6 +508,45 @@ const ur: TranslationStrings = {
   minutesAgo: 'منٹ پہلے',
   hoursAgo: 'گھنٹے پہلے',
   daysAgo: 'دن پہلے',
+
+  typeBlackout: 'بلیک آؤٹ',
+  typeShelterIn: 'پناہ لیں',
+  typeSecurityAlert: 'سیکیورٹی الرٹ',
+  typeDrill: 'مشق',
+  typeAllClear: 'سب ٹھیک',
+  typeRestrictedMovement: 'نقل و حرکت پر پابندی',
+
+  titleBlackoutActivated: 'بلیک آؤٹ فعال',
+  titleSecurityIncident: 'سیکیورٹی واقعہ',
+  titleShelterInPlace: 'اپنی جگہ پناہ لیں',
+  titleEmergencyEvacDrill: 'ایمرجنسی انخلا مشق',
+  titleAllClear: 'سب ٹھیک ہے',
+
+  msgBlackout: 'CPF زون میں بلیک آؤٹ کا پتا چلا ہے۔ تمام اہلکاروں کو فوری طور پر اپنے مقررہ جمع مقامات پر جانا چاہیے اور ایمرجنسی کوآرڈینیٹر کی مزید ہدایات کا انتظار کرنا چاہیے۔',
+  msgSecurity: 'براہ کرم اندر رہیں اور اگلے نوٹس تک تمام دروازے بند رکھیں۔',
+  msgShelterIn: 'زہریلی گیس کا الارم بجا۔ فوری طور پر اپنی جگہ پناہ لیں۔',
+  msgDrill: 'یہ ایک مشق ہے۔ جمع مقامات پر جائیں۔',
+  msgAllClear: 'پچھلی ایمرجنسی حل ہو گئی ہے۔ معمول کی کارروائیوں پر واپس آئیں۔',
+  msgAllClearResolved: 'ایمرجنسی مکمل طور پر حل ہو گئی ہے۔ تمام اہلکار معمول کی کارروائیوں پر واپس آ سکتے ہیں۔',
+
+  shelterAMainGate: 'پناہ گاہ الف - مرکزی دروازہ',
+  shelterBControlRoom: 'پناہ گاہ ب - کنٹرول روم',
+  shelterCSouthWing: 'پناہ گاہ ج - جنوبی حصہ',
+  shelterDEmergencyBay: 'پناہ گاہ د - ایمرجنسی بے',
+
+  allZones: 'تمام زونز',
+
+  roleUser: 'صارف',
+  roleContractor: 'ٹھیکیدار',
+
+  priorityHigh: 'اعلی',
+  priorityMedium: 'درمیانہ',
+  priorityLow: 'کم',
+
+  windDirection: 'ہوا کی سمت',
+  clearWind: 'ہوا صاف کریں',
+
+  help: 'مدد',
 };
 
 export const translations: Record<Language, TranslationStrings> = { en, ar, ur };
@@ -394,4 +559,91 @@ export const LANGUAGE_OPTIONS: { value: Language; label: string; nativeLabel: st
 
 export function isRTL(lang: Language): boolean {
   return lang === 'ar' || lang === 'ur';
+}
+
+/**
+ * Translate dynamic data values (alert types, titles, messages, shelter names, etc.)
+ * so that data coming from the store/mock-data is displayed in the user's language.
+ */
+const alertTypeMap: Record<string, keyof TranslationStrings> = {
+  'Blackout': 'typeBlackout',
+  'Shelter-in': 'typeShelterIn',
+  'Security Alert': 'typeSecurityAlert',
+  'Drill': 'typeDrill',
+  'All Clear': 'typeAllClear',
+  'Restricted Movement': 'typeRestrictedMovement',
+};
+
+const alertTitleMap: Record<string, keyof TranslationStrings> = {
+  'BLACKOUT ACTIVATED': 'titleBlackoutActivated',
+  'SECURITY INCIDENT': 'titleSecurityIncident',
+  'SHELTER IN PLACE': 'titleShelterInPlace',
+  'EMERGENCY EVACUATION DRILL': 'titleEmergencyEvacDrill',
+  'ALL CLEAR': 'titleAllClear',
+};
+
+const alertMessageMap: Record<string, keyof TranslationStrings> = {
+  'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.': 'msgBlackout',
+  'Please remain indoors and lock all doors until further notice.': 'msgSecurity',
+  'Toxic gas alarm triggered. Shelter in place immediately.': 'msgShelterIn',
+  'This is a drill. Proceed to muster points.': 'msgDrill',
+  'The previous emergency condition has been resolved. Return to normal operations.': 'msgAllClear',
+  'The emergency condition has been fully resolved. All personnel may return to normal operations.': 'msgAllClearResolved',
+};
+
+const shelterNameMap: Record<string, keyof TranslationStrings> = {
+  'Shelter A - Main Gate': 'shelterAMainGate',
+  'Shelter B - Control Room': 'shelterBControlRoom',
+  'Shelter C - South Wing': 'shelterCSouthWing',
+  'Shelter D - Emergency Bay': 'shelterDEmergencyBay',
+};
+
+const zoneNameMap: Record<string, keyof TranslationStrings> = {
+  'All Zones': 'allZones',
+};
+
+const roleMap: Record<string, keyof TranslationStrings> = {
+  'User': 'roleUser',
+  'Contractor': 'roleContractor',
+};
+
+const priorityMap: Record<string, keyof TranslationStrings> = {
+  'High': 'priorityHigh',
+  'Medium': 'priorityMedium',
+  'Low': 'priorityLow',
+};
+
+export function translateAlertType(value: string, t: TranslationStrings): string {
+  const key = alertTypeMap[value];
+  return key ? t[key] : value;
+}
+
+export function translateAlertTitle(value: string, t: TranslationStrings): string {
+  const key = alertTitleMap[value];
+  return key ? t[key] : value;
+}
+
+export function translateAlertMessage(value: string, t: TranslationStrings): string {
+  const key = alertMessageMap[value];
+  return key ? t[key] : value;
+}
+
+export function translateShelterName(value: string, t: TranslationStrings): string {
+  const key = shelterNameMap[value];
+  return key ? t[key] : value;
+}
+
+export function translateZone(value: string, t: TranslationStrings): string {
+  const key = zoneNameMap[value];
+  return key ? t[key] : value;
+}
+
+export function translateRole(value: string, t: TranslationStrings): string {
+  const key = roleMap[value];
+  return key ? t[key] : value;
+}
+
+export function translatePriority(value: string, t: TranslationStrings): string {
+  const key = priorityMap[value];
+  return key ? t[key] : value;
 }

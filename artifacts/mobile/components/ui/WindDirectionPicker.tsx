@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { useTranslation } from "@/i18n";
 import { WIND_DIRECTIONS, type WindDirection } from "@/types";
 
 interface WindDirectionPickerProps {
@@ -18,12 +19,13 @@ interface WindDirectionPickerProps {
 }
 
 export function WindDirectionPicker({ visible, current, onSelect, onClose }: WindDirectionPickerProps) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <View style={styles.sheet} onStartShouldSetResponder={() => true}>
           <View style={styles.header}>
-            <Text style={styles.title}>Wind Direction</Text>
+            <Text style={styles.title}>{t.windDirection}</Text>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
               <Feather name="x" size={16} color={Colors.textTertiary} />
             </Pressable>
@@ -65,7 +67,7 @@ export function WindDirectionPicker({ visible, current, onSelect, onClose }: Win
               }}
             >
               <Feather name="x-circle" size={14} color={Colors.destructive} />
-              <Text style={styles.clearText}>Clear Wind</Text>
+              <Text style={styles.clearText}>{t.clearWind}</Text>
             </Pressable>
           )}
         </View>

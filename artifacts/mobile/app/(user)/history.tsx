@@ -13,7 +13,7 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import { useTranslation } from "@/i18n";
+import { useTranslation, translateAlertTitle, translateAlertType, translateZone } from "@/i18n";
 import type { Alert } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
@@ -59,7 +59,7 @@ function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n").Tran
         </View>
         <View style={styles.alertCardInfo}>
           <Text style={styles.alertCardTitle} numberOfLines={1}>
-            {alert.title}
+            {translateAlertTitle(alert.title, t)}
           </Text>
           <Text style={styles.alertCardTimestamp}>{formattedDate}</Text>
         </View>
@@ -69,11 +69,11 @@ function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n").Tran
       <View style={styles.alertMeta}>
         <View style={styles.metaChip}>
           <Feather name="map-pin" size={11} color={Colors.textSecondary} />
-          <Text style={styles.metaText}>{alert.zone}</Text>
+          <Text style={styles.metaText}>{translateZone(alert.zone, t)}</Text>
         </View>
         <View style={styles.metaChip}>
           <Feather name="tag" size={11} color={Colors.textSecondary} />
-          <Text style={styles.metaText}>{alert.type}</Text>
+          <Text style={styles.metaText}>{translateAlertType(alert.type, t)}</Text>
         </View>
       </View>
 

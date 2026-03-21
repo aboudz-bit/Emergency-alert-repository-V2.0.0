@@ -14,7 +14,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
-import { useTranslation } from "@/i18n";
+import { useTranslation, translateShelterName, translateAlertType } from "@/i18n";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 
@@ -134,7 +134,7 @@ export default function ContractorMapScreen() {
           <View style={styles.shelterRow}>
             <Feather name="navigation" size={12} color="#22C55E" />
             <Text style={styles.shelterText}>
-              {t.nearest}: {nearestShelter.shelter.name}
+              {t.nearest}: {translateShelterName(nearestShelter.shelter.name, t)}
             </Text>
             <View style={styles.distanceBadge}>
               <Text style={styles.distanceText}>{formatDistance(nearestShelter.distance)}</Text>
@@ -157,7 +157,7 @@ export default function ContractorMapScreen() {
           <>
             <View style={styles.legendSep} />
             <View style={styles.alertDot} />
-            <Text style={styles.alertText}>{activeAlert.type} {t.active}</Text>
+            <Text style={styles.alertText}>{translateAlertType(activeAlert.type, t)} {t.active}</Text>
           </>
         )}
       </View>
