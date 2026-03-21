@@ -4,8 +4,8 @@ import {
 } from '@/mock-data';
 import type { AppState } from './types';
 
-export const STORE_NAME = 'keas-mobile-store-v19';
-export const STORE_VERSION = 19;
+export const STORE_NAME = 'keas-mobile-store-v20';
+export const STORE_VERSION = 20;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -260,6 +260,49 @@ export function migrate(persisted: any, version: number): AppState {
         ...state.currentUser,
         userType: 'Contract',
       };
+    }
+  }
+
+  if (version < 20) {
+    if (Array.isArray(state?.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        alertActive: false,
+        alertType: null,
+        alertPriority: null,
+        alertMessage: '',
+        alertUpdatedAt: null,
+      }));
+    }
+    if (Array.isArray(state?.locations)) {
+      state.locations = state.locations.map((l: any) => ({
+        ...l,
+        alertActive: false,
+      }));
+    }
+    if (Array.isArray(state?.alerts)) {
+      state.alerts = state.alerts.map((a: any) => ({
+        ...a,
+        isActive: false,
+        status: a.isActive ? 'closed' : (a.status ?? 'closed'),
+      }));
+    }
+    state.emergencyModes = {
+      shelterIn: false,
+      blackout: false,
+      shelterInActivatedAt: null,
+      shelterInActivatedBy: null,
+      blackoutActivatedAt: null,
+      blackoutActivatedBy: null,
+    };
+    state.hazardZones = [];
+    state.personnelLocations = {};
+    state.mobileUserResponse = null;
+    if (Array.isArray(state?.users)) {
+      state.users = state.users.map((u: any) => ({
+        ...u,
+        status: 'confirmed',
+      }));
     }
   }
 
