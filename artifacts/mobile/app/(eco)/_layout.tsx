@@ -60,6 +60,13 @@ export default function ECOLayout() {
         }}
       />
       <Tabs.Screen
+        name="users"
+        options={{
+          title: "Users",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="users" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",

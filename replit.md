@@ -125,21 +125,23 @@ artifacts/mobile/
 │   │   ├── _layout.tsx            # Admin tab bar (Dashboard, Alert, Users, History, More)
 │   │   ├── index.tsx              # Dashboard: KPIs, alert banner + per-zone breakdown, quick actions, activity feed
 │   │   ├── send-alert.tsx         # Alert form with type/zone/priority/preview
-│   │   ├── users.tsx              # Emergency-grade personnel screen: zone/location/status filters, grouped by location with collapse/expand, priority sorting, quick-jump, search
+│   │   ├── users.tsx              # Thin re-export of shared EmergencyUsersScreen
 │   │   ├── alert-monitor.tsx      # Live alert tracking with total + per-zone breakdown + personnel list
 │   │   ├── history.tsx            # Alert history with type filter chips
 │   │   ├── zones.tsx              # Map-first zones (WebView + Leaflet + CartoDB dark tiles)
 │   │   ├── locations.tsx          # Location management with zone tabs
 │   │   └── settings.tsx           # System settings with steppers and toggles
 │   ├── (eco)/
-│   │   ├── _layout.tsx            # ECO tab bar (Dashboard, Alerts, Profile)
+│   │   ├── _layout.tsx            # ECO tab bar (Dashboard, Map, Alerts, Users, Profile)
 │   │   ├── index.tsx              # ECO dashboard: zone-wide KPIs, location breakdown, alerts
 │   │   ├── alerts.tsx             # Zone alerts list (active + history)
+│   │   ├── users.tsx              # Thin re-export of shared EmergencyUsersScreen
 │   │   └── profile.tsx            # ECO profile with assignment info
 │   ├── (supervisor)/
-│   │   ├── _layout.tsx            # Supervisor tab bar (Dashboard, Personnel, Profile)
+│   │   ├── _layout.tsx            # Supervisor tab bar (Dashboard, Map, Personnel, All Users, Profile)
 │   │   ├── index.tsx              # Supervisor dashboard: location KPIs, personnel list, backup indicator
-│   │   ├── personnel.tsx          # Personnel list with status filter tabs
+│   │   ├── personnel.tsx          # Location-scoped personnel list with status filter tabs
+│   │   ├── users.tsx              # Thin re-export of shared EmergencyUsersScreen
 │   │   └── profile.tsx            # Supervisor profile
 │   ├── (it)/
 │   │   ├── _layout.tsx            # IT stack layout
@@ -152,7 +154,10 @@ artifacts/mobile/
 │       ├── alert.tsx              # Active alert detail
 │       ├── history.tsx            # User alert history
 │       └── profile.tsx            # User profile
-├── components/ui/
+├── components/
+│   ├── screens/
+│   │   └── EmergencyUsersScreen.tsx  # Shared emergency-only Users screen (monitoring only, no status update controls)
+│   ├── ui/
 │   ├── Header.tsx                 # Chevron back, pill back button
 │   ├── Card.tsx                   # Base card with border + optional elevated style
 │   ├── KPICard.tsx                # Icon+value top row, label below

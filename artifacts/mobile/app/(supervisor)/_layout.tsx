@@ -60,6 +60,13 @@ export default function SupervisorLayout() {
         }}
       />
       <Tabs.Screen
+        name="users"
+        options={{
+          title: "All Users",
+          tabBarIcon: ({ color, focused }) => <TabIcon name="shield" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
