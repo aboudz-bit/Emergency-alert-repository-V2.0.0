@@ -51,6 +51,7 @@ export default function UsersScreen() {
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
+  const currentUser = useStore((s) => s.currentUser);
   const updateUserResponse = useStore((s) => s.updateUserResponse);
 
   const sectionListRef = useRef<SectionList>(null);
@@ -640,28 +641,32 @@ export default function UsersScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.modalSectionTitle}>Update Status</Text>
-                <View style={styles.statusGrid}>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <Pressable
-                      key={opt.key}
-                      style={[
-                        styles.statusBtn,
-                        selectedUser.status === opt.key && styles.statusBtnActive,
-                      ]}
-                      onPress={() => handleStatusUpdate(selectedUser.id, opt.key)}
-                    >
-                      <Text
-                        style={[
-                          styles.statusBtnText,
-                          selectedUser.status === opt.key && styles.statusBtnTextActive,
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                {currentUser?.id === selectedUser.id && (
+                  <>
+                    <Text style={styles.modalSectionTitle}>Update Status</Text>
+                    <View style={styles.statusGrid}>
+                      {STATUS_OPTIONS.map((opt) => (
+                        <Pressable
+                          key={opt.key}
+                          style={[
+                            styles.statusBtn,
+                            selectedUser.status === opt.key && styles.statusBtnActive,
+                          ]}
+                          onPress={() => handleStatusUpdate(selectedUser.id, opt.key)}
+                        >
+                          <Text
+                            style={[
+                              styles.statusBtnText,
+                              selectedUser.status === opt.key && styles.statusBtnTextActive,
+                            ]}
+                          >
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
 
                 <Pressable
                   style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.8 }]}

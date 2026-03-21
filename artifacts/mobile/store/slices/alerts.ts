@@ -8,6 +8,8 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
 > {
   return {
     updateUserResponse: (userId, status) => {
+      const { currentUser } = get();
+      if (!currentUser || currentUser.id !== userId) return;
       set(s => {
         const users = s.users.map(u =>
           u.id === userId ? { ...u, status, lastActivity: new Date().toISOString() } : u,
