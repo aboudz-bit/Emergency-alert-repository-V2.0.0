@@ -68,6 +68,8 @@ export const seedUsers: User[] = [
     lastActivity: new Date().toISOString(),
     isActive: true,
     userType: 'Contract' as const,
+    companyType: 'Contractor' as const,
+    companyName: 'Al-Fadhli Contracting',
   },
 ];
 

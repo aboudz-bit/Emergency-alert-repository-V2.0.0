@@ -4,6 +4,7 @@ export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Supe
 export type AccountStatus = 'active' | 'disabled';
 export type EcoSlot = 'A' | 'B' | 'C';
 export type UserType = 'Aramco' | 'Contract';
+export type CompanyType = 'Aramco' | 'Contractor';
 export type Language = 'en' | 'ar' | 'ur';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -179,6 +180,8 @@ export interface User {
   lastActivity: string;
   isActive: boolean;
   userType?: UserType;
+  companyType?: CompanyType;
+  companyName?: string;
   mobileNumber?: string;
   approvalStatus?: ApprovalStatus;
   approvedBy?: string | null;

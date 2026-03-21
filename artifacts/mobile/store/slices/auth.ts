@@ -56,7 +56,7 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
 
     logout: () => set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null }),
 
-    registerUser: ({ name, badge, password, zone, location, mobileNumber, userType, role }) => {
+    registerUser: ({ name, badge, password, zone, location, mobileNumber, userType, role, companyType, companyName }) => {
       const { users, zones, locations: locs } = get();
       if (users.find(u => u.badge === badge)) {
         return { success: false, error: 'Badge number already registered.' };
@@ -74,6 +74,8 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
         status: 'pending', accountStatus: 'active',
         lastActivity: new Date().toISOString(), isActive: true,
         userType,
+        companyType: companyType ?? (userType === 'Contract' ? 'Contractor' : 'Aramco'),
+        companyName: companyName ?? (userType === 'Contract' ? '' : 'Saudi Aramco'),
         mobileNumber,
         approvalStatus: 'pending',
         approvedBy: null, approvedAt: null, rejectionReason: null,

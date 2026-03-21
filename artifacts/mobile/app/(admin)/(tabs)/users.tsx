@@ -17,7 +17,7 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { User, UserResponseStatus } from "@/types";
+import type { User, UserResponseStatus, CompanyType } from "@/types";
 
 const SCREEN_H = Dimensions.get("window").height;
 const UNASSIGNED_LOCATION = "Unassigned";
@@ -59,6 +59,7 @@ export default function UsersScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedZone, setSelectedZone] = useState("All");
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+  const [selectedCompanyType, setSelectedCompanyType] = useState<"All" | CompanyType>("All");
   const [selectedStatus, setSelectedStatus] = useState<"All" | UserResponseStatus>("All");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -107,6 +108,10 @@ export default function UsersScreen() {
       filtered = filtered.filter((u) => u.locationId === selectedLocationId);
     }
 
+    if (selectedCompanyType !== "All") {
+      filtered = filtered.filter((u) => (u.companyType ?? (u.userType === "Contract" ? "Contractor" : "Aramco")) === selectedCompanyType);
+    }
+
     if (selectedStatus !== "All") {
       filtered = filtered.filter((u) => u.status === selectedStatus);
     }
@@ -118,7 +123,8 @@ export default function UsersScreen() {
           u.name.toLowerCase().includes(q) ||
           u.badge.toLowerCase().includes(q) ||
           (u.zone || "").toLowerCase().includes(q) ||
-          (u.location || "").toLowerCase().includes(q)
+          (u.location || "").toLowerCase().includes(q) ||
+          (u.companyName || "").toLowerCase().includes(q)
       );
     }
 
@@ -173,7 +179,7 @@ export default function UsersScreen() {
     });
 
     return groups;
-  }, [users, zones, locationById, activeZones, selectedZone, selectedLocationId, selectedStatus, searchQuery]);
+  }, [users, zones, locationById, activeZones, selectedZone, selectedLocationId, selectedCompanyType, selectedStatus, searchQuery]);
 
   useEffect(() => {
     const map: Record<string, boolean> = {};
@@ -335,12 +341,26 @@ export default function UsersScreen() {
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{item.name}</Text>
-              <Text style={styles.userBadge}>
-                {item.badge}
-                {item.userType === "Contract" ? " · Contractor" : ""}
-              </Text>
+              <Text style={styles.userBadge}>{item.badge}</Text>
             </View>
-            <StatusBadge status={item.status} />
+            <View style={styles.userBadgeRow}>
+              <View style={[
+                styles.companyBadge,
+                (item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor"
+                  ? styles.companyBadgeContractor
+                  : styles.companyBadgeAramco,
+              ]}>
+                <Text style={[
+                  styles.companyBadgeText,
+                  (item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor"
+                    ? styles.companyBadgeTextContractor
+                    : styles.companyBadgeTextAramco,
+                ]}>
+                  {(item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor" ? "Contractor" : "Aramco"}
+                </Text>
+              </View>
+              <StatusBadge status={item.status} />
+            </View>
           </View>
         </View>
       </Pressable>
@@ -455,6 +475,34 @@ export default function UsersScreen() {
           </ScrollView>
         </View>
       )}
+
+      <View style={styles.filterSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {(["All", "Aramco", "Contractor"] as const).map((ct) => (
+            <Pressable
+              key={ct}
+              style={[
+                styles.filterChip,
+                selectedCompanyType === ct && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedCompanyType(ct)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedCompanyType === ct && styles.filterChipTextActive,
+                ]}
+              >
+                {ct}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       <View style={styles.filterSection}>
         <ScrollView
@@ -620,6 +668,12 @@ export default function UsersScreen() {
                   <View style={styles.modalDetailRow}>
                     <Text style={styles.modalDetailLabel}>Location</Text>
                     <Text style={styles.modalDetailValue}>{selectedUser.location}</Text>
+                  </View>
+                  <View style={styles.modalDetailRow}>
+                    <Text style={styles.modalDetailLabel}>Company</Text>
+                    <Text style={styles.modalDetailValue}>
+                      {selectedUser.companyName || (selectedUser.userType === "Contract" ? "Not provided" : "Saudi Aramco")}
+                    </Text>
                   </View>
                   {selectedUser.userType && (
                     <View style={styles.modalDetailRow}>
@@ -949,6 +1003,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+  },
+  userBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  companyBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  companyBadgeAramco: {
+    backgroundColor: "rgba(22, 163, 74, 0.08)",
+    borderColor: "rgba(22, 163, 74, 0.2)",
+  },
+  companyBadgeContractor: {
+    backgroundColor: "rgba(59, 130, 246, 0.08)",
+    borderColor: "rgba(59, 130, 246, 0.2)",
+  },
+  companyBadgeText: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+  },
+  companyBadgeTextAramco: {
+    color: Colors.safe,
+  },
+  companyBadgeTextContractor: {
+    color: "#3B82F6",
   },
 
   emptyContainer: {

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import type { UserRole, UserType } from "@/types";
+import type { UserRole, UserType, CompanyType } from "@/types";
 
 const USER_TYPES: UserType[] = ["Aramco", "Contract"];
 
@@ -36,6 +36,7 @@ export default function RegisterScreen() {
   const [badge, setBadge] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [userType, setUserType] = useState<UserType | null>(null);
+  const [companyName, setCompanyName] = useState("");
   const [role, setRole] = useState<UserRole | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,6 +61,7 @@ export default function RegisterScreen() {
     if (!badge.trim()) return "Badge number is required.";
     if (!mobileNumber.trim()) return "Mobile number is required.";
     if (!userType) return "Please select a user type.";
+    if (isContract && !companyName.trim()) return "Company name is required for contractors.";
     if (isAramco && !role) return "Please select a role.";
     if (!password.trim()) return "Password is required.";
     if (password.length < 4) return "Password must be at least 4 characters.";
@@ -86,6 +88,8 @@ export default function RegisterScreen() {
       mobileNumber: mobileNumber.trim(),
       userType: userType!,
       role: isAramco ? role : null,
+      companyType: isAramco ? "Aramco" : "Contractor",
+      companyName: isAramco ? "Saudi Aramco" : companyName.trim(),
     });
     setLoading(false);
     if (result.success) {
@@ -176,6 +180,9 @@ export default function RegisterScreen() {
                         setRole(null);
                         setLocation("");
                       }
+                      if (ut === "Aramco") {
+                        setCompanyName("");
+                      }
                     }}
                   >
                     <Text
@@ -190,6 +197,16 @@ export default function RegisterScreen() {
                 ))}
               </View>
             </View>
+
+            {isContract && (
+              <Input
+                label="Company Name"
+                placeholder="Enter your company name"
+                value={companyName}
+                onChangeText={setCompanyName}
+                autoCapitalize="words"
+              />
+            )}
 
             {isAramco && (
               <View style={styles.sectionGap}>

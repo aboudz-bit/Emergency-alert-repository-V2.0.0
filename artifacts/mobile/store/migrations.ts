@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 20;
+export const STORE_VERSION = 21;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -303,6 +303,23 @@ export function migrate(persisted: any, version: number): AppState {
         ...u,
         status: 'confirmed',
       }));
+    }
+  }
+
+  if (version < 21) {
+    if (Array.isArray(state?.users)) {
+      state.users = state.users.map((u: any) => ({
+        ...u,
+        companyType: u.companyType ?? (u.userType === 'Contract' ? 'Contractor' : 'Aramco'),
+        companyName: u.companyName ?? (u.userType === 'Contract' ? 'Not provided' : 'Saudi Aramco'),
+      }));
+    }
+    if (state?.currentUser) {
+      state.currentUser = {
+        ...state.currentUser,
+        companyType: state.currentUser.companyType ?? (state.currentUser.userType === 'Contract' ? 'Contractor' : 'Aramco'),
+        companyName: state.currentUser.companyName ?? (state.currentUser.userType === 'Contract' ? 'Not provided' : 'Saudi Aramco'),
+      };
     }
   }
 

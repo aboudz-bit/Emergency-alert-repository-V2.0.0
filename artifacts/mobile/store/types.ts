@@ -2,7 +2,7 @@ import type {
   User, Alert, Zone, Location, LocationAlertType, AppSettings,
   ActivityLog, UserRole, UserResponseStatus, AlertPriority,
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
-  UserType, PersonnelLocation, ZoneNotification,
+  UserType, CompanyType, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
   EmergencyModes, WindDirection, Language,
 } from '@/types';
@@ -41,6 +41,7 @@ export interface AppState {
     name: string; badge: string; password: string; zone: string;
     location: string; mobileNumber: string; userType: UserType;
     role: UserRole | null;
+    companyType?: CompanyType; companyName?: string;
   }) => { success: boolean; error?: string };
   approveUser: (userId: number, approverName: string, finalRole?: UserRole) => void;
   rejectUser: (userId: number, approverName: string, reason?: string) => void;

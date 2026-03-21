@@ -1,0 +1,212 @@
+We need to add full Company support to the app.
+
+This includes:
+1) registration flow
+2) user data model
+3) Users screen filter + badge
+4) User detail modal display
+
+Do not break existing alert, zone, location, grouping, or permission logic.
+
+==================================================
+GOAL
+==================================================
+
+Add proper company information for users.
+
+Users must be classified as:
+- Aramco
+- Contractor
+
+If Contractor → must enter company name
+If Aramco → company = Saudi Aramco automatically
+
+Company must then be visible and filterable in Users screen.
+
+==================================================
+PART 1 — REGISTRATION CHANGES
+==================================================
+
+In registration screen:
+
+User already selects:
+- Aramco
+- Contractor
+
+Add logic:
+
+If Contractor:
+- show input field:
+  Company Name
+- required
+- English text
+- store as companyName
+
+If Aramco:
+- hide input
+- store:
+  companyName = "Saudi Aramco"
+  companyType = "Aramco"
+
+Store fields:
+
+companyType: "Aramco" | "Contractor"
+companyName: string
+
+Do not break approval / role / zone logic.
+
+==================================================
+PART 2 — USER DATA MODEL
+==================================================
+
+Ensure user object contains:
+
+companyType
+companyName
+
+Use existing field if present.
+If not, add safely without breaking persistence.
+
+Backward compatibility:
+Old users may not have companyName.
+Fallback:
+Aramco → Saudi Aramco
+Contractor → Not provided
+
+==================================================
+PART 3 — USERS SCREEN FILTER
+==================================================
+
+Add new filter row:
+
+All
+Aramco
+Contractor
+
+Filtering order:
+
+1 zone
+2 location
+3 companyType
+4 status
+5 search
+
+Must work with existing grouping.
+
+==================================================
+PART 4 — USER ROW BADGE
+==================================================
+
+Each user row must show company badge.
+
+Examples:
+
+[Pending] [Aramco]
+[Need Help] [Contractor]
+
+Status badge must stay.
+Company badge must not override status color.
+
+==================================================
+PART 5 — USER DETAIL MODAL
+==================================================
+
+Add new row:
+
+Company    <value>
+
+Place after Location.
+
+Display:
+
+Aramco → Saudi Aramco
+Contractor → companyName
+Missing → Not provided
+
+==================================================
+PART 6 — USERS SCREEN MUST STILL GROUP BY LOCATION
+==================================================
+
+Do not group by company.
+
+Grouping remains:
+
+Zone → Location → Users
+
+Company only affects:
+- filter
+- badge
+- modal display
+
+==================================================
+PART 7 — SEARCH MUST STILL WORK
+==================================================
+
+Search must still match:
+
+name
+badge
+zone
+location
+
+Optional:
+companyName
+
+Do not break search.
+
+==================================================
+PART 8 — UI ORDER
+==================================================
+
+Search
+Zone filter
+Location filter
+Company filter
+Status filter
+Summary row
+Grouped list
+
+All filter rows must scroll horizontally.
+
+No overlap.
+
+==================================================
+DO NOT BREAK
+==================================================
+
+alerts
+map
+emergency mode
+status update
+permissions
+grouping
+collapse / expand
+quick jump
+
+==================================================
+OUTPUT
+==================================================
+
+Return:
+
+1 files changed
+2 user model changes
+3 registration changes
+4 filter logic
+5 modal changes
+6 fallback logic
+7 manual test checklist
+
+==================================================
+TESTS
+==================================================
+
+Register Contractor → must enter company
+Register Aramco → auto Saudi Aramco
+Modal shows company
+Users screen shows badge
+Filter Aramco works
+Filter Contractor works
+Grouping still by location
+Search still works
+Old users not broken
