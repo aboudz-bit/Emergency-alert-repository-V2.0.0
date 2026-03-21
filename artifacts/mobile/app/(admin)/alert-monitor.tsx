@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { WindIndicator } from "@/components/ui/WindIndicator";
+import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
@@ -112,6 +113,7 @@ export default function AlertMonitorScreen() {
   if (!activeAlert) {
     return (
       <View style={styles.container}>
+        <EmergencyModeBanner />
         <Header title="Alert Monitor" showBack />
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
@@ -128,6 +130,7 @@ export default function AlertMonitorScreen() {
 
   return (
     <View style={styles.container}>
+      <EmergencyModeBanner />
       <Header title="Alert Monitor" showBack />
 
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
