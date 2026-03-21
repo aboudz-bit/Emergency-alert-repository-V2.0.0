@@ -67,6 +67,8 @@ export const useStore = create<AppState>()(
       emergencyModes: {
         shelterIn: false,
         blackout: false,
+        shelterInZones: [],
+        blackoutZones: [],
         shelterInActivatedAt: null,
         shelterInActivatedBy: null,
         blackoutActivatedAt: null,

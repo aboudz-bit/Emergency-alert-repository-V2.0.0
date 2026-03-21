@@ -45,8 +45,10 @@ export default function AlertManagementScreen() {
   const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
   const sendZoneNotification = useStore((s) => s.sendZoneNotification);
   const emergencyModes = useStore((s) => s.emergencyModes);
-  const toggleShelterIn = useStore((s) => s.toggleShelterIn);
-  const toggleBlackout = useStore((s) => s.toggleBlackout);
+  const activateShelterIn = useStore((s) => s.activateShelterIn);
+  const deactivateShelterIn = useStore((s) => s.deactivateShelterIn);
+  const activateBlackout = useStore((s) => s.activateBlackout);
+  const deactivateBlackout = useStore((s) => s.deactivateBlackout);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,6 +56,10 @@ export default function AlertManagementScreen() {
   // Multi-select mode
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedZoneIds, setSelectedZoneIds] = useState<Set<number>>(new Set());
+
+  // Zone selection modal for emergency modes
+  const [emergencyZoneModal, setEmergencyZoneModal] = useState<"shelterIn" | "blackout" | null>(null);
+  const [emergencyZoneSelection, setEmergencyZoneSelection] = useState<Set<string>>(new Set());
 
   // Bulk activate modal
   const [bulkActivateVisible, setBulkActivateVisible] = useState(false);
@@ -422,7 +428,14 @@ export default function AlertManagementScreen() {
               emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
               pressed && { opacity: 0.8 },
             ]}
-            onPress={toggleShelterIn}
+            onPress={() => {
+              if (emergencyModes.shelterIn) {
+                deactivateShelterIn();
+              } else {
+                setEmergencyZoneSelection(new Set());
+                setEmergencyZoneModal("shelterIn");
+              }
+            }}
           >
             <Feather
               name="shield"
@@ -446,7 +459,14 @@ export default function AlertManagementScreen() {
               emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
               pressed && { opacity: 0.8 },
             ]}
-            onPress={toggleBlackout}
+            onPress={() => {
+              if (emergencyModes.blackout) {
+                deactivateBlackout();
+              } else {
+                setEmergencyZoneSelection(new Set());
+                setEmergencyZoneModal("blackout");
+              }
+            }}
           >
             <Feather
               name="zap-off"
@@ -1172,6 +1192,83 @@ export default function AlertManagementScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={emergencyZoneModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEmergencyZoneModal(null)}
+      >
+        <View style={styles.ezModalOverlay}>
+          <View style={styles.ezModalContent}>
+            <Text style={styles.ezModalTitle}>
+              {emergencyZoneModal === "shelterIn" ? "Activate Shelter In" : "Activate Blackout"}
+            </Text>
+            <Text style={styles.ezModalSubtitle}>Select zones to apply</Text>
+
+            <ScrollView style={styles.ezModalScroll}>
+              {zones.filter((z) => z.isActive).map((z) => {
+                const selected = emergencyZoneSelection.has(z.name);
+                return (
+                  <Pressable
+                    key={z.id}
+                    style={styles.ezZoneRow}
+                    onPress={() => {
+                      setEmergencyZoneSelection((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(z.name)) next.delete(z.name);
+                        else next.add(z.name);
+                        return next;
+                      });
+                    }}
+                  >
+                    <View style={[styles.ezCheckbox, selected && styles.ezCheckboxSelected]}>
+                      {selected && <Feather name="check" size={14} color="#fff" />}
+                    </View>
+                    <Text style={styles.ezZoneName}>{z.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.ezModalActions}>
+              <Pressable
+                style={({ pressed }) => [styles.ezBtnCancel, pressed && { opacity: 0.8 }]}
+                onPress={() => setEmergencyZoneModal(null)}
+              >
+                <Text style={styles.ezBtnCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.ezBtnActivate,
+                  emergencyZoneModal === "shelterIn" ? styles.ezBtnShelter : styles.ezBtnBlackout,
+                  emergencyZoneSelection.size === 0 && styles.ezBtnDisabled,
+                  pressed && { opacity: 0.8 },
+                ]}
+                disabled={emergencyZoneSelection.size === 0}
+                onPress={() => {
+                  const selected = Array.from(emergencyZoneSelection);
+                  if (emergencyZoneModal === "shelterIn") {
+                    activateShelterIn(selected);
+                  } else {
+                    activateBlackout(selected);
+                  }
+                  setEmergencyZoneModal(null);
+                }}
+              >
+                <Feather
+                  name={emergencyZoneModal === "shelterIn" ? "shield" : "zap-off"}
+                  size={14}
+                  color="#fff"
+                />
+                <Text style={styles.ezBtnActivateText}>
+                  Activate{emergencyZoneSelection.size > 0 ? ` (${emergencyZoneSelection.size})` : ""}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1594,5 +1691,61 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1, backgroundColor: Colors.border, marginHorizontal: 12, marginVertical: 2,
+  },
+
+  ezModalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 24,
+  },
+  ezModalContent: {
+    backgroundColor: Colors.surface, borderRadius: 14, padding: 16, width: "100%", maxWidth: 360, gap: 12,
+  },
+  ezModalTitle: {
+    fontSize: 16, fontFamily: "Inter_700Bold", color: Colors.text, textAlign: "center",
+  },
+  ezModalSubtitle: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textSecondary, textAlign: "center",
+  },
+  ezModalScroll: {
+    maxHeight: 300,
+  },
+  ezZoneRow: {
+    flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderColor: Colors.border,
+  },
+  ezCheckbox: {
+    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center", backgroundColor: Colors.surfaceElevated,
+  },
+  ezCheckboxSelected: {
+    backgroundColor: Colors.primary, borderColor: Colors.primary,
+  },
+  ezZoneName: {
+    fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text,
+  },
+  ezModalActions: {
+    flexDirection: "row", gap: 8, marginTop: 4,
+  },
+  ezBtnCancel: {
+    flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
+  },
+  ezBtnCancelText: {
+    fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary,
+  },
+  ezBtnActivate: {
+    flex: 1, height: 40, borderRadius: 10, flexDirection: "row",
+    alignItems: "center", justifyContent: "center", gap: 6,
+  },
+  ezBtnShelter: {
+    backgroundColor: Colors.amber,
+  },
+  ezBtnBlackout: {
+    backgroundColor: Colors.primary,
+  },
+  ezBtnDisabled: {
+    opacity: 0.4,
+  },
+  ezBtnActivateText: {
+    fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff",
   },
 });

@@ -2,7 +2,7 @@ import type { SetState, GetState, AppState } from '../types';
 
 export function createEmergencySlice(set: SetState, get: GetState): Pick<
   AppState,
-  'setWindDirection' | 'toggleShelterIn' | 'toggleBlackout'
+  'setWindDirection' | 'activateShelterIn' | 'deactivateShelterIn' | 'activateBlackout' | 'deactivateBlackout'
 > {
   return {
     setWindDirection: (direction) => {
@@ -14,28 +14,56 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
       });
     },
 
-    toggleShelterIn: () => {
+    activateShelterIn: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
       set({
         emergencyModes: {
           ...emergencyModes,
-          shelterIn: !emergencyModes.shelterIn,
-          shelterInActivatedAt: !emergencyModes.shelterIn ? now : null,
-          shelterInActivatedBy: !emergencyModes.shelterIn ? (currentUser?.name ?? 'System') : null,
+          shelterIn: true,
+          shelterInZones: zoneNames,
+          shelterInActivatedAt: now,
+          shelterInActivatedBy: currentUser?.name ?? 'System',
         },
       });
     },
 
-    toggleBlackout: () => {
+    deactivateShelterIn: () => {
+      const { emergencyModes } = get();
+      set({
+        emergencyModes: {
+          ...emergencyModes,
+          shelterIn: false,
+          shelterInZones: [],
+          shelterInActivatedAt: null,
+          shelterInActivatedBy: null,
+        },
+      });
+    },
+
+    activateBlackout: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
       set({
         emergencyModes: {
           ...emergencyModes,
-          blackout: !emergencyModes.blackout,
-          blackoutActivatedAt: !emergencyModes.blackout ? now : null,
-          blackoutActivatedBy: !emergencyModes.blackout ? (currentUser?.name ?? 'System') : null,
+          blackout: true,
+          blackoutZones: zoneNames,
+          blackoutActivatedAt: now,
+          blackoutActivatedBy: currentUser?.name ?? 'System',
+        },
+      });
+    },
+
+    deactivateBlackout: () => {
+      const { emergencyModes } = get();
+      set({
+        emergencyModes: {
+          ...emergencyModes,
+          blackout: false,
+          blackoutZones: [],
+          blackoutActivatedAt: null,
+          blackoutActivatedBy: null,
         },
       });
     },

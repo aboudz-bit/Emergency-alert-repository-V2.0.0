@@ -92,6 +92,8 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         emergencyModes: {
           shelterIn: false,
           blackout: false,
+          shelterInZones: [],
+          blackoutZones: [],
           shelterInActivatedAt: null,
           shelterInActivatedBy: null,
           blackoutActivatedAt: null,

@@ -32,8 +32,10 @@ export interface AppState {
   setWindDirection: (direction: WindDirection | null) => void;
 
   // Emergency mode actions
-  toggleShelterIn: () => void;
-  toggleBlackout: () => void;
+  activateShelterIn: (zoneNames: string[]) => void;
+  deactivateShelterIn: () => void;
+  activateBlackout: (zoneNames: string[]) => void;
+  deactivateBlackout: () => void;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;

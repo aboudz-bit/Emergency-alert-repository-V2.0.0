@@ -11,13 +11,21 @@ export function EmergencyModeBanner() {
 
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
 
+  const shelterZoneLabel = emergencyModes.shelterInZones?.length > 0
+    ? emergencyModes.shelterInZones.join(", ")
+    : null;
+
+  const blackoutZoneLabel = emergencyModes.blackoutZones?.length > 0
+    ? emergencyModes.blackoutZones.join(", ")
+    : null;
+
   return (
     <View style={styles.wrapper}>
       {emergencyModes.shelterIn && (
         <View style={[styles.banner, styles.shelterBanner]}>
           <Feather name="shield" size={16} color="#fff" />
           <Text style={styles.bannerText}>
-            {t.shelterInActivated}
+            {t.shelterInActivated}{shelterZoneLabel ? ` — ${shelterZoneLabel}` : ""}
           </Text>
           <View style={styles.pulse} />
         </View>
@@ -25,7 +33,9 @@ export function EmergencyModeBanner() {
       {emergencyModes.blackout && (
         <View style={[styles.banner, styles.blackoutBanner]}>
           <Feather name="zap-off" size={16} color="#fff" />
-          <Text style={styles.bannerText}>{t.blackoutActivated}</Text>
+          <Text style={styles.bannerText}>
+            {t.blackoutActivated}{blackoutZoneLabel ? ` — ${blackoutZoneLabel}` : ""}
+          </Text>
           <View style={styles.pulse} />
         </View>
       )}
@@ -54,6 +64,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     color: "#fff",
     letterSpacing: 0.3,
+    flexShrink: 1,
   },
   pulse: {
     width: 8,

@@ -314,6 +314,8 @@ export interface HazardZone {
 export interface EmergencyModes {
   shelterIn: boolean;
   blackout: boolean;
+  shelterInZones: string[];
+  blackoutZones: string[];
   shelterInActivatedAt: string | null;
   shelterInActivatedBy: string | null;
   blackoutActivatedAt: string | null;

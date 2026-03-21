@@ -1,0 +1,160 @@
+We need to update Shelter In and Blackout activation flow.
+
+Currently emergency modes activate globally.
+We need them to work per-zone, with multi-zone selection.
+
+Do not break existing alert system, zone logic, permissions, or notification flow.
+
+==================================================
+GOAL
+==================================================
+
+When activating:
+
+- Shelter In
+- Blackout
+
+Admin must select one or more zones before activation.
+
+Emergency mode must apply ONLY to selected zones.
+
+Users in selected zones receive notification.
+Users outside selected zones do not.
+
+==================================================
+PART 1 — ADD ZONE SELECTION BEFORE ACTIVATION
+==================================================
+
+When pressing:
+
+Shelter In
+Blackout
+
+Open a modal:
+
+Select Zones
+
+Show list of zones with checkbox / multi-select.
+
+Example:
+
+[ ] CPF
+[ ] OT-1
+[ ] OT-2
+[ ] OT-3
+[ ] Gas Train-1
+[ ] Gas Train-2
+[ ] Camp
+
+Buttons:
+
+Cancel
+Activate
+
+Activation not allowed if no zone selected.
+
+==================================================
+PART 2 — SUPPORT MULTI ZONE
+==================================================
+
+Allow selecting multiple zones.
+
+Example:
+
+Shelter In → CPF + OT-1 + OT-2
+Blackout → Camp only
+
+Store selected zones in emergency state.
+
+Example state:
+
+shelterInZones: []
+blackoutZones: []
+
+==================================================
+PART 3 — NOTIFICATION TARGETING
+==================================================
+
+When Shelter In activated:
+
+Send notification only to users where:
+
+user.zone ∈ shelterInZones
+
+When Blackout activated:
+
+Send notification only to users where:
+
+user.zone ∈ blackoutZones
+
+Admin / ECO still see all.
+
+Supervisor / Backup only see their zone.
+
+==================================================
+PART 4 — UI BANNERS WITH ZONES
+==================================================
+
+Top banner must show zones.
+
+Example:
+
+Shelter In Activated — CPF, OT-1
+
+Blackout Activated — Camp
+
+If both active → show two banners.
+
+==================================================
+PART 5 — ALL CLEAR
+==================================================
+
+All Clear must clear:
+
+shelterInZones
+blackoutZones
+
+Remove banners
+Stop emergency mode
+
+==================================================
+PART 6 — DO NOT BREAK
+==================================================
+
+Do not break:
+
+alerts
+user status
+permissions
+map
+grouped users screen
+filters
+location grouping
+ECO view
+Supervisor scope
+
+==================================================
+OUTPUT
+==================================================
+
+Return:
+
+1. files changed
+2. how zones stored for shelterIn
+3. how zones stored for blackout
+4. how notifications filtered
+5. how banner shows zones
+6. how multi-select works
+7. manual test checklist
+
+==================================================
+TEST
+==================================================
+
+1 activate shelter for CPF only
+2 only CPF users get notification
+3 activate blackout for Camp
+4 only Camp users get notification
+5 activate both with different zones
+6 banners show correct zones
+7 all clear resets everything

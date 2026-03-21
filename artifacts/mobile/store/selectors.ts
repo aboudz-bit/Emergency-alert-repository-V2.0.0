@@ -56,10 +56,13 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   }
 
   if (hasBlackout) {
+    const zoneLabel = s.emergencyModes.blackoutZones.length > 0
+      ? s.emergencyModes.blackoutZones.join(', ')
+      : 'All Zones';
     return {
       id: -1,
       type: 'Blackout',
-      zone: 'All Zones',
+      zone: zoneLabel,
       title: 'Blackout Active',
       message: 'Blackout mode is active. All lights and non-essential systems should be turned off.',
       timestamp: s.emergencyModes.blackoutActivatedAt || new Date().toISOString(),
@@ -71,10 +74,13 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     } as Alert;
   }
 
+  const shelterZoneLabel = s.emergencyModes.shelterInZones.length > 0
+    ? s.emergencyModes.shelterInZones.join(', ')
+    : 'All Zones';
   return {
     id: -1,
     type: 'Shelter In Place',
-    zone: 'All Zones',
+    zone: shelterZoneLabel,
     title: 'Shelter In Place Active',
     message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',
     timestamp: s.emergencyModes.shelterInActivatedAt || new Date().toISOString(),

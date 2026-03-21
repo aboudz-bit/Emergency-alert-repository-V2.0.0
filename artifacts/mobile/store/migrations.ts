@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 21;
+export const STORE_VERSION = 22;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -290,6 +290,8 @@ export function migrate(persisted: any, version: number): AppState {
     state.emergencyModes = {
       shelterIn: false,
       blackout: false,
+      shelterInZones: [],
+      blackoutZones: [],
       shelterInActivatedAt: null,
       shelterInActivatedBy: null,
       blackoutActivatedAt: null,
@@ -320,6 +322,17 @@ export function migrate(persisted: any, version: number): AppState {
         companyType: state.currentUser.companyType ?? (state.currentUser.userType === 'Contract' ? 'Contractor' : 'Aramco'),
         companyName: state.currentUser.companyName ?? (state.currentUser.userType === 'Contract' ? 'Not provided' : 'Saudi Aramco'),
       };
+    }
+  }
+
+  if (version < 22) {
+    if (state.emergencyModes) {
+      if (!Array.isArray(state.emergencyModes.shelterInZones)) {
+        state.emergencyModes.shelterInZones = [];
+      }
+      if (!Array.isArray(state.emergencyModes.blackoutZones)) {
+        state.emergencyModes.blackoutZones = [];
+      }
     }
   }
 
