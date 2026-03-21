@@ -118,7 +118,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
           a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
         );
         const anyAlertActive = updatedAlerts.some(a => a.isActive);
-        const anyZoneActive = s.zones.some(z => z.alertActive);
+        const anyZoneActive = s.zones.some(z => z.isActive && z.alertActive);
         return {
           alerts: updatedAlerts,
           hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),

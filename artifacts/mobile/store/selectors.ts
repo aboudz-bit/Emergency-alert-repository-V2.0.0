@@ -24,7 +24,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   const fromAlerts = s.alerts.find(a => a.isActive);
   if (fromAlerts) return fromAlerts;
 
-  const activeZones = s.zones.filter(z => z.alertActive);
+  const activeZones = s.zones.filter(z => z.isActive && z.alertActive);
   const hasShelterIn = s.emergencyModes.shelterIn;
   const hasBlackout = s.emergencyModes.blackout;
 
@@ -87,12 +87,12 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
 };
 
 export const selectHasActiveAlert = (s: AppState) =>
-  s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
+  s.alerts.some(a => a.isActive) || s.zones.some(z => z.isActive && z.alertActive);
 
 /** True when ANY emergency condition is active — alert, zone alert, shelter-in, or blackout. */
 export const selectIsEmergencyActive = (s: AppState) =>
   s.alerts.some(a => a.isActive) ||
-  s.zones.some(z => z.alertActive) ||
+  s.zones.some(z => z.isActive && z.alertActive) ||
   s.emergencyModes.shelterIn ||
   s.emergencyModes.blackout;
 

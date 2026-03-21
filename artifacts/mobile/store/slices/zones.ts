@@ -92,7 +92,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         } : l),
       }));
       const { zones: updatedZones, alerts: updatedAlerts } = get();
-      const anyZoneActive = updatedZones.some(z => z.alertActive);
+      const anyZoneActive = updatedZones.some(z => z.isActive && z.alertActive);
       const anyAlertActive = updatedAlerts.some(a => a.isActive);
       if (!anyZoneActive && !anyAlertActive) {
         set({ personnelLocations: {} });
@@ -195,7 +195,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         } : l),
       }));
       const { zones: updZ, alerts: updA } = get();
-      const anyZA = updZ.some(z => z.alertActive);
+      const anyZA = updZ.some(z => z.isActive && z.alertActive);
       const anyAA = updA.some(a => a.isActive);
       if (!anyZA && !anyAA) {
         set({ personnelLocations: {} });

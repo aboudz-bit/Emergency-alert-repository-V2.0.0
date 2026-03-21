@@ -17,7 +17,7 @@ export function createHazardZoneSlice(set: SetState, get: GetState): Pick<
       const { settings, currentUser, alerts, zones } = state;
       let activeAlert = alerts.find(a => a.isActive);
       if (!activeAlert) {
-        const hasZoneAlert = zones.some(z => z.alertActive);
+        const hasZoneAlert = zones.some(z => z.isActive && z.alertActive);
         if (!hasZoneAlert) return;
         activeAlert = _selectActiveAlert?.(state) ?? undefined;
         if (!activeAlert) return;
