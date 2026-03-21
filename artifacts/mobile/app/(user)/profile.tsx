@@ -68,19 +68,23 @@ export default function ProfileScreen() {
 
   const textAlign = rtl ? ("right" as const) : undefined;
 
+  if (!currentUser) return null;
+
   return (
     <View style={styles.container}>
       <Header
         title={t.profile}
         rightAction={
-          <TouchableOpacity
-            onPress={() => handleLanguageChange(language === "en" ? "ar" : "en")}
-            style={styles.langToggleBtn}
-          >
-            <Text style={styles.langToggleText}>
-              {language === "en" ? "AR" : "EN"}
-            </Text>
-          </TouchableOpacity>
+          isContractor ? (
+            <TouchableOpacity
+              onPress={() => handleLanguageChange(language === "en" ? "ar" : "en")}
+              style={styles.langToggleBtn}
+            >
+              <Text style={styles.langToggleText}>
+                {language === "en" ? "AR" : "EN"}
+              </Text>
+            </TouchableOpacity>
+          ) : undefined
         }
       />
 
