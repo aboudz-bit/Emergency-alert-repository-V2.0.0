@@ -15,7 +15,8 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
-import { useTranslation, translateAlertType, translateAlertTitle, translateAlertMessage, translateZone } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import { translateAlertType, translateAlertTitle, translateAlertMessage, translateZone } from "@/i18n/translations";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -36,7 +37,7 @@ function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   }
 }
 
-function formatTimeAgo(timestamp: string, t: import("@/i18n").TranslationStrings): string {
+function formatTimeAgo(timestamp: string, t: import("@/i18n/translations").TranslationStrings): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return t.justNow;

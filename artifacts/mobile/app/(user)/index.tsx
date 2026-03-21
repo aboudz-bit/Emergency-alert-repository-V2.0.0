@@ -23,7 +23,8 @@ import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
-import { useTranslation, translateAlertType, translateAlertTitle, translateAlertMessage, translateShelterName } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import { translateAlertType, translateAlertTitle, translateAlertMessage, translateShelterName } from "@/i18n/translations";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -37,7 +38,7 @@ function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   }
 }
 
-function formatTimeAgo(timestamp: string, t: import("@/i18n").TranslationStrings): string {
+function formatTimeAgo(timestamp: string, t: import("@/i18n/translations").TranslationStrings): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return t.justNow;

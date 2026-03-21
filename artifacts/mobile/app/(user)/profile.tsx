@@ -15,7 +15,8 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import { useTranslation, LANGUAGE_OPTIONS, translateRole } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import { LANGUAGE_OPTIONS, translateRole } from "@/i18n/translations";
 import type { Language } from "@/types";
 
 function InfoRow({

@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export interface ZoneStats {
   zoneName: string;

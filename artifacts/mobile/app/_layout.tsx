@@ -14,7 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
 import { Colors } from "@/constants/theme";
 
 // KeyboardProvider uses native modules (react-native-is-edge-to-edge) that
