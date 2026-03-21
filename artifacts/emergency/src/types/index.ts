@@ -114,6 +114,7 @@ export type UserResponseStatus = 'confirmed' | 'missing' | 'no_reply' | 'need_he
 export type UserStatus = UserResponseStatus;
 
 export type EmploymentType = 'Aramco' | 'Contract';
+export type Language = 'en' | 'ar' | 'ur';
 export type AlertResponseStatus = 'safe' | 'need_help' | null;
 
 export interface User {
@@ -158,6 +159,9 @@ export interface User {
 
   // Granular permissions assigned by Super Admin
   permissions?: PermissionKey[];
+
+  // Language preference (contractor-only)
+  language?: Language;
 }
 
 // ─── ECO (Emergency Coordinator) ─────────────────────────────────────────────
