@@ -115,6 +115,7 @@ export interface AppState {
   hasPermission: (userId: number, permission: PermissionKey) => boolean;
 
   setLanguage: (language: Language) => void;
+  setUserType: (userType: UserType) => void;
 
   getActiveAlert: () => Alert | null;
   getLocationsByZone: (zone: string) => Location[];
