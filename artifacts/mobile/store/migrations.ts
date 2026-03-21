@@ -4,8 +4,8 @@ import {
 } from '@/mock-data';
 import type { AppState } from './types';
 
-export const STORE_NAME = 'keas-mobile-store-v18';
-export const STORE_VERSION = 18;
+export const STORE_NAME = 'keas-mobile-store-v19';
+export const STORE_VERSION = 19;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -243,6 +243,23 @@ export function migrate(persisted: any, version: number): AppState {
     // permissionAssignments was not persisted before — seed empty array
     if (!Array.isArray(state.permissionAssignments)) {
       state.permissionAssignments = [];
+    }
+  }
+
+  if (version < 19) {
+    // Force-fix contractor userType on persisted data:
+    // Badge 200001 must have userType 'Contract' in both users array and currentUser
+    if (Array.isArray(state?.users)) {
+      state.users = state.users.map((u: any) => ({
+        ...u,
+        userType: u.userType ?? (u.badge === '200001' ? 'Contract' : 'Aramco'),
+      }));
+    }
+    if (state?.currentUser && state.currentUser.badge === '200001') {
+      state.currentUser = {
+        ...state.currentUser,
+        userType: 'Contract',
+      };
     }
   }
 
