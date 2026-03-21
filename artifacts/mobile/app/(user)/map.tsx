@@ -14,7 +14,8 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectActiveAlert } from "@/store";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
-import { useTranslation, translateShelterName, translateAlertType } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import { translateShelterName, translateAlertType } from "@/i18n/translations";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 

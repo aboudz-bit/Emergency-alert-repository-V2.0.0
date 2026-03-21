@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useStore } from "@/store";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export function EmergencyModeBanner() {
   const emergencyModes = useStore((s) => s.emergencyModes);

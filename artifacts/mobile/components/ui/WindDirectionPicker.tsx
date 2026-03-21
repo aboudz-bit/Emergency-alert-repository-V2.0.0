@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
 import { WIND_DIRECTIONS, type WindDirection } from "@/types";
 
 interface WindDirectionPickerProps {

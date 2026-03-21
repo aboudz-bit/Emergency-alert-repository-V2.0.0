@@ -13,7 +13,8 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
-import { useTranslation, translateAlertTitle, translateAlertType, translateZone } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import { translateAlertTitle, translateAlertType, translateZone } from "@/i18n/translations";
 import type { Alert } from "@/types";
 
 function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
@@ -46,7 +47,7 @@ function getAlertIconColor(type: string): string {
   }
 }
 
-function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n").TranslationStrings }) {
+function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n/translations").TranslationStrings }) {
   const formattedDate = format(new Date(alert.timestamp), "MMM d, yyyy 'at' h:mm a");
   const iconName = getAlertIcon(alert.type);
   const iconColor = getAlertIconColor(alert.type);

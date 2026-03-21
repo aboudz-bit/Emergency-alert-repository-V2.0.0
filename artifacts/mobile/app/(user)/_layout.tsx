@@ -4,7 +4,7 @@ import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (

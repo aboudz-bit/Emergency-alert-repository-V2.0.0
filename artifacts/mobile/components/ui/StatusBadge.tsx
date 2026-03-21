@@ -2,8 +2,8 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
-import { useTranslation } from "@/i18n";
-import type { TranslationStrings } from "@/i18n";
+import { useTranslation } from "@/i18n/useTranslation";
+import type { TranslationStrings } from "@/i18n/translations";
 import type { UserResponseStatus, AlertStatus } from "@/types";
 
 const statusConfig: Record<string, { bg: string; text: string; labelKey: keyof TranslationStrings }> = {
