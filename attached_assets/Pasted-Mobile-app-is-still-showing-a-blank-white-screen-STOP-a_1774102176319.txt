@@ -1,0 +1,89 @@
+Mobile app is still showing a blank white screen.
+
+STOP all other work immediately.
+Do NOT work on domain, server, UI, translations, or new features.
+
+We need an emergency fix for MOBILE ONLY.
+
+Facts:
+- The app was working before
+- We removed reloadAsync and it worked
+- After the latest translation / localization / helper changes the app became white again
+- So the bug is in the latest mobile changes
+
+==================================================
+REQUIRED DEBUG STEPS
+==================================================
+
+1) Run the mobile app in debug mode and find the EXACT runtime error
+Do not guess.
+Do not assume.
+Show the real error.
+
+2) Check ONLY these files:
+
+mobile/i18n/translations.ts
+mobile/i18n/index.ts
+mobile/hooks/useTranslation.ts
+mobile/components/StatusBadge.tsx
+mobile/components/EmergencyModeBanner.tsx
+mobile/components/WindIndicator.tsx
+mobile/screens/index.tsx
+mobile/screens/map.tsx
+mobile/screens/alert.tsx
+mobile/screens/profile.tsx
+mobile/components/ZoneBreakdown.tsx
+mobile/components/WindDirectionPicker.tsx
+
+3) Look for these problems:
+
+- hook used outside component
+- useTranslation used before store ready
+- undefined translation key
+- circular import
+- helper calling undefined value
+- component crashing during render
+- wrong export / import
+- Zustand store not ready on boot
+- RTL / language code causing crash
+- any exception during first render
+
+4) If the error is not obvious,
+TEMPORARILY REVERT the last translation / localization changes
+until the mobile app boots again.
+
+Boot must work first.
+Then we fix translations later.
+
+5) After fix,
+run mobile again and confirm:
+
+✔ app opens
+✔ no white screen
+✔ no crash
+✔ navigation works
+
+==================================================
+IMPORTANT RULES
+==================================================
+
+Do NOT add new features
+Do NOT change UI
+Do NOT refactor
+Do NOT touch web app
+Do NOT touch server
+
+Only fix the blank screen.
+
+==================================================
+OUTPUT REQUIRED
+==================================================
+
+Tell me:
+
+- exact error message
+- exact file causing crash
+- exact line causing crash
+- what you changed
+- why it caused white screen
+- what fix was applied
