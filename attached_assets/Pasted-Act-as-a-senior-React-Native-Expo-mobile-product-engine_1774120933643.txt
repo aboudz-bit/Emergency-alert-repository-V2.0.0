@@ -1,0 +1,284 @@
+Act as a senior React Native / Expo mobile product engineer and UX systems implementer.
+
+We need to upgrade the Users screen into an Emergency-grade Users screen.
+
+This is a focused implementation task for the MOBILE APP only.
+
+Do not touch unrelated screens.
+Do not refactor the whole app.
+Do not break existing alert/emergency logic.
+Use the current store structure unless absolutely necessary.
+
+==================================================
+GOAL
+==================================================
+
+Transform the Users screen from a flat user list into a structured emergency operations screen that supports:
+
+1. Zone filter
+2. Location filter
+3. Group users by location
+4. Sort users per location
+5. Collapse / expand per location
+6. Counts per location
+7. Color badge per status
+8. Quick jump to location
+9. Search inside location
+10. Keep existing status filters working
+
+This screen must feel useful during real emergency operations.
+
+==================================================
+CURRENT STATE
+==================================================
+
+Current Users screen only supports:
+- search
+- zone chip filter (very limited)
+- status filter
+- flat user list
+
+We need to make it operationally useful.
+
+==================================================
+DATA SOURCES
+==================================================
+
+Use existing store data only:
+
+- store.users / personnel / current user list
+- store.locations
+- store.zones
+
+Expected relevant user fields:
+- id
+- name
+- badge / badgeNumber
+- zoneId
+- locationId
+- status
+- companyType / aramco vs contractor if available
+
+Expected relevant location fields:
+- id
+- name
+- zoneId
+
+Expected relevant zone fields:
+- id
+- name
+
+Do not invent new backend APIs unless necessary.
+
+==================================================
+REQUIRED FEATURES
+==================================================
+
+1) ZONE FILTER
+- Add a proper zone selector
+- Must show:
+  - All zones
+  - each available zone dynamically from store
+- Selecting a zone filters the entire screen
+- No hardcoded zones
+
+2) LOCATION FILTER
+- Add a location selector
+- It depends on selected zone
+- If zone = All, show all locations
+- If zone = CPF, show only CPF locations
+- Selecting a location filters the list further
+
+3) STATUS FILTER
+Keep the existing status filters:
+- All
+- Safe
+- Pending
+- Need Help
+
+Status filter must apply after zone + location filters.
+
+4) SEARCH
+Add full search inside the filtered result.
+Search should match:
+- user name
+- badge number
+- zone name
+- location name
+
+Search must work across grouped results.
+
+5) GROUP USERS BY LOCATION
+Render users grouped by location instead of one flat list.
+
+Expected layout example:
+
+Location: OT-1
+Count: 8 users
+Need Help: 1
+Pending: 3
+Safe: 4
+
+- User A
+- User B
+- User C
+
+Location: Gas Train-1
+Count: 6 users
+Need Help: 0
+Pending: 2
+Safe: 4
+
+- User D
+- User E
+
+6) COLLAPSE / EXPAND PER LOCATION
+Each location section must be collapsible.
+
+Behavior:
+- tap header = collapse / expand
+- remember expanded state locally while on screen
+- default state:
+  - expanded for locations with Need Help users
+  - expanded for locations with Pending users if no Need Help
+  - collapsed for fully Safe locations
+- provide “Expand all / Collapse all” action if practical
+
+7) COUNTS PER LOCATION
+Each location header must show:
+- total user count
+- safe count
+- pending count
+- need help count
+
+8) COLOR BADGE PER STATUS
+Each user card / row should clearly show status with colored badge:
+- Need Help = red
+- Pending = neutral / gray
+- Safe = green
+
+If contractor / aramco distinction exists and is already part of UI conventions,
+preserve it without overriding emergency status colors.
+
+9) QUICK JUMP TO LOCATION
+Add a quick-jump control near the top:
+- tapping it opens list of currently visible locations
+- selecting a location scrolls to that location group
+- must work after filters/search are applied
+
+10) SORTING
+Sort location groups by operational priority:
+- locations containing Need Help users first
+- then locations containing Pending users
+- then fully Safe locations
+
+Inside each location group, sort users by:
+1. Need Help
+2. Pending
+3. Safe
+4. then alphabetically by name
+
+==================================================
+UX REQUIREMENTS
+==================================================
+
+The screen should be easy to scan under pressure.
+
+Requirements:
+- clear section headers
+- visible counts
+- consistent spacing
+- no clutter
+- large tap targets
+- preserve mobile performance
+- no long ungrouped lists
+
+If helpful, use:
+- chips
+- accordions
+- sticky section headers
+- compact badges
+
+But keep implementation practical.
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- Keep logic inside Users screen and small helper selectors/utilities
+- Avoid changing store shape unless absolutely required
+- Use memoization where needed to avoid expensive recomputation
+- Do not cause unnecessary re-renders
+- Keep TypeScript types clean
+- Make sure search + filter + grouping order is deterministic
+
+Suggested processing order:
+
+1. Load all users
+2. Apply zone filter
+3. Apply location filter
+4. Apply status filter
+5. Apply search
+6. Group by location
+7. Sort groups
+8. Sort users inside groups
+
+==================================================
+EDGE CASES TO HANDLE
+==================================================
+
+- users with missing locationId
+- users with missing zoneId
+- locations with zero visible users after filtering
+- search returning no results
+- selected location no longer valid after zone change
+- empty state when no users match filters
+- contractor users if they belong to zone but not exact location
+- stale expanded state after filter changes
+
+For missing location users:
+- group under “Unassigned / Unknown Location”
+
+==================================================
+DO NOT BREAK
+==================================================
+
+- existing navigation
+- existing user card actions
+- existing alert status logic
+- existing permissions
+- existing store persistence
+
+==================================================
+DELIVERABLES
+==================================================
+
+Implement the feature and then return:
+
+1. files changed
+2. new UI structure
+3. filtering logic summary
+4. grouping logic summary
+5. sorting logic summary
+6. edge cases handled
+7. any remaining limitations
+8. manual test checklist
+
+==================================================
+MANUAL TESTS THAT MUST PASS
+==================================================
+
+1. Select zone CPF → only CPF users and locations show
+2. Select location OT-1 → only OT-1 users show
+3. Search by badge number → matching user appears
+4. Search by location name → matching location group appears
+5. Need Help users appear first inside each location
+6. Locations with Need Help appear first in the whole screen
+7. Collapse one location → only that section collapses
+8. Expand / collapse persists while staying on screen
+9. Quick jump scrolls to chosen location
+10. Empty state appears cleanly when no results match
+11. Unknown-location users appear under fallback group
+12. Performance remains acceptable with many users
+
+Now inspect the current Users screen implementation and make the smallest clean changes needed to implement this Emergency-grade Users screen.
