@@ -1,0 +1,238 @@
+Act as a senior React Native / Expo / mobile systems architect, QA lead, and runtime debugger.
+
+Your task is to deeply audit the MOBILE APPLICATION only.
+
+Focus on:
+- mobile workflow
+- mobile state management
+- live map behavior on mobile
+- alert system on mobile
+- user roles & permissions on mobile
+- registration flow on mobile
+- zone / geofence behavior on mobile
+- realtime updates on mobile
+- crashes, white screen, runtime errors
+- hidden bugs that may appear later in production
+
+Do not review web unless it directly affects mobile.
+
+==================================================
+CONTEXT
+==================================================
+
+This mobile app includes:
+
+- login / registration
+- Aramco vs Contractor user type
+- role selection for Aramco users
+- approval workflow
+- live map showing users
+- alert / emergency system
+- zone-based filtering
+- permissions
+- realtime location tracking
+- status colors on map
+
+Expected map colors:
+blue = aramco
+yellow = contractor
+green = safe
+red = need help
+
+Users appear live on the map during alerts.
+
+Zones control visibility.
+
+Permissions control what user can see.
+
+Alerts change user status.
+
+==================================================
+PHASE 1 — FIND ALL MOBILE FILES
+==================================================
+
+Scan the project and list all files related to mobile:
+
+- screens
+- components
+- hooks
+- stores
+- services
+- api calls
+- context providers
+- navigation
+- map components
+- alert components
+- zone components
+- auth components
+- permission logic
+
+Show dependency graph.
+
+==================================================
+PHASE 2 — MOBILE STATE AUDIT
+==================================================
+
+Inspect:
+
+- Zustand / Redux / Context / store
+- alert state
+- user state
+- role state
+- permission state
+- map state
+- zone state
+- location state
+
+Find:
+
+- stale state bugs
+- race conditions
+- missing resets
+- store not synced with backend
+- multiple sources of truth
+- wrong default values
+
+==================================================
+PHASE 3 — MAP AUDIT (MOBILE)
+==================================================
+
+Audit:
+
+- marker rendering
+- status color logic
+- zone filtering
+- realtime updates
+- websocket / polling
+- location updates
+- permission filtering
+
+Check for bugs:
+
+- wrong color
+- user stuck in alert state
+- contractor shown as aramco
+- zone mismatch
+- missing markers
+- markers not updating
+- performance drop with many users
+- memory leaks
+
+==================================================
+PHASE 4 — ALERT FLOW AUDIT
+==================================================
+
+Trace full flow:
+
+alert created
+alert received
+user updates status
+map updates
+all clear
+alert closed
+
+Check:
+
+- alert not closing
+- all clear not working
+- users stuck red/green
+- alert state different on map vs panel
+- mobile not syncing with backend
+
+==================================================
+PHASE 5 — REGISTRATION / ROLE FLOW (MOBILE)
+==================================================
+
+Check:
+
+- Aramco vs Contractor selection
+- role dropdown logic
+- approval state
+- blocked users
+- missing fields
+- invalid states
+
+Find bugs like:
+
+- wrong role saved
+- wrong user type saved
+- approval not enforced
+- UI allows forbidden actions
+
+==================================================
+PHASE 6 — ZONE / GEOFENCE (MOBILE)
+==================================================
+
+Check:
+
+- zone list loading
+- new zone appearing
+- zone filter on map
+- zone assignment
+- zone permissions
+
+Find bugs:
+
+- hardcoded zones
+- new zone not visible
+- wrong zone filtering
+- polygon mismatch
+- mobile vs backend mismatch
+
+==================================================
+PHASE 7 — RUNTIME / CRASH / WHITE SCREEN CHECK
+==================================================
+
+Detect:
+
+- missing packages
+- invalid imports
+- circular imports
+- hooks outside component
+- navigation errors
+- undefined state
+- async race bugs
+- expo errors
+- bundler success but runtime crash
+
+==================================================
+PHASE 8 — FUTURE BUG PREDICTION
+==================================================
+
+Find hidden risks:
+
+- alert state sync bugs
+- background location bugs
+- reconnect bugs
+- websocket leaks
+- permission bypass
+- zone mismatch
+- stale store
+- multiple sessions
+- slow map
+- crash after update
+
+==================================================
+PHASE 9 — OUTPUT FORMAT
+==================================================
+
+Return:
+
+1. Mobile architecture map
+2. State flow diagram
+3. Alert flow diagram
+4. Map logic diagram
+5. Permission matrix
+6. Bugs found now
+7. Hidden bugs likely later
+8. Crash risks
+9. Performance risks
+10. Fix priority list
+11. Safe refactor plan
+12. Test checklist
+
+At the end include:
+
+Top 10 bugs likely in production
+Top 10 fixes before release
+Top 10 scenarios to test
