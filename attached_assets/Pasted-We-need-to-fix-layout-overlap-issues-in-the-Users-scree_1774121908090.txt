@@ -1,0 +1,131 @@
+We need to fix layout overlap issues in the Users screen (mobile).
+
+Current problem:
+The Zone filter chips, Status filter chips, and header counters are overlapping each other.
+The UI looks stacked incorrectly and not spaced for mobile.
+
+We need to clean the layout without changing the logic.
+
+IMPORTANT:
+Do not change store logic.
+Do not change grouping logic.
+Do not change filtering logic.
+Fix UI layout only.
+
+==================================================
+GOAL
+==================================================
+
+Proper vertical layout order:
+
+1. Search bar
+2. Zone filter row (horizontal scroll)
+3. Location filter row (horizontal scroll)
+4. Status filter row
+5. Summary row (counts + expand/collapse)
+6. User list grouped by location
+
+Each section must have spacing and must not overlap.
+
+==================================================
+REQUIRED LAYOUT STRUCTURE
+==================================================
+
+<SearchBar />
+
+<View style={section}>
+  <ZoneFilterChips />
+</View>
+
+<View style={section}>
+  <LocationFilterChips />
+</View>
+
+<View style={section}>
+  <StatusFilterChips />
+</View>
+
+<View style={summaryRow}>
+  <Counts />
+  <ExpandCollapseButtons />
+</View>
+
+<FlatList / SectionList />
+
+==================================================
+STYLE FIXES
+==================================================
+
+Add spacing between sections:
+
+section: {
+  marginTop: 8,
+  marginBottom: 8,
+  paddingHorizontal: 12,
+}
+
+summaryRow: {
+  marginTop: 6,
+  marginBottom: 6,
+  paddingHorizontal: 12,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+}
+
+==================================================
+FILTER ROW FIX
+==================================================
+
+All chip rows must scroll horizontally:
+
+<ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={{ paddingRight: 12 }}
+>
+
+Each chip row must NOT wrap to next line.
+
+==================================================
+SAFE AREA FIX
+==================================================
+
+Wrap screen with SafeAreaView + KeyboardAvoidingView if not already.
+
+==================================================
+FLATLIST / SECTIONLIST FIX
+==================================================
+
+Make sure list has paddingTop:
+
+contentContainerStyle={{
+  paddingBottom: 80,
+}}
+
+So bottom bar does not overlap.
+
+==================================================
+DO NOT BREAK
+==================================================
+
+- grouping by location
+- collapse / expand
+- counts
+- filters logic
+- search logic
+- navigation
+- alert logic
+
+UI fix only.
+
+==================================================
+OUTPUT
+==================================================
+
+Return:
+
+1. updated Users screen layout
+2. style changes
+3. which components moved
+4. confirmation no logic changed

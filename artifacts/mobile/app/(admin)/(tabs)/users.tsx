@@ -376,112 +376,117 @@ export default function UsersScreen() {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterScrollContent}
-      >
-        {zoneOptions.map((zone) => (
-          <Pressable
-            key={zone}
-            style={[
-              styles.filterChip,
-              selectedZone === zone && styles.filterChipActive,
-            ]}
-            onPress={() => {
-              setSelectedZone(zone);
-              setSelectedLocationId(null);
-            }}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                selectedZone === zone && styles.filterChipTextActive,
-              ]}
-            >
-              {zone}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {filteredLocations.length > 0 && (
+      <View style={styles.filterSection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
           contentContainerStyle={styles.filterScrollContent}
         >
-          <Pressable
-            style={[
-              styles.filterChip,
-              styles.filterChipLocation,
-              selectedLocationId === null && styles.filterChipLocationActive,
-            ]}
-            onPress={() => setSelectedLocationId(null)}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                selectedLocationId === null && styles.filterChipTextLocationActive,
-              ]}
-            >
-              All
-            </Text>
-          </Pressable>
-          {filteredLocations.map((loc) => (
+          {zoneOptions.map((zone) => (
             <Pressable
-              key={loc.id}
+              key={zone}
               style={[
                 styles.filterChip,
-                styles.filterChipLocation,
-                selectedLocationId === loc.id && styles.filterChipLocationActive,
+                selectedZone === zone && styles.filterChipActive,
               ]}
-              onPress={() => setSelectedLocationId(loc.id)}
+              onPress={() => {
+                setSelectedZone(zone);
+                setSelectedLocationId(null);
+              }}
             >
               <Text
                 style={[
                   styles.filterChipText,
-                  selectedLocationId === loc.id && styles.filterChipTextLocationActive,
+                  selectedZone === zone && styles.filterChipTextActive,
                 ]}
               >
-                {loc.name}
+                {zone}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
+      </View>
+
+      {filteredLocations.length > 0 && (
+        <View style={styles.filterSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScrollContent}
+          >
+            <Pressable
+              style={[
+                styles.filterChip,
+                styles.filterChipLocation,
+                selectedLocationId === null && styles.filterChipLocationActive,
+              ]}
+              onPress={() => setSelectedLocationId(null)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedLocationId === null && styles.filterChipTextLocationActive,
+                ]}
+              >
+                All
+              </Text>
+            </Pressable>
+            {filteredLocations.map((loc) => (
+              <Pressable
+                key={loc.id}
+                style={[
+                  styles.filterChip,
+                  styles.filterChipLocation,
+                  selectedLocationId === loc.id && styles.filterChipLocationActive,
+                ]}
+                onPress={() => setSelectedLocationId(loc.id)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    selectedLocationId === loc.id && styles.filterChipTextLocationActive,
+                  ]}
+                >
+                  {loc.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
-      <View style={styles.filterRow}>
-        {statusFilterOptions.map((opt) => (
-          <Pressable
-            key={opt.key}
-            style={[
-              styles.filterChip,
-              selectedStatus === opt.key && styles.filterChipActive,
-            ]}
-            onPress={() => setSelectedStatus(opt.key)}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                selectedStatus === opt.key && styles.filterChipTextActive,
-              ]}
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
-        ))}
-
-        <View style={{ flex: 1 }} />
-
-        <Pressable
-          style={styles.jumpBtn}
-          onPress={() => setJumpMenuOpen(true)}
+      <View style={styles.filterSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statusScrollContent}
         >
-          <Feather name="list" size={14} color={Colors.primary} />
-        </Pressable>
+          {statusFilterOptions.map((opt) => (
+            <Pressable
+              key={opt.key}
+              style={[
+                styles.filterChip,
+                selectedStatus === opt.key && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedStatus(opt.key)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedStatus === opt.key && styles.filterChipTextActive,
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable
+            style={styles.jumpBtn}
+            onPress={() => setJumpMenuOpen(true)}
+          >
+            <Feather name="list" size={14} color={Colors.primary} />
+          </Pressable>
+        </ScrollView>
       </View>
 
       <View style={styles.summaryBar}>
@@ -709,21 +714,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  filterScroll: {
-    maxHeight: 40,
+  filterSection: {
+    marginTop: 8,
+    paddingHorizontal: 0,
   },
   filterScrollContent: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingRight: 16,
     gap: 6,
-    flexDirection: "row",
-  },
-  filterRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  statusScrollContent: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingRight: 16,
     gap: 6,
+    flexDirection: "row",
+    alignItems: "center",
   },
   filterChip: {
     paddingHorizontal: 10,
@@ -773,7 +780,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    marginTop: 8,
     backgroundColor: Colors.surfaceElevated,
     borderTopWidth: 1,
     borderBottomWidth: 1,
