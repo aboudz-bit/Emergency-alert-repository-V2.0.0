@@ -88,7 +88,7 @@ export default function ContractorMapScreen() {
 
     return () => {
       cancelled = true;
-      sub?.remove();
+      try { sub?.remove(); } catch (_) { /* subscription already removed */ }
     };
   }, []);
 

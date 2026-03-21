@@ -134,7 +134,7 @@ export default function UserHomeScreen() {
 
     return () => {
       cancelled = true;
-      sub?.remove();
+      try { sub?.remove(); } catch (_) { /* subscription already removed */ }
     };
   }, []);
 
