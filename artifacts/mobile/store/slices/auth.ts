@@ -1,3 +1,4 @@
+import { applyRTL } from '@/i18n';
 import type { User, UserRole, UserResponseStatus } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
 
@@ -153,6 +154,8 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
           u.id === currentUser.id ? { ...u, language } : u
         ),
       });
+      // Apply RTL globally and reload app if direction changed
+      applyRTL(language);
     },
 
   };

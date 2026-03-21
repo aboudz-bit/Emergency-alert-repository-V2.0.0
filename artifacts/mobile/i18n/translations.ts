@@ -1,4 +1,20 @@
+import { I18nManager } from 'react-native';
+import * as Updates from 'expo-updates';
 import type { Language } from '@/types';
+
+/**
+ * Apply RTL layout globally based on language.
+ * If the layout direction changes, forces a full app reload so every screen picks it up.
+ */
+export async function applyRTL(lang: Language): Promise<void> {
+  const shouldBeRTL = lang === 'ar' || lang === 'ur';
+
+  if (I18nManager.isRTL !== shouldBeRTL) {
+    I18nManager.allowRTL(shouldBeRTL);
+    I18nManager.forceRTL(shouldBeRTL);
+    await Updates.reloadAsync();
+  }
+}
 
 export interface TranslationStrings {
   // Tab names
@@ -70,6 +86,36 @@ export interface TranslationStrings {
   requestAssistance: string;
   noFurtherAction: string;
   assistanceOnTheWay: string;
+
+  // Status labels (StatusBadge)
+  statusSafe: string;
+  statusPending: string;
+  statusNeedHelp: string;
+  statusActive: string;
+  statusClosed: string;
+  statusDraft: string;
+  statusDisabled: string;
+  statusMissing: string;
+  statusNoReply: string;
+  statusEnabled: string;
+  statusOnline: string;
+
+  // Emergency mode banner
+  shelterInActivated: string;
+  blackoutActivated: string;
+
+  // Map screen
+  nearest: string;
+  gpsUnavailable: string;
+  sheltersAvailable: string;
+  active: string;
+  unknown: string;
+
+  // Time ago
+  justNow: string;
+  minutesAgo: string;
+  hoursAgo: string;
+  daysAgo: string;
 }
 
 const en: TranslationStrings = {
@@ -133,6 +179,32 @@ const en: TranslationStrings = {
   requestAssistance: 'Request assistance',
   noFurtherAction: 'You have been marked as safe. No further action required.',
   assistanceOnTheWay: 'Your request for help has been received. Assistance is on the way.',
+
+  statusSafe: 'Safe',
+  statusPending: 'Pending',
+  statusNeedHelp: 'Need Help',
+  statusActive: 'Active',
+  statusClosed: 'Closed',
+  statusDraft: 'Draft',
+  statusDisabled: 'Disabled',
+  statusMissing: 'Missing',
+  statusNoReply: 'No Reply',
+  statusEnabled: 'Active',
+  statusOnline: 'Online',
+
+  shelterInActivated: 'Shelter In Activated – Please go to shelter',
+  blackoutActivated: 'Blackout Activated',
+
+  nearest: 'Nearest',
+  gpsUnavailable: 'GPS unavailable',
+  sheltersAvailable: 'shelters available',
+  active: 'active',
+  unknown: 'Unknown',
+
+  justNow: 'Just now',
+  minutesAgo: 'm ago',
+  hoursAgo: 'h ago',
+  daysAgo: 'd ago',
 };
 
 const ar: TranslationStrings = {
@@ -196,6 +268,32 @@ const ar: TranslationStrings = {
   requestAssistance: 'اطلب المساعدة',
   noFurtherAction: 'تم تسجيلك كآمن. لا يلزم اتخاذ إجراء إضافي.',
   assistanceOnTheWay: 'تم استلام طلب المساعدة. المساعدة في الطريق.',
+
+  statusSafe: 'آمن',
+  statusPending: 'قيد الانتظار',
+  statusNeedHelp: 'يحتاج مساعدة',
+  statusActive: 'نشط',
+  statusClosed: 'مغلق',
+  statusDraft: 'مسودة',
+  statusDisabled: 'معطّل',
+  statusMissing: 'مفقود',
+  statusNoReply: 'لا رد',
+  statusEnabled: 'نشط',
+  statusOnline: 'متصل',
+
+  shelterInActivated: 'تم تفعيل الاحتماء – اذهب إلى الملجأ',
+  blackoutActivated: 'تم تفعيل انقطاع الكهرباء',
+
+  nearest: 'الأقرب',
+  gpsUnavailable: 'GPS غير متاح',
+  sheltersAvailable: 'ملاجئ متاحة',
+  active: 'نشط',
+  unknown: 'غير معروف',
+
+  justNow: 'الآن',
+  minutesAgo: 'د مضت',
+  hoursAgo: 'س مضت',
+  daysAgo: 'ي مضت',
 };
 
 const ur: TranslationStrings = {
@@ -259,6 +357,32 @@ const ur: TranslationStrings = {
   requestAssistance: 'مدد کی درخواست کریں',
   noFurtherAction: 'آپ کو محفوظ نشان زد کیا گیا ہے۔ مزید کارروائی کی ضرورت نہیں۔',
   assistanceOnTheWay: 'آپ کی مدد کی درخواست موصول ہو گئی ہے۔ مدد آ رہی ہے۔',
+
+  statusSafe: 'محفوظ',
+  statusPending: 'زیر التوا',
+  statusNeedHelp: 'مدد چاہیے',
+  statusActive: 'فعال',
+  statusClosed: 'بند',
+  statusDraft: 'مسودہ',
+  statusDisabled: 'غیر فعال',
+  statusMissing: 'غائب',
+  statusNoReply: 'کوئی جواب نہیں',
+  statusEnabled: 'فعال',
+  statusOnline: 'آن لائن',
+
+  shelterInActivated: 'پناہ فعال – پناہ گاہ جائیں',
+  blackoutActivated: 'بلیک آؤٹ فعال',
+
+  nearest: 'قریب ترین',
+  gpsUnavailable: 'GPS دستیاب نہیں',
+  sheltersAvailable: 'پناہ گاہیں دستیاب',
+  active: 'فعال',
+  unknown: 'نامعلوم',
+
+  justNow: 'ابھی',
+  minutesAgo: 'منٹ پہلے',
+  hoursAgo: 'گھنٹے پہلے',
+  daysAgo: 'دن پہلے',
 };
 
 export const translations: Record<Language, TranslationStrings> = { en, ar, ur };

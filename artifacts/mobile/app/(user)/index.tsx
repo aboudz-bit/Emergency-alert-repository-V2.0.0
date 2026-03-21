@@ -37,14 +37,14 @@ function getAlertIcon(type: string): keyof typeof Feather.glyphMap {
   }
 }
 
-function formatTimeAgo(timestamp: string): string {
+function formatTimeAgo(timestamp: string, t: import("@/i18n").TranslationStrings): string {
   const diff = Date.now() - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t.justNow;
+  if (mins < 60) return `${mins} ${t.minutesAgo}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `${hours} ${t.hoursAgo}`;
+  return `${Math.floor(hours / 24)} ${t.daysAgo}`;
 }
 
 
@@ -187,7 +187,7 @@ export default function UserHomeScreen() {
                   {activeAlert.message}
                 </Text>
                 <Text style={styles.alertTimestamp}>
-                  {formatTimeAgo(activeAlert.timestamp)}
+                  {formatTimeAgo(activeAlert.timestamp, t)}
                 </Text>
               </Card>
             </Pressable>
@@ -262,7 +262,7 @@ export default function UserHomeScreen() {
               <View style={styles.gpsActiveDot} />
               <Text style={styles.gpsText}>{t.gpsActive}</Text>
             </View>
-            <StatusBadge status="enabled" label="Online" />
+            <StatusBadge status="enabled" label={t.statusOnline} />
           </View>
         </Card>
 
@@ -273,7 +273,7 @@ export default function UserHomeScreen() {
               <View style={styles.locationTextWrap}>
                 <Text style={styles.locationLabel}>{t.currentLocation}</Text>
                 <Text style={styles.locationValue}>
-                  {currentUser?.location || "Unknown"} · {currentUser?.zone || "Unknown"}
+                  {currentUser?.location || t.unknown} · {currentUser?.zone || t.unknown}
                 </Text>
               </View>
             </View>

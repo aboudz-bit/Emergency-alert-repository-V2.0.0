@@ -85,7 +85,7 @@ export default function ProfileScreen() {
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <Text style={styles.profileName}>
-              {currentUser?.name || "Unknown User"}
+              {currentUser?.name || t.unknown}
             </Text>
             <View style={styles.profileBadgeRow}>
               <View style={styles.profileChip}>
@@ -117,13 +117,13 @@ export default function ProfileScreen() {
             <InfoRow
               icon="map-pin"
               label={t.zone}
-              value={currentUser?.zone || "Unknown"}
+              value={currentUser?.zone || t.unknown}
             />
             <View style={styles.infoSeparator} />
             <InfoRow
               icon="navigation"
               label={t.location}
-              value={currentUser?.location || "Unknown"}
+              value={currentUser?.location || t.unknown}
             />
             <View style={styles.infoSeparator} />
             <View style={styles.infoRow}>
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoLabel}>{t.gpsStatus}</Text>
                 <View style={styles.gpsStatusRow}>
                   <View style={styles.gpsActiveDot} />
-                  <Text style={styles.gpsActiveText}>Active</Text>
+                  <Text style={styles.gpsActiveText}>{t.statusActive}</Text>
                 </View>
               </View>
             </View>
@@ -185,7 +185,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoLabel}>{t.notificationStatus}</Text>
                 <View style={styles.gpsStatusRow}>
                   <View style={styles.gpsActiveDot} />
-                  <Text style={styles.gpsActiveText}>Enabled</Text>
+                  <Text style={styles.gpsActiveText}>{t.statusEnabled}</Text>
                 </View>
               </View>
             </View>

@@ -2,19 +2,21 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
+import { useTranslation } from "@/i18n";
+import type { TranslationStrings } from "@/i18n";
 import type { UserResponseStatus, AlertStatus } from "@/types";
 
-const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  confirmed: { bg: Colors.safeDim, text: Colors.safe, label: "Safe" },
-  pending: { bg: Colors.noreplyDim, text: Colors.noreply, label: "Pending" },
-  need_help: { bg: Colors.primaryDim, text: Colors.primary, label: "Need Help" },
-  active: { bg: Colors.primaryDim, text: Colors.primary, label: "Active" },
-  closed: { bg: Colors.noreplyDim, text: Colors.noreply, label: "Closed" },
-  draft: { bg: Colors.infoDim, text: Colors.info, label: "Draft" },
-  enabled: { bg: Colors.safeDim, text: Colors.safe, label: "Active" },
-  disabled: { bg: Colors.primaryDim, text: Colors.primary, label: "Disabled" },
-  missing: { bg: Colors.missingDim, text: Colors.missing, label: "Missing" },
-  no_reply: { bg: Colors.noreplyDim, text: Colors.noreply, label: "No Reply" },
+const statusConfig: Record<string, { bg: string; text: string; labelKey: keyof TranslationStrings }> = {
+  confirmed: { bg: Colors.safeDim, text: Colors.safe, labelKey: "statusSafe" },
+  pending: { bg: Colors.noreplyDim, text: Colors.noreply, labelKey: "statusPending" },
+  need_help: { bg: Colors.primaryDim, text: Colors.primary, labelKey: "statusNeedHelp" },
+  active: { bg: Colors.primaryDim, text: Colors.primary, labelKey: "statusActive" },
+  closed: { bg: Colors.noreplyDim, text: Colors.noreply, labelKey: "statusClosed" },
+  draft: { bg: Colors.infoDim, text: Colors.info, labelKey: "statusDraft" },
+  enabled: { bg: Colors.safeDim, text: Colors.safe, labelKey: "statusEnabled" },
+  disabled: { bg: Colors.primaryDim, text: Colors.primary, labelKey: "statusDisabled" },
+  missing: { bg: Colors.missingDim, text: Colors.missing, labelKey: "statusMissing" },
+  no_reply: { bg: Colors.noreplyDim, text: Colors.noreply, labelKey: "statusNoReply" },
 };
 
 interface StatusBadgeProps {
@@ -23,13 +25,14 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, label }: StatusBadgeProps) {
+  const { t } = useTranslation();
   const config = statusConfig[status] || statusConfig.pending;
 
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
       <View style={[styles.dot, { backgroundColor: config.text }]} />
       <Text style={[styles.text, { color: config.text }]}>
-        {label || config.label}
+        {label || t[config.labelKey]}
       </Text>
     </View>
   );

@@ -3,9 +3,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useStore } from "@/store";
+import { useTranslation } from "@/i18n";
 
 export function EmergencyModeBanner() {
   const emergencyModes = useStore((s) => s.emergencyModes);
+  const { t } = useTranslation();
 
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
 
@@ -15,7 +17,7 @@ export function EmergencyModeBanner() {
         <View style={[styles.banner, styles.shelterBanner]}>
           <Feather name="shield" size={16} color="#fff" />
           <Text style={styles.bannerText}>
-            Shelter In Activated – Please go to shelter
+            {t.shelterInActivated}
           </Text>
           <View style={styles.pulse} />
         </View>
@@ -23,7 +25,7 @@ export function EmergencyModeBanner() {
       {emergencyModes.blackout && (
         <View style={[styles.banner, styles.blackoutBanner]}>
           <Feather name="zap-off" size={16} color="#fff" />
-          <Text style={styles.bannerText}>Blackout Activated</Text>
+          <Text style={styles.bannerText}>{t.blackoutActivated}</Text>
           <View style={styles.pulse} />
         </View>
       )}
