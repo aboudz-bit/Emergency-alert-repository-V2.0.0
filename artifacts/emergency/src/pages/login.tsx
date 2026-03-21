@@ -1,23 +1,12 @@
 import React, { useState } from 'react';
 import { useLocation, Link } from 'wouter';
-import { ShieldAlert, AlertCircle, RotateCcw, ChevronRight } from 'lucide-react';
-import { cn } from '@/components/shared/Badges';
+import { ShieldAlert, AlertCircle } from 'lucide-react';
 import { useStore } from '@/store';
 import type { UserRole } from '@/types';
-
-const demoAccounts = [
-  { badge: '102934', password: 'demo1234', role: 'Super Admin' as UserRole, label: 'Super Admin (Abdullah)', dest: '/admin', description: 'Full admin panel, ECO & Supervisor management' },
-  { badge: '104822', password: 'demo1234', role: 'IT' as UserRole, label: 'IT Support (Khalid)', dest: '/it', description: 'IT support dashboard' },
-  { badge: '103618', password: 'demo1234', role: 'User' as UserRole, label: 'ECO A (Nasser)', dest: '/eco', description: 'ECO dashboard — assigned to CPF zone' },
-  { badge: '108291', password: 'demo1234', role: 'User' as UserRole, label: 'Supervisor OT-1 (Mohammed)', dest: '/supervisor', description: 'Supervisor dashboard — OT-1 location' },
-  { badge: '105477', password: 'demo1234', role: 'User' as UserRole, label: 'Backup Supervisor OT-1 (Faisal)', dest: '/supervisor', description: 'Supervisor dashboard (read-only) — OT-1 backup' },
-  { badge: '107543', password: 'demo1234', role: 'User' as UserRole, label: 'Normal User (Saeed)', dest: '/mobile/home', description: 'Standard user mobile view — no special assignment' },
-];
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const login = useStore(s => s.login);
-  const resetToSeedData = useStore(s => s.resetToSeedData);
   const isAuthenticated = useStore(s => s.isAuthenticated);
   const currentUser = useStore(s => s.currentUser);
 
@@ -43,6 +32,14 @@ export default function Login() {
     const autoBadge = params.get('auto');
     if (autoBadge) {
       useStore.getState().logout();
+      const demoAccounts = [
+        { badge: '102934', password: 'demo1234', role: 'Super Admin' as UserRole },
+        { badge: '104822', password: 'demo1234', role: 'IT' as UserRole },
+        { badge: '103618', password: 'demo1234', role: 'User' as UserRole },
+        { badge: '108291', password: 'demo1234', role: 'User' as UserRole },
+        { badge: '105477', password: 'demo1234', role: 'User' as UserRole },
+        { badge: '107543', password: 'demo1234', role: 'User' as UserRole },
+      ];
       const account = demoAccounts.find(a => a.badge === autoBadge);
       if (account) {
         console.log('[AUTO-LOGIN] badge:', autoBadge);
@@ -58,146 +55,230 @@ export default function Login() {
     }
   }, [isAuthenticated, currentUser, routeUser]);
 
-  const doLogin = (b: string, p: string, roleOverride?: UserRole) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
+    if (!badge.trim() || !password.trim()) {
+      setError('Please enter your badge number and password.');
+      return;
+    }
     setIsLoading(true);
     setTimeout(() => {
-      const result = login(b, p, roleOverride);
+      const result = login(badge.trim(), password.trim());
       setIsLoading(false);
       if (!result.success) {
-        setError(result.error || 'Login failed.');
+        setError(result.error || 'Invalid credentials. Please try again.');
         return;
       }
       routeUser(useStore.getState().currentUser);
     }, 400);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    doLogin(badge, password);
-  };
-
-  const handleQuickLogin = (account: typeof demoAccounts[0]) => {
-    doLogin(account.badge, account.password, account.role);
-  };
-
-  const handleReset = () => {
-    resetToSeedData();
-    setError('');
-    setBadge('');
-    setPassword('');
-  };
-
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="w-full max-w-lg relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-lg shadow-primary/10">
-            <ShieldAlert className="w-10 h-10 text-primary" />
+    <div style={styles.safe}>
+      <div style={styles.scrollContent}>
+        {/* Logo */}
+        <div style={styles.logoContainer}>
+          <div style={styles.iconCircle}>
+            <ShieldAlert style={{ width: 32, height: 32, color: '#5B3A8E' }} />
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2 tracking-tight">Khurais Emergency Alert</h1>
-          <p className="text-primary font-medium tracking-wide uppercase text-sm">Authorized Personnel Only</p>
+          <h1 style={styles.title}>KEAS</h1>
+          <p style={styles.subtitle}>Khurais Emergency Alert System</p>
         </div>
 
-        <div className="bg-card border border-border shadow-2xl rounded-2xl p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick Demo Login</h2>
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Demo Data
-            </button>
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Badge Number</label>
+            <input
+              type="text"
+              placeholder="Enter your badge number"
+              value={badge}
+              onChange={e => setBadge(e.target.value)}
+              style={styles.input}
+              inputMode="numeric"
+            />
           </div>
 
-          <div className="space-y-2">
-            {demoAccounts.map(account => (
-              <button
-                key={account.badge}
-                onClick={() => handleQuickLogin(account)}
-                disabled={isLoading}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-background hover:bg-muted/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-foreground">{account.label}</span>
-                    <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{account.badge}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.description}</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{account.dest}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-              </button>
-            ))}
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={styles.input}
+            />
           </div>
+
+          {error && (
+            <div style={styles.errorRow}>
+              <AlertCircle style={{ width: 16, height: 16, flexShrink: 0, color: '#DC2626' }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              ...styles.loginButton,
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? (
+              <div style={styles.spinner} />
+            ) : (
+              'Login'
+            )}
+          </button>
+        </form>
+
+        {/* Register link */}
+        <div style={styles.linkRow}>
+          <Link href="/mobile/register" style={styles.linkText}>
+            Don't have an account?{' '}
+            <span style={styles.linkHighlight}>Register</span>
+          </Link>
         </div>
-
-        {error && (
-          <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg px-4 py-3 mb-4">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            {error}
-          </div>
-        )}
-
-        <div className="bg-card border border-border shadow-2xl rounded-2xl p-6">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Manual Login</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Badge Number</label>
-              <input
-                type="text"
-                placeholder="e.g. 102934"
-                value={badge}
-                onChange={e => setBadge(e.target.value)}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Password</label>
-              <input
-                type="password"
-                placeholder="demo1234"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                'LOGIN'
-              )}
-            </button>
-
-            <div className="text-center">
-              <Link
-                href="/mobile/register"
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                New user? Register here
-              </Link>
-            </div>
-          </form>
-        </div>
-
-        <p className="text-center text-muted-foreground text-xs mt-6">
-          Emergency Alert System v2.0 &nbsp;|&nbsp; KPC Operations
-        </p>
       </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  safe: {
+    minHeight: '100vh',
+    backgroundColor: '#F5F6F8',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 400,
+    padding: '40px 32px',
+  },
+
+  // Logo
+  logoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(91, 58, 142, 0.08)',
+    border: '1px solid rgba(91, 58, 142, 0.16)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 700,
+    color: '#1F2937',
+    letterSpacing: 4,
+    margin: 0,
+    fontFamily: "'Inter', sans-serif",
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: 400,
+    color: '#6B7280',
+    marginTop: 4,
+    textAlign: 'center' as const,
+    fontFamily: "'Inter', sans-serif",
+  },
+
+  // Form
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 18,
+    width: '100%',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#1F2937',
+    fontFamily: "'Inter', sans-serif",
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E5E7EB',
+    borderRadius: 10,
+    padding: '12px 16px',
+    fontSize: 15,
+    color: '#111111',
+    fontFamily: "'Inter', sans-serif",
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+  },
+  errorRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#DC2626',
+    textAlign: 'center' as const,
+    fontFamily: "'Inter', sans-serif",
+    justifyContent: 'center',
+  },
+  loginButton: {
+    width: '100%',
+    backgroundColor: '#5B3A8E',
+    color: '#FFFFFF',
+    fontWeight: 600,
+    fontSize: 15,
+    padding: '14px 0',
+    borderRadius: 10,
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: "'Inter', sans-serif",
+    marginTop: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spinner: {
+    width: 20,
+    height: 20,
+    border: '2px solid rgba(255,255,255,0.3)',
+    borderTopColor: '#FFFFFF',
+    borderRadius: 9999,
+    animation: 'spin 0.6s linear infinite',
+  },
+
+  // Register link
+  linkRow: {
+    marginTop: 32,
+    textAlign: 'center' as const,
+  },
+  linkText: {
+    fontSize: 13,
+    fontWeight: 400,
+    color: '#6B7280',
+    textDecoration: 'none',
+    fontFamily: "'Inter', sans-serif",
+  },
+  linkHighlight: {
+    color: '#5B3A8E',
+    fontWeight: 600,
+  },
+};
