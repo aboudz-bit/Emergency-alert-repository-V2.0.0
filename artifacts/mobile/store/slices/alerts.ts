@@ -87,6 +87,17 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         personnelLocations: {},
         mobileUserResponse: 'confirmed' as UserResponseStatus,
         hazardZones: [],
+        emergencyModes: {
+          shelterIn: false,
+          blackout: false,
+          shelterInActivatedAt: null,
+          shelterInActivatedBy: null,
+          blackoutActivatedAt: null,
+          blackoutActivatedBy: null,
+        },
+        windDirection: null,
+        windSetBy: null,
+        windSetAt: null,
       }));
       const allClearAlert: Alert = {
         id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
