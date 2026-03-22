@@ -1,0 +1,217 @@
+Upgrade the current "Locations" page into a full management page called:
+
+Zones and Locations
+
+This page must become the main place for managing both:
+- zones
+- locations inside zones
+
+==================================================
+PAGE TITLE CHANGE
+==================================================
+
+Rename the page from:
+Locations
+
+To:
+Zones and Locations
+
+Update the title everywhere relevant in the mobile app UI.
+
+==================================================
+NEW ZONE MANAGEMENT FEATURES
+==================================================
+
+For each zone section in the Zones and Locations page, add management actions:
+
+1) Rename Zone
+2) Merge Zones
+3) Move Locations Between Zones
+4) Split Zone
+5) Archive Zone
+
+==================================================
+1) RENAME ZONE
+==================================================
+
+Behavior:
+- User can rename an existing zone directly from this page
+- Keep the same zone ID
+- Only change zone.name
+
+Validation:
+- zone name cannot be empty
+- zone name must be unique
+- show error:
+  "Zone name already exists"
+
+Must update everywhere automatically:
+- Zones page / tab
+- Zones and Locations page
+- Map labels
+- Alerts referencing the zone
+- Shelters linked to zone
+- Personnel linked to zone
+- Warning / hazard zones
+
+==================================================
+2) MERGE ZONES
+==================================================
+
+Behavior:
+- Allow selecting 2 zones
+- Merge source zone into target zone
+- All locations from source move into target
+- All shelters / personnel / linked references move to target
+- Source zone is removed or archived after merge
+- Keep target zone as the surviving zone
+
+Validation:
+- cannot merge zone with itself
+- confirm action before merge
+- show summary of affected locations
+
+Important:
+- Do NOT lose any linked data
+- Alerts / shelters / personnel / overlays must stay connected
+
+==================================================
+3) MOVE LOCATIONS BETWEEN ZONES
+==================================================
+
+Behavior:
+- From this page, allow moving one or multiple locations
+  from one zone to another zone
+- Must support multi-select locations
+- Choose target zone from modal / sheet
+
+Validation:
+- must select at least one location
+- target zone must be different
+- update location.zoneId / zone reference safely
+
+Must update everywhere:
+- map
+- zone counts
+- shelter links if applicable
+- alert affected locations if applicable
+
+==================================================
+4) SPLIT ZONE
+==================================================
+
+Behavior:
+- Allow creating a new zone from selected locations
+- User selects one or more locations from an existing zone
+- User provides new zone name
+- Selected locations move into the new zone
+- Original zone keeps remaining locations
+
+Validation:
+- new zone name required
+- new zone name must be unique
+- at least one location must be selected
+- cannot leave invalid empty state accidentally without confirmation
+
+Important:
+- This is not duplicate zone creation
+- This is splitting an existing zone into 2 zones based on locations
+
+==================================================
+5) ARCHIVE ZONE
+==================================================
+
+Behavior:
+- Allow archiving a zone instead of hard deleting it
+- Archived zones should not appear as active selectable zones in normal workflows
+- Keep data for history/audit/reference
+- Show archived state clearly
+
+Validation:
+- If zone still has active locations / active alert / active shelters,
+  show confirmation and explain impact
+- Prefer archive over delete
+
+Important:
+- Do NOT hard delete by default
+- Keep history safe
+
+==================================================
+UI / UX REQUIREMENTS
+==================================================
+
+In the Zones and Locations page:
+
+For each zone header show:
+- zone name
+- number of locations
+- active/inactive state
+- actions menu or action buttons
+
+Suggested zone actions menu:
+- Rename
+- Merge
+- Move Locations
+- Split
+- Archive
+
+For locations under each zone:
+- keep current list style
+- allow multi-select mode for move/split operations
+
+Add clear section structure:
+- Zone header
+- Zone actions
+- Locations list
+
+==================================================
+DATA / SAFETY RULES
+==================================================
+
+Very important:
+- Do NOT break existing alerts
+- Do NOT break shelters
+- Do NOT break personnel markers
+- Do NOT break warning / hazard zones
+- Do NOT break map overlays
+- Do NOT break linked references
+
+Prefer:
+- keep stable zone IDs where possible
+- update linked records carefully
+- preserve history/audit data
+
+If archive is used:
+- mark archived instead of deleting
+
+If merge is used:
+- preserve target zone ID
+- migrate all references from source zone to target zone
+
+If split is used:
+- create new zone only for the split result
+- move selected locations safely
+
+==================================================
+DO NOT
+==================================================
+
+- Do NOT rewrite unrelated map logic
+- Do NOT change role logic
+- Do NOT break alert monitor
+- Do NOT remove existing location edit behavior
+- Do NOT use destructive delete as default
+
+==================================================
+AFTER IMPLEMENTATION
+==================================================
+
+Tell me:
+1) which files changed
+2) how rename works
+3) how merge works
+4) how move locations works
+5) how split works
+6) how archive works
+7) how linked data stays connected
+8) how duplicate zone names are prevented

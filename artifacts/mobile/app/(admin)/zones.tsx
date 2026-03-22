@@ -39,7 +39,7 @@ export default function ZonesScreen() {
   const focusCount = useRefreshOnFocus();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const zones = useStore((s) => s.zones);
+  const zones = useStore((s) => s.zones.filter(z => !z.isArchived));
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
