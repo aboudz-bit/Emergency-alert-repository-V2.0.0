@@ -72,6 +72,7 @@ export default function AlertManagementScreen() {
   const [activateType, setActivateType] = useState<LocationAlertType>("Security Alert");
   const [activatePriority, setActivatePriority] = useState<AlertPriority>("High");
   const [activateMessage, setActivateMessage] = useState("");
+  const [activateLocationIds, setActivateLocationIds] = useState<Set<number>>(new Set());
 
   // Deactivate confirmation
   const [deactivateTarget, setDeactivateTarget] = useState<Zone | null>(null);
@@ -143,6 +144,7 @@ export default function AlertManagementScreen() {
         setActivateType("Security Alert");
         setActivatePriority("High");
         setActivateMessage(DEFAULT_MESSAGES["Security Alert"] || "");
+        setActivateLocationIds(new Set());
         setActivateTarget(zone);
       }
     },
@@ -151,10 +153,10 @@ export default function AlertManagementScreen() {
 
   // ─── Activate confirm ───
   const handleConfirmActivate = useCallback(() => {
-    if (!activateTarget) return;
-    activateZoneAlert(activateTarget.id, activateType, activatePriority, activateMessage.trim());
+    if (!activateTarget || activateLocationIds.size === 0) return;
+    activateZoneAlert(activateTarget.id, Array.from(activateLocationIds), activateType, activatePriority, activateMessage.trim());
     setActivateTarget(null);
-  }, [activateTarget, activateType, activatePriority, activateMessage, activateZoneAlert]);
+  }, [activateTarget, activateLocationIds, activateType, activatePriority, activateMessage, activateZoneAlert]);
 
   // ─── Multi-select helpers ───
   const toggleZoneSelection = useCallback((zoneId: number) => {
@@ -663,7 +665,7 @@ export default function AlertManagementScreen() {
         onRequestClose={() => setActivateTarget(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { maxHeight: "92%" }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
@@ -677,12 +679,137 @@ export default function AlertManagementScreen() {
               </Pressable>
             </View>
 
-            {renderAlertForm(
-              activateType, setActivateType,
-              activatePriority, setActivatePriority,
-              activateMessage, setActivateMessage,
-              activateTarget,
-            )}
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {/* Zone info */}
+              {(() => {
+                const stats = activateTarget ? zoneStats.get(activateTarget.id) : null;
+                return (
+                  <View style={styles.modalTarget}>
+                    <View style={[styles.modalTargetDot, { backgroundColor: activateTarget?.color || Colors.textTertiary }]} />
+                    <Text style={styles.modalTargetText}>{activateTarget?.name}</Text>
+                    {stats && (
+                      <View style={styles.modalTargetZoneBadge}>
+                        <Text style={styles.modalTargetZoneText}>
+                          {stats.locationCount} locations · {stats.userCount} users
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
+
+              {/* ── Affected Locations ── */}
+              {(() => {
+                const zoneLocations = activateTarget
+                  ? locations.filter((l) => l.zoneId === activateTarget.id && l.isActive)
+                  : [];
+                return (
+                  <View style={styles.locSectionWrap}>
+                    <View style={styles.locSectionHeader}>
+                      <Text style={styles.modalLabel}>Affected Locations</Text>
+                      <View style={styles.locSectionActions}>
+                        <Pressable
+                          onPress={() =>
+                            setActivateLocationIds(new Set(zoneLocations.map((l) => l.id)))
+                          }
+                          hitSlop={6}
+                        >
+                          <Text style={styles.locActionText}>Select All</Text>
+                        </Pressable>
+                        <Text style={styles.locActionDivider}>·</Text>
+                        <Pressable
+                          onPress={() => setActivateLocationIds(new Set())}
+                          hitSlop={6}
+                        >
+                          <Text style={[styles.locActionText, { color: Colors.textTertiary }]}>Clear All</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {activateLocationIds.size > 0 && (
+                      <Text style={styles.locCountBadge}>
+                        {activateLocationIds.size} location{activateLocationIds.size !== 1 ? "s" : ""} selected
+                      </Text>
+                    )}
+
+                    <View style={styles.locList}>
+                      {zoneLocations.length === 0 ? (
+                        <Text style={styles.locEmptyText}>No active locations in this zone</Text>
+                      ) : (
+                        zoneLocations.map((loc) => {
+                          const isSelected = activateLocationIds.has(loc.id);
+                          return (
+                            <Pressable
+                              key={loc.id}
+                              style={[styles.locRow, isSelected && styles.locRowSelected]}
+                              onPress={() =>
+                                setActivateLocationIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(loc.id)) next.delete(loc.id);
+                                  else next.add(loc.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              <View style={[styles.locCheckbox, isSelected && styles.locCheckboxSelected]}>
+                                {isSelected && <Feather name="check" size={12} color="#fff" />}
+                              </View>
+                              <Text style={[styles.locName, isSelected && styles.locNameSelected]}>{loc.name}</Text>
+                            </Pressable>
+                          );
+                        })
+                      )}
+                    </View>
+                  </View>
+                );
+              })()}
+
+              {/* Alert Type */}
+              <Text style={styles.modalLabel}>Alert Type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                {ALERT_TYPE_OPTIONS.map((t) => (
+                  <Pressable
+                    key={t}
+                    style={[styles.chip, activateType === t && styles.chipActive]}
+                    onPress={() => {
+                      setActivateType(t);
+                      if (!activateMessage.trim() || activateMessage === DEFAULT_MESSAGES[activateType])
+                        setActivateMessage(DEFAULT_MESSAGES[t] || "");
+                    }}
+                  >
+                    <Text style={[styles.chipText, activateType === t && styles.chipTextActive]}>{t}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              {/* Priority */}
+              <Text style={styles.modalLabel}>Priority</Text>
+              <View style={styles.priorityRow}>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <Pressable
+                    key={p}
+                    style={[styles.priorityBtn, activatePriority === p && { borderColor: priorityColors[p], backgroundColor: priorityColors[p] + "14" }]}
+                    onPress={() => setActivatePriority(p)}
+                  >
+                    <View style={[styles.priorityDot, { backgroundColor: priorityColors[p] }]} />
+                    <Text style={[styles.priorityText, activatePriority === p && { color: priorityColors[p] }]}>{p}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Message */}
+              <Text style={styles.modalLabel}>Message</Text>
+              <TextInput
+                style={styles.messageInput}
+                value={activateMessage}
+                onChangeText={setActivateMessage}
+                placeholder="Alert message..."
+                placeholderTextColor={Colors.textTertiary}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </ScrollView>
 
             <View style={styles.modalBtnRow}>
               <Pressable
@@ -692,11 +819,18 @@ export default function AlertManagementScreen() {
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.modalBtnConfirm, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [
+                  styles.modalBtnConfirm,
+                  activateLocationIds.size === 0 && { opacity: 0.4 },
+                  pressed && { opacity: 0.8 },
+                ]}
                 onPress={handleConfirmActivate}
+                disabled={activateLocationIds.size === 0}
               >
                 <Feather name="zap" size={14} color="#fff" />
-                <Text style={styles.modalBtnConfirmText}>Activate</Text>
+                <Text style={styles.modalBtnConfirmText}>
+                  Activate{activateLocationIds.size > 0 ? ` (${activateLocationIds.size})` : ""}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -1691,6 +1825,58 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1, backgroundColor: Colors.border, marginHorizontal: 12, marginVertical: 2,
+  },
+
+  // ─── Location Selection (Activate Modal) ───────────────────────────────────
+  locSectionWrap: {
+    marginBottom: 4,
+  },
+  locSectionHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  locSectionActions: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+  },
+  locActionText: {
+    fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.primary,
+  },
+  locActionDivider: {
+    fontSize: 12, color: Colors.textTertiary,
+  },
+  locCountBadge: {
+    fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.primary,
+    backgroundColor: Colors.primaryDim, paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 10, alignSelf: "flex-start", marginBottom: 6,
+  },
+  locList: {
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: Colors.surface, overflow: "hidden",
+  },
+  locRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 10, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  locRowSelected: {
+    backgroundColor: Colors.primaryDim,
+  },
+  locCheckbox: {
+    width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center", backgroundColor: Colors.surfaceElevated,
+  },
+  locCheckboxSelected: {
+    backgroundColor: Colors.primary, borderColor: Colors.primary,
+  },
+  locName: {
+    fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.textSecondary, flex: 1,
+  },
+  locNameSelected: {
+    color: Colors.primary, fontFamily: "Inter_600SemiBold",
+  },
+  locEmptyText: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
+    textAlign: "center", padding: 16,
   },
 
   ezModalOverlay: {

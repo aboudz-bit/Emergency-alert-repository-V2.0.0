@@ -23,11 +23,12 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       }));
     },
 
-    activateZoneAlert: (zoneId, alertType, priority, message) => {
+    activateZoneAlert: (zoneId, locationIds, alertType, priority, message) => {
       const now = new Date().toISOString();
       const user = get().currentUser?.name || null;
       const zone = get().zones.find(z => z.id === zoneId);
       if (!zone) return;
+      const locIdSet = new Set(locationIds);
       set(s => ({
         zones: s.zones.map(z => z.id === zoneId ? {
           ...z,
@@ -41,18 +42,22 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
             alertType, priority, message, timestamp: now, user,
           }],
         } : z),
-        locations: s.locations.map(l => l.zoneId === zoneId ? {
-          ...l,
-          alertActive: true,
-          alertType,
-          alertPriority: priority,
-          alertMessage: message,
-          alertUpdatedAt: now,
-          alertHistory: [...(l.alertHistory || []), {
-            id: nextHistoryId(), locationId: l.id, action: 'activated' as const,
-            alertType, priority, message, timestamp: now, user,
-          }],
-        } : l),
+        locations: s.locations.map(l => {
+          if (l.zoneId !== zoneId) return l;
+          if (!locIdSet.has(l.id)) return l;
+          return {
+            ...l,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...(l.alertHistory || []), {
+              id: nextHistoryId(), locationId: l.id, action: 'activated' as const,
+              alertType, priority, message, timestamp: now, user,
+            }],
+          };
+        }),
         mobileUserResponse: null,
         users: s.users.map(u => ({ ...u, status: 'pending' as const })),
       }));
