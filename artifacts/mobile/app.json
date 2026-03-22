@@ -15,10 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.khurais.keas",
-      "config": {
-        "googleMapsApiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
-      }
+      "bundleIdentifier": "com.khurais.keas"
     },
     "android": {
       "package": "com.khurais.keas",
@@ -30,12 +27,7 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "VIBRATE"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
-        }
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -48,7 +40,13 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
