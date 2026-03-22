@@ -45,6 +45,7 @@ export interface TranslationStrings {
   system: string;
   zone: string;
   location: string;
+  company: string;
   accountStatus: string;
   gpsStatus: string;
   notificationStatus: string;
@@ -189,6 +190,7 @@ const en: TranslationStrings = {
   system: 'System',
   zone: 'Zone',
   location: 'Location',
+  company: 'Company',
   accountStatus: 'Account Status',
   gpsStatus: 'GPS Status',
   notificationStatus: 'Notification Status',
@@ -317,6 +319,7 @@ const ar: TranslationStrings = {
   system: 'النظام',
   zone: 'المنطقة',
   location: 'الموقع',
+  company: 'الشركة',
   accountStatus: 'حالة الحساب',
   gpsStatus: 'حالة GPS',
   notificationStatus: 'حالة الإشعارات',
@@ -445,6 +448,7 @@ const ur: TranslationStrings = {
   system: 'سسٹم',
   zone: 'زون',
   location: 'مقام',
+  company: 'کمپنی',
   accountStatus: 'اکاؤنٹ کی حالت',
   gpsStatus: 'GPS کی حالت',
   notificationStatus: 'اطلاع کی حالت',

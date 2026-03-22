@@ -69,7 +69,7 @@ export const seedUsers: User[] = [
     isActive: true,
     userType: 'Contract' as const,
     companyType: 'Contractor' as const,
-    companyName: 'Al-Fadhli Contracting',
+    companyName: 'Tamimi',
   },
 ];
 

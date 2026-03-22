@@ -21,10 +21,15 @@ export default function SupervisorProfileScreen() {
     router.replace("/(auth)/login");
   }, [logout, router]);
 
+  const companyDisplay = currentUser?.companyType === "Contractor"
+    ? (currentUser?.companyName || "—")
+    : "Aramco";
+
   const infoRows = [
     { label: "Name", value: currentUser?.name ?? "—", icon: "user" as const },
     { label: "Badge", value: currentUser?.badge ?? "—", icon: "hash" as const },
     { label: "Role", value: roleLabel, icon: "clipboard" as const },
+    { label: "Company", value: companyDisplay, icon: "briefcase" as const },
     { label: "Status", value: isBackup ? "Standby" : "Active", icon: "activity" as const },
     { label: "Location", value: currentUser?.supervisorLocationName ?? "—", icon: "map-pin" as const },
     { label: "Zone", value: currentUser?.supervisorZoneName ?? currentUser?.zone ?? "—", icon: "map" as const },

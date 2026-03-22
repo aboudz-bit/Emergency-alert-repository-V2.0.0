@@ -127,6 +127,16 @@ export default function ProfileScreen() {
               value={currentUser?.location || t.unknown}
             />
             <View style={styles.infoSeparator} />
+            <InfoRow
+              icon="briefcase"
+              label={t.company}
+              value={
+                currentUser?.companyType === "Contractor"
+                  ? currentUser?.companyName || t.unknown
+                  : "Aramco"
+              }
+            />
+            <View style={styles.infoSeparator} />
             <View style={styles.infoRow}>
               <View style={styles.infoIconWrap}>
                 <Feather

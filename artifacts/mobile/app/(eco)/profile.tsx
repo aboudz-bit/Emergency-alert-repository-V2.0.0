@@ -18,10 +18,15 @@ export default function ECOProfileScreen() {
     router.replace("/(auth)/login");
   }, [logout, router]);
 
+  const companyDisplay = currentUser?.companyType === "Contractor"
+    ? (currentUser?.companyName || "—")
+    : "Aramco";
+
   const infoRows = [
     { label: "Name", value: currentUser?.name ?? "—", icon: "user" as const },
     { label: "Badge", value: currentUser?.badge ?? "—", icon: "hash" as const },
     { label: "Role", value: "Emergency Coordinator", icon: "shield" as const },
+    { label: "Company", value: companyDisplay, icon: "briefcase" as const },
     { label: "ECO Slot", value: currentUser?.ecoSlot ?? "—", icon: "layers" as const },
     { label: "Assigned Zone", value: currentUser?.ecoZoneName ?? "—", icon: "map" as const },
     { label: "Operational Location", value: "CCR", icon: "navigation" as const },

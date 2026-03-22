@@ -334,6 +334,14 @@ export function migrate(persisted: any, version: number): AppState {
         state.emergencyModes.blackoutZones = [];
       }
     }
+    if (Array.isArray(state?.users)) {
+      state.users = state.users.map((u: any) => {
+        if (u.badge === '200001' && u.companyName === 'Al-Fadhli Contracting') {
+          return { ...u, companyName: 'Tamimi' };
+        }
+        return u;
+      });
+    }
   }
 
   return persisted as AppState;
