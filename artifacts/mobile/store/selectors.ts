@@ -1,4 +1,4 @@
-import type { Alert, PermissionKey } from '@/types';
+import type { Alert, AlertType, PermissionKey } from '@/types';
 import type { AppState } from './types';
 
 // ─── Alert selectors ─────────────────────────────────────────────────────────
@@ -56,8 +56,9 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   }
 
   if (hasBlackout) {
-    const zoneLabel = s.emergencyModes.blackoutZones.length > 0
-      ? s.emergencyModes.blackoutZones.join(', ')
+    const bZones = s.emergencyModes.blackoutZones ?? [];
+    const zoneLabel = bZones.length > 0
+      ? bZones.join(', ')
       : 'All Zones';
     return {
       id: -1,
@@ -74,12 +75,13 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     } as Alert;
   }
 
-  const shelterZoneLabel = s.emergencyModes.shelterInZones.length > 0
-    ? s.emergencyModes.shelterInZones.join(', ')
+  const sZones = s.emergencyModes.shelterInZones ?? [];
+  const shelterZoneLabel = sZones.length > 0
+    ? sZones.join(', ')
     : 'All Zones';
   return {
     id: -1,
-    type: 'Shelter In Place',
+    type: 'Shelter-in' as AlertType,
     zone: shelterZoneLabel,
     title: 'Shelter In Place Active',
     message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',

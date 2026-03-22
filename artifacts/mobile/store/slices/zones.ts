@@ -40,8 +40,8 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         ),
         emergencyModes: {
           ...s.emergencyModes,
-          shelterInZones: s.emergencyModes.shelterInZones.map(n => n === oldName ? newName : n),
-          blackoutZones: s.emergencyModes.blackoutZones.map(n => n === oldName ? newName : n),
+          shelterInZones: (s.emergencyModes.shelterInZones ?? []).map(n => n === oldName ? newName : n),
+          blackoutZones: (s.emergencyModes.blackoutZones ?? []).map(n => n === oldName ? newName : n),
         },
         zoneNotifications: s.zoneNotifications.map(zn =>
           zn.zoneId === id ? { ...zn, zoneName: newName } : zn
@@ -79,8 +79,8 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         ),
         emergencyModes: {
           ...s.emergencyModes,
-          shelterInZones: [...new Set(s.emergencyModes.shelterInZones.map(n => n === sourceName ? targetName : n))],
-          blackoutZones: [...new Set(s.emergencyModes.blackoutZones.map(n => n === sourceName ? targetName : n))],
+          shelterInZones: [...new Set((s.emergencyModes.shelterInZones ?? []).map(n => n === sourceName ? targetName : n))],
+          blackoutZones: [...new Set((s.emergencyModes.blackoutZones ?? []).map(n => n === sourceName ? targetName : n))],
         },
       }));
     },

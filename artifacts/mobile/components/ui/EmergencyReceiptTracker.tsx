@@ -74,7 +74,7 @@ export function EmergencyReceiptTracker() {
   const shelterReceipts = useMemo(
     () =>
       emergencyModes.shelterIn
-        ? emergencyModes.receipts.filter((r) => r.modeType === "shelterIn")
+        ? (emergencyModes.receipts ?? []).filter((r) => r.modeType === "shelterIn")
         : [],
     [emergencyModes.shelterIn, emergencyModes.receipts]
   );
@@ -82,7 +82,7 @@ export function EmergencyReceiptTracker() {
   const blackoutReceipts = useMemo(
     () =>
       emergencyModes.blackout
-        ? emergencyModes.receipts.filter((r) => r.modeType === "blackout")
+        ? (emergencyModes.receipts ?? []).filter((r) => r.modeType === "blackout")
         : [],
     [emergencyModes.blackout, emergencyModes.receipts]
   );
