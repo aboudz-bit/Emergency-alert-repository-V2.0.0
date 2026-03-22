@@ -1,0 +1,80 @@
+We need Emergency Mode control to follow this exact role behavior.
+
+==================================================
+ROLE BEHAVIOR
+==================================================
+
+1) Super Admin
+- manages permissions
+- views system status
+- monitors acknowledgment
+- does NOT need to be the normal operator
+
+2) ECO
+- is the operational emergency coordinator
+- if granted permission, can activate:
+  - Shelter In
+  - Blackout
+- can monitor who acknowledged
+
+3) Supervisor / Backup Supervisor
+- can view
+- can monitor
+- can receive the emergency mode
+- can confirm receipt
+- can respond
+- BUT must NOT activate Shelter In / Blackout
+- this capability is NOT their feature
+
+4) User / Contractor
+- receives the emergency mode
+- confirms receipt
+- responds
+
+==================================================
+PERMISSION RULE
+==================================================
+
+Use the existing permissions system.
+
+Add permission:
+canActivateEmergencyMode
+
+Only users with this permission can activate:
+- Shelter In
+- Blackout
+
+ECO is the normal intended user for this permission,
+but do NOT hardcode by role.
+
+Supervisor / Backup must NOT get this behavior by default.
+
+==================================================
+ACKNOWLEDGMENT FLOW
+==================================================
+
+When Shelter In or Blackout is activated:
+- users receive the emergency instruction
+- they must be able to press Confirm Receipt
+- if they do not confirm, repeat alarm every 30 seconds
+- acknowledgment must be tracked
+
+==================================================
+DO NOT
+==================================================
+
+- Do NOT give Supervisor / Backup emergency activation
+- Do NOT hardcode role bypass
+- Do NOT break existing permissions
+- Do NOT replace I am Safe / Need Help
+
+==================================================
+AFTER IMPLEMENTATION
+==================================================
+
+Tell me:
+1) where canActivateEmergencyMode was added
+2) who can activate after the change
+3) how Supervisor / Backup are restricted
+4) how acknowledgment works
+5) which files changed

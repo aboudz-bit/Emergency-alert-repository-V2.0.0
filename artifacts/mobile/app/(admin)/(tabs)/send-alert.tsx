@@ -14,7 +14,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
 import { Colors, DEFAULT_MESSAGES } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectCanActivateEmergencyMode } from "@/store";
 import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
@@ -50,6 +50,7 @@ export default function AlertManagementScreen() {
   const deactivateShelterIn = useStore((s) => s.deactivateShelterIn);
   const activateBlackout = useStore((s) => s.activateBlackout);
   const deactivateBlackout = useStore((s) => s.deactivateBlackout);
+  const canActivateEmergency = useStore(selectCanActivateEmergencyMode);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -422,72 +423,98 @@ export default function AlertManagementScreen() {
       <Header title="Alert Management" />
 
       {/* ─── Emergency Modes ─── */}
-      <View style={styles.emergencyModesBar}>
-        <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
-        <View style={styles.emergencyModesRow}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.emergencyModeBtn,
-              emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => {
-              if (emergencyModes.shelterIn) {
-                deactivateShelterIn();
-              } else {
-                setEmergencyZoneSelection(new Set());
-                setEmergencyZoneModal("shelterIn");
-              }
-            }}
-          >
-            <Feather
-              name="shield"
-              size={16}
-              color={emergencyModes.shelterIn ? "#fff" : Colors.amber}
-            />
-            <Text
-              style={[
-                styles.emergencyModeBtnText,
-                emergencyModes.shelterIn && styles.emergencyModeBtnTextActive,
+      {canActivateEmergency ? (
+        <View style={styles.emergencyModesBar}>
+          <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
+          <View style={styles.emergencyModesRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.emergencyModeBtn,
+                emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
+                pressed && { opacity: 0.8 },
               ]}
+              onPress={() => {
+                if (emergencyModes.shelterIn) {
+                  deactivateShelterIn();
+                } else {
+                  setEmergencyZoneSelection(new Set());
+                  setEmergencyZoneModal("shelterIn");
+                }
+              }}
             >
-              {emergencyModes.shelterIn ? "Shelter In ON" : "Shelter In"}
-            </Text>
-            {emergencyModes.shelterIn && <View style={styles.emergencyModePulse} />}
-          </Pressable>
+              <Feather
+                name="shield"
+                size={16}
+                color={emergencyModes.shelterIn ? "#fff" : Colors.amber}
+              />
+              <Text
+                style={[
+                  styles.emergencyModeBtnText,
+                  emergencyModes.shelterIn && styles.emergencyModeBtnTextActive,
+                ]}
+              >
+                {emergencyModes.shelterIn ? "Shelter In ON" : "Shelter In"}
+              </Text>
+              {emergencyModes.shelterIn && <View style={styles.emergencyModePulse} />}
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.emergencyModeBtn,
-              emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => {
-              if (emergencyModes.blackout) {
-                deactivateBlackout();
-              } else {
-                setEmergencyZoneSelection(new Set());
-                setEmergencyZoneModal("blackout");
-              }
-            }}
-          >
-            <Feather
-              name="zap-off"
-              size={16}
-              color={emergencyModes.blackout ? "#fff" : Colors.primary}
-            />
-            <Text
-              style={[
-                styles.emergencyModeBtnText,
-                emergencyModes.blackout && styles.emergencyModeBtnTextActive,
+            <Pressable
+              style={({ pressed }) => [
+                styles.emergencyModeBtn,
+                emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
+                pressed && { opacity: 0.8 },
               ]}
+              onPress={() => {
+                if (emergencyModes.blackout) {
+                  deactivateBlackout();
+                } else {
+                  setEmergencyZoneSelection(new Set());
+                  setEmergencyZoneModal("blackout");
+                }
+              }}
             >
-              {emergencyModes.blackout ? "Blackout ON" : "Blackout"}
-            </Text>
-            {emergencyModes.blackout && <View style={styles.emergencyModePulse} />}
-          </Pressable>
+              <Feather
+                name="zap-off"
+                size={16}
+                color={emergencyModes.blackout ? "#fff" : Colors.primary}
+              />
+              <Text
+                style={[
+                  styles.emergencyModeBtnText,
+                  emergencyModes.blackout && styles.emergencyModeBtnTextActive,
+                ]}
+              >
+                {emergencyModes.blackout ? "Blackout ON" : "Blackout"}
+              </Text>
+              {emergencyModes.blackout && <View style={styles.emergencyModePulse} />}
+            </Pressable>
+          </View>
         </View>
-      </View>
+      ) : (emergencyModes.shelterIn || emergencyModes.blackout) ? (
+        <View style={styles.emergencyModesBar}>
+          <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
+          <View style={styles.emergencyModesRow}>
+            {emergencyModes.shelterIn && (
+              <View style={[styles.emergencyModeBtn, styles.emergencyModeBtnActiveShelter]}>
+                <Feather name="shield" size={16} color="#fff" />
+                <Text style={[styles.emergencyModeBtnText, styles.emergencyModeBtnTextActive]}>
+                  Shelter In ON
+                </Text>
+                <View style={styles.emergencyModePulse} />
+              </View>
+            )}
+            {emergencyModes.blackout && (
+              <View style={[styles.emergencyModeBtn, styles.emergencyModeBtnActiveBlackout]}>
+                <Feather name="zap-off" size={16} color="#fff" />
+                <Text style={[styles.emergencyModeBtnText, styles.emergencyModeBtnTextActive]}>
+                  Blackout ON
+                </Text>
+                <View style={styles.emergencyModePulse} />
+              </View>
+            )}
+          </View>
+        </View>
+      ) : null}
 
       {/* ─── Summary strip ─── */}
       <View style={styles.summaryStrip}>

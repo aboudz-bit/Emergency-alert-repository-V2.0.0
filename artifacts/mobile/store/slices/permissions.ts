@@ -94,7 +94,7 @@ export function createPermissionSlice(set: SetState, get: GetState): Pick<
       if (user.role === 'Super Admin' || user.role === 'IT') return [
         'canViewGlobalLiveMap', 'canPlaceWarningZone', 'canEditHazardZone',
         'canDeleteHazardZone', 'canUnlockHazardZone', 'canManageShelters', 'canReviewAlertMonitor',
-        'canChangeWindDirection',
+        'canChangeWindDirection', 'canActivateEmergencyMode',
       ];
       if (user.isECOAssigned && user.ecoAssignmentActive) {
         const base: PermissionKey[] = ['canViewGlobalLiveMap', 'canReviewAlertMonitor', 'canChangeWindDirection'];

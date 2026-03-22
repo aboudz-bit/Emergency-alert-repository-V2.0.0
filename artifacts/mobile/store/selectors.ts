@@ -122,6 +122,7 @@ export const selectCanUnlockHazardZone = _permSel('canUnlockHazardZone');
 export const selectCanManageShelters = _permSel('canManageShelters');
 export const selectCanReviewAlertMonitor = _permSel('canReviewAlertMonitor');
 export const selectCanChangeWindDirection = _permSel('canChangeWindDirection');
+export const selectCanActivateEmergencyMode = _permSel('canActivateEmergencyMode');
 
 /**
  * @deprecated Use the pre-built selectCan* selectors instead.

@@ -34,6 +34,7 @@ export {
   selectCanManageShelters,
   selectCanReviewAlertMonitor,
   selectCanChangeWindDirection,
+  selectCanActivateEmergencyMode,
   selectCurrentUserHasPermission,
 } from './selectors';
 
