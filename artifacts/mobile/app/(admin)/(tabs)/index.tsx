@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react";
 import {
-  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,15 +15,14 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ZoneMap } from "@/components/map";
+
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 
-const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
 
 export default function DashboardScreen() {
-  const focusCount = useRefreshOnFocus();
+  useRefreshOnFocus();
   const router = useRouter();
   const users = useStore((s) => s.users);
   const allZones = useStore((s) => s.zones);
@@ -278,19 +276,37 @@ export default function DashboardScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Zone Overview</Text>
+            <Text style={styles.sectionTitle}>System Stats</Text>
           </View>
-          <View style={styles.dashMapContainer}>
-            <ZoneMap
-              key={focusCount}
-              zones={zones}
-              selectedZoneId={null}
-              onZonePress={() => {}}
-              height={DASH_MAP_HEIGHT}
-              showLabels
-              locations={locations}
-              shelters={shelters}
-            />
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: Colors.info + "1A" }]}>
+                <Feather name="layers" size={18} color={Colors.info} />
+              </View>
+              <Text style={styles.statValue}>{zones.filter((z) => z.isActive).length}</Text>
+              <Text style={styles.statLabel}>Active Zones</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: Colors.safe + "1A" }]}>
+                <Feather name="map-pin" size={18} color={Colors.safe} />
+              </View>
+              <Text style={styles.statValue}>{locations.length}</Text>
+              <Text style={styles.statLabel}>Locations</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: Colors.amber + "1A" }]}>
+                <Feather name="home" size={18} color={Colors.amber} />
+              </View>
+              <Text style={styles.statValue}>{shelters.length}</Text>
+              <Text style={styles.statLabel}>Shelters</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: activeAlertCount > 0 ? Colors.destructive + "1A" : Colors.textTertiary + "1A" }]}>
+                <Feather name="alert-triangle" size={18} color={activeAlertCount > 0 ? Colors.destructive : Colors.textTertiary} />
+              </View>
+              <Text style={[styles.statValue, activeAlertCount > 0 && { color: Colors.destructive }]}>{activeAlertCount}</Text>
+              <Text style={styles.statLabel}>Active Alerts</Text>
+            </View>
           </View>
         </View>
 
@@ -600,11 +616,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: Spacing.xl,
   },
-  dashMapContainer: {
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.border,
-    height: DASH_MAP_HEIGHT,
+    padding: Spacing.md,
+    alignItems: "center",
+    gap: 6,
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statValue: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+  },
+  statLabel: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textSecondary,
   },
 });
