@@ -160,6 +160,7 @@ export interface Location {
   alertMessage: string;
   alertUpdatedAt: string | null;
   alertHistory: AlertHistoryEntry[];
+  sortOrder?: number;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────

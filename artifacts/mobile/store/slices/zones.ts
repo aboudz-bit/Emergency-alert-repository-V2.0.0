@@ -56,10 +56,14 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       if (!source || !target || sourceId === targetId) return;
       const sourceName = source.name;
       const targetName = target.name;
+      const maxTargetOrder = get().locations
+        .filter(l => l.zoneId === targetId)
+        .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
+      let orderOffset = 0;
       set(s => ({
         zones: s.zones.map(z => z.id === sourceId ? { ...z, isArchived: true, isActive: false } : z),
         locations: s.locations.map(l =>
-          l.zoneId === sourceId ? { ...l, zoneId: targetId, zone: targetName } : l
+          l.zoneId === sourceId ? { ...l, zoneId: targetId, zone: targetName, sortOrder: maxTargetOrder + 1 + (orderOffset++) } : l
         ),
         shelters: s.shelters.map(sh =>
           sh.zoneId === sourceId ? { ...sh, zoneId: targetId } : sh
@@ -85,9 +89,13 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       const target = get().zones.find(z => z.id === targetZoneId);
       if (!target) return;
       const locIdSet = new Set(locationIds);
+      const maxTargetOrder = get().locations
+        .filter(l => l.zoneId === targetZoneId)
+        .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
+      let moveOffset = 0;
       set(s => ({
         locations: s.locations.map(l =>
-          locIdSet.has(l.id) ? { ...l, zoneId: targetZoneId, zone: target.name } : l
+          locIdSet.has(l.id) ? { ...l, zoneId: targetZoneId, zone: target.name, sortOrder: maxTargetOrder + 1 + (moveOffset++) } : l
         ),
         users: s.users.map(u =>
           locIdSet.has(u.locationId) ? { ...u, zoneId: targetZoneId, zone: target.name } : u
@@ -103,6 +111,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       if (!source || locationIds.length === 0) return;
       const newZoneId = Date.now();
       const locIdSet = new Set(locationIds);
+      let splitOffset = 0;
       set(s => ({
         zones: [...s.zones, {
           id: newZoneId,
@@ -122,7 +131,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           alertHistory: [],
         }],
         locations: s.locations.map(l =>
-          locIdSet.has(l.id) ? { ...l, zoneId: newZoneId, zone: newZoneName } : l
+          locIdSet.has(l.id) ? { ...l, zoneId: newZoneId, zone: newZoneName, sortOrder: splitOffset++ } : l
         ),
         users: s.users.map(u =>
           locIdSet.has(u.locationId) ? { ...u, zoneId: newZoneId, zone: newZoneName } : u

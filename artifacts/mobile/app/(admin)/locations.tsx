@@ -32,6 +32,7 @@ export default function ZonesAndLocationsScreen() {
   const addLocation = useStore((s) => s.addLocation);
   const updateLocation = useStore((s) => s.updateLocation);
   const deleteLocation = useStore((s) => s.deleteLocation);
+  const reorderLocations = useStore((s) => s.reorderLocations);
   const updateZone = useStore((s) => s.updateZone);
   const renameZone = useStore((s) => s.renameZone);
   const mergeZones = useStore((s) => s.mergeZones);
@@ -255,11 +256,18 @@ export default function ZonesAndLocationsScreen() {
     const zone = allZones.find((z) => z.id === locationZoneId);
     if (!zone) return;
     if (editingLocation) {
-      updateLocation(editingLocation.id, {
+      const updates: Partial<Location> = {
         name: locationName.trim(),
         zone: zone.name,
         zoneId: locationZoneId,
-      });
+      };
+      if (editingLocation.zoneId !== locationZoneId) {
+        const maxOrder = locations
+          .filter((l) => l.zoneId === locationZoneId)
+          .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
+        updates.sortOrder = maxOrder + 1;
+      }
+      updateLocation(editingLocation.id, updates);
     } else {
       addLocation({
         name: locationName.trim(),
@@ -279,7 +287,7 @@ export default function ZonesAndLocationsScreen() {
     setShowLocationModal(false);
     setLocationName("");
     setEditingLocation(null);
-  }, [locationName, locationZoneId, editingLocation, updateLocation, addLocation, allZones]);
+  }, [locationName, locationZoneId, editingLocation, updateLocation, addLocation, allZones, locations]);
 
   const handleDeleteLocation = useCallback(() => {
     if (!editingLocation) return;
@@ -287,6 +295,21 @@ export default function ZonesAndLocationsScreen() {
     setShowLocationModal(false);
     setEditingLocation(null);
   }, [editingLocation, deleteLocation]);
+
+  // ─── Reorder helpers ───
+  const handleMoveLocation = useCallback((zoneId: number, locId: number, direction: "up" | "down") => {
+    const zoneLocs = locations
+      .filter((l) => l.zoneId === zoneId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const idx = zoneLocs.findIndex((l) => l.id === locId);
+    if (idx < 0) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === zoneLocs.length - 1) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    const ids = zoneLocs.map((l) => l.id);
+    [ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]];
+    reorderLocations(zoneId, ids);
+  }, [locations, reorderLocations]);
 
   // ─── Render ───
   return (
@@ -318,7 +341,9 @@ export default function ZonesAndLocationsScreen() {
         )}
 
         {activeZones.map((zone) => {
-          const zoneLocs = locations.filter((l) => l.zoneId === zone.id);
+          const zoneLocs = locations
+            .filter((l) => l.zoneId === zone.id)
+            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
           const isSelecting = multiSelectZoneId === zone.id;
 
           return (
@@ -371,8 +396,10 @@ export default function ZonesAndLocationsScreen() {
                   </Pressable>
                 </View>
               ) : (
-                zoneLocs.map((loc) => {
+                zoneLocs.map((loc, locIdx) => {
                   const isSel = multiSelectedLocIds.has(loc.id);
+                  const isFirst = locIdx === 0;
+                  const isLast = locIdx === zoneLocs.length - 1;
                   return (
                     <Pressable
                       key={loc.id}
@@ -384,12 +411,30 @@ export default function ZonesAndLocationsScreen() {
                           {isSel && <Feather name="check" size={12} color="#fff" />}
                         </View>
                       ) : (
-                        <Feather
-                          name="map-pin"
-                          size={14}
-                          color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
-                        />
+                        <View style={styles.reorderBtns}>
+                          <Pressable
+                            onPress={() => handleMoveLocation(zone.id, loc.id, "up")}
+                            hitSlop={4}
+                            style={({ pressed }) => [styles.reorderBtn, pressed && { opacity: 0.5 }]}
+                            disabled={isFirst}
+                          >
+                            <Feather name="chevron-up" size={14} color={isFirst ? Colors.border : Colors.textSecondary} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleMoveLocation(zone.id, loc.id, "down")}
+                            hitSlop={4}
+                            style={({ pressed }) => [styles.reorderBtn, pressed && { opacity: 0.5 }]}
+                            disabled={isLast}
+                          >
+                            <Feather name="chevron-down" size={14} color={isLast ? Colors.border : Colors.textSecondary} />
+                          </Pressable>
+                        </View>
                       )}
+                      <Feather
+                        name="map-pin"
+                        size={14}
+                        color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
+                      />
                       <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
                         {loc.name}
                       </Text>
@@ -857,18 +902,17 @@ export default function ZonesAndLocationsScreen() {
                 );
               })}
             </ScrollView>
-            <View style={[styles.btnRow, { marginTop: 4 }]}>
+            <View style={styles.modalFooter}>
               {editingLocation && (
                 <Pressable style={styles.deleteBtn} onPress={handleDeleteLocation}>
                   <Feather name="trash-2" size={16} color={Colors.primary} />
                 </Pressable>
               )}
-              <View style={{ flex: 1 }} />
-              <Pressable style={styles.cancelBtn} onPress={() => setShowLocationModal(false)}>
+              <Pressable style={styles.modalFooterBtn} onPress={() => setShowLocationModal(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.primaryBtn, { flex: 0, paddingHorizontal: 20 }, (!locationName.trim() || !locationZoneId) && { opacity: 0.3 }]}
+                style={[styles.modalFooterBtnPrimary, (!locationName.trim() || !locationZoneId) && { opacity: 0.3 }]}
                 onPress={handleSaveLocation}
                 disabled={!locationName.trim() || !locationZoneId}
               >
@@ -957,8 +1001,8 @@ const styles = StyleSheet.create({
 
   // Location row
   row: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingHorizontal: 14, paddingVertical: 11,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 10, paddingVertical: 8,
     borderTopWidth: 1, borderTopColor: Colors.border, minHeight: 46,
   },
   rowSelected: { backgroundColor: Colors.info + "0D" },
@@ -967,6 +1011,12 @@ const styles = StyleSheet.create({
   rowEditBtn: {
     width: 34, height: 34, borderRadius: 8,
     backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
+  },
+  reorderBtns: {
+    flexDirection: "column", alignItems: "center", gap: 0,
+  },
+  reorderBtn: {
+    width: 24, height: 18, alignItems: "center", justifyContent: "center",
   },
 
   // Checkbox
@@ -1065,6 +1115,17 @@ const styles = StyleSheet.create({
   deleteBtn: {
     width: 44, height: 44, borderRadius: 10,
     backgroundColor: Colors.primaryDim, alignItems: "center", justifyContent: "center",
+  },
+  modalFooter: {
+    flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4,
+  },
+  modalFooterBtn: {
+    flex: 1, minHeight: 44, justifyContent: "center", alignItems: "center",
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surfaceElevated,
+  },
+  modalFooterBtnPrimary: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    minHeight: 44, borderRadius: 10, backgroundColor: Colors.info,
   },
 
   // Zone / location pickers

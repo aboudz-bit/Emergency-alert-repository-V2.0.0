@@ -70,6 +70,7 @@ export interface AppState {
   addLocation: (location: Omit<Location, 'id'>) => void;
   updateLocation: (id: number, partial: Partial<Location>) => void;
   deleteLocation: (id: number) => void;
+  reorderLocations: (zoneId: number, orderedIds: number[]) => void;
 
   activateLocationAlert: (id: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   deactivateLocationAlert: (id: number) => void;
