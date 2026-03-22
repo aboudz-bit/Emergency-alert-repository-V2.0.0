@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from "react-native";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
+import { EmergencyReceiptOverlay } from "@/components/ui/EmergencyReceiptOverlay";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -28,6 +29,8 @@ export default function SupervisorLayout() {
   }
 
   return (
+    <View style={{ flex: 1 }}>
+    <EmergencyReceiptOverlay />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -74,6 +77,7 @@ export default function SupervisorLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
 

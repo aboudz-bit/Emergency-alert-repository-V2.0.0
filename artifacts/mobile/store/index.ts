@@ -74,6 +74,7 @@ export const useStore = create<AppState>()(
         shelterInActivatedBy: null,
         blackoutActivatedAt: null,
         blackoutActivatedBy: null,
+        receipts: [],
       },
       windDirection: null,
       windSetBy: null,

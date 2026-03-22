@@ -4,7 +4,7 @@ import type {
   EcoAssignment, SupervisorAssignment, Shelter, HazardZone,
   UserType, CompanyType, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
-  EmergencyModes, WindDirection, Language,
+  EmergencyModes, EmergencyModeType, WindDirection, Language,
 } from '@/types';
 
 export interface AppState {
@@ -36,6 +36,7 @@ export interface AppState {
   deactivateShelterIn: () => void;
   activateBlackout: (zoneNames: string[]) => void;
   deactivateBlackout: () => void;
+  confirmEmergencyReceipt: (modeType: EmergencyModeType) => void;
 
   login: (badge: string, password: string, roleOverride?: UserRole) => { success: boolean; error?: string };
   logout: () => void;

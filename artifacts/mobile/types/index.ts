@@ -315,6 +315,16 @@ export interface HazardZone {
 
 // ─── Emergency Modes ─────────────────────────────────────────────────────────
 
+export type EmergencyModeType = 'shelterIn' | 'blackout';
+
+export interface EmergencyReceipt {
+  userId: number;
+  userName: string;
+  modeType: EmergencyModeType;
+  receiptConfirmed: boolean;
+  receiptConfirmedAt: string | null;
+}
+
 export interface EmergencyModes {
   shelterIn: boolean;
   blackout: boolean;
@@ -324,6 +334,7 @@ export interface EmergencyModes {
   shelterInActivatedBy: string | null;
   blackoutActivatedAt: string | null;
   blackoutActivatedBy: string | null;
+  receipts: EmergencyReceipt[];
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

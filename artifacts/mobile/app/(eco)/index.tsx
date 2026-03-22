@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectCanActivateEmergencyMode } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { EmergencyReceiptTracker } from "@/components/ui/EmergencyReceiptTracker";
 
 export default function ECODashboardScreen() {
   const router = useRouter();
@@ -168,6 +169,8 @@ export default function ECODashboardScreen() {
             </View>
           </View>
         )}
+
+        <EmergencyReceiptTracker />
 
         <View style={styles.kpiRow}>
           <KPICard

@@ -1,8 +1,26 @@
+import type { EmergencyReceipt } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
+
+function generateReceipts(get: GetState, modeType: 'shelterIn' | 'blackout', zoneNames: string[]): EmergencyReceipt[] {
+  const { users, zones } = get();
+  const zoneIds = zones
+    .filter((z) => zoneNames.includes(z.name) && z.isActive && !z.isArchived)
+    .map((z) => z.id);
+  const affectedUsers = users.filter(
+    (u) => u.isActive && u.zoneId != null && zoneIds.includes(u.zoneId)
+  );
+  return affectedUsers.map((u) => ({
+    userId: u.id,
+    userName: u.name,
+    modeType,
+    receiptConfirmed: false,
+    receiptConfirmedAt: null,
+  }));
+}
 
 export function createEmergencySlice(set: SetState, get: GetState): Pick<
   AppState,
-  'setWindDirection' | 'activateShelterIn' | 'deactivateShelterIn' | 'activateBlackout' | 'deactivateBlackout'
+  'setWindDirection' | 'activateShelterIn' | 'deactivateShelterIn' | 'activateBlackout' | 'deactivateBlackout' | 'confirmEmergencyReceipt'
 > {
   return {
     setWindDirection: (direction) => {
@@ -17,6 +35,8 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
     activateShelterIn: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
+      const existingOtherReceipts = emergencyModes.receipts.filter((r) => r.modeType !== 'shelterIn');
+      const newReceipts = generateReceipts(get, 'shelterIn', zoneNames);
       set({
         emergencyModes: {
           ...emergencyModes,
@@ -24,6 +44,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           shelterInZones: zoneNames,
           shelterInActivatedAt: now,
           shelterInActivatedBy: currentUser?.name ?? 'System',
+          receipts: [...existingOtherReceipts, ...newReceipts],
         },
       });
     },
@@ -37,6 +58,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           shelterInZones: [],
           shelterInActivatedAt: null,
           shelterInActivatedBy: null,
+          receipts: emergencyModes.receipts.filter((r) => r.modeType !== 'shelterIn'),
         },
       });
     },
@@ -44,6 +66,8 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
     activateBlackout: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
+      const existingOtherReceipts = emergencyModes.receipts.filter((r) => r.modeType !== 'blackout');
+      const newReceipts = generateReceipts(get, 'blackout', zoneNames);
       set({
         emergencyModes: {
           ...emergencyModes,
@@ -51,6 +75,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           blackoutZones: zoneNames,
           blackoutActivatedAt: now,
           blackoutActivatedBy: currentUser?.name ?? 'System',
+          receipts: [...existingOtherReceipts, ...newReceipts],
         },
       });
     },
@@ -64,8 +89,21 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           blackoutZones: [],
           blackoutActivatedAt: null,
           blackoutActivatedBy: null,
+          receipts: emergencyModes.receipts.filter((r) => r.modeType !== 'blackout'),
         },
       });
+    },
+
+    confirmEmergencyReceipt: (modeType) => {
+      const { emergencyModes, currentUser } = get();
+      if (!currentUser) return;
+      const now = new Date().toISOString();
+      const updatedReceipts = emergencyModes.receipts.map((r) =>
+        r.userId === currentUser.id && r.modeType === modeType
+          ? { ...r, receiptConfirmed: true, receiptConfirmedAt: now }
+          : r
+      );
+      set({ emergencyModes: { ...emergencyModes, receipts: updatedReceipts } });
     },
   };
 }

@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { EmergencyReceiptTracker } from "@/components/ui/EmergencyReceiptTracker";
 
 
 export default function DashboardScreen() {
@@ -215,6 +216,8 @@ export default function DashboardScreen() {
             </Card>
           </Pressable>
         )}
+
+        <EmergencyReceiptTracker />
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
