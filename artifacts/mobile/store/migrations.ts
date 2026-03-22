@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 23;
+export const STORE_VERSION = 24;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -349,6 +349,56 @@ export function migrate(persisted: any, version: number): AppState {
     if (state.emergencyModes && !Array.isArray(state.emergencyModes.receipts)) {
       state.emergencyModes.receipts = [];
     }
+  }
+
+  if (version < 24) {
+    // Clear all alerts and reset emergency modes to a clean state
+    state.alerts = [];
+    state.emergencyModes = {
+      shelterIn: false,
+      blackout: false,
+      shelterInZones: [],
+      blackoutZones: [],
+      shelterInActivatedAt: null,
+      shelterInActivatedBy: null,
+      blackoutActivatedAt: null,
+      blackoutActivatedBy: null,
+      receipts: [],
+    };
+    // Reset all user statuses to pending (no active alert)
+    if (Array.isArray(state?.users)) {
+      state.users = state.users.map((u: any) => ({ ...u, status: 'pending' }));
+    }
+    // Clear zone alerts
+    if (Array.isArray(state?.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        alertActive: false,
+        alertType: null,
+        alertPriority: null,
+        alertMessage: '',
+        alertUpdatedAt: null,
+        alertHistory: [],
+      }));
+    }
+    // Clear location alerts
+    if (Array.isArray(state?.locations)) {
+      state.locations = state.locations.map((l: any) => ({
+        ...l,
+        alertActive: false,
+        alertType: null,
+        alertPriority: null,
+        alertMessage: '',
+        alertUpdatedAt: null,
+        alertHistory: [],
+      }));
+    }
+    // Clear hazard zones
+    state.hazardZones = [];
+    // Clear activity logs
+    state.activityLogs = [];
+    // Clear mobileUserResponse
+    state.mobileUserResponse = null;
   }
 
   return persisted as AppState;
