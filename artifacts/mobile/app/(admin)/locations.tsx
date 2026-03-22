@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,13 +13,22 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  NestableDraggableFlatList,
-  NestableScrollContainer,
-  ScaleDecorator,
-  RenderItemParams,
-} from "react-native-draggable-flatlist";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+const IS_WEB = Platform.OS === "web";
+
+let NestableDraggableFlatList: any = null;
+let NestableScrollContainer: any = null;
+let ScaleDecorator: any = null;
+let GestureHandlerRootView: any = null;
+type RenderItemParams<T> = { item: T; drag: () => void; isActive: boolean };
+
+if (!IS_WEB) {
+  const dfl = require("react-native-draggable-flatlist");
+  NestableDraggableFlatList = dfl.NestableDraggableFlatList;
+  NestableScrollContainer = dfl.NestableScrollContainer;
+  ScaleDecorator = dfl.ScaleDecorator;
+  GestureHandlerRootView = require("react-native-gesture-handler").GestureHandlerRootView;
+}
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
@@ -304,8 +314,11 @@ export default function ZonesAndLocationsScreen() {
   }, [editingLocation, deleteLocation]);
 
   // ─── Render ───
+  const RootWrapper = IS_WEB ? View : GestureHandlerRootView;
+  const ScrollContainer = IS_WEB ? ScrollView : NestableScrollContainer;
+
   return (
-    <GestureHandlerRootView style={styles.root}>
+    <RootWrapper style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
@@ -323,7 +336,7 @@ export default function ZonesAndLocationsScreen() {
       </View>
 
       {/* Scrollable content */}
-      <NestableScrollContainer contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
+      <ScrollContainer contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         {activeZones.length === 0 && (
           <View style={styles.emptyState}>
             <Feather name="layers" size={40} color={Colors.textTertiary} />
@@ -387,6 +400,56 @@ export default function ZonesAndLocationsScreen() {
                     <Text style={styles.emptyZoneAdd}>+ Add</Text>
                   </Pressable>
                 </View>
+              ) : IS_WEB ? (
+                zoneLocs.map((loc) => {
+                  const isSel = multiSelectedLocIds.has(loc.id);
+                  return (
+                    <Pressable
+                      key={loc.id}
+                      style={[styles.row, isSel && styles.rowSelected]}
+                      onPress={isSelecting ? () => handleToggleLocSelect(loc.id) : undefined}
+                    >
+                      {isSelecting ? (
+                        <View style={[styles.checkbox, isSel && { backgroundColor: Colors.info, borderColor: Colors.info }]}>
+                          {isSel && <Feather name="check" size={12} color="#fff" />}
+                        </View>
+                      ) : (
+                        <View style={styles.dragHandle}>
+                          <Feather name="menu" size={16} color={Colors.textTertiary} />
+                        </View>
+                      )}
+                      <Feather
+                        name="map-pin"
+                        size={14}
+                        color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
+                      />
+                      <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
+                        {loc.name}
+                      </Text>
+                      {loc.alertActive && (
+                        <Feather name="alert-circle" size={12} color="#EF4444" />
+                      )}
+                      {!isSelecting && (
+                        <>
+                          <Switch
+                            value={loc.isActive}
+                            onValueChange={() => updateLocation(loc.id, { isActive: !loc.isActive })}
+                            trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
+                            thumbColor={loc.isActive ? Colors.safe : Colors.textSecondary}
+                            style={styles.rowSwitch}
+                          />
+                          <Pressable
+                            style={({ pressed }) => [styles.rowEditBtn, pressed && { opacity: 0.6 }]}
+                            onPress={() => handleOpenEdit(loc)}
+                            hitSlop={6}
+                          >
+                            <Feather name="edit-2" size={14} color={Colors.textSecondary} />
+                          </Pressable>
+                        </>
+                      )}
+                    </Pressable>
+                  );
+                })
               ) : (
                 <NestableDraggableFlatList
                   data={zoneLocs}
@@ -487,7 +550,7 @@ export default function ZonesAndLocationsScreen() {
               })}
           </View>
         )}
-      </NestableScrollContainer>
+      </ScrollContainer>
 
       {/* Floating multi-select bar */}
       {multiSelectMode != null && (
@@ -914,7 +977,7 @@ export default function ZonesAndLocationsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </GestureHandlerRootView>
+    </RootWrapper>
   );
 }
 
