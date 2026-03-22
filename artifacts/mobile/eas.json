@@ -16,13 +16,5 @@
         "buildType": "app-bundle"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "internal"
-      }
-    }
   }
 }
