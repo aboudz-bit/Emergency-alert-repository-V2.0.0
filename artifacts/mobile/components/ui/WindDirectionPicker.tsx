@@ -23,7 +23,7 @@ export function WindDirectionPicker({ visible, current, onSelect, onClose }: Win
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
             <Text style={styles.title}>{t.windDirection}</Text>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
@@ -70,7 +70,7 @@ export function WindDirectionPicker({ visible, current, onSelect, onClose }: Win
               <Text style={styles.clearText}>{t.clearWind}</Text>
             </Pressable>
           )}
-        </View>
+        </Pressable>
       </Pressable>
     </Modal>
   );
