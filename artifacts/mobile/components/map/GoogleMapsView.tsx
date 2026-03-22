@@ -72,11 +72,12 @@ export function GoogleMapsView({
         style={styles.map}
         provider={PROVIDER_GOOGLE}
         initialRegion={region}
-        mapType="standard"
+        mapType="hybrid"
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
-        customMapStyle={lightMapStyle}
+        showsTraffic={false}
+        showsBuildings={false}
       >
         {polygons.map((poly) => {
           if (isEditing && poly.id === editingZoneId) return null;
@@ -166,19 +167,6 @@ export function GoogleMapsView({
     </View>
   );
 }
-
-const lightMapStyle = [
-  {
-    featureType: "poi",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }],
-  },
-  {
-    featureType: "transit",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }],
-  },
-];
 
 const styles = StyleSheet.create({
   container: {
