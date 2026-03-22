@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { Component, useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
   Platform,
@@ -15,17 +15,52 @@ import type { EmergencyModeType } from "@/types";
 
 const ALARM_INTERVAL_MS = 30_000;
 
-const alarmSource = require("@/assets/sounds/emergency-alarm.wav");
+let alarmSource: any = null;
+try {
+  alarmSource = require("@/assets/sounds/emergency-alarm.wav");
+} catch (e) {
+  console.error("[EmergencyReceiptOverlay] Failed to load alarm asset:", e);
+}
 
-export function EmergencyReceiptOverlay() {
+// ─── Error boundary ──────────────────────────────────────────────────────────
+
+class OverlayErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(err: Error) {
+    console.error("[EmergencyReceiptOverlay] Render error caught:", err);
+    return { hasError: true };
+  }
+  componentDidCatch(err: Error, info: any) {
+    console.error("[EmergencyReceiptOverlay] componentDidCatch:", err, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+// ─── Inner component ─────────────────────────────────────────────────────────
+
+function EmergencyReceiptOverlayInner() {
   const currentUser = useStore((s) => s.currentUser);
   const emergencyModes = useStore((s) => s.emergencyModes);
   const confirmEmergencyReceipt = useStore((s) => s.confirmEmergencyReceipt);
 
+  // Safe array accesses – guard against corrupted/missing persisted state
+  const receipts = emergencyModes?.receipts ?? [];
+  const shelterInZones = emergencyModes?.shelterInZones ?? [];
+  const blackoutZones = emergencyModes?.blackoutZones ?? [];
+
   const pendingModes: EmergencyModeType[] = [];
-  if (currentUser) {
+  if (currentUser && emergencyModes) {
     if (emergencyModes.shelterIn) {
-      const receipt = emergencyModes.receipts.find(
+      const receipt = receipts.find(
         (r) => r.userId === currentUser.id && r.modeType === "shelterIn"
       );
       if (receipt && !receipt.receiptConfirmed) {
@@ -33,7 +68,7 @@ export function EmergencyReceiptOverlay() {
       }
     }
     if (emergencyModes.blackout) {
-      const receipt = emergencyModes.receipts.find(
+      const receipt = receipts.find(
         (r) => r.userId === currentUser.id && r.modeType === "blackout"
       );
       if (receipt && !receipt.receiptConfirmed) {
@@ -47,8 +82,20 @@ export function EmergencyReceiptOverlay() {
   const [alarmCount, setAlarmCount] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+  const playingRef = useRef(false);
+  const audioModeInitRef = useRef(false);
 
-  const playAlarm = useCallback(async () => {
+  // Track mount/unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const initAudioMode = useCallback(async () => {
+    if (audioModeInitRef.current) return;
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
@@ -56,50 +103,123 @@ export function EmergencyReceiptOverlay() {
         staysActiveInBackground: false,
         shouldDuckAndroid: false,
       });
+      audioModeInitRef.current = true;
+      console.log("[EmergencyReceiptOverlay] Audio mode initialized");
+    } catch (e) {
+      console.error("[EmergencyReceiptOverlay] setAudioModeAsync failed:", e);
+    }
+  }, []);
+
+  const playAlarm = useCallback(async () => {
+    if (playingRef.current) {
+      console.log("[EmergencyReceiptOverlay] playAlarm skipped – already playing");
+      return;
+    }
+    playingRef.current = true;
+    try {
+      await initAudioMode();
+
+      if (!alarmSource) {
+        console.error("[EmergencyReceiptOverlay] alarmSource is null – skipping playback");
+        return;
+      }
+
       if (soundRef.current) {
-        await soundRef.current.setPositionAsync(0);
-        await soundRef.current.playAsync();
-      } else {
+        try {
+          await soundRef.current.setPositionAsync(0);
+          await soundRef.current.playAsync();
+          console.log("[EmergencyReceiptOverlay] Alarm replayed");
+        } catch (e) {
+          console.error("[EmergencyReceiptOverlay] Replay failed, recreating sound:", e);
+          try {
+            await soundRef.current.unloadAsync();
+          } catch (_) {}
+          soundRef.current = null;
+        }
+      }
+
+      if (!soundRef.current) {
         const { sound } = await Audio.Sound.createAsync(alarmSource, {
           shouldPlay: true,
           volume: 1.0,
         });
         soundRef.current = sound;
+        console.log("[EmergencyReceiptOverlay] Alarm sound created and playing");
       }
-    } catch (_e) {}
-  }, []);
+    } catch (e) {
+      console.error("[EmergencyReceiptOverlay] playAlarm failed:", e);
+    } finally {
+      playingRef.current = false;
+    }
+  }, [initAudioMode]);
 
   const stopAlarm = useCallback(async () => {
+    // Clear interval immediately (sync)
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    if (soundRef.current) {
+    // Stop and unload sound (async, errors are safe to swallow)
+    const sound = soundRef.current;
+    soundRef.current = null;
+    if (sound) {
       try {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
-      } catch (_e) {}
-      soundRef.current = null;
+        await sound.stopAsync();
+      } catch (e) {
+        console.error("[EmergencyReceiptOverlay] stopAsync failed:", e);
+      }
+      try {
+        await sound.unloadAsync();
+      } catch (e) {
+        console.error("[EmergencyReceiptOverlay] unloadAsync failed:", e);
+      }
     }
   }, []);
 
+  // Audio alarm effect
   useEffect(() => {
     if (!hasPending) {
-      stopAlarm();
-      setAlarmCount(0);
+      // Only clear interval sync here; sound cleanup is handled by the
+      // previous effect's return (cleanup). Avoid double-stopping.
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (mountedRef.current) setAlarmCount(0);
       return;
     }
+
+    // Start alarm
     playAlarm();
     intervalRef.current = setInterval(() => {
+      if (!mountedRef.current) return;
       setAlarmCount((c) => c + 1);
       playAlarm();
     }, ALARM_INTERVAL_MS);
 
     return () => {
-      stopAlarm();
+      // Cleanup: stop sound and clear interval when hasPending goes false
+      // or component unmounts
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      // Async sound teardown — errors logged inside stopAlarm
+      const sound = soundRef.current;
+      soundRef.current = null;
+      if (sound) {
+        sound.stopAsync().catch((e) =>
+          console.error("[EmergencyReceiptOverlay] cleanup stopAsync:", e)
+        );
+        sound.unloadAsync().catch((e) =>
+          console.error("[EmergencyReceiptOverlay] cleanup unloadAsync:", e)
+        );
+      }
+      audioModeInitRef.current = false;
     };
-  }, [hasPending, playAlarm, stopAlarm]);
+  }, [hasPending, playAlarm]);
 
+  // Pulse animation effect
   useEffect(() => {
     if (!hasPending) return;
     const pulse = Animated.loop(
@@ -119,12 +239,10 @@ export function EmergencyReceiptOverlay() {
       <View style={styles.content}>
         {pendingModes.map((mode) => {
           const isShelter = mode === "shelterIn";
-          const zones = isShelter
-            ? emergencyModes.shelterInZones
-            : emergencyModes.blackoutZones;
+          const zones = isShelter ? shelterInZones : blackoutZones;
           const activatedBy = isShelter
-            ? emergencyModes.shelterInActivatedBy
-            : emergencyModes.blackoutActivatedBy;
+            ? emergencyModes?.shelterInActivatedBy
+            : emergencyModes?.blackoutActivatedBy;
 
           return (
             <View
@@ -154,11 +272,11 @@ export function EmergencyReceiptOverlay() {
                   Zones: {zones.join(", ")}
                 </Text>
               )}
-              {activatedBy && (
+              {activatedBy ? (
                 <Text style={styles.activatedBy}>
                   Activated by {activatedBy}
                 </Text>
-              )}
+              ) : null}
 
               {alarmCount > 0 && (
                 <View style={styles.alarmBadge}>
@@ -175,7 +293,13 @@ export function EmergencyReceiptOverlay() {
                   isShelter ? styles.confirmBtnShelter : styles.confirmBtnBlackout,
                   pressed && { opacity: 0.85 },
                 ]}
-                onPress={() => confirmEmergencyReceipt(mode)}
+                onPress={() => {
+                  try {
+                    confirmEmergencyReceipt(mode);
+                  } catch (e) {
+                    console.error("[EmergencyReceiptOverlay] confirmEmergencyReceipt failed:", e);
+                  }
+                }}
               >
                 <Feather name="check-circle" size={20} color="#fff" />
                 <Text style={styles.confirmBtnText}>Confirm Receipt</Text>
@@ -187,6 +311,18 @@ export function EmergencyReceiptOverlay() {
     </View>
   );
 }
+
+// ─── Public export (wrapped in error boundary) ────────────────────────────────
+
+export function EmergencyReceiptOverlay() {
+  return (
+    <OverlayErrorBoundary>
+      <EmergencyReceiptOverlayInner />
+    </OverlayErrorBoundary>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   overlay: {

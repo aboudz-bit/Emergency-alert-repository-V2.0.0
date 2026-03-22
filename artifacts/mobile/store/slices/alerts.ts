@@ -98,6 +98,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
           shelterInActivatedBy: null,
           blackoutActivatedAt: null,
           blackoutActivatedBy: null,
+          receipts: [],
         },
         windDirection: null,
         windSetBy: null,

@@ -1,0 +1,79 @@
+We found a new critical bug.
+
+Current problem:
+When Shelter In or Blackout is activated in the installed mobile app,
+the app suddenly crashes and shows:
+"Something went wrong"
+
+This crash happens during emergency mode activation flow.
+
+==================================================
+LIKELY CRASH AREA
+==================================================
+
+The issue is probably in one of these:
+- EmergencyReceiptOverlay
+- expo-av sound playback
+- repeated 30-second interval
+- emergency receipt state update
+- overlay mount/unmount loop
+- audio cleanup / unload logic
+
+==================================================
+REQUIRED ACTION
+==================================================
+
+Do not guess.
+Capture the actual runtime error.
+
+Please add temporary logging / error boundaries around:
+
+1) EmergencyReceiptOverlay mount
+2) playAlarm()
+3) stopAlarm()
+4) confirmEmergencyReceipt()
+5) the useEffect that watches pendingModes
+6) the 30-second repeat interval
+7) sound load / replay / unload
+
+Also wrap audio calls in try/catch and log the exact error.
+
+==================================================
+CHECK FOR THESE SPECIFIC ISSUES
+==================================================
+
+- multiple intervals being created
+- sound object being null / unloaded unexpectedly
+- replayAsync or playAsync failing
+- Audio.setAudioModeAsync causing crash
+- overlay re-render loop when emergency state changes
+- receipt generation causing invalid state
+- repeated confirm/update causing store loop
+
+==================================================
+EXPECTED FIX
+==================================================
+
+When Shelter In / Blackout is activated:
+- app must stay stable
+- overlay must appear
+- sound must play safely
+- no crash
+- if audio fails, app should continue without crashing
+
+Important:
+Audio failure must never crash the app.
+
+Use defensive logic:
+- try/catch around all audio operations
+- fail gracefully if sound cannot play
+
+==================================================
+AFTER FIX
+==================================================
+
+Tell me:
+1) exact runtime error found
+2) which file caused it
+3) whether it was audio, overlay, or state logic
+4) what was changed to make activation stable
