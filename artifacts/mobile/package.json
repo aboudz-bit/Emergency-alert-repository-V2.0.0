@@ -58,6 +58,7 @@
     "zustand": "^5.0.0"
   },
   "dependencies": {
+    "expo-av": "^16.0.8",
     "expo-updates": "^55.0.15",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-maps": "^1.27.2",

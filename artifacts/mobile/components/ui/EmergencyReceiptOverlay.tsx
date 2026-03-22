@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
   Platform,
@@ -7,12 +7,15 @@ import {
   Text,
   View,
 } from "react-native";
+import { Audio } from "expo-av";
 import { Feather } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { EmergencyModeType } from "@/types";
 
 const ALARM_INTERVAL_MS = 30_000;
+
+const alarmSource = require("@/assets/sounds/emergency-alarm.wav");
 
 export function EmergencyReceiptOverlay() {
   const currentUser = useStore((s) => s.currentUser);
@@ -39,11 +42,66 @@ export function EmergencyReceiptOverlay() {
     }
   }
 
+  const hasPending = pendingModes.length > 0;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [alarmCount, setAlarmCount] = useState(0);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const playAlarm = useCallback(async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: false,
+      });
+      if (soundRef.current) {
+        await soundRef.current.setPositionAsync(0);
+        await soundRef.current.playAsync();
+      } else {
+        const { sound } = await Audio.Sound.createAsync(alarmSource, {
+          shouldPlay: true,
+          volume: 1.0,
+        });
+        soundRef.current = sound;
+      }
+    } catch (_e) {}
+  }, []);
+
+  const stopAlarm = useCallback(async () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch (_e) {}
+      soundRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    if (pendingModes.length === 0) return;
+    if (!hasPending) {
+      stopAlarm();
+      setAlarmCount(0);
+      return;
+    }
+    playAlarm();
+    intervalRef.current = setInterval(() => {
+      setAlarmCount((c) => c + 1);
+      playAlarm();
+    }, ALARM_INTERVAL_MS);
+
+    return () => {
+      stopAlarm();
+    };
+  }, [hasPending, playAlarm, stopAlarm]);
+
+  useEffect(() => {
+    if (!hasPending) return;
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.15, duration: 500, useNativeDriver: true }),
@@ -52,20 +110,9 @@ export function EmergencyReceiptOverlay() {
     );
     pulse.start();
     return () => pulse.stop();
-  }, [pendingModes.length, pulseAnim]);
+  }, [hasPending, pulseAnim]);
 
-  useEffect(() => {
-    if (pendingModes.length === 0) {
-      setAlarmCount(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setAlarmCount((c) => c + 1);
-    }, ALARM_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [pendingModes.length]);
-
-  if (pendingModes.length === 0) return null;
+  if (!hasPending) return null;
 
   return (
     <View style={styles.overlay}>
