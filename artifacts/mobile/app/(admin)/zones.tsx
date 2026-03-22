@@ -462,10 +462,28 @@ export default function ZonesScreen() {
   const handleOpenLinking = useCallback((shId: number) => {
     const sh = shelters.find((s) => s.id === shId);
     if (!sh) return;
+    const pt = { lat: sh.lat, lng: sh.lng };
+    const containingZone = zones.find(
+      (z) => z.polygonPoints.length >= 3 && pointInPolygon(pt, z.polygonPoints)
+    );
+    if (containingZone && containingZone.id !== sh.zoneId) {
+      updateShelter(shId, { zoneId: containingZone.id });
+    } else if (!containingZone) {
+      let nearestId = sh.zoneId;
+      let minDist = Infinity;
+      for (const z of zones) {
+        if (!z.center) continue;
+        const d = haversineDistance(pt.lat, pt.lng, z.center.lat, z.center.lng);
+        if (d < minDist) { minDist = d; nearestId = z.id; }
+      }
+      if (nearestId !== sh.zoneId) {
+        updateShelter(shId, { zoneId: nearestId });
+      }
+    }
     setLinkingShelterId(shId);
     setLinkingSelectedIds([...(sh.linkedLocationIds || [])]);
     setLinkingModal(true);
-  }, [shelters]);
+  }, [shelters, zones, updateShelter]);
 
   const handleToggleLinkLocation = useCallback((locId: number) => {
     setLinkingSelectedIds((prev) =>
@@ -1133,7 +1151,20 @@ export default function ZonesScreen() {
             <ScrollView style={{ maxHeight: SCREEN_H * 0.35 }}>
               {locations.filter((loc) => {
                 const sh = shelters.find((s) => s.id === linkingShelterId);
-                return sh ? loc.zoneId === sh.zoneId : true;
+                if (!sh) return true;
+                const pt = { lat: sh.lat, lng: sh.lng };
+                const containingZone = zones.find(
+                  (z) => z.polygonPoints.length >= 3 && pointInPolygon(pt, z.polygonPoints)
+                );
+                if (containingZone) return loc.zoneId === containingZone.id;
+                let nearestId = sh.zoneId;
+                let minDist = Infinity;
+                for (const z of zones) {
+                  if (!z.center) continue;
+                  const d = haversineDistance(pt.lat, pt.lng, z.center.lat, z.center.lng);
+                  if (d < minDist) { minDist = d; nearestId = z.id; }
+                }
+                return loc.zoneId === nearestId;
               }).map((loc) => {
                 const isLinked = linkingSelectedIds.includes(loc.id);
                 return (
