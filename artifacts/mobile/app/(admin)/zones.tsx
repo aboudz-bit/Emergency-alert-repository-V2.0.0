@@ -18,6 +18,7 @@ import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { pointInPolygon, haversineDistance } from "@/utils/geo";
 import { useStore, selectActiveAlert, alertEq } from "@/store";
 import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
@@ -146,12 +147,26 @@ export default function ZonesScreen() {
 
   const handleSaveShelter = useCallback(() => {
     if (!shelterFormName.trim()) return;
-    const nearestZone = zones[0];
+    const pt = { lat: pendingShelterLat, lng: pendingShelterLng };
+    let matchedZoneId = 0;
+    const polyZone = zones.find(
+      (z) => z.polygonPoints.length >= 3 && pointInPolygon(pt, z.polygonPoints)
+    );
+    if (polyZone) {
+      matchedZoneId = polyZone.id;
+    } else {
+      let minDist = Infinity;
+      for (const z of zones) {
+        if (!z.center) continue;
+        const d = haversineDistance(pt.lat, pt.lng, z.center.lat, z.center.lng);
+        if (d < minDist) { minDist = d; matchedZoneId = z.id; }
+      }
+    }
     addShelter({
       name: shelterFormName.trim(),
       lat: pendingShelterLat,
       lng: pendingShelterLng,
-      zoneId: nearestZone?.id ?? 0,
+      zoneId: matchedZoneId,
       isActive: true,
       linkedLocationIds: [],
     });
