@@ -35,7 +35,8 @@ const priorityColors: Record<AlertPriority, string> = {
 type FilterMode = "all" | "active" | "inactive";
 
 export default function AlertManagementScreen() {
-  const zones = useStore((s) => s.zones.filter(z => !z.isArchived));
+  const allZonesRaw = useStore((s) => s.zones);
+  const zones = useMemo(() => (allZonesRaw || []).filter((z: any) => !z.isArchived), [allZonesRaw]);
   const locations = useStore((s) => s.locations);
   const users = useStore((s) => s.users);
   const activateZoneAlert = useStore((s) => s.activateZoneAlert);
