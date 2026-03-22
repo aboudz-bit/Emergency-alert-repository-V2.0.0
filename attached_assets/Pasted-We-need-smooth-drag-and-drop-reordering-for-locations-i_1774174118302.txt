@@ -1,0 +1,97 @@
+We need smooth drag-and-drop reordering for locations inside "Zones and Locations",
+similar to the category reorder UX in the reference example.
+
+Goal:
+Make location reordering feel smooth, visual, and stable on mobile,
+like the category cards drag-and-drop experience.
+
+==================================================
+REQUIRED UX
+==================================================
+
+1) Allow dragging location rows up and down inside the same zone
+2) Reordering must feel smooth and animated
+3) The dragged row should visually lift / float while dragging
+4) Other rows should smoothly move out of the way
+5) On drop, the new order should save immediately
+6) The order must persist after navigation / reload
+
+==================================================
+VISUAL BEHAVIOR
+==================================================
+
+Make it similar to the reference category reorder flow:
+
+- visible drag handle
+- smooth row movement
+- active dragged item scale / shadow / opacity feedback
+- clean spacing while dragging
+- no jumpy reorder
+- no flicker
+- no sudden re-render resets
+
+==================================================
+DATA RULES
+==================================================
+
+1) Reordering must only work inside one zone at a time
+2) Do NOT move locations between zones during drag
+3) Save order using a stable field like:
+   sortOrder / order
+4) Render locations sorted by that saved order
+5) Preserve all existing location data
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT break:
+- zone actions
+- rename / merge / split / archive
+- add new location
+- edit location
+- active toggle
+- map logic
+- alerts
+- shelters
+- linked references
+
+Only improve:
+- drag-and-drop reorder UX
+- smooth animation
+- stored order persistence
+
+==================================================
+TECHNICAL PREFERENCE
+==================================================
+
+Use a mobile-friendly drag-and-drop approach that is stable in Expo / React Native.
+
+Prefer:
+- smooth gesture handling
+- animated row transitions
+- no unsafe hacks
+
+If needed, use the best stable library/pattern already compatible with the project.
+
+==================================================
+ALSO FIX
+==================================================
+
+When opening "New Location" modal,
+the bottom buttons must be properly aligned and fully visible on mobile:
+- Cancel
+- Add
+
+They must not be cropped or squeezed.
+
+==================================================
+AFTER IMPLEMENTATION
+==================================================
+
+Tell me:
+1) which files changed
+2) what approach/library was used
+3) how order is stored
+4) how smooth drag behavior was implemented
+5) how modal button layout was fixed

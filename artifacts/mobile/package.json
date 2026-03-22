@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "expo-updates": "^55.0.15",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-maps": "^1.27.2",
     "react-native-webview": "^13.16.1"
   }

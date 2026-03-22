@@ -12,6 +12,13 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  ScaleDecorator,
+  RenderItemParams,
+} from "react-native-draggable-flatlist";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
@@ -296,24 +303,9 @@ export default function ZonesAndLocationsScreen() {
     setEditingLocation(null);
   }, [editingLocation, deleteLocation]);
 
-  // ─── Reorder helpers ───
-  const handleMoveLocation = useCallback((zoneId: number, locId: number, direction: "up" | "down") => {
-    const zoneLocs = locations
-      .filter((l) => l.zoneId === zoneId)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-    const idx = zoneLocs.findIndex((l) => l.id === locId);
-    if (idx < 0) return;
-    if (direction === "up" && idx === 0) return;
-    if (direction === "down" && idx === zoneLocs.length - 1) return;
-    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-    const ids = zoneLocs.map((l) => l.id);
-    [ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]];
-    reorderLocations(zoneId, ids);
-  }, [locations, reorderLocations]);
-
   // ─── Render ───
   return (
-    <View style={styles.root}>
+    <GestureHandlerRootView style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
@@ -331,7 +323,7 @@ export default function ZonesAndLocationsScreen() {
       </View>
 
       {/* Scrollable content */}
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
+      <NestableScrollContainer contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         {activeZones.length === 0 && (
           <View style={styles.emptyState}>
             <Feather name="layers" size={40} color={Colors.textTertiary} />
@@ -396,72 +388,71 @@ export default function ZonesAndLocationsScreen() {
                   </Pressable>
                 </View>
               ) : (
-                zoneLocs.map((loc, locIdx) => {
-                  const isSel = multiSelectedLocIds.has(loc.id);
-                  const isFirst = locIdx === 0;
-                  const isLast = locIdx === zoneLocs.length - 1;
-                  return (
-                    <Pressable
-                      key={loc.id}
-                      style={[styles.row, isSel && styles.rowSelected]}
-                      onPress={isSelecting ? () => handleToggleLocSelect(loc.id) : undefined}
-                    >
-                      {isSelecting ? (
-                        <View style={[styles.checkbox, isSel && { backgroundColor: Colors.info, borderColor: Colors.info }]}>
-                          {isSel && <Feather name="check" size={12} color="#fff" />}
-                        </View>
-                      ) : (
-                        <View style={styles.reorderBtns}>
-                          <Pressable
-                            onPress={() => handleMoveLocation(zone.id, loc.id, "up")}
-                            hitSlop={4}
-                            style={({ pressed }) => [styles.reorderBtn, pressed && { opacity: 0.5 }]}
-                            disabled={isFirst}
-                          >
-                            <Feather name="chevron-up" size={14} color={isFirst ? Colors.border : Colors.textSecondary} />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => handleMoveLocation(zone.id, loc.id, "down")}
-                            hitSlop={4}
-                            style={({ pressed }) => [styles.reorderBtn, pressed && { opacity: 0.5 }]}
-                            disabled={isLast}
-                          >
-                            <Feather name="chevron-down" size={14} color={isLast ? Colors.border : Colors.textSecondary} />
-                          </Pressable>
-                        </View>
-                      )}
-                      <Feather
-                        name="map-pin"
-                        size={14}
-                        color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
-                      />
-                      <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
-                        {loc.name}
-                      </Text>
-                      {loc.alertActive && (
-                        <Feather name="alert-circle" size={12} color="#EF4444" />
-                      )}
-                      {!isSelecting && (
-                        <>
-                          <Switch
-                            value={loc.isActive}
-                            onValueChange={() => updateLocation(loc.id, { isActive: !loc.isActive })}
-                            trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                            thumbColor={loc.isActive ? Colors.safe : Colors.textSecondary}
-                            style={styles.rowSwitch}
+                <NestableDraggableFlatList
+                  data={zoneLocs}
+                  keyExtractor={(item) => String(item.id)}
+                  onDragEnd={({ data: reordered }) => {
+                    reorderLocations(zone.id, reordered.map((l) => l.id));
+                  }}
+                  activationDistance={isSelecting ? 99999 : 15}
+                  renderItem={({ item: loc, drag, isActive: isDragging }: RenderItemParams<Location>) => {
+                    const isSel = multiSelectedLocIds.has(loc.id);
+                    return (
+                      <ScaleDecorator activeScale={1.04}>
+                        <Pressable
+                          style={[
+                            styles.row,
+                            isSel && styles.rowSelected,
+                            isDragging && styles.rowDragging,
+                          ]}
+                          onPress={isSelecting ? () => handleToggleLocSelect(loc.id) : undefined}
+                          onLongPress={isSelecting ? undefined : drag}
+                          delayLongPress={150}
+                          disabled={isDragging}
+                        >
+                          {isSelecting ? (
+                            <View style={[styles.checkbox, isSel && { backgroundColor: Colors.info, borderColor: Colors.info }]}>
+                              {isSel && <Feather name="check" size={12} color="#fff" />}
+                            </View>
+                          ) : (
+                            <Pressable onPressIn={drag} hitSlop={6} style={styles.dragHandle}>
+                              <Feather name="menu" size={16} color={Colors.textTertiary} />
+                            </Pressable>
+                          )}
+                          <Feather
+                            name="map-pin"
+                            size={14}
+                            color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
                           />
-                          <Pressable
-                            style={({ pressed }) => [styles.rowEditBtn, pressed && { opacity: 0.6 }]}
-                            onPress={() => handleOpenEdit(loc)}
-                            hitSlop={6}
-                          >
-                            <Feather name="edit-2" size={14} color={Colors.textSecondary} />
-                          </Pressable>
-                        </>
-                      )}
-                    </Pressable>
-                  );
-                })
+                          <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
+                            {loc.name}
+                          </Text>
+                          {loc.alertActive && (
+                            <Feather name="alert-circle" size={12} color="#EF4444" />
+                          )}
+                          {!isSelecting && (
+                            <>
+                              <Switch
+                                value={loc.isActive}
+                                onValueChange={() => updateLocation(loc.id, { isActive: !loc.isActive })}
+                                trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
+                                thumbColor={loc.isActive ? Colors.safe : Colors.textSecondary}
+                                style={styles.rowSwitch}
+                              />
+                              <Pressable
+                                style={({ pressed }) => [styles.rowEditBtn, pressed && { opacity: 0.6 }]}
+                                onPress={() => handleOpenEdit(loc)}
+                                hitSlop={6}
+                              >
+                                <Feather name="edit-2" size={14} color={Colors.textSecondary} />
+                              </Pressable>
+                            </>
+                          )}
+                        </Pressable>
+                      </ScaleDecorator>
+                    );
+                  }}
+                />
               )}
             </View>
           );
@@ -496,7 +487,7 @@ export default function ZonesAndLocationsScreen() {
               })}
           </View>
         )}
-      </ScrollView>
+      </NestableScrollContainer>
 
       {/* Floating multi-select bar */}
       {multiSelectMode != null && (
@@ -923,7 +914,7 @@ export default function ZonesAndLocationsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -1012,11 +1003,14 @@ const styles = StyleSheet.create({
     width: 34, height: 34, borderRadius: 8,
     backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
   },
-  reorderBtns: {
-    flexDirection: "column", alignItems: "center", gap: 0,
+  dragHandle: {
+    width: 28, height: 36, alignItems: "center", justifyContent: "center",
   },
-  reorderBtn: {
-    width: 24, height: 18, alignItems: "center", justifyContent: "center",
+  rowDragging: {
+    backgroundColor: Colors.surfaceElevated,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18, shadowRadius: 10, elevation: 8,
+    borderRadius: 10, borderTopWidth: 0,
   },
 
   // Checkbox
