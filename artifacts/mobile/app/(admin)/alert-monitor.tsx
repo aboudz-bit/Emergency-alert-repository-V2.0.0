@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
-  Alert,
+  Alert as RNAlert,
   Dimensions,
   Modal,
   Pressable,
@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
@@ -38,11 +39,12 @@ const TABS: { key: TabKey; label: string; color: string }[] = [
   { key: "need_help", label: "Help", color: Colors.primary },
 ];
 
-export default function AlertMonitorScreen() {
+function AlertMonitorScreenInner() {
   const focusCount = useRefreshOnFocus();
   const activeAlert = useStore(selectActiveAlert, alertEq);
   const users = useStore((s) => s.users) ?? [];
-  const zones = useStore((s) => s.zones) ?? [];
+  const allZones = useStore((s) => s.zones) ?? [];
+  const zones = useMemo(() => allZones.filter((z: any) => !z.isArchived), [allZones]);
   const locations = useStore((s) => s.locations) ?? [];
   const shelters = useStore((s) => s.shelters) ?? [];
   const hazardZones = useStore((s) => s.hazardZones) ?? [];
@@ -50,7 +52,7 @@ export default function AlertMonitorScreen() {
   const closeAlert = useStore((s) => s.closeAlert);
 
   const currentUser = useStore((s) => s.currentUser);
-  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments) ?? [];
 
   const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);
@@ -143,7 +145,7 @@ export default function AlertMonitorScreen() {
               <View style={styles.alertTitleWrap}>
                 <Text style={styles.alertType}>{activeAlert.type}</Text>
                 <Text style={styles.alertMeta}>
-                  {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "MMM d, HH:mm")}
+                  {activeAlert.zone} · {(() => { try { return format(new Date(activeAlert.timestamp), "MMM d, HH:mm"); } catch { return "—"; } })()}
                 </Text>
               </View>
             </View>
@@ -188,19 +190,21 @@ export default function AlertMonitorScreen() {
           <View style={styles.mapSection}>
             <Text style={styles.zoneSectionTitle}>Live Personnel Map</Text>
             <View style={styles.mapContainer}>
-              <ZoneMap
-                key={focusCount}
-                zones={zones}
-                selectedZoneId={null}
-                onZonePress={() => {}}
-                height={MAP_HEIGHT}
-                showLabels
-                locations={locations}
-                shelters={shelters}
-                personnelLocations={visiblePersonnel}
-                onPersonnelPress={handlePersonnelPress}
-                hazardZones={activeHazardZones}
-              />
+              <ErrorBoundary label="AlertMonitor_ZoneMap">
+                <ZoneMap
+                  key={focusCount}
+                  zones={zones}
+                  selectedZoneId={null}
+                  onZonePress={() => {}}
+                  height={MAP_HEIGHT}
+                  showLabels
+                  locations={locations}
+                  shelters={shelters}
+                  personnelLocations={visiblePersonnel}
+                  onPersonnelPress={handlePersonnelPress}
+                  hazardZones={activeHazardZones}
+                />
+              </ErrorBoundary>
               <WindIndicator />
             </View>
             <View style={styles.mapLegend}>
@@ -234,7 +238,7 @@ export default function AlertMonitorScreen() {
         <Button
           title="All Clear"
           onPress={() => {
-            Alert.alert(
+            RNAlert.alert(
               "Send All Clear",
               "This will close the alert and mark everyone as safe. Continue?",
               [
@@ -321,6 +325,14 @@ export default function AlertMonitorScreen() {
         </Pressable>
       </Modal>
     </View>
+  );
+}
+
+export default function AlertMonitorScreen() {
+  return (
+    <ErrorBoundary label="AlertMonitor">
+      <AlertMonitorScreenInner />
+    </ErrorBoundary>
   );
 }
 

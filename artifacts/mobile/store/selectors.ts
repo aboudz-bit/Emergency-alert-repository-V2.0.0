@@ -66,7 +66,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
       const first = activeZones[0];
       return {
         id: -1,
-        type: first.alertType || 'Zone Alert',
+        type: (first.alertType || 'Security Alert') as AlertType,
         zone: activeZones.map(z => z.name).join(', '),
         title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
         message: first.alertMessage || '',

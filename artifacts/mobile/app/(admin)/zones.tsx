@@ -61,7 +61,7 @@ export default function ZonesScreen() {
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
   const applyDefaultsToHazardZone = useStore((s) => s.applyDefaultsToHazardZone);
-  const hazardZones = useStore((s) => s.hazardZones);
+  const hazardZones = useStore((s) => s.hazardZones) ?? [];
   const settings = useStore((s) => s.settings);
   const emergencyModes = useStore((s) => s.emergencyModes);
 
@@ -289,7 +289,7 @@ export default function ZonesScreen() {
   const handleStartPlacingHazard = useCallback(() => {
     // Guard: allow placement when any alert is active (real or zone-level)
     const state = useStore.getState();
-    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
+    const hasAny = (Array.isArray(state.alerts) && state.alerts.some((a: { isActive: boolean }) => a.isActive)) || (Array.isArray(state.zones) && state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive));
     if (!hasAny) {
       RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert found.");
       return;
@@ -305,7 +305,7 @@ export default function ZonesScreen() {
     if (!hazardCenter) return;
     // Check for any active alert (real or zone-level)
     const state = useStore.getState();
-    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
+    const hasAny = (Array.isArray(state.alerts) && state.alerts.some((a: { isActive: boolean }) => a.isActive)) || (Array.isArray(state.zones) && state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive));
     if (!hasAny) {
       setPlacingHazard(false);
       setHazardCenter(null);
