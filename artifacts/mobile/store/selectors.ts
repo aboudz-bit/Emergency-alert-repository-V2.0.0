@@ -6,6 +6,8 @@ import type { AppState } from './types';
 export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
   if (a === b) return true;
   if (!a || !b) return false;
+  const aStats = a.stats ?? { confirmed: 0, pending: 0, needHelp: 0, total: 0 };
+  const bStats = b.stats ?? { confirmed: 0, pending: 0, needHelp: 0, total: 0 };
   return (
     a.id === b.id &&
     a.type === b.type &&
@@ -13,10 +15,10 @@ export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
     a.zone === b.zone &&
     a.status === b.status &&
     a.timestamp === b.timestamp &&
-    a.stats.confirmed === b.stats.confirmed &&
-    a.stats.pending === b.stats.pending &&
-    a.stats.needHelp === b.stats.needHelp &&
-    a.stats.total === b.stats.total
+    aStats.confirmed === bStats.confirmed &&
+    aStats.pending === bStats.pending &&
+    aStats.needHelp === bStats.needHelp &&
+    aStats.total === bStats.total
   );
 };
 

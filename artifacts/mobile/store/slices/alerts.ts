@@ -132,7 +132,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         const anyZoneActive = s.zones.some(z => z.isActive && z.alertActive);
         return {
           alerts: updatedAlerts,
-          hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),
+          hazardZones: Array.isArray(s.hazardZones) ? s.hazardZones.filter(hz => hz.alertId !== alertId) : [],
           ...(!anyAlertActive && !anyZoneActive ? { personnelLocations: {} } : {}),
         };
       });

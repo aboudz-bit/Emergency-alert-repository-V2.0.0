@@ -70,7 +70,9 @@ function generateLeafletHtml(
       const color = z.isActive ? z.color : "#6B7280";
       const labelCoord = z.center
         ? `${z.center.lat}, ${z.center.lng}`
-        : `${z.polygonPoints[0].lat}, ${z.polygonPoints[0].lng}`;
+        : z.polygonPoints.length > 0
+          ? `${z.polygonPoints[0].lat}, ${z.polygonPoints[0].lng}`
+          : `${centerLat}, ${centerLng}`;
 
       return `
         var poly${z.id} = L.polygon([${coords}], {
@@ -102,7 +104,7 @@ function generateLeafletHtml(
       if (isEditing && z.id === editingZoneId) return "";
       const isSelected = z.id === selectedZoneId;
       return `
-        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
+        L.circleMarker([${z.center?.lat ?? centerLat}, ${z.center?.lng ?? centerLng}], {
           radius: ${isSelected ? 14 : 10}, color: '${z.color}', fillColor: '${z.color}',
           fillOpacity: ${isSelected ? 0.5 : 0.3}, weight: ${isSelected ? 3 : 2}, dashArray: '4,4',
         }).addTo(map).on('click', function() {
@@ -110,7 +112,7 @@ function generateLeafletHtml(
             window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
           }
         });
-        L.marker([${z.center!.lat}, ${z.center!.lng}], {
+        L.marker([${z.center?.lat ?? centerLat}, ${z.center?.lng ?? centerLng}], {
           icon: L.divIcon({
             className: 'zone-label',
             html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px dashed rgba(255,255,255,0.5);">${z.name} (no boundary)</div>',
@@ -185,7 +187,7 @@ function generateLeafletHtml(
         (z) => `allBounds.push([${z.polygonPoints.map((p) => `[${p.lat},${p.lng}]`).join(",")}]);`
       ),
       ...centerZones.map(
-        (z) => `allBounds.push([[${z.center!.lat},${z.center!.lng}]]);`
+        (z) => `allBounds.push([[${z.center?.lat ?? centerLat},${z.center?.lng ?? centerLng}]]);`
       ),
     ];
     return parts.join("\n");

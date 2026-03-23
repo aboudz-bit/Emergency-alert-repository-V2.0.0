@@ -15,6 +15,7 @@ export function createHazardZoneSlice(set: SetState, get: GetState): Pick<
     addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
       const state = get();
       const { settings, currentUser, alerts, zones } = state;
+      if (!Array.isArray(alerts) || !Array.isArray(zones)) return;
       let activeAlert = alerts.find(a => a.isActive);
       if (!activeAlert) {
         const hasZoneAlert = zones.some(z => z.isActive && z.alertActive);
@@ -41,23 +42,23 @@ export function createHazardZoneSlice(set: SetState, get: GetState): Pick<
         windMode: null,
         hazardShape: 'circle',
       };
-      set(s => ({ hazardZones: [...s.hazardZones, hz] }));
+      set(s => ({ hazardZones: [...(Array.isArray(s.hazardZones) ? s.hazardZones : []), hz] }));
     },
 
     removeHazardZone: (id) => {
-      set(s => ({ hazardZones: s.hazardZones.filter(hz => hz.id !== id) }));
+      set(s => ({ hazardZones: (Array.isArray(s.hazardZones) ? s.hazardZones : []).filter(hz => hz.id !== id) }));
     },
 
     unlockHazardZone: (id) => {
       set(s => ({
-        hazardZones: s.hazardZones.map(hz => hz.id === id ? { ...hz, isLocked: false } : hz),
+        hazardZones: (Array.isArray(s.hazardZones) ? s.hazardZones : []).map(hz => hz.id === id ? { ...hz, isLocked: false } : hz),
       }));
     },
 
     applyDefaultsToHazardZone: (id) => {
       const { settings } = get();
       set(s => ({
-        hazardZones: s.hazardZones.map(hz => hz.id === id ? {
+        hazardZones: (Array.isArray(s.hazardZones) ? s.hazardZones : []).map(hz => hz.id === id ? {
           ...hz,
           hotRadius: settings.hazardHotRadius || 200,
           warmRadius: settings.hazardWarmRadius || 500,

@@ -10,7 +10,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
   'sendZoneNotification'
 > {
   return {
-    addZone: (zone) => set(s => ({ zones: [...s.zones, { ...zone, id: Date.now() }] })),
+    addZone: (zone) => set(s => ({ zones: [...s.zones, { ...zone, id: Date.now(), polygonPoints: Array.isArray(zone.polygonPoints) ? zone.polygonPoints : [], alertHistory: Array.isArray(zone.alertHistory) ? zone.alertHistory : [] }] })),
     updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
     deleteZone: (id) => {
       const { zones, locations } = get();
@@ -119,7 +119,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           type: source.type,
           boundaryType: 'Polygon' as const,
           polygonPoints: [],
-          center: source.center,
+          center: source.center ?? null,
           isActive: true,
           isArchived: false,
           color: newZoneColor,
