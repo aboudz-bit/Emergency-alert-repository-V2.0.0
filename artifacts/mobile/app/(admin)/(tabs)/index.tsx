@@ -149,7 +149,7 @@ export default function DashboardScreen() {
         </View>
 
         {hasActiveAlerts && (
-          <Pressable onPress={() => router.push("/(admin)/send-alert")}>
+          <Pressable onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}>
             <Card style={styles.alertBanner}>
               <View style={styles.alertBannerHeader}>
                 <View style={styles.alertBannerLeft}>
@@ -207,7 +207,7 @@ export default function DashboardScreen() {
               <View style={styles.alertActions}>
                 <Pressable
                   style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSecondary, pressed && { opacity: 0.8 }]}
-                  onPress={() => router.push("/(admin)/send-alert")}
+                  onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}
                 >
                   <Feather name="settings" size={14} color={Colors.text} />
                   <Text style={styles.alertActionTextDark}>Manage</Text>
@@ -226,7 +226,7 @@ export default function DashboardScreen() {
           <View style={styles.quickActionsGrid}>
             <Pressable
               style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
-              onPress={() => router.push("/(admin)/send-alert")}
+              onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryDim }]}>
                 <Feather name="alert-triangle" size={20} color={Colors.primary} />
@@ -286,29 +286,29 @@ export default function DashboardScreen() {
               <View style={[styles.statIcon, { backgroundColor: Colors.info + "1A" }]}>
                 <Feather name="layers" size={18} color={Colors.info} />
               </View>
-              <Text style={styles.statValue}>{zones.filter((z) => z.isActive).length}</Text>
-              <Text style={styles.statLabel}>Active Zones</Text>
+              <Text style={styles.kpiValue}>{zones.filter((z) => z.isActive).length}</Text>
+              <Text style={styles.kpiLabel}>Active Zones</Text>
             </View>
             <View style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: Colors.safe + "1A" }]}>
                 <Feather name="map-pin" size={18} color={Colors.safe} />
               </View>
-              <Text style={styles.statValue}>{locations.length}</Text>
-              <Text style={styles.statLabel}>Locations</Text>
+              <Text style={styles.kpiValue}>{locations.length}</Text>
+              <Text style={styles.kpiLabel}>Locations</Text>
             </View>
             <View style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: Colors.amber + "1A" }]}>
                 <Feather name="home" size={18} color={Colors.amber} />
               </View>
-              <Text style={styles.statValue}>{shelters.length}</Text>
-              <Text style={styles.statLabel}>Shelters</Text>
+              <Text style={styles.kpiValue}>{shelters.length}</Text>
+              <Text style={styles.kpiLabel}>Shelters</Text>
             </View>
             <View style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: activeAlertCount > 0 ? Colors.destructive + "1A" : Colors.textTertiary + "1A" }]}>
                 <Feather name="alert-triangle" size={18} color={activeAlertCount > 0 ? Colors.destructive : Colors.textTertiary} />
               </View>
-              <Text style={[styles.statValue, activeAlertCount > 0 && { color: Colors.destructive }]}>{activeAlertCount}</Text>
-              <Text style={styles.statLabel}>Active Alerts</Text>
+              <Text style={[styles.kpiValue, activeAlertCount > 0 && { color: Colors.destructive }]}>{activeAlertCount}</Text>
+              <Text style={styles.kpiLabel}>Active Alerts</Text>
             </View>
           </View>
         </View>
@@ -641,12 +641,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statValue: {
+  kpiValue: {
     fontSize: FontSize.xl,
     fontFamily: "Inter_700Bold",
     color: Colors.text,
   },
-  statLabel: {
+  kpiLabel: {
     fontSize: FontSize.xs,
     fontFamily: "Inter_500Medium",
     color: Colors.textSecondary,
