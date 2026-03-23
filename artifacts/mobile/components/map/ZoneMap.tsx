@@ -44,6 +44,41 @@ function MapPlaceholder({ height }: { height: number }) {
 }
 
 export function ZoneMap(props: ZoneMapProps) {
+  const tag = '[ZONE_MAP]';
+
+  // ── Validate props before render ──
+  if (!Array.isArray(props.zones)) {
+    console.error(`${tag} FATAL: props.zones is not array: ${typeof props.zones}`, props.zones);
+    return <MapPlaceholder height={props.height} />;
+  }
+
+  for (let i = 0; i < props.zones.length; i++) {
+    const z = props.zones[i];
+    if (!z) {
+      console.error(`${tag} FATAL: zones[${i}] is ${z}`);
+      continue;
+    }
+    if (!Array.isArray(z.polygonPoints)) {
+      console.error(`${tag} FATAL: zones[${i}] "${z.name}" polygonPoints is ${typeof z.polygonPoints}`);
+    } else {
+      for (let j = 0; j < z.polygonPoints.length; j++) {
+        const pt = z.polygonPoints[j];
+        if (!pt || typeof pt.lat !== 'number' || typeof pt.lng !== 'number' || isNaN(pt.lat) || isNaN(pt.lng)) {
+          console.error(`${tag} FATAL: zones[${i}] "${z.name}" polygonPoints[${j}] bad coord:`, pt);
+        }
+      }
+    }
+  }
+
+  // ── Check platform / map provider ──
+  console.log(`${tag} Platform=${Platform.OS}, IS_WEB=${IS_WEB}, MapComponent=${MapComponent ? 'loaded' : 'null'}`);
+  if (IS_WEB && !MapComponent) {
+    console.error(`${tag} Web platform but LeafletPreviewFallback failed to load`);
+  }
+  if (!IS_WEB && !MapComponent) {
+    console.warn(`${tag} Native platform, no GoogleMaps component — showing placeholder. Check EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`);
+  }
+
   if (MapComponent) {
     return <MapComponent {...props} />;
   }

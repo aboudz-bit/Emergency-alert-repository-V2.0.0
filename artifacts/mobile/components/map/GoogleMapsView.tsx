@@ -15,13 +15,25 @@ export function GoogleMapsView({
   editingPoints,
   onEditingPointsChange,
 }: ZoneMapProps) {
+  const tag = '[ZONE_MAP:GoogleMapsView]';
+  console.log(`${tag} render — zones=${Array.isArray(zones) ? zones.length : typeof zones}, editingZoneId=${editingZoneId}`);
+
   const mapRef = useRef<MapView>(null);
   const isEditing = editingZoneId != null;
 
-  const region = useMemo(() => zonesToRegion(zones), [zones]);
+  const region = useMemo(() => {
+    console.log(`${tag} computing region from ${Array.isArray(zones) ? zones.length : 0} zones`);
+    return zonesToRegion(zones);
+  }, [zones]);
 
   const polygons = useMemo(
-    () => zones.map((z) => zoneToPolygon(z, selectedZoneId)),
+    () => {
+      if (!Array.isArray(zones)) {
+        console.error(`${tag} zones is not array in polygons memo`);
+        return [];
+      }
+      return zones.map((z) => zoneToPolygon(z, selectedZoneId));
+    },
     [zones, selectedZoneId]
   );
 

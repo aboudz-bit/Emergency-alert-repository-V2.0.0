@@ -21,8 +21,30 @@ function generateLeafletHtml(
   editingZoneId: number | null | undefined,
   initialEditPoints: LatLng[] | undefined,
 ): string {
+  const tag = '[ZONE_MAP:generateLeafletHtml]';
+  console.log(`${tag} called — zones=${Array.isArray(zones) ? zones.length : typeof zones}, editingZoneId=${editingZoneId}`);
+
+  if (!Array.isArray(zones)) {
+    console.error(`${tag} FATAL: zones is not array, returning empty map`);
+    return '<!DOCTYPE html><html><body><p>Map error: zones data unavailable</p></body></html>';
+  }
+
   const selectedZoneId: number | null = null; // selection is handled via postMessage
-  const allPoints = zones.flatMap((z) => z.polygonPoints);
+  const safeZones = zones.filter((z) => {
+    if (!z) { console.error(`${tag} null zone in array`); return false; }
+    if (!Array.isArray(z.polygonPoints)) {
+      console.error(`${tag} zone "${z.name}" polygonPoints is ${typeof z.polygonPoints}`);
+      return false;
+    }
+    return true;
+  });
+  const allPoints = safeZones.flatMap((z) => z.polygonPoints).filter((p) => {
+    if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number' || isNaN(p.lat) || isNaN(p.lng)) {
+      console.error(`${tag} invalid point in allPoints:`, p);
+      return false;
+    }
+    return true;
+  });
   let centerLat = 25.082;
   let centerLng = 48.175;
   if (allPoints.length > 0) {
@@ -791,6 +813,33 @@ export function LeafletPreviewFallback({
   onPersonnelPress,
   hazardZones,
 }: ZoneMapProps) {
+  const tag = '[ZONE_MAP:LeafletFallback]';
+  console.log(`${tag} render — zones=${Array.isArray(zones) ? zones.length : typeof zones}, drawMode=${drawMode}, editingZoneId=${editingZoneId}`);
+
+  // ── Pre-render validation ──
+  if (!Array.isArray(zones)) {
+    console.error(`${tag} FATAL: zones is not array: ${typeof zones}`);
+  } else {
+    zones.forEach((z, i) => {
+      if (!z) { console.error(`${tag} zones[${i}] is ${z}`); return; }
+      if (!Array.isArray(z.polygonPoints)) {
+        console.error(`${tag} zones[${i}] "${z.name}" polygonPoints is ${typeof z.polygonPoints}`);
+      } else {
+        z.polygonPoints.forEach((pt, pi) => {
+          if (!pt || typeof pt.lat !== 'number' || typeof pt.lng !== 'number' || isNaN(pt.lat) || isNaN(pt.lng)) {
+            console.error(`${tag} zones[${i}] "${z.name}" polygonPoints[${pi}] bad:`, pt);
+          }
+        });
+        if (z.polygonPoints.length > 0 && z.polygonPoints.length < 3) {
+          console.warn(`${tag} zones[${i}] "${z.name}" has ${z.polygonPoints.length} points (need >= 3 for polygon)`);
+        }
+      }
+    });
+  }
+  if (shelters && !Array.isArray(shelters)) console.error(`${tag} shelters is not array: ${typeof shelters}`);
+  if (locations && !Array.isArray(locations)) console.error(`${tag} locations is not array: ${typeof locations}`);
+  if (hazardZones && !Array.isArray(hazardZones)) console.error(`${tag} hazardZones is not array: ${typeof hazardZones}`);
+
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
   const prevFlyToRef = useRef<number | null | undefined>(undefined);

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import type { DrawMode } from "@/components/map";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { pointInPolygon, haversineDistance } from "@/utils/geo";
 import { useStore, selectActiveAlert, alertEq } from "@/store";
@@ -62,6 +63,83 @@ export default function ZonesScreen() {
   const applyDefaultsToHazardZone = useStore((s) => s.applyDefaultsToHazardZone);
   const hazardZones = useStore((s) => s.hazardZones);
   const settings = useStore((s) => s.settings);
+  const emergencyModes = useStore((s) => s.emergencyModes);
+
+  // ═══ ZONE_MAP DEBUG — pre-render diagnostics ═══
+  useMemo(() => {
+    const tag = '[ZONE_MAP_DEBUG]';
+    console.log(`${tag} ── render diagnostics ──`);
+
+    // 1) zones
+    console.log(`${tag} zones type=${typeof allZonesRaw}, isArray=${Array.isArray(allZonesRaw)}, count=${Array.isArray(allZonesRaw) ? allZonesRaw.length : 'N/A'}`);
+    if (!allZonesRaw) console.error(`${tag} CRITICAL: zones is ${allZonesRaw}`);
+    if (allZonesRaw && !Array.isArray(allZonesRaw)) console.error(`${tag} CRITICAL: zones is NOT an array, got ${typeof allZonesRaw}`);
+
+    // 2) filtered zones
+    console.log(`${tag} filtered zones count=${zones.length}`);
+
+    // 3) zone boundaries & coordinates
+    if (Array.isArray(zones)) {
+      zones.forEach((z: any, i: number) => {
+        if (!z) {
+          console.error(`${tag} CRITICAL: zone[${i}] is ${z}`);
+          return;
+        }
+        if (z.boundaryType === undefined) console.error(`${tag} zone[${i}] "${z.name}" has undefined boundaryType`);
+        if (!Array.isArray(z.polygonPoints)) {
+          console.error(`${tag} CRITICAL: zone[${i}] "${z.name}" polygonPoints is NOT array: ${typeof z.polygonPoints}`);
+          return;
+        }
+        if (z.polygonPoints.length === 0 && !z.center) {
+          console.warn(`${tag} zone[${i}] "${z.name}" has empty polygon AND no center`);
+        }
+        z.polygonPoints.forEach((pt: any, pi: number) => {
+          if (!pt) {
+            console.error(`${tag} zone[${i}] "${z.name}" polygonPoints[${pi}] is ${pt}`);
+            return;
+          }
+          if (typeof pt.lat !== 'number' || typeof pt.lng !== 'number') {
+            console.error(`${tag} zone[${i}] "${z.name}" polygonPoints[${pi}] invalid: lat=${pt.lat}(${typeof pt.lat}) lng=${pt.lng}(${typeof pt.lng})`);
+          }
+          if (isNaN(pt.lat) || isNaN(pt.lng)) {
+            console.error(`${tag} zone[${i}] "${z.name}" polygonPoints[${pi}] NaN: lat=${pt.lat} lng=${pt.lng}`);
+          }
+        });
+        if (z.center) {
+          if (typeof z.center.lat !== 'number' || typeof z.center.lng !== 'number') {
+            console.error(`${tag} zone[${i}] "${z.name}" center invalid: lat=${z.center.lat} lng=${z.center.lng}`);
+          }
+          if (isNaN(z.center.lat) || isNaN(z.center.lng)) {
+            console.error(`${tag} zone[${i}] "${z.name}" center NaN: lat=${z.center.lat} lng=${z.center.lng}`);
+          }
+        }
+      });
+    }
+
+    // 4) locations
+    console.log(`${tag} locations type=${typeof locations}, isArray=${Array.isArray(locations)}, count=${Array.isArray(locations) ? locations.length : 'N/A'}`);
+
+    // 5) shelters
+    console.log(`${tag} shelters type=${typeof shelters}, isArray=${Array.isArray(shelters)}, count=${Array.isArray(shelters) ? shelters.length : 'N/A'}`);
+
+    // 6) emergencyModes — shelterInZones & blackoutZones
+    console.log(`${tag} emergencyModes=${JSON.stringify(emergencyModes ? { shelterIn: emergencyModes.shelterIn, blackout: emergencyModes.blackout, shelterInZones: emergencyModes.shelterInZones, blackoutZones: emergencyModes.blackoutZones } : null)}`);
+    if (emergencyModes) {
+      if (!Array.isArray(emergencyModes.shelterInZones)) console.error(`${tag} CRITICAL: shelterInZones is NOT array: ${typeof emergencyModes.shelterInZones}`);
+      if (!Array.isArray(emergencyModes.blackoutZones)) console.error(`${tag} CRITICAL: blackoutZones is NOT array: ${typeof emergencyModes.blackoutZones}`);
+    } else {
+      console.error(`${tag} CRITICAL: emergencyModes is ${emergencyModes}`);
+    }
+
+    // 7) hazardZones
+    console.log(`${tag} hazardZones type=${typeof hazardZones}, isArray=${Array.isArray(hazardZones)}, count=${Array.isArray(hazardZones) ? hazardZones.length : 'N/A'}`);
+
+    // 8) store readiness
+    console.log(`${tag} store ready check: zones=${!!allZonesRaw}, locations=${!!locations}, shelters=${!!shelters}, emergencyModes=${!!emergencyModes}`);
+
+    console.log(`${tag} ── end diagnostics ──`);
+  }, [allZonesRaw, zones, locations, shelters, emergencyModes, hazardZones]);
+  // ═══ END ZONE_MAP DEBUG ═══
 
   const [selectedHazardId, setSelectedHazardId] = useState<number | null>(null);
 
@@ -503,34 +581,46 @@ export default function ZonesScreen() {
   return (
     <View style={styles.root}>
       {/* ═══ FULL-SCREEN MAP ═══ */}
-      <ZoneMap
-        key={focusCount}
-        zones={zones}
-        selectedZoneId={selectedZoneId}
-        onZonePress={handleZonePress}
-        height={SCREEN_H}
-        editingZoneId={mode === "edit" ? selectedZoneId : null}
-        editingPoints={mode === "edit" ? editingPoints : undefined}
-        onEditingPointsChange={setEditingPoints}
-        drawMode={drawMode}
-        onMapTap={handleMapTap}
-        onMapCenterChange={handleMapCenterChange}
-        showLocationButton={mode === "view" || mode === "pick_shape" || mode === "draw"}
-        tapPointCount={tapPoints.length}
-        flyToZoneId={flyToZoneId}
-        showCenterCrosshair={showCrosshair}
-        shelters={shelters}
-        selectedShelterId={selectedShelterId}
-        onShelterPress={handleShelterPress}
-        locations={locations}
-        selectedLocationId={selectedLocationId}
-        onLocationPress={handleLocationPress}
-        highlightedLocationIds={highlightedLocationIds}
-        editingLocationId={editingLocationId}
-        editingLocationPoints={editingLocationId ? locEditPoints : undefined}
-        onEditingLocationPointsChange={handleLocEditPointsChange}
-        hazardZones={activeHazardZones}
-      />
+      <ErrorBoundary label="ZONE_MAP" onError={(error, stack) => {
+        console.error('\n========== ZONE_MAP CRASH ==========');
+        console.error('ERROR NAME:', error.name);
+        console.error('ERROR MESSAGE:', error.message);
+        console.error('STACK:', error.stack);
+        const fileMatch = error.stack?.match(/at\s+\S+\s+\(([^)]+):(\d+):\d+\)/);
+        console.error('FILE:', fileMatch?.[1] ?? 'unknown');
+        console.error('LINE:', fileMatch?.[2] ?? 'unknown');
+        console.error('COMPONENT STACK:', stack);
+        console.error('=====================================\n');
+      }}>
+        <ZoneMap
+          key={focusCount}
+          zones={zones}
+          selectedZoneId={selectedZoneId}
+          onZonePress={handleZonePress}
+          height={SCREEN_H}
+          editingZoneId={mode === "edit" ? selectedZoneId : null}
+          editingPoints={mode === "edit" ? editingPoints : undefined}
+          onEditingPointsChange={setEditingPoints}
+          drawMode={drawMode}
+          onMapTap={handleMapTap}
+          onMapCenterChange={handleMapCenterChange}
+          showLocationButton={mode === "view" || mode === "pick_shape" || mode === "draw"}
+          tapPointCount={tapPoints.length}
+          flyToZoneId={flyToZoneId}
+          showCenterCrosshair={showCrosshair}
+          shelters={shelters}
+          selectedShelterId={selectedShelterId}
+          onShelterPress={handleShelterPress}
+          locations={locations}
+          selectedLocationId={selectedLocationId}
+          onLocationPress={handleLocationPress}
+          highlightedLocationIds={highlightedLocationIds}
+          editingLocationId={editingLocationId}
+          editingLocationPoints={editingLocationId ? locEditPoints : undefined}
+          onEditingLocationPointsChange={handleLocEditPointsChange}
+          hazardZones={activeHazardZones}
+        />
+      </ErrorBoundary>
 
       {/* ═══ FLOATING HEADER — VIEW ═══ */}
       {mode === "view" && !addingShelter && !placingHazard && (
