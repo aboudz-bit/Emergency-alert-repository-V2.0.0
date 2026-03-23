@@ -37,6 +37,8 @@ export function useVisiblePersonnel(opts: {
     if (opts.scope === "location" && opts.locationId == null) return [];
     if (opts.scope === "zone" && opts.zoneId == null) return [];
 
+    if (!personnelLocations || typeof personnelLocations !== 'object') return [];
+
     const entries: PersonnelMapEntry[] = [];
     const locs = Object.values(personnelLocations);
 

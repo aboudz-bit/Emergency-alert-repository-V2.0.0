@@ -47,6 +47,7 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     /** Sync basePositions with current store state — add new, remove gone, update moved. */
     function refreshBasePositions() {
       const { users, locations, zones } = useStore.getState();
+      if (!Array.isArray(users) || !Array.isArray(locations) || !Array.isArray(zones)) return;
       const activeUsers = users.filter(
         (u) => u.isActive && u.id !== currentUserId && u.accountStatus === "active",
       );
@@ -73,9 +74,11 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     }
 
     function simulate() {
+      try {
       refreshBasePositions();
 
       const { users: liveUsers, locations: liveLocs, batchUpdatePersonnelLocations } = useStore.getState();
+      if (!Array.isArray(liveUsers) || !Array.isArray(liveLocs)) return;
       const bases = basePositionsRef.current;
       const batch: PersonnelLocation[] = [];
 
@@ -101,6 +104,9 @@ export function usePersonnelSimulation(enabled: boolean = true) {
 
       if (batch.length > 0) {
         batchUpdatePersonnelLocations(batch);
+      }
+      } catch (e: any) {
+        console.error('[usePersonnelSimulation] simulate error:', e.message);
       }
     }
 
