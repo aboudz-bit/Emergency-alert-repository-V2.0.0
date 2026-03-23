@@ -113,7 +113,6 @@ export interface Zone {
   center?: LatLng;
   radius?: number;
   isActive: boolean;
-  isArchived?: boolean;
   color: string;
   alertActive: boolean;
   alertType: LocationAlertType | null;

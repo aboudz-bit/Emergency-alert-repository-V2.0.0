@@ -4,7 +4,6 @@ import { nextHistoryId } from '../helpers';
 export function createZoneSlice(set: SetState, get: GetState): Pick<
   AppState,
   'addZone' | 'updateZone' | 'deleteZone' |
-  'renameZone' | 'mergeZones' | 'moveLocationsBetweenZones' | 'splitZone' | 'archiveZone' |
   'activateZoneAlert' | 'deactivateZoneAlert' | 'editZoneAlert' |
   'bulkActivateZoneAlerts' | 'bulkDeactivateZoneAlerts' |
   'sendZoneNotification'
@@ -21,123 +20,6 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       set(s => ({
         zones: s.zones.filter(z => z.id !== id),
         locations: s.locations.filter(l => l.zoneId !== id),
-      }));
-    },
-
-    renameZone: (id, newName) => {
-      const zone = get().zones.find(z => z.id === id);
-      if (!zone) return;
-      const oldName = zone.name;
-      set(s => ({
-        zones: s.zones.map(z => z.id === id ? { ...z, name: newName } : z),
-        locations: s.locations.map(l => l.zoneId === id ? { ...l, zone: newName } : l),
-        users: s.users.map(u => u.zone === oldName ? { ...u, zone: newName } : u),
-        ecoAssignments: s.ecoAssignments.map(e =>
-          e.assignedZoneName === oldName ? { ...e, assignedZoneName: newName } : e
-        ),
-        supervisorAssignments: s.supervisorAssignments.map(sa =>
-          sa.zoneName === oldName ? { ...sa, zoneName: newName } : sa
-        ),
-        emergencyModes: {
-          ...s.emergencyModes,
-          shelterInZones: s.emergencyModes.shelterInZones.map(n => n === oldName ? newName : n),
-          blackoutZones: s.emergencyModes.blackoutZones.map(n => n === oldName ? newName : n),
-        },
-        zoneNotifications: s.zoneNotifications.map(zn =>
-          zn.zoneId === id ? { ...zn, zoneName: newName } : zn
-        ),
-      }));
-    },
-
-    mergeZones: (sourceId, targetId) => {
-      const { zones } = get();
-      const source = zones.find(z => z.id === sourceId);
-      const target = zones.find(z => z.id === targetId);
-      if (!source || !target || sourceId === targetId) return;
-      const sourceName = source.name;
-      const targetName = target.name;
-      set(s => ({
-        zones: s.zones.map(z => z.id === sourceId ? { ...z, isArchived: true, isActive: false } : z),
-        locations: s.locations.map(l =>
-          l.zoneId === sourceId ? { ...l, zoneId: targetId, zone: targetName } : l
-        ),
-        shelters: s.shelters.map(sh =>
-          sh.zoneId === sourceId ? { ...sh, zoneId: targetId } : sh
-        ),
-        users: s.users.map(u =>
-          u.zone === sourceName ? { ...u, zone: targetName, zoneId: targetId } : u
-        ),
-        ecoAssignments: s.ecoAssignments.map(e =>
-          e.assignedZoneId === sourceId ? { ...e, assignedZoneId: targetId, assignedZoneName: targetName } : e
-        ),
-        supervisorAssignments: s.supervisorAssignments.map(sa =>
-          sa.zoneName === sourceName ? { ...sa, zoneName: targetName } : sa
-        ),
-        emergencyModes: {
-          ...s.emergencyModes,
-          shelterInZones: [...new Set(s.emergencyModes.shelterInZones.map(n => n === sourceName ? targetName : n))],
-          blackoutZones: [...new Set(s.emergencyModes.blackoutZones.map(n => n === sourceName ? targetName : n))],
-        },
-      }));
-    },
-
-    moveLocationsBetweenZones: (locationIds, targetZoneId) => {
-      const target = get().zones.find(z => z.id === targetZoneId);
-      if (!target) return;
-      const locIdSet = new Set(locationIds);
-      set(s => ({
-        locations: s.locations.map(l =>
-          locIdSet.has(l.id) ? { ...l, zoneId: targetZoneId, zone: target.name } : l
-        ),
-        users: s.users.map(u =>
-          locIdSet.has(u.locationId) ? { ...u, zoneId: targetZoneId, zone: target.name } : u
-        ),
-        supervisorAssignments: s.supervisorAssignments.map(sa =>
-          locIdSet.has(sa.locationId) ? { ...sa, zoneName: target.name } : sa
-        ),
-      }));
-    },
-
-    splitZone: (sourceZoneId, locationIds, newZoneName, newZoneColor) => {
-      const source = get().zones.find(z => z.id === sourceZoneId);
-      if (!source || locationIds.length === 0) return;
-      const newZoneId = Date.now();
-      const locIdSet = new Set(locationIds);
-      set(s => ({
-        zones: [...s.zones, {
-          id: newZoneId,
-          name: newZoneName,
-          type: source.type,
-          boundaryType: 'Polygon' as const,
-          polygonPoints: [],
-          center: source.center,
-          isActive: true,
-          isArchived: false,
-          color: newZoneColor,
-          alertActive: false,
-          alertType: null,
-          alertPriority: null,
-          alertMessage: '',
-          alertUpdatedAt: null,
-          alertHistory: [],
-        }],
-        locations: s.locations.map(l =>
-          locIdSet.has(l.id) ? { ...l, zoneId: newZoneId, zone: newZoneName } : l
-        ),
-        users: s.users.map(u =>
-          locIdSet.has(u.locationId) ? { ...u, zoneId: newZoneId, zone: newZoneName } : u
-        ),
-        supervisorAssignments: s.supervisorAssignments.map(sa =>
-          locIdSet.has(sa.locationId) ? { ...sa, zoneName: newZoneName } : sa
-        ),
-      }));
-    },
-
-    archiveZone: (id) => {
-      const zone = get().zones.find(z => z.id === id);
-      if (!zone || zone.alertActive) return;
-      set(s => ({
-        zones: s.zones.map(z => z.id === id ? { ...z, isArchived: true, isActive: false } : z),
       }));
     },
 

@@ -69,30 +69,6 @@ function generateLeafletHtml(
     })
     .join("\n");
 
-  const emptyZoneMarkers = zones
-    .filter((z) => z.polygonPoints.length === 0 && z.center)
-    .map((z) => {
-      if (isEditing && z.id === editingZoneId) return "";
-      const isSelected = z.id === selectedZoneId;
-      return `
-        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
-          radius: ${isSelected ? 14 : 10}, color: '${z.color}', fillColor: '${z.color}',
-          fillOpacity: ${isSelected ? 0.5 : 0.3}, weight: ${isSelected ? 3 : 2}, dashArray: '4,4',
-        }).addTo(map).on('click', function() {
-          if (!tapEnabled) {
-            window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
-          }
-        });
-        L.marker([${z.center!.lat}, ${z.center!.lng}], {
-          icon: L.divIcon({
-            className: 'zone-label',
-            html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px dashed rgba(255,255,255,0.5);">${z.name} (no boundary)</div>',
-            iconAnchor: [50, 22],
-          })
-        }).addTo(map);`;
-    })
-    .join("\n");
-
   const editPolygonCode = (() => {
     if (!isEditing || !initialEditPoints || initialEditPoints.length === 0) return "";
     const color = editZone?.color || "#3B82F6";
@@ -144,7 +120,30 @@ function generateLeafletHtml(
     `;
   })();
 
-  const circleMarkers = "";
+  const circleMarkers = zones
+    .filter((z) => z.polygonPoints.length === 0 && z.center)
+    .map((z) => {
+      if (isEditing && z.id === editingZoneId) return "";
+      const isSelected = z.id === selectedZoneId;
+      return `
+        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
+          radius: ${isSelected ? 14 : 10}, color: '${z.color}',
+          fillColor: '${z.color}', fillOpacity: ${isSelected ? 0.5 : 0.3},
+          weight: ${isSelected ? 3 : 2},
+        }).addTo(map).on('click', function() {
+          if (!tapEnabled) {
+            window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
+          }
+        });
+        L.marker([${z.center!.lat}, ${z.center!.lng}], {
+          icon: L.divIcon({
+            className: 'zone-label',
+            html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);">${z.name}</div>',
+            iconAnchor: [30, -4],
+          })
+        }).addTo(map);`;
+    })
+    .join("\n");
 
   const fitBoundsCode = (() => {
     if (isEditing) return "";
@@ -219,7 +218,6 @@ function generateLeafletHtml(
   var vertexDragging = false;
 
   ${zonePolygons}
-  ${emptyZoneMarkers}
   ${circleMarkers}
   ${editPolygonCode}
 
@@ -902,8 +900,6 @@ export function LeafletPreviewFallback({
       postToIframe({ type: "fly_to_bounds", bounds });
     } else if (zone.center) {
       postToIframe({ type: "fly_to", lat: zone.center.lat, lng: zone.center.lng, zoom: 15 });
-    } else {
-      postToIframe({ type: "fly_to", lat: 25.082, lng: 48.175, zoom: 14 });
     }
   }, [flyToZoneId, zones]);
 

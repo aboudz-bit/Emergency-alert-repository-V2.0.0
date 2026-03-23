@@ -27,8 +27,7 @@ export default function DashboardScreen() {
   const focusCount = useRefreshOnFocus();
   const router = useRouter();
   const users = useStore((s) => s.users);
-  const allZones = useStore((s) => s.zones);
-  const zones = useMemo(() => (allZones || []).filter((z: any) => !z.isArchived), [allZones]);
+  const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
   const activityLogs = useStore((s) => s.activityLogs);

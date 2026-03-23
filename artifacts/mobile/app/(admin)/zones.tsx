@@ -39,8 +39,7 @@ export default function ZonesScreen() {
   const focusCount = useRefreshOnFocus();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const allZonesRaw = useStore((s) => s.zones);
-  const zones = useMemo(() => (allZonesRaw || []).filter((z: any) => !z.isArchived), [allZonesRaw]);
+  const zones = useStore((s) => s.zones);
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
@@ -282,19 +281,10 @@ export default function ZonesScreen() {
 
   const handleFinishDraw = useCallback(() => {
     if (tapPoints.length < 3) return;
-    if (selectedZoneId) {
-      const pts = [...tapPoints];
-      const lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
-      const lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
-      updateZone(selectedZoneId, { polygonPoints: pts, center: { lat, lng } });
-      setMode("view");
-      setTapPoints([]);
-      return;
-    }
     pendingPointsRef.current = [...tapPoints];
     setMode("view");
     setShowSaveSheet(true);
-  }, [tapPoints, selectedZoneId, updateZone]);
+  }, [tapPoints]);
 
   const handleCancelDraw = useCallback(() => {
     setMode("view");
@@ -330,11 +320,6 @@ export default function ZonesScreen() {
   // ─── EDIT flow — direct to boundary ───
   const handleEditZone = useCallback(() => {
     if (!selectedZone) return;
-    if (selectedZone.polygonPoints.length === 0) {
-      setTapPoints([]);
-      setMode("draw");
-      return;
-    }
     originalPointsRef.current = [...selectedZone.polygonPoints];
     setEditingPoints([...selectedZone.polygonPoints]);
     setMode("edit");
@@ -692,7 +677,7 @@ export default function ZonesScreen() {
         <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
           <View style={[styles.modePill, { backgroundColor: Colors.info }]}>
             <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>{selectedZone ? `DRAW: ${selectedZone.name}` : "DRAW MODE"}</Text>
+            <Text style={styles.modePillText}>DRAW MODE</Text>
           </View>
           <View style={styles.modeCount}>
             <Text style={styles.modeCountText}>{tapPoints.length} pts</Text>
@@ -863,7 +848,7 @@ export default function ZonesScreen() {
             <View style={styles.bsInfo}>
               <Text style={styles.bsName} numberOfLines={1}>{selectedZone.name}</Text>
               <Text style={styles.bsMeta}>
-                {selectedZone.type} · {selectedZone.polygonPoints.length > 0 ? `${selectedZone.polygonPoints.length} pts` : "No boundary"} · {selectedZone.isActive ? "Active" : "Off"}
+                {selectedZone.type} · {selectedZone.polygonPoints.length} pts · {selectedZone.isActive ? "Active" : "Off"}
                 {selectedZone.locationId ? ` · ${locations.find((l) => l.id === selectedZone.locationId)?.name ?? "Location"}` : ""}
               </Text>
             </View>
@@ -872,15 +857,13 @@ export default function ZonesScreen() {
             </Pressable>
           </View>
           <View style={styles.bsActions}>
-            {selectedZone.polygonPoints.length > 0 && (
-              <Pressable style={styles.bsActionBtn} onPress={handleFocusZone}>
-                <Feather name="crosshair" size={16} color={Colors.info} />
-                <Text style={[styles.bsActionText, { color: Colors.info }]}>Focus</Text>
-              </Pressable>
-            )}
+            <Pressable style={styles.bsActionBtn} onPress={handleFocusZone}>
+              <Feather name="crosshair" size={16} color={Colors.info} />
+              <Text style={[styles.bsActionText, { color: Colors.info }]}>Focus</Text>
+            </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={handleEditZone}>
-              <Feather name={selectedZone.polygonPoints.length > 0 ? "edit-2" : "pen-tool"} size={16} color={Colors.text} />
-              <Text style={styles.bsActionText}>{selectedZone.polygonPoints.length > 0 ? "Edit" : "Draw"}</Text>
+              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Text style={styles.bsActionText}>Edit</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={() => handleToggleZone(selectedZone)}>
               <Feather name={selectedZone.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
