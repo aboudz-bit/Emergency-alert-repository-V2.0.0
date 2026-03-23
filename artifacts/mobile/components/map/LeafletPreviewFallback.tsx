@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Colors } from "@/constants/theme";
+import { ISOLATION_LEVEL } from "./ZoneMap";
 import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
@@ -55,7 +56,8 @@ function generateLeafletHtml(
   const isEditing = editingZoneId != null;
   const editZone = isEditing ? zones.find((z) => z.id === editingZoneId) : null;
 
-  const zonePolygons = zones
+  // ISOLATION: zone polygons only at level >= 2
+  const zonePolygons = (ISOLATION_LEVEL < 2 ? [] : zones)
     .filter((z) => z.polygonPoints.length > 0)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
@@ -91,7 +93,8 @@ function generateLeafletHtml(
     })
     .join("\n");
 
-  const emptyZoneMarkers = zones
+  // ISOLATION: empty zone markers only at level >= 2
+  const emptyZoneMarkers = (ISOLATION_LEVEL < 2 ? [] : zones)
     .filter((z) => z.polygonPoints.length === 0 && z.center)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
@@ -116,6 +119,7 @@ function generateLeafletHtml(
     .join("\n");
 
   const editPolygonCode = (() => {
+    if (ISOLATION_LEVEL < 2) return ""; // ISOLATION: no zone editing below level 2
     if (!isEditing || !initialEditPoints || initialEditPoints.length === 0) return "";
     const color = editZone?.color || "#3B82F6";
     const coords = initialEditPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
@@ -169,6 +173,7 @@ function generateLeafletHtml(
   const circleMarkers = "";
 
   const fitBoundsCode = (() => {
+    if (ISOLATION_LEVEL < 2) return ""; // ISOLATION: no fit-to-bounds below level 2
     if (isEditing) return "";
     const polyZones = zones.filter((z) => z.polygonPoints.length > 0);
     const centerZones = zones.filter((z) => z.polygonPoints.length === 0 && z.center);
@@ -814,7 +819,8 @@ export function LeafletPreviewFallback({
   hazardZones,
 }: ZoneMapProps) {
   const tag = '[ZONE_MAP:LeafletFallback]';
-  console.log(`${tag} render — zones=${Array.isArray(zones) ? zones.length : typeof zones}, drawMode=${drawMode}, editingZoneId=${editingZoneId}`);
+  console.log(`${tag} render — ISOLATION_LEVEL=${ISOLATION_LEVEL}, zones=${Array.isArray(zones) ? zones.length : typeof zones}, drawMode=${drawMode}, editingZoneId=${editingZoneId}`);
+  console.log(`${tag} ISOLATION layers: baseMap=${ISOLATION_LEVEL >= 1}, zones=${ISOLATION_LEVEL >= 2}, shelters=${ISOLATION_LEVEL >= 3}, locations=${ISOLATION_LEVEL >= 4}, hazards=${ISOLATION_LEVEL >= 5}, personnel=${ISOLATION_LEVEL >= 6}`);
 
   // ── Pre-render validation ──
   if (!Array.isArray(zones)) {
@@ -856,12 +862,14 @@ export function LeafletPreviewFallback({
 
   // Stable key: only regenerate when zone structure changes (add/remove/reorder/color/points),
   // NOT on isActive toggle or selection changes — those use postMessage.
+  // NOTE: Added Array.isArray guard — z.polygonPoints.map() crashes if polygonPoints is undefined/null.
+  // This is a likely crash source discovered during isolation debugging.
   const zonesStructureKey = useMemo(
     () =>
       zones
         .map(
           (z) =>
-            `${z.id}:${z.color}:${z.polygonPoints.map((p) => `${p.lat},${p.lng}`).join("|")}:${z.center?.lat},${z.center?.lng}:${z.name}`
+            `${z.id}:${z.color}:${Array.isArray(z.polygonPoints) ? z.polygonPoints.map((p) => `${p.lat},${p.lng}`).join("|") : "NO_POINTS"}:${z.center?.lat},${z.center?.lng}:${z.name}`
         )
         .join(";"),
     [zones]
@@ -992,11 +1000,13 @@ export function LeafletPreviewFallback({
   }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange, onPersonnelPress]);
 
   // ── Sync shelters via postMessage (no iframe reload) ──
+  // ISOLATION: shelters only at level >= 3
   const prevSheltersRef = useRef<string>("");
   useEffect(() => {
     prevSheltersRef.current = "";
   }, [mapHtml]);
   useEffect(() => {
+    if (ISOLATION_LEVEL < 3) return; // ISOLATION GATE
     if (!shelters) return;
     const key = JSON.stringify(shelters);
     if (key === prevSheltersRef.current) return;
@@ -1006,13 +1016,17 @@ export function LeafletPreviewFallback({
   }, [shelters, mapHtml]);
 
   // ── Select shelter via postMessage ──
+  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
+    if (ISOLATION_LEVEL < 3) return;
     const t = setTimeout(() => postToIframe({ type: "select_shelter", id: selectedShelterId ?? null }), 80);
     return () => clearTimeout(t);
   }, [selectedShelterId]);
 
   // ── Nearest shelter via postMessage ──
+  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
+    if (ISOLATION_LEVEL < 3) return;
     const t = setTimeout(() => postToIframe({
       type: "set_nearest_shelter",
       id: nearestShelterId ?? null,
@@ -1023,18 +1037,22 @@ export function LeafletPreviewFallback({
   }, [nearestShelterId, userLocation]);
 
   // ── User location marker via postMessage ──
+  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
+    if (ISOLATION_LEVEL < 3) return;
     if (!userLocation) return;
     const t = setTimeout(() => postToIframe({ type: "set_user_location", lat: userLocation.lat, lng: userLocation.lng }), 80);
     return () => clearTimeout(t);
   }, [userLocation]);
 
   // ── Sync location polygons via postMessage (no iframe reload) ──
+  // ISOLATION: locations only at level >= 4
   const prevLocationsRef = useRef<string>("");
   useEffect(() => {
     prevLocationsRef.current = "";
   }, [mapHtml]);
   useEffect(() => {
+    if (ISOLATION_LEVEL < 4) return; // ISOLATION GATE
     if (!locations) return;
     const key = JSON.stringify(locations.map(l => ({ id: l.id, name: l.name, polygonPoints: l.polygonPoints })));
     if (key === prevLocationsRef.current) return;
@@ -1044,19 +1062,25 @@ export function LeafletPreviewFallback({
   }, [locations, mapHtml]);
 
   // ── Select location via postMessage ──
+  // ISOLATION: locations only at level >= 4
   useEffect(() => {
+    if (ISOLATION_LEVEL < 4) return;
     const t = setTimeout(() => postToIframe({ type: "select_location", id: selectedLocationId ?? null }), 80);
     return () => clearTimeout(t);
   }, [selectedLocationId]);
 
   // ── Highlight linked locations via postMessage ──
+  // ISOLATION: locations only at level >= 4
   useEffect(() => {
+    if (ISOLATION_LEVEL < 4) return;
     const t = setTimeout(() => postToIframe({ type: "highlight_locations", ids: highlightedLocationIds ?? [] }), 80);
     return () => clearTimeout(t);
   }, [highlightedLocationIds]);
 
   // ── Location boundary editing via postMessage ──
+  // ISOLATION: locations only at level >= 4
   useEffect(() => {
+    if (ISOLATION_LEVEL < 4) return;
     if (editingLocationId != null && editingLocationPoints) {
       const t = setTimeout(() => postToIframe({ type: "start_loc_edit", id: editingLocationId, points: editingLocationPoints }), 150);
       return () => clearTimeout(t);
@@ -1067,7 +1091,9 @@ export function LeafletPreviewFallback({
   }, [editingLocationId]);
 
   // ── Sync personnel live locations via postMessage (no reload) ──
+  // ISOLATION: personnel (emergency overlays) only at level >= 6
   useEffect(() => {
+    if (ISOLATION_LEVEL < 6) return; // ISOLATION GATE
     if (!personnelLocations || personnelLocations.length === 0) {
       postToIframe({ type: "sync_personnel", personnel: [] });
       return;
@@ -1077,7 +1103,9 @@ export function LeafletPreviewFallback({
   }, [personnelLocations]);
 
   // ── Sync hazard zones via postMessage (no reload) ──
+  // ISOLATION: hazard zones only at level >= 5
   useEffect(() => {
+    if (ISOLATION_LEVEL < 5) return; // ISOLATION GATE
     if (!hazardZones || hazardZones.length === 0) {
       postToIframe({ type: "sync_hazard_zones", hazardZones: [] });
       return;

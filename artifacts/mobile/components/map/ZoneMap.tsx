@@ -23,6 +23,25 @@ import { Feather } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import type { ZoneMapProps } from "./types";
 
+/**
+ * ╔═══════════════════════════════════════════════════════════════════╗
+ * ║  ISOLATION DEBUGGING — Zone Map Crash Investigation              ║
+ * ║                                                                   ║
+ * ║  Set ISOLATION_LEVEL to control which layers render:              ║
+ * ║   0 = NO map at all (plain placeholder) — tests screen itself    ║
+ * ║   1 = Base map only (tiles, no overlays)                         ║
+ * ║   2 = Base map + zone polygons                                   ║
+ * ║   3 = Base map + zone polygons + shelters                        ║
+ * ║   4 = Base map + zone polygons + shelters + locations            ║
+ * ║   5 = Base map + zone polygons + shelters + locations + hazards  ║
+ * ║   6 = ALL layers (full map — production)                         ║
+ * ║                                                                   ║
+ * ║  Increment one level at a time. The first level that crashes      ║
+ * ║  identifies the failing layer.                                    ║
+ * ╚═══════════════════════════════════════════════════════════════════╝
+ */
+export const ISOLATION_LEVEL: number = 6;
+
 const IS_WEB = Platform.OS === "web";
 
 let MapComponent: React.ComponentType<ZoneMapProps> | null = null;
@@ -43,8 +62,29 @@ function MapPlaceholder({ height }: { height: number }) {
   );
 }
 
+function IsolationPlaceholder({ height }: { height: number }) {
+  return (
+    <View style={[styles.placeholder, { height, backgroundColor: "#1a1a2e" }]}>
+      <Feather name="check-circle" size={48} color="#22C55E" />
+      <Text style={[styles.placeholderTitle, { color: "#22C55E" }]}>
+        Isolation Level 0 — No Map
+      </Text>
+      <Text style={styles.placeholderDesc}>
+        Screen renders without the map component. If you see this (no crash),
+        the crash is inside the map component path.
+      </Text>
+    </View>
+  );
+}
+
 export function ZoneMap(props: ZoneMapProps) {
   const tag = '[ZONE_MAP]';
+
+  // ── ISOLATION LEVEL 0: skip map entirely ──
+  if (ISOLATION_LEVEL === 0) {
+    console.log(`${tag} ISOLATION_LEVEL=0 — rendering placeholder, skipping map component`);
+    return <IsolationPlaceholder height={props.height} />;
+  }
 
   // ── Validate props before render ──
   if (!Array.isArray(props.zones)) {
