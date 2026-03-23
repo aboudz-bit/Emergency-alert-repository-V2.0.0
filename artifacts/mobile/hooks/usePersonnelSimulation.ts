@@ -33,12 +33,13 @@ function computeBasePosition(
 }
 
 export function usePersonnelSimulation(enabled: boolean = true) {
-  const currentUser = useStore((s) => s.currentUser);
-  const batchUpdatePersonnelLocations = useStore((s) => s.batchUpdatePersonnelLocations);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const basePositionsRef = useRef<Record<number, { lat: number; lng: number }>>({});
 
   useEffect(() => {
+    // Read current user from store snapshot — avoids subscribing to store
+    // changes which would cause re-renders and an infinite update loop.
+    const { currentUser } = useStore.getState();
     if (!enabled || !currentUser) return;
 
     const currentUserId = currentUser.id;
@@ -74,7 +75,7 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     function simulate() {
       refreshBasePositions();
 
-      const { users: liveUsers, locations: liveLocs } = useStore.getState();
+      const { users: liveUsers, locations: liveLocs, batchUpdatePersonnelLocations } = useStore.getState();
       const bases = basePositionsRef.current;
       const batch: PersonnelLocation[] = [];
 
@@ -103,17 +104,20 @@ export function usePersonnelSimulation(enabled: boolean = true) {
       }
     }
 
-    // Initial run
+    // Initial run — defer to avoid store updates during React's commit phase
     basePositionsRef.current = {};
-    refreshBasePositions();
-    simulate();
+    const initialTimeout = setTimeout(() => {
+      refreshBasePositions();
+      simulate();
+    }, 0);
     intervalRef.current = setInterval(simulate, SIMULATION_INTERVAL_MS);
 
     return () => {
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [enabled, currentUser?.id]);
+  }, [enabled]);
 }
