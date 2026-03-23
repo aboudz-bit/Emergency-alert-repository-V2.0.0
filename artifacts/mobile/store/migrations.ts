@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 24;
+export const STORE_VERSION = 25;
 
 export function migrate(persisted: any, version: number): AppState {
   console.log(`[migrations] migrate called: version=${version}, STORE_VERSION=${STORE_VERSION}`);
@@ -418,6 +418,18 @@ export function migrate(persisted: any, version: number): AppState {
     state.activityLogs = [];
     // Clear mobileUserResponse
     state.mobileUserResponse = null;
+  }
+
+  if (version < 25) {
+    // Backfill polygonPoints on zones — zones never had this migration
+    // (locations got it in v11 but zones were missed). Zones with undefined
+    // polygonPoints crash the map component at render time.
+    if (Array.isArray(state?.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        polygonPoints: Array.isArray(z.polygonPoints) ? z.polygonPoints : [],
+      }));
+    }
   }
 
   console.log('[migrations] migration completed successfully');

@@ -57,7 +57,8 @@ function generateLeafletHtml(
   const editZone = isEditing ? zones.find((z) => z.id === editingZoneId) : null;
 
   // ISOLATION: zone polygons only at level >= 2
-  const zonePolygons = (ISOLATION_LEVEL < 2 ? [] : zones)
+  // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
+  const zonePolygons = (ISOLATION_LEVEL < 2 ? [] : safeZones)
     .filter((z) => z.polygonPoints.length > 0)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
@@ -94,7 +95,8 @@ function generateLeafletHtml(
     .join("\n");
 
   // ISOLATION: empty zone markers only at level >= 2
-  const emptyZoneMarkers = (ISOLATION_LEVEL < 2 ? [] : zones)
+  // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
+  const emptyZoneMarkers = (ISOLATION_LEVEL < 2 ? [] : safeZones)
     .filter((z) => z.polygonPoints.length === 0 && z.center)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
@@ -175,8 +177,9 @@ function generateLeafletHtml(
   const fitBoundsCode = (() => {
     if (ISOLATION_LEVEL < 2) return ""; // ISOLATION: no fit-to-bounds below level 2
     if (isEditing) return "";
-    const polyZones = zones.filter((z) => z.polygonPoints.length > 0);
-    const centerZones = zones.filter((z) => z.polygonPoints.length === 0 && z.center);
+    // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
+    const polyZones = safeZones.filter((z) => z.polygonPoints.length > 0);
+    const centerZones = safeZones.filter((z) => z.polygonPoints.length === 0 && z.center);
     const parts = [
       ...polyZones.map(
         (z) => `allBounds.push([${z.polygonPoints.map((p) => `[${p.lat},${p.lng}]`).join(",")}]);`
@@ -954,7 +957,7 @@ export function LeafletPreviewFallback({
     const zone = zones.find((z) => z.id === flyToZoneId);
     if (!zone) return;
 
-    if (zone.polygonPoints.length > 0) {
+    if (Array.isArray(zone.polygonPoints) && zone.polygonPoints.length > 0) {
       const bounds = zone.polygonPoints.map((p) => [p.lat, p.lng]);
       postToIframe({ type: "fly_to_bounds", bounds });
     } else if (zone.center) {
