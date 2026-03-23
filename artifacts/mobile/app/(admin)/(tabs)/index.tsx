@@ -15,6 +15,7 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
@@ -22,15 +23,15 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { EmergencyReceiptTracker } from "@/components/ui/EmergencyReceiptTracker";
 
 
-export default function DashboardScreen() {
+function DashboardScreenInner() {
   useRefreshOnFocus();
   const router = useRouter();
-  const users = useStore((s) => s.users);
-  const allZones = useStore((s) => s.zones);
+  const users = useStore((s) => s.users) ?? [];
+  const allZones = useStore((s) => s.zones) ?? [];
   const zones = useMemo(() => (allZones || []).filter((z: any) => !z.isArchived), [allZones]);
-  const locations = useStore((s) => s.locations);
-  const shelters = useStore((s) => s.shelters);
-  const activityLogs = useStore((s) => s.activityLogs);
+  const locations = useStore((s) => s.locations) ?? [];
+  const shelters = useStore((s) => s.shelters) ?? [];
+  const activityLogs = useStore((s) => s.activityLogs) ?? [];
   const logout = useStore((s) => s.logout);
 
   const alertZones = useMemo(
@@ -652,3 +653,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
+
+export default function DashboardScreen() {
+  return (
+    <ErrorBoundary label="AdminDashboard">
+      <DashboardScreenInner />
+    </ErrorBoundary>
+  );
+}

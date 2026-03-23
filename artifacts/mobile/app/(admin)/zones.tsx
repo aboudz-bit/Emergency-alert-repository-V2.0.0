@@ -45,9 +45,9 @@ export default function ZonesScreen() {
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const deleteZone = useStore((s) => s.deleteZone);
-  const locations = useStore((s) => s.locations);
+  const locations = useStore((s) => s.locations) ?? [];
   const updateLocation = useStore((s) => s.updateLocation);
-  const shelters = useStore((s) => s.shelters);
+  const shelters = useStore((s) => s.shelters) ?? [];
   const addShelter = useStore((s) => s.addShelter);
   const updateShelter = useStore((s) => s.updateShelter);
   const deleteShelter = useStore((s) => s.deleteShelter);
@@ -55,7 +55,7 @@ export default function ZonesScreen() {
   const activeAlert = useStore(selectActiveAlert, alertEq);
   // Show Warning Zone button when there is ANY active alert — either a real
   // alert record in alerts[] or a zone-level alert (zones[].alertActive).
-  const hasRealAlert = useStore((s) => s.alerts.some((a) => a.isActive) || s.zones.some((z) => z.isActive && z.alertActive));
+  const hasRealAlert = useStore((s) => (Array.isArray(s.alerts) && s.alerts.some((a) => a.isActive)) || (Array.isArray(s.zones) && s.zones.some((z) => z.isActive && z.alertActive)));
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);

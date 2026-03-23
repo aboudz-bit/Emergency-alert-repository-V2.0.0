@@ -54,6 +54,8 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
     },
 
     sendAllClear: () => {
+      try {
+      console.log('[alerts slice] sendAllClear called');
       const { currentUser, users } = get();
       const sentBy = currentUser?.name || 'System Auto';
       const now = new Date().toISOString();
@@ -111,6 +113,10 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
       };
       set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
+      console.log('[alerts slice] sendAllClear completed');
+      } catch (e: any) {
+        console.error('[alerts slice] sendAllClear CRASHED:', e.name, e.message, e.stack);
+      }
     },
 
     closeAlert: (alertId) => {

@@ -1,9 +1,11 @@
 import { Redirect, Stack } from "expo-router";
+import React from "react";
 
 import { Colors } from "@/constants/theme";
 import { useStore } from "@/store";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-export default function ITLayout() {
+function ITLayoutInner() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
 
@@ -26,5 +28,13 @@ export default function ITLayout() {
       <Stack.Screen name="create-admin" />
       <Stack.Screen name="approvals" />
     </Stack>
+  );
+}
+
+export default function ITLayout() {
+  return (
+    <ErrorBoundary label="ITLayout">
+      <ITLayoutInner />
+    </ErrorBoundary>
   );
 }

@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from "react-native";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -14,7 +15,7 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
   );
 }
 
-export default function ECOLayout() {
+function ECOLayoutInner() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
 
@@ -74,6 +75,14 @@ export default function ECOLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+export default function ECOLayout() {
+  return (
+    <ErrorBoundary label="ECOLayout">
+      <ECOLayoutInner />
+    </ErrorBoundary>
   );
 }
 

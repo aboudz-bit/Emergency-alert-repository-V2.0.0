@@ -7,6 +7,7 @@ import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import { EmergencyReceiptOverlay } from "@/components/ui/EmergencyReceiptOverlay";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -16,7 +17,7 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
   );
 }
 
-export default function UserLayout() {
+function UserLayoutInner() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
   const { t } = useTranslation();
@@ -69,6 +70,14 @@ export default function UserLayout() {
       <Tabs.Screen name="alert" options={{ href: null }} />
     </Tabs>
     </View>
+  );
+}
+
+export default function UserLayout() {
+  return (
+    <ErrorBoundary label="UserLayout">
+      <UserLayoutInner />
+    </ErrorBoundary>
   );
 }
 

@@ -8,7 +8,26 @@ export const STORE_NAME = 'keas-mobile-store-v20';
 export const STORE_VERSION = 24;
 
 export function migrate(persisted: any, version: number): AppState {
+  console.log(`[migrations] migrate called: version=${version}, STORE_VERSION=${STORE_VERSION}`);
+  try {
   const state = persisted as any;
+
+  // Safety: ensure core arrays exist
+  if (!Array.isArray(state?.alerts)) { console.error('[migrations] alerts is not an array, resetting'); state.alerts = []; }
+  if (!Array.isArray(state?.zones)) { console.error('[migrations] zones is not an array, resetting'); state.zones = seedZones; }
+  if (!Array.isArray(state?.users)) { console.error('[migrations] users is not an array, resetting'); state.users = seedUsers; }
+  if (!Array.isArray(state?.locations)) { console.error('[migrations] locations is not an array, resetting'); state.locations = seedLocations; }
+  if (!state?.emergencyModes || typeof state.emergencyModes !== 'object') {
+    console.error('[migrations] emergencyModes is invalid, resetting');
+    state.emergencyModes = {
+      shelterIn: false, blackout: false, shelterInZones: [], blackoutZones: [],
+      shelterInActivatedAt: null, shelterInActivatedBy: null,
+      blackoutActivatedAt: null, blackoutActivatedBy: null, receipts: [],
+    };
+  }
+  if (!Array.isArray(state.emergencyModes.receipts)) { state.emergencyModes.receipts = []; }
+  if (!Array.isArray(state.emergencyModes.shelterInZones)) { state.emergencyModes.shelterInZones = []; }
+  if (!Array.isArray(state.emergencyModes.blackoutZones)) { state.emergencyModes.blackoutZones = []; }
 
   if (version < 1) {
     // Backfill zone alert fields
@@ -401,7 +420,12 @@ export function migrate(persisted: any, version: number): AppState {
     state.mobileUserResponse = null;
   }
 
+  console.log('[migrations] migration completed successfully');
   return persisted as AppState;
+  } catch (e: any) {
+    console.error('[migrations] MIGRATION CRASHED:', e.name, e.message, e.stack);
+    return persisted as AppState;
+  }
 }
 
 export function partialize(state: AppState) {
