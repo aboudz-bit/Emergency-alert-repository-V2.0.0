@@ -85,7 +85,7 @@ export default function UserHomeScreen() {
   const activeAlert = useStore(selectActiveAlert, alertEq);
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
-  const shelters = useStore((s) => s.shelters) ?? [];
+  const shelters = useStore((s) => s.shelters);
   const { t } = useTranslation();
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);

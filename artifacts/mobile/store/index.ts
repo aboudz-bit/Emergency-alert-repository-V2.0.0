@@ -34,7 +34,6 @@ export {
   selectCanManageShelters,
   selectCanReviewAlertMonitor,
   selectCanChangeWindDirection,
-  selectCanActivateEmergencyMode,
   selectCurrentUserHasPermission,
 } from './selectors';
 
@@ -44,8 +43,6 @@ export type { AppState } from './types';
 // Inject selectActiveAlert into hazardZone slice (avoids circular dep)
 import { selectActiveAlert } from './selectors';
 _injectSelectActiveAlert(selectActiveAlert);
-
-console.log('[store] Initializing Zustand store...');
 
 export const useStore = create<AppState>()(
   persist(
@@ -76,7 +73,6 @@ export const useStore = create<AppState>()(
         shelterInActivatedBy: null,
         blackoutActivatedAt: null,
         blackoutActivatedBy: null,
-        receipts: [],
       },
       windDirection: null,
       windSetBy: null,
@@ -113,19 +109,6 @@ export const useStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       migrate,
       partialize,
-      onRehydrateStorage: () => {
-        console.log('[store] Rehydration started...');
-        return (state, error) => {
-          if (error) {
-            console.error('[store] REHYDRATION FAILED:', error);
-          } else {
-            console.log('[store] Rehydration completed. emergencyModes:', JSON.stringify(state?.emergencyModes ? { shelterIn: state.emergencyModes.shelterIn, blackout: state.emergencyModes.blackout, receiptsCount: Array.isArray(state.emergencyModes.receipts) ? state.emergencyModes.receipts.length : 'NOT_ARRAY' } : 'NULL'));
-            console.log('[store] alerts count:', Array.isArray(state?.alerts) ? state.alerts.length : 'NOT_ARRAY');
-            console.log('[store] zones count:', Array.isArray(state?.zones) ? state.zones.length : 'NOT_ARRAY');
-            console.log('[store] users count:', Array.isArray(state?.users) ? state.users.length : 'NOT_ARRAY');
-          }
-        };
-      },
     },
   ),
 );

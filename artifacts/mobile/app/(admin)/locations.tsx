@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,22 +12,6 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const IS_WEB = Platform.OS === "web";
-
-let NestableDraggableFlatList: any = null;
-let NestableScrollContainer: any = null;
-let ScaleDecorator: any = null;
-let GestureHandlerRootView: any = null;
-type RenderItemParams<T> = { item: T; drag: () => void; isActive: boolean };
-
-if (!IS_WEB) {
-  const dfl = require("react-native-draggable-flatlist");
-  NestableDraggableFlatList = dfl.NestableDraggableFlatList;
-  NestableScrollContainer = dfl.NestableScrollContainer;
-  ScaleDecorator = dfl.ScaleDecorator;
-  GestureHandlerRootView = require("react-native-gesture-handler").GestureHandlerRootView;
-}
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
@@ -44,12 +27,11 @@ export default function ZonesAndLocationsScreen() {
   const router = useRouter();
 
   // ─── Store ───
-  const allZones = useStore((s) => s.zones) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
+  const allZones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
   const addLocation = useStore((s) => s.addLocation);
   const updateLocation = useStore((s) => s.updateLocation);
   const deleteLocation = useStore((s) => s.deleteLocation);
-  const reorderLocations = useStore((s) => s.reorderLocations);
   const updateZone = useStore((s) => s.updateZone);
   const renameZone = useStore((s) => s.renameZone);
   const mergeZones = useStore((s) => s.mergeZones);
@@ -273,18 +255,11 @@ export default function ZonesAndLocationsScreen() {
     const zone = allZones.find((z) => z.id === locationZoneId);
     if (!zone) return;
     if (editingLocation) {
-      const updates: Partial<Location> = {
+      updateLocation(editingLocation.id, {
         name: locationName.trim(),
         zone: zone.name,
         zoneId: locationZoneId,
-      };
-      if (editingLocation.zoneId !== locationZoneId) {
-        const maxOrder = locations
-          .filter((l) => l.zoneId === locationZoneId)
-          .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
-        updates.sortOrder = maxOrder + 1;
-      }
-      updateLocation(editingLocation.id, updates);
+      });
     } else {
       addLocation({
         name: locationName.trim(),
@@ -304,7 +279,7 @@ export default function ZonesAndLocationsScreen() {
     setShowLocationModal(false);
     setLocationName("");
     setEditingLocation(null);
-  }, [locationName, locationZoneId, editingLocation, updateLocation, addLocation, allZones, locations]);
+  }, [locationName, locationZoneId, editingLocation, updateLocation, addLocation, allZones]);
 
   const handleDeleteLocation = useCallback(() => {
     if (!editingLocation) return;
@@ -314,11 +289,8 @@ export default function ZonesAndLocationsScreen() {
   }, [editingLocation, deleteLocation]);
 
   // ─── Render ───
-  const RootWrapper = IS_WEB ? View : GestureHandlerRootView;
-  const ScrollContainer = IS_WEB ? ScrollView : NestableScrollContainer;
-
   return (
-    <RootWrapper style={styles.root}>
+    <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
@@ -336,7 +308,7 @@ export default function ZonesAndLocationsScreen() {
       </View>
 
       {/* Scrollable content */}
-      <ScrollContainer contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}>
         {activeZones.length === 0 && (
           <View style={styles.emptyState}>
             <Feather name="layers" size={40} color={Colors.textTertiary} />
@@ -346,9 +318,7 @@ export default function ZonesAndLocationsScreen() {
         )}
 
         {activeZones.map((zone) => {
-          const zoneLocs = locations
-            .filter((l) => l.zoneId === zone.id)
-            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+          const zoneLocs = locations.filter((l) => l.zoneId === zone.id);
           const isSelecting = multiSelectZoneId === zone.id;
 
           return (
@@ -400,7 +370,7 @@ export default function ZonesAndLocationsScreen() {
                     <Text style={styles.emptyZoneAdd}>+ Add</Text>
                   </Pressable>
                 </View>
-              ) : IS_WEB ? (
+              ) : (
                 zoneLocs.map((loc) => {
                   const isSel = multiSelectedLocIds.has(loc.id);
                   return (
@@ -414,15 +384,12 @@ export default function ZonesAndLocationsScreen() {
                           {isSel && <Feather name="check" size={12} color="#fff" />}
                         </View>
                       ) : (
-                        <View style={styles.dragHandle}>
-                          <Feather name="menu" size={16} color={Colors.textTertiary} />
-                        </View>
+                        <Feather
+                          name="map-pin"
+                          size={14}
+                          color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
+                        />
                       )}
-                      <Feather
-                        name="map-pin"
-                        size={14}
-                        color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
-                      />
                       <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
                         {loc.name}
                       </Text>
@@ -450,72 +417,6 @@ export default function ZonesAndLocationsScreen() {
                     </Pressable>
                   );
                 })
-              ) : (
-                <NestableDraggableFlatList
-                  data={zoneLocs}
-                  keyExtractor={(item) => String(item.id)}
-                  onDragEnd={({ data: reordered }) => {
-                    reorderLocations(zone.id, reordered.map((l) => l.id));
-                  }}
-                  activationDistance={isSelecting ? 99999 : 15}
-                  renderItem={({ item: loc, drag, isActive: isDragging }: RenderItemParams<Location>) => {
-                    const isSel = multiSelectedLocIds.has(loc.id);
-                    return (
-                      <ScaleDecorator activeScale={1.04}>
-                        <Pressable
-                          style={[
-                            styles.row,
-                            isSel && styles.rowSelected,
-                            isDragging && styles.rowDragging,
-                          ]}
-                          onPress={isSelecting ? () => handleToggleLocSelect(loc.id) : undefined}
-                          onLongPress={isSelecting ? undefined : drag}
-                          delayLongPress={150}
-                          disabled={isDragging}
-                        >
-                          {isSelecting ? (
-                            <View style={[styles.checkbox, isSel && { backgroundColor: Colors.info, borderColor: Colors.info }]}>
-                              {isSel && <Feather name="check" size={12} color="#fff" />}
-                            </View>
-                          ) : (
-                            <Pressable onPressIn={drag} hitSlop={6} style={styles.dragHandle}>
-                              <Feather name="menu" size={16} color={Colors.textTertiary} />
-                            </Pressable>
-                          )}
-                          <Feather
-                            name="map-pin"
-                            size={14}
-                            color={loc.isActive ? (zone.color || Colors.textSecondary) : Colors.textTertiary}
-                          />
-                          <Text style={[styles.rowName, !loc.isActive && { color: Colors.textTertiary }]} numberOfLines={1}>
-                            {loc.name}
-                          </Text>
-                          {loc.alertActive && (
-                            <Feather name="alert-circle" size={12} color="#EF4444" />
-                          )}
-                          {!isSelecting && (
-                            <>
-                              <Switch
-                                value={loc.isActive}
-                                onValueChange={() => updateLocation(loc.id, { isActive: !loc.isActive })}
-                                trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                                thumbColor={loc.isActive ? Colors.safe : Colors.textSecondary}
-                                style={styles.rowSwitch}
-                              />
-                              <Pressable
-                                style={({ pressed }) => [styles.rowEditBtn, pressed && { opacity: 0.6 }]}
-                                onPress={() => handleOpenEdit(loc)}
-                                hitSlop={6}
-                              >
-                                <Feather name="edit-2" size={14} color={Colors.textSecondary} />
-                              </Pressable>
-                            </>
-                          )}
-                        </Pressable>
-                      </ScaleDecorator>
-                    );
-                  }}
-                />
               )}
             </View>
           );
@@ -550,7 +451,7 @@ export default function ZonesAndLocationsScreen() {
               })}
           </View>
         )}
-      </ScrollContainer>
+      </ScrollView>
 
       {/* Floating multi-select bar */}
       {multiSelectMode != null && (
@@ -892,7 +793,7 @@ export default function ZonesAndLocationsScreen() {
                   <View style={styles.impactRow}>
                     <Feather name="alert-circle" size={13} color="#F59E0B" />
                     <Text style={styles.impactText}>
-                      {archiveImpact?.activeLocations ?? 0} active location{(archiveImpact?.activeLocations ?? 0) !== 1 ? "s" : ""} will be hidden from active workflows
+                      {archiveImpact!.activeLocations} active location{archiveImpact!.activeLocations !== 1 ? "s" : ""} will be hidden from active workflows
                     </Text>
                   </View>
                 )}
@@ -956,17 +857,18 @@ export default function ZonesAndLocationsScreen() {
                 );
               })}
             </ScrollView>
-            <View style={styles.modalFooter}>
+            <View style={[styles.btnRow, { marginTop: 4 }]}>
               {editingLocation && (
                 <Pressable style={styles.deleteBtn} onPress={handleDeleteLocation}>
                   <Feather name="trash-2" size={16} color={Colors.primary} />
                 </Pressable>
               )}
-              <Pressable style={styles.modalFooterBtn} onPress={() => setShowLocationModal(false)}>
+              <View style={{ flex: 1 }} />
+              <Pressable style={styles.cancelBtn} onPress={() => setShowLocationModal(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalFooterBtnPrimary, (!locationName.trim() || !locationZoneId) && { opacity: 0.3 }]}
+                style={[styles.primaryBtn, { flex: 0, paddingHorizontal: 20 }, (!locationName.trim() || !locationZoneId) && { opacity: 0.3 }]}
                 onPress={handleSaveLocation}
                 disabled={!locationName.trim() || !locationZoneId}
               >
@@ -977,7 +879,7 @@ export default function ZonesAndLocationsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </RootWrapper>
+    </View>
   );
 }
 
@@ -1055,8 +957,8 @@ const styles = StyleSheet.create({
 
   // Location row
   row: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 10, paddingVertical: 8,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 14, paddingVertical: 11,
     borderTopWidth: 1, borderTopColor: Colors.border, minHeight: 46,
   },
   rowSelected: { backgroundColor: Colors.info + "0D" },
@@ -1065,15 +967,6 @@ const styles = StyleSheet.create({
   rowEditBtn: {
     width: 34, height: 34, borderRadius: 8,
     backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center",
-  },
-  dragHandle: {
-    width: 28, height: 36, alignItems: "center", justifyContent: "center",
-  },
-  rowDragging: {
-    backgroundColor: Colors.surfaceElevated,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18, shadowRadius: 10, elevation: 8,
-    borderRadius: 10, borderTopWidth: 0,
   },
 
   // Checkbox
@@ -1172,17 +1065,6 @@ const styles = StyleSheet.create({
   deleteBtn: {
     width: 44, height: 44, borderRadius: 10,
     backgroundColor: Colors.primaryDim, alignItems: "center", justifyContent: "center",
-  },
-  modalFooter: {
-    flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4,
-  },
-  modalFooterBtn: {
-    flex: 1, minHeight: 44, justifyContent: "center", alignItems: "center",
-    borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surfaceElevated,
-  },
-  modalFooterBtnPrimary: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    minHeight: 44, borderRadius: 10, backgroundColor: Colors.info,
   },
 
   // Zone / location pickers

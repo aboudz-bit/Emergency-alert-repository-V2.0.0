@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
-  LayoutDashboard, Bell, RadioTower, Map, MapPin, Globe,
+  LayoutDashboard, Bell, RadioTower, Map, MapPin,
   Users, History, Settings, LogOut, ShieldAlert, ChevronLeft, Menu, X,
   ClipboardList, Volume2, Radio, Shield, Lock,
 } from 'lucide-react';
@@ -12,7 +12,6 @@ const menuItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/admin/send-alert', icon: Bell, label: 'Send Alert' },
   { path: '/admin/alert-monitor', icon: RadioTower, label: 'Alert Monitor' },
-  { path: '/admin/live-map', icon: Globe, label: 'Live Map' },
   { path: '/admin/zones', icon: Map, label: 'Zones' },
   { path: '/admin/locations', icon: MapPin, label: 'Locations' },
   { path: '/admin/users', icon: Users, label: 'Users' },

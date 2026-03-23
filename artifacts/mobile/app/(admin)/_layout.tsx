@@ -3,9 +3,8 @@ import React from "react";
 
 import { Colors } from "@/constants/theme";
 import { useStore } from "@/store";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-function AdminLayoutInner() {
+export default function AdminLayout() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
 
@@ -32,13 +31,5 @@ function AdminLayoutInner() {
       <Stack.Screen name="supervisor-management" />
       <Stack.Screen name="permissions" />
     </Stack>
-  );
-}
-
-export default function AdminLayout() {
-  return (
-    <ErrorBoundary label="AdminLayout">
-      <AdminLayoutInner />
-    </ErrorBoundary>
   );
 }

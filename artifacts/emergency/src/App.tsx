@@ -19,7 +19,6 @@ import HistoryPage from '@/pages/admin/history';
 import AuditLogPage from '@/pages/admin/audit-log';
 import ECOManagementPage from '@/pages/admin/eco-management';
 import SettingsPage from '@/pages/admin/settings';
-import AdminLiveMap from '@/pages/admin/live-map';
 import ECODashboard from '@/pages/eco/dashboard';
 import ECOLiveMap from '@/pages/eco/live-map';
 import PermissionsPage from '@/pages/admin/permissions';
@@ -124,11 +123,6 @@ function Router() {
       <Route path="/admin/permissions">
         <Guard allowedRoles={['Super Admin']} redirectTo="/login">
           <PermissionsPage />
-        </Guard>
-      </Route>
-      <Route path="/admin/live-map">
-        <Guard allowedRoles={['Super Admin']} redirectTo="/login">
-          <AdminLiveMap />
         </Guard>
       </Route>
       <Route path="/admin/settings">

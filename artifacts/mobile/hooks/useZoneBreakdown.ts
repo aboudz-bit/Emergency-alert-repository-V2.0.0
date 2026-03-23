@@ -9,7 +9,6 @@ export function useZoneBreakdown(
 ): ZoneStats[] {
   return useMemo(() => {
     if (!activeAlert) return [];
-    if (!Array.isArray(users) || !Array.isArray(zones)) return [];
 
     const isAllZones =
       activeAlert.zone === "All Zones" || activeAlert.zone === "all";

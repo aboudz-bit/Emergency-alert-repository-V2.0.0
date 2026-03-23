@@ -100,7 +100,7 @@ function AlertHistoryCard({ alert, t }: { alert: Alert; t: import("@/i18n/transl
 }
 
 export default function HistoryScreen() {
-  const alerts = useStore((s) => s.alerts) ?? [];
+  const alerts = useStore((s) => s.alerts);
   const closedAlerts = alerts.filter((a) => a.status === "closed");
   const { t } = useTranslation();
 

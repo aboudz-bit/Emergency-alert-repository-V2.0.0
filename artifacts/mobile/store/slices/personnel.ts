@@ -76,12 +76,9 @@ export function createPersonnelSlice(set: SetState, get: GetState): Pick<
     })),
 
     batchUpdatePersonnelLocations: (locs) => set(s => {
-      if (!Array.isArray(locs) || locs.length === 0) return { personnelLocations: s.personnelLocations };
       const next = { ...s.personnelLocations };
       for (const loc of locs) {
-        if (loc && loc.userId != null) {
-          next[loc.userId] = loc;
-        }
+        next[loc.userId] = loc;
       }
       return { personnelLocations: next };
     }),

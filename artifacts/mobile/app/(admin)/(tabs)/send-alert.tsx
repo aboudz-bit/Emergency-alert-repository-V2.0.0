@@ -13,9 +13,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Colors, DEFAULT_MESSAGES } from "@/constants/theme";
-import { useStore, selectCanActivateEmergencyMode } from "@/store";
+import { useStore } from "@/store";
 import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
 
 const ALERT_TYPE_OPTIONS: LocationAlertType[] = [
@@ -35,27 +34,22 @@ const priorityColors: Record<AlertPriority, string> = {
 
 type FilterMode = "all" | "active" | "inactive";
 
-function AlertManagementScreenInner() {
+export default function AlertManagementScreen() {
   const allZonesRaw = useStore((s) => s.zones);
   const zones = useMemo(() => (allZonesRaw || []).filter((z: any) => !z.isArchived), [allZonesRaw]);
-  const locations = useStore((s) => s.locations) ?? [];
-  const users = useStore((s) => s.users) ?? [];
+  const locations = useStore((s) => s.locations);
+  const users = useStore((s) => s.users);
   const activateZoneAlert = useStore((s) => s.activateZoneAlert);
   const deactivateZoneAlert = useStore((s) => s.deactivateZoneAlert);
   const editZoneAlert = useStore((s) => s.editZoneAlert);
   const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
   const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
   const sendZoneNotification = useStore((s) => s.sendZoneNotification);
-  const emergencyModes = useStore((s) => s.emergencyModes) ?? {
-    shelterIn: false, blackout: false, shelterInZones: [], blackoutZones: [],
-    shelterInActivatedAt: null, shelterInActivatedBy: null,
-    blackoutActivatedAt: null, blackoutActivatedBy: null, receipts: [],
-  };
+  const emergencyModes = useStore((s) => s.emergencyModes);
   const activateShelterIn = useStore((s) => s.activateShelterIn);
   const deactivateShelterIn = useStore((s) => s.deactivateShelterIn);
   const activateBlackout = useStore((s) => s.activateBlackout);
   const deactivateBlackout = useStore((s) => s.deactivateBlackout);
-  const canActivateEmergency = useStore(selectCanActivateEmergencyMode);
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -428,98 +422,72 @@ function AlertManagementScreenInner() {
       <Header title="Alert Management" />
 
       {/* ─── Emergency Modes ─── */}
-      {canActivateEmergency ? (
-        <View style={styles.emergencyModesBar}>
-          <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
-          <View style={styles.emergencyModesRow}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.emergencyModeBtn,
-                emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
-                pressed && { opacity: 0.8 },
+      <View style={styles.emergencyModesBar}>
+        <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
+        <View style={styles.emergencyModesRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.emergencyModeBtn,
+              emergencyModes.shelterIn && styles.emergencyModeBtnActiveShelter,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => {
+              if (emergencyModes.shelterIn) {
+                deactivateShelterIn();
+              } else {
+                setEmergencyZoneSelection(new Set());
+                setEmergencyZoneModal("shelterIn");
+              }
+            }}
+          >
+            <Feather
+              name="shield"
+              size={16}
+              color={emergencyModes.shelterIn ? "#fff" : Colors.amber}
+            />
+            <Text
+              style={[
+                styles.emergencyModeBtnText,
+                emergencyModes.shelterIn && styles.emergencyModeBtnTextActive,
               ]}
-              onPress={() => {
-                if (emergencyModes.shelterIn) {
-                  deactivateShelterIn();
-                } else {
-                  setEmergencyZoneSelection(new Set());
-                  setEmergencyZoneModal("shelterIn");
-                }
-              }}
             >
-              <Feather
-                name="shield"
-                size={16}
-                color={emergencyModes.shelterIn ? "#fff" : Colors.amber}
-              />
-              <Text
-                style={[
-                  styles.emergencyModeBtnText,
-                  emergencyModes.shelterIn && styles.emergencyModeBtnTextActive,
-                ]}
-              >
-                {emergencyModes.shelterIn ? "Shelter In ON" : "Shelter In"}
-              </Text>
-              {emergencyModes.shelterIn && <View style={styles.emergencyModePulse} />}
-            </Pressable>
+              {emergencyModes.shelterIn ? "Shelter In ON" : "Shelter In"}
+            </Text>
+            {emergencyModes.shelterIn && <View style={styles.emergencyModePulse} />}
+          </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.emergencyModeBtn,
-                emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
-                pressed && { opacity: 0.8 },
+          <Pressable
+            style={({ pressed }) => [
+              styles.emergencyModeBtn,
+              emergencyModes.blackout && styles.emergencyModeBtnActiveBlackout,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => {
+              if (emergencyModes.blackout) {
+                deactivateBlackout();
+              } else {
+                setEmergencyZoneSelection(new Set());
+                setEmergencyZoneModal("blackout");
+              }
+            }}
+          >
+            <Feather
+              name="zap-off"
+              size={16}
+              color={emergencyModes.blackout ? "#fff" : Colors.primary}
+            />
+            <Text
+              style={[
+                styles.emergencyModeBtnText,
+                emergencyModes.blackout && styles.emergencyModeBtnTextActive,
               ]}
-              onPress={() => {
-                if (emergencyModes.blackout) {
-                  deactivateBlackout();
-                } else {
-                  setEmergencyZoneSelection(new Set());
-                  setEmergencyZoneModal("blackout");
-                }
-              }}
             >
-              <Feather
-                name="zap-off"
-                size={16}
-                color={emergencyModes.blackout ? "#fff" : Colors.primary}
-              />
-              <Text
-                style={[
-                  styles.emergencyModeBtnText,
-                  emergencyModes.blackout && styles.emergencyModeBtnTextActive,
-                ]}
-              >
-                {emergencyModes.blackout ? "Blackout ON" : "Blackout"}
-              </Text>
-              {emergencyModes.blackout && <View style={styles.emergencyModePulse} />}
-            </Pressable>
-          </View>
+              {emergencyModes.blackout ? "Blackout ON" : "Blackout"}
+            </Text>
+            {emergencyModes.blackout && <View style={styles.emergencyModePulse} />}
+          </Pressable>
         </View>
-      ) : (emergencyModes.shelterIn || emergencyModes.blackout) ? (
-        <View style={styles.emergencyModesBar}>
-          <Text style={styles.emergencyModesLabel}>EMERGENCY MODES</Text>
-          <View style={styles.emergencyModesRow}>
-            {emergencyModes.shelterIn && (
-              <View style={[styles.emergencyModeBtn, styles.emergencyModeBtnActiveShelter]}>
-                <Feather name="shield" size={16} color="#fff" />
-                <Text style={[styles.emergencyModeBtnText, styles.emergencyModeBtnTextActive]}>
-                  Shelter In ON
-                </Text>
-                <View style={styles.emergencyModePulse} />
-              </View>
-            )}
-            {emergencyModes.blackout && (
-              <View style={[styles.emergencyModeBtn, styles.emergencyModeBtnActiveBlackout]}>
-                <Feather name="zap-off" size={16} color="#fff" />
-                <Text style={[styles.emergencyModeBtnText, styles.emergencyModeBtnTextActive]}>
-                  Blackout ON
-                </Text>
-                <View style={styles.emergencyModePulse} />
-              </View>
-            )}
-          </View>
-        </View>
-      ) : null}
+      </View>
 
       {/* ─── Summary strip ─── */}
       <View style={styles.summaryStrip}>
@@ -1219,16 +1187,13 @@ function AlertManagementScreenInner() {
             <View style={styles.modalTarget}>
               <View style={[styles.modalTargetDot, { backgroundColor: notifyTarget?.color || Colors.textTertiary }]} />
               <Text style={styles.modalTargetText}>{notifyTarget?.name}</Text>
-              {notifyTarget && (() => {
-                const s = zoneStats.get(notifyTarget.id);
-                return s ? (
-                  <View style={styles.modalTargetZoneBadge}>
-                    <Text style={styles.modalTargetZoneText}>
-                      {s.userCount} user{s.userCount !== 1 ? "s" : ""}
-                    </Text>
-                  </View>
-                ) : null;
-              })()}
+              {notifyTarget && zoneStats.get(notifyTarget.id) && (
+                <View style={styles.modalTargetZoneBadge}>
+                  <Text style={styles.modalTargetZoneText}>
+                    {zoneStats.get(notifyTarget.id)!.userCount} user{zoneStats.get(notifyTarget.id)!.userCount !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <Text style={styles.modalLabel}>Message</Text>
@@ -1971,11 +1936,3 @@ const styles = StyleSheet.create({
     fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff",
   },
 });
-
-export default function AlertManagementScreen() {
-  return (
-    <ErrorBoundary label="AlertManagementScreen">
-      <AlertManagementScreenInner />
-    </ErrorBoundary>
-  );
-}

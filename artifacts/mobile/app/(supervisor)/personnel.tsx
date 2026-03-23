@@ -21,8 +21,8 @@ type FilterTab = "all" | "confirmed" | "pending" | "need_help";
 
 export default function PersonnelScreen() {
   const currentUser = useStore((s) => s.currentUser);
-  const users = useStore((s) => s.users) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
+  const users = useStore((s) => s.users);
+  const locations = useStore((s) => s.locations);
   const removePersonnelFromLocation = useStore((s) => s.removePersonnelFromLocation);
 
   const [activeTab, setActiveTab] = useState<FilterTab>("all");

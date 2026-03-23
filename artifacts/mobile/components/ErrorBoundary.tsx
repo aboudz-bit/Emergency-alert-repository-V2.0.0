@@ -5,7 +5,6 @@ import { ErrorFallback, ErrorFallbackProps } from "@/components/ErrorFallback";
 export type ErrorBoundaryProps = PropsWithChildren<{
   FallbackComponent?: ComponentType<ErrorFallbackProps>;
   onError?: (error: Error, stackTrace: string) => void;
-  label?: string;
 }>;
 
 type ErrorBoundaryState = { error: Error | null };
@@ -31,13 +30,8 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
-    const label = this.props.label || 'ROOT';
-    console.error(`\n========== ERROR BOUNDARY [${label}] ==========`);
-    console.error(`ERROR NAME: ${error.name}`);
-    console.error(`ERROR MESSAGE: ${error.message}`);
-    console.error(`STACK:\n${error.stack}`);
-    console.error(`COMPONENT STACK:\n${info.componentStack}`);
-    console.error(`=================================================\n`);
+    console.error('[ErrorBoundary] Caught error:', error.message, error.stack);
+    console.error('[ErrorBoundary] Component stack:', info.componentStack);
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }

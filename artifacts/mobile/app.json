@@ -1,33 +1,30 @@
 {
   "expo": {
-    "name": "KEAS",
-    "slug": "keas-mobile",
+    "name": "Mobile App",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "keas",
+    "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F6F8"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.khurais.keas"
+      "config": {
+        "googleMapsApiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
+      }
     },
     "android": {
-      "package": "com.khurais.keas",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#5B3A8E"
-      },
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "VIBRATE"
-      ]
+      "config": {
+        "googleMaps": {
+          "apiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -40,23 +37,11 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      [
-        "expo-av",
-        {
-          "microphonePermission": false
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "d42560c4-d28e-4520-960d-722357272df4"
-      }
-    },
-    "owner": "mirza-12"
+    }
   }
 }

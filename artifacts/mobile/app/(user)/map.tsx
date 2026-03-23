@@ -25,10 +25,10 @@ export default function ContractorMapScreen() {
   const focusCount = useRefreshOnFocus();
   const currentUser = useStore((s) => s.currentUser);
   const activeAlert = useStore(selectActiveAlert, alertEq);
-  const zones = useStore((s) => s.zones) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
-  const shelters = useStore((s) => s.shelters) ?? [];
-  const hazardZones = useStore((s) => s.hazardZones) ?? [];
+  const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
+  const hazardZones = useStore((s) => s.hazardZones);
   const { t } = useTranslation();
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);

@@ -24,12 +24,12 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const users = useStore((s) => s.users) ?? [];
-  const alerts = useStore((s) => s.alerts) ?? [];
-  const zones = useStore((s) => s.zones) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
-  const shelters = useStore((s) => s.shelters) ?? [];
-  const activityLogs = useStore((s) => s.activityLogs) ?? [];
+  const users = useStore((s) => s.users);
+  const alerts = useStore((s) => s.alerts);
+  const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
+  const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
   const startAccountability = useStore((s) => s.startAccountability);

@@ -15,25 +15,13 @@ export function GoogleMapsView({
   editingPoints,
   onEditingPointsChange,
 }: ZoneMapProps) {
-  const tag = '[ZONE_MAP:GoogleMapsView]';
-  console.log(`${tag} render — zones=${Array.isArray(zones) ? zones.length : typeof zones}, editingZoneId=${editingZoneId}`);
-
   const mapRef = useRef<MapView>(null);
   const isEditing = editingZoneId != null;
 
-  const region = useMemo(() => {
-    console.log(`${tag} computing region from ${Array.isArray(zones) ? zones.length : 0} zones`);
-    return zonesToRegion(zones);
-  }, [zones]);
+  const region = useMemo(() => zonesToRegion(zones), [zones]);
 
   const polygons = useMemo(
-    () => {
-      if (!Array.isArray(zones)) {
-        console.error(`${tag} zones is not array in polygons memo`);
-        return [];
-      }
-      return zones.map((z) => zoneToPolygon(z, selectedZoneId));
-    },
+    () => zones.map((z) => zoneToPolygon(z, selectedZoneId)),
     [zones, selectedZoneId]
   );
 
@@ -43,13 +31,13 @@ export function GoogleMapsView({
   );
 
   useEffect(() => {
-    if (mapRef.current && Array.isArray(zones) && zones.length > 0 && !isEditing) {
+    if (mapRef.current && zones.length > 0 && !isEditing) {
       const allPoints = zones.flatMap((z) =>
-        Array.isArray(z.polygonPoints) ? z.polygonPoints.map((p) => ({ latitude: p.lat, longitude: p.lng })) : []
+        z.polygonPoints.map((p) => ({ latitude: p.lat, longitude: p.lng }))
       );
       const centers = zones
-        .filter((z): z is typeof z & { center: { lat: number; lng: number } } => z.center != null && typeof z.center.lat === 'number' && typeof z.center.lng === 'number' && (!Array.isArray(z.polygonPoints) || z.polygonPoints.length === 0))
-        .map((z) => ({ latitude: z.center.lat, longitude: z.center.lng }));
+        .filter((z) => z.center && z.polygonPoints.length === 0)
+        .map((z) => ({ latitude: z.center!.lat, longitude: z.center!.lng }));
       const fitPoints = [...allPoints, ...centers];
       if (fitPoints.length > 1) {
         mapRef.current.fitToCoordinates(fitPoints, {

@@ -11,8 +11,8 @@ import { useStore } from "@/store";
 
 export default function ECOAlertsScreen() {
   const currentUser = useStore((s) => s.currentUser);
-  const alerts = useStore((s) => s.alerts) ?? [];
-  const zones = useStore((s) => s.zones) ?? [];
+  const alerts = useStore((s) => s.alerts);
+  const zones = useStore((s) => s.zones);
 
   const zoneName = currentUser?.ecoZoneName ?? "CPF";
 

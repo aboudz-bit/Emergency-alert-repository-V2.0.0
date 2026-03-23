@@ -4,7 +4,7 @@ import { findContainingLocationId } from "@/utils/geo";
 import type { LatLng } from "@/types";
 
 export function useDetectedLocation(userLocation: LatLng | null) {
-  const locations = useStore((s) => s.locations) ?? [];
+  const locations = useStore((s) => s.locations);
 
   const detectedLocationId = useMemo(() => {
     if (!userLocation) return null;

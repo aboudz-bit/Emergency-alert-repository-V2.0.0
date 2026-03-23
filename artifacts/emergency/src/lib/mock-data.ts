@@ -66,7 +66,8 @@ export const seedUsers: User[] = names.map((name, i) => {
   const isCpf = i < 30;
   const locList = isCpf ? cpfLocations : campLocations;
   const locIndex = isCpf ? (i % locList.length) : ((i - 30) % locList.length);
-  const status: User['status'] = 'no_reply';
+  const status: User['status'] =
+    i < 30 ? 'confirmed' : i < 42 ? 'missing' : 'no_reply';
 
   let role: User['role'] = 'User';
   if (i === 0) role = 'Super Admin';
@@ -92,7 +93,74 @@ export const seedUsers: User[] = names.map((name, i) => {
   };
 });
 
-export const seedAlerts: Alert[] = [];
+export const seedAlerts: Alert[] = [
+  {
+    id: 1,
+    type: 'Blackout',
+    zone: 'CPF',
+    title: 'BLACKOUT ACTIVATED',
+    message:
+      'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    sentBy: 'Ahmed Al-Qahtani',
+    priority: 'High',
+    status: 'active',
+    isActive: true,
+    stats: { confirmed: 30, missing: 12, noReply: 8, needHelp: 0, total: 50 },
+  },
+  {
+    id: 2,
+    type: 'Security Alert',
+    zone: 'Camp',
+    title: 'SECURITY INCIDENT',
+    message: 'Please remain indoors and lock all doors until further notice.',
+    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    sentBy: 'Security Team',
+    priority: 'High',
+    status: 'closed',
+    isActive: false,
+    stats: { confirmed: 45, missing: 2, noReply: 1, needHelp: 0, total: 48 },
+  },
+  {
+    id: 3,
+    type: 'Shelter-in',
+    zone: 'CPF',
+    title: 'SHELTER IN PLACE',
+    message: 'Toxic gas alarm triggered. Shelter in place immediately.',
+    timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    sentBy: 'System Auto',
+    priority: 'High',
+    status: 'closed',
+    isActive: false,
+    stats: { confirmed: 47, missing: 2, noReply: 1, needHelp: 0, total: 50 },
+  },
+  {
+    id: 4,
+    type: 'Drill',
+    zone: 'All Zones',
+    title: 'EMERGENCY EVACUATION DRILL',
+    message: 'This is a drill. Proceed to muster points.',
+    timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    sentBy: 'HSE Dept',
+    priority: 'Medium',
+    status: 'closed',
+    isActive: false,
+    stats: { confirmed: 90, missing: 5, noReply: 3, needHelp: 0, total: 98 },
+  },
+  {
+    id: 5,
+    type: 'All Clear',
+    zone: 'CPF',
+    title: 'ALL CLEAR',
+    message: 'The previous emergency condition has been resolved. Return to normal operations.',
+    timestamp: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    sentBy: 'Command Center',
+    priority: 'Low',
+    status: 'closed',
+    isActive: false,
+    stats: { confirmed: 50, missing: 0, noReply: 0, needHelp: 0, total: 50 },
+  },
+];
 
 export const seedZones: Zone[] = [
   {
@@ -155,7 +223,11 @@ export const seedLocations: Location[] = [
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
-  { id: 1, type: 'info', message: 'System initialized. No active alerts.', timestamp: new Date().toISOString() },
+  { id: 1, type: 'info', message: 'System check completed successfully.', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+  { id: 2, type: 'action', message: 'Admin Ahmed updated CPF zone boundaries.', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), actorName: 'Ahmed Al-Qahtani' },
+  { id: 3, type: 'report', message: 'Weekly drill report generated and archived.', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 4, type: 'user', message: '5 new user accounts provisioned by IT.', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 5, type: 'alert', message: 'All Clear sent — Security Alert resolved.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
 ];
 
 export const seedSettings: AppSettings = {

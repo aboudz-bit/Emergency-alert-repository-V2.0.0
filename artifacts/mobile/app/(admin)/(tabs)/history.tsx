@@ -38,7 +38,7 @@ const alertTypeColors: Record<string, string> = {
 };
 
 export default function HistoryScreen() {
-  const alerts = useStore((s) => s.alerts) ?? [];
+  const alerts = useStore((s) => s.alerts);
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
   const sortedAlerts = useMemo(() => {

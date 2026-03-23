@@ -43,11 +43,11 @@ type LocationGroup = {
 };
 
 export default function EmergencyUsersScreen() {
-  const users = useStore((s) => s.users) ?? [];
-  const zones = useStore((s) => s.zones) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
+  const users = useStore((s) => s.users);
+  const zones = useStore((s) => s.zones);
+  const locations = useStore((s) => s.locations);
   const currentUser = useStore((s) => s.currentUser);
-  const supervisorAssignments = useStore((s) => s.supervisorAssignments) ?? [];
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
   const isEmergencyActive = useStore(selectIsEmergencyActive);
 
   const sectionListRef = useRef<SectionList>(null);
@@ -211,30 +211,18 @@ export default function EmergencyUsersScreen() {
     return groups;
   }, [users, zones, locationById, activeZones, selectedZone, selectedLocationId, selectedCompanyType, selectedStatus, searchQuery, allowedLocationIds]);
 
-  const groupKeysString = useMemo(
-    () => locationGroups.map((g) => g.groupKey).join(","),
-    [locationGroups]
-  );
-
   useEffect(() => {
-    setExpandedSections((prev) => {
-      const map: Record<string, boolean> = {};
-      let changed = false;
-      for (const g of locationGroups) {
-        const key = g.groupKey;
-        if (prev[key] !== undefined) {
-          map[key] = prev[key];
-        } else {
-          map[key] = g.needHelp > 0 || g.pending > 0;
-          changed = true;
-        }
+    const map: Record<string, boolean> = {};
+    for (const g of locationGroups) {
+      const key = g.groupKey;
+      if (expandedSections[key] !== undefined) {
+        map[key] = expandedSections[key];
+      } else {
+        map[key] = g.needHelp > 0 || g.pending > 0;
       }
-      if (!changed && Object.keys(prev).length !== Object.keys(map).length) {
-        changed = true;
-      }
-      return changed ? map : prev;
-    });
-  }, [groupKeysString]);
+    }
+    setExpandedSections(map);
+  }, [locationGroups.map((g) => g.groupKey).join(",")]);
 
   const sections = useMemo(
     () =>

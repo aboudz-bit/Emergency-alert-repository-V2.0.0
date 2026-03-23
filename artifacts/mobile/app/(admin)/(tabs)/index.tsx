@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import {
+  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,23 +16,22 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-
+import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
-import { EmergencyReceiptTracker } from "@/components/ui/EmergencyReceiptTracker";
 
+const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
 
-function DashboardScreenInner() {
-  useRefreshOnFocus();
+export default function DashboardScreen() {
+  const focusCount = useRefreshOnFocus();
   const router = useRouter();
-  const users = useStore((s) => s.users) ?? [];
-  const allZones = useStore((s) => s.zones) ?? [];
-  const zones = useMemo(() => allZones.filter((z: any) => !z.isArchived), [allZones]);
-  const locations = useStore((s) => s.locations) ?? [];
-  const shelters = useStore((s) => s.shelters) ?? [];
-  const activityLogs = useStore((s) => s.activityLogs) ?? [];
+  const users = useStore((s) => s.users);
+  const allZones = useStore((s) => s.zones);
+  const zones = useMemo(() => (allZones || []).filter((z: any) => !z.isArchived), [allZones]);
+  const locations = useStore((s) => s.locations);
+  const shelters = useStore((s) => s.shelters);
+  const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
 
   const alertZones = useMemo(
@@ -150,7 +150,7 @@ function DashboardScreenInner() {
         </View>
 
         {hasActiveAlerts && (
-          <Pressable onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}>
+          <Pressable onPress={() => router.push("/(admin)/send-alert")}>
             <Card style={styles.alertBanner}>
               <View style={styles.alertBannerHeader}>
                 <View style={styles.alertBannerLeft}>
@@ -208,7 +208,7 @@ function DashboardScreenInner() {
               <View style={styles.alertActions}>
                 <Pressable
                   style={({ pressed }) => [styles.alertActionBtn, styles.alertActionSecondary, pressed && { opacity: 0.8 }]}
-                  onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}
+                  onPress={() => router.push("/(admin)/send-alert")}
                 >
                   <Feather name="settings" size={14} color={Colors.text} />
                   <Text style={styles.alertActionTextDark}>Manage</Text>
@@ -218,8 +218,6 @@ function DashboardScreenInner() {
           </Pressable>
         )}
 
-        <EmergencyReceiptTracker />
-
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -227,7 +225,7 @@ function DashboardScreenInner() {
           <View style={styles.quickActionsGrid}>
             <Pressable
               style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
-              onPress={() => router.navigate("/(admin)/(tabs)/send-alert")}
+              onPress={() => router.push("/(admin)/send-alert")}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: Colors.primaryDim }]}>
                 <Feather name="alert-triangle" size={20} color={Colors.primary} />
@@ -280,37 +278,19 @@ function DashboardScreenInner() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>System Stats</Text>
+            <Text style={styles.sectionTitle}>Zone Overview</Text>
           </View>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: Colors.info + "1A" }]}>
-                <Feather name="layers" size={18} color={Colors.info} />
-              </View>
-              <Text style={styles.kpiValue}>{zones.filter((z) => z.isActive).length}</Text>
-              <Text style={styles.kpiLabel}>Active Zones</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: Colors.safe + "1A" }]}>
-                <Feather name="map-pin" size={18} color={Colors.safe} />
-              </View>
-              <Text style={styles.kpiValue}>{locations.length}</Text>
-              <Text style={styles.kpiLabel}>Locations</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: Colors.amber + "1A" }]}>
-                <Feather name="home" size={18} color={Colors.amber} />
-              </View>
-              <Text style={styles.kpiValue}>{shelters.length}</Text>
-              <Text style={styles.kpiLabel}>Shelters</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: activeAlertCount > 0 ? Colors.destructive + "1A" : Colors.textTertiary + "1A" }]}>
-                <Feather name="alert-triangle" size={18} color={activeAlertCount > 0 ? Colors.destructive : Colors.textTertiary} />
-              </View>
-              <Text style={[styles.kpiValue, activeAlertCount > 0 && { color: Colors.destructive }]}>{activeAlertCount}</Text>
-              <Text style={styles.kpiLabel}>Active Alerts</Text>
-            </View>
+          <View style={styles.dashMapContainer}>
+            <ZoneMap
+              key={focusCount}
+              zones={zones}
+              selectedZoneId={null}
+              onZonePress={() => {}}
+              height={DASH_MAP_HEIGHT}
+              showLabels
+              locations={locations}
+              shelters={shelters}
+            />
           </View>
         </View>
 
@@ -620,44 +600,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: Spacing.xl,
   },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: Colors.surface,
+  dashMapContainer: {
     borderRadius: BorderRadius.lg,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
-    alignItems: "center",
-    gap: 6,
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  kpiValue: {
-    fontSize: FontSize.xl,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
-  },
-  kpiLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
+    height: DASH_MAP_HEIGHT,
   },
 });
-
-export default function DashboardScreen() {
-  return (
-    <ErrorBoundary label="AdminDashboard">
-      <DashboardScreenInner />
-    </ErrorBoundary>
-  );
-}

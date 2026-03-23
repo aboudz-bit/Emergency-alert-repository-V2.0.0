@@ -7,7 +7,6 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Colors } from "@/constants/theme";
-import { ISOLATION_LEVEL } from "./ZoneMap";
 import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
@@ -22,30 +21,8 @@ function generateLeafletHtml(
   editingZoneId: number | null | undefined,
   initialEditPoints: LatLng[] | undefined,
 ): string {
-  const tag = '[ZONE_MAP:generateLeafletHtml]';
-  console.log(`${tag} called — zones=${Array.isArray(zones) ? zones.length : typeof zones}, editingZoneId=${editingZoneId}`);
-
-  if (!Array.isArray(zones)) {
-    console.error(`${tag} FATAL: zones is not array, returning empty map`);
-    return '<!DOCTYPE html><html><body><p>Map error: zones data unavailable</p></body></html>';
-  }
-
   const selectedZoneId: number | null = null; // selection is handled via postMessage
-  const safeZones = zones.filter((z) => {
-    if (!z) { console.error(`${tag} null zone in array`); return false; }
-    if (!Array.isArray(z.polygonPoints)) {
-      console.error(`${tag} zone "${z.name}" polygonPoints is ${typeof z.polygonPoints}`);
-      return false;
-    }
-    return true;
-  });
-  const allPoints = safeZones.flatMap((z) => z.polygonPoints).filter((p) => {
-    if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number' || isNaN(p.lat) || isNaN(p.lng)) {
-      console.error(`${tag} invalid point in allPoints:`, p);
-      return false;
-    }
-    return true;
-  });
+  const allPoints = zones.flatMap((z) => z.polygonPoints);
   let centerLat = 25.082;
   let centerLng = 48.175;
   if (allPoints.length > 0) {
@@ -56,9 +33,7 @@ function generateLeafletHtml(
   const isEditing = editingZoneId != null;
   const editZone = isEditing ? zones.find((z) => z.id === editingZoneId) : null;
 
-  // ISOLATION: zone polygons only at level >= 2
-  // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
-  const zonePolygons = (ISOLATION_LEVEL < 2 ? [] : safeZones)
+  const zonePolygons = zones
     .filter((z) => z.polygonPoints.length > 0)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
@@ -70,9 +45,7 @@ function generateLeafletHtml(
       const color = z.isActive ? z.color : "#6B7280";
       const labelCoord = z.center
         ? `${z.center.lat}, ${z.center.lng}`
-        : z.polygonPoints.length > 0
-          ? `${z.polygonPoints[0].lat}, ${z.polygonPoints[0].lng}`
-          : `${centerLat}, ${centerLng}`;
+        : `${z.polygonPoints[0].lat}, ${z.polygonPoints[0].lng}`;
 
       return `
         var poly${z.id} = L.polygon([${coords}], {
@@ -96,15 +69,13 @@ function generateLeafletHtml(
     })
     .join("\n");
 
-  // ISOLATION: empty zone markers only at level >= 2
-  // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
-  const emptyZoneMarkers = (ISOLATION_LEVEL < 2 ? [] : safeZones)
+  const emptyZoneMarkers = zones
     .filter((z) => z.polygonPoints.length === 0 && z.center)
     .map((z) => {
       if (isEditing && z.id === editingZoneId) return "";
       const isSelected = z.id === selectedZoneId;
       return `
-        L.circleMarker([${z.center?.lat ?? centerLat}, ${z.center?.lng ?? centerLng}], {
+        L.circleMarker([${z.center!.lat}, ${z.center!.lng}], {
           radius: ${isSelected ? 14 : 10}, color: '${z.color}', fillColor: '${z.color}',
           fillOpacity: ${isSelected ? 0.5 : 0.3}, weight: ${isSelected ? 3 : 2}, dashArray: '4,4',
         }).addTo(map).on('click', function() {
@@ -112,7 +83,7 @@ function generateLeafletHtml(
             window.parent.postMessage(JSON.stringify({type:'zone_select', id:${z.id}}), '*');
           }
         });
-        L.marker([${z.center?.lat ?? centerLat}, ${z.center?.lng ?? centerLng}], {
+        L.marker([${z.center!.lat}, ${z.center!.lng}], {
           icon: L.divIcon({
             className: 'zone-label',
             html: '<div style="background:${z.color};color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px dashed rgba(255,255,255,0.5);">${z.name} (no boundary)</div>',
@@ -123,7 +94,6 @@ function generateLeafletHtml(
     .join("\n");
 
   const editPolygonCode = (() => {
-    if (ISOLATION_LEVEL < 2) return ""; // ISOLATION: no zone editing below level 2
     if (!isEditing || !initialEditPoints || initialEditPoints.length === 0) return "";
     const color = editZone?.color || "#3B82F6";
     const coords = initialEditPoints.map((p) => `[${p.lat}, ${p.lng}]`).join(",");
@@ -177,17 +147,15 @@ function generateLeafletHtml(
   const circleMarkers = "";
 
   const fitBoundsCode = (() => {
-    if (ISOLATION_LEVEL < 2) return ""; // ISOLATION: no fit-to-bounds below level 2
     if (isEditing) return "";
-    // NOTE: uses safeZones (not raw zones) to avoid crash on undefined polygonPoints
-    const polyZones = safeZones.filter((z) => z.polygonPoints.length > 0);
-    const centerZones = safeZones.filter((z) => z.polygonPoints.length === 0 && z.center);
+    const polyZones = zones.filter((z) => z.polygonPoints.length > 0);
+    const centerZones = zones.filter((z) => z.polygonPoints.length === 0 && z.center);
     const parts = [
       ...polyZones.map(
         (z) => `allBounds.push([${z.polygonPoints.map((p) => `[${p.lat},${p.lng}]`).join(",")}]);`
       ),
       ...centerZones.map(
-        (z) => `allBounds.push([[${z.center?.lat ?? centerLat},${z.center?.lng ?? centerLng}]]);`
+        (z) => `allBounds.push([[${z.center!.lat},${z.center!.lng}]]);`
       ),
     ];
     return parts.join("\n");
@@ -823,34 +791,6 @@ export function LeafletPreviewFallback({
   onPersonnelPress,
   hazardZones,
 }: ZoneMapProps) {
-  const tag = '[ZONE_MAP:LeafletFallback]';
-  console.log(`${tag} render — ISOLATION_LEVEL=${ISOLATION_LEVEL}, zones=${Array.isArray(zones) ? zones.length : typeof zones}, drawMode=${drawMode}, editingZoneId=${editingZoneId}`);
-  console.log(`${tag} ISOLATION layers: baseMap=${ISOLATION_LEVEL >= 1}, zones=${ISOLATION_LEVEL >= 2}, shelters=${ISOLATION_LEVEL >= 3}, locations=${ISOLATION_LEVEL >= 4}, hazards=${ISOLATION_LEVEL >= 5}, personnel=${ISOLATION_LEVEL >= 6}`);
-
-  // ── Pre-render validation ──
-  if (!Array.isArray(zones)) {
-    console.error(`${tag} FATAL: zones is not array: ${typeof zones}`);
-  } else {
-    zones.forEach((z, i) => {
-      if (!z) { console.error(`${tag} zones[${i}] is ${z}`); return; }
-      if (!Array.isArray(z.polygonPoints)) {
-        console.error(`${tag} zones[${i}] "${z.name}" polygonPoints is ${typeof z.polygonPoints}`);
-      } else {
-        z.polygonPoints.forEach((pt, pi) => {
-          if (!pt || typeof pt.lat !== 'number' || typeof pt.lng !== 'number' || isNaN(pt.lat) || isNaN(pt.lng)) {
-            console.error(`${tag} zones[${i}] "${z.name}" polygonPoints[${pi}] bad:`, pt);
-          }
-        });
-        if (z.polygonPoints.length > 0 && z.polygonPoints.length < 3) {
-          console.warn(`${tag} zones[${i}] "${z.name}" has ${z.polygonPoints.length} points (need >= 3 for polygon)`);
-        }
-      }
-    });
-  }
-  if (shelters && !Array.isArray(shelters)) console.error(`${tag} shelters is not array: ${typeof shelters}`);
-  if (locations && !Array.isArray(locations)) console.error(`${tag} locations is not array: ${typeof locations}`);
-  if (hazardZones && !Array.isArray(hazardZones)) console.error(`${tag} hazardZones is not array: ${typeof hazardZones}`);
-
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
   const prevFlyToRef = useRef<number | null | undefined>(undefined);
@@ -867,14 +807,12 @@ export function LeafletPreviewFallback({
 
   // Stable key: only regenerate when zone structure changes (add/remove/reorder/color/points),
   // NOT on isActive toggle or selection changes — those use postMessage.
-  // NOTE: Added Array.isArray guard — z.polygonPoints.map() crashes if polygonPoints is undefined/null.
-  // This is a likely crash source discovered during isolation debugging.
   const zonesStructureKey = useMemo(
     () =>
       zones
         .map(
           (z) =>
-            `${z.id}:${z.color}:${Array.isArray(z.polygonPoints) ? z.polygonPoints.map((p) => `${p.lat},${p.lng}`).join("|") : "NO_POINTS"}:${z.center?.lat},${z.center?.lng}:${z.name}`
+            `${z.id}:${z.color}:${z.polygonPoints.map((p) => `${p.lat},${p.lng}`).join("|")}:${z.center?.lat},${z.center?.lng}:${z.name}`
         )
         .join(";"),
     [zones]
@@ -959,7 +897,7 @@ export function LeafletPreviewFallback({
     const zone = zones.find((z) => z.id === flyToZoneId);
     if (!zone) return;
 
-    if (Array.isArray(zone.polygonPoints) && zone.polygonPoints.length > 0) {
+    if (zone.polygonPoints.length > 0) {
       const bounds = zone.polygonPoints.map((p) => [p.lat, p.lng]);
       postToIframe({ type: "fly_to_bounds", bounds });
     } else if (zone.center) {
@@ -1005,13 +943,11 @@ export function LeafletPreviewFallback({
   }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange, onPersonnelPress]);
 
   // ── Sync shelters via postMessage (no iframe reload) ──
-  // ISOLATION: shelters only at level >= 3
   const prevSheltersRef = useRef<string>("");
   useEffect(() => {
     prevSheltersRef.current = "";
   }, [mapHtml]);
   useEffect(() => {
-    if (ISOLATION_LEVEL < 3) return; // ISOLATION GATE
     if (!shelters) return;
     const key = JSON.stringify(shelters);
     if (key === prevSheltersRef.current) return;
@@ -1021,17 +957,13 @@ export function LeafletPreviewFallback({
   }, [shelters, mapHtml]);
 
   // ── Select shelter via postMessage ──
-  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
-    if (ISOLATION_LEVEL < 3) return;
     const t = setTimeout(() => postToIframe({ type: "select_shelter", id: selectedShelterId ?? null }), 80);
     return () => clearTimeout(t);
   }, [selectedShelterId]);
 
   // ── Nearest shelter via postMessage ──
-  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
-    if (ISOLATION_LEVEL < 3) return;
     const t = setTimeout(() => postToIframe({
       type: "set_nearest_shelter",
       id: nearestShelterId ?? null,
@@ -1042,22 +974,18 @@ export function LeafletPreviewFallback({
   }, [nearestShelterId, userLocation]);
 
   // ── User location marker via postMessage ──
-  // ISOLATION: shelters only at level >= 3
   useEffect(() => {
-    if (ISOLATION_LEVEL < 3) return;
     if (!userLocation) return;
     const t = setTimeout(() => postToIframe({ type: "set_user_location", lat: userLocation.lat, lng: userLocation.lng }), 80);
     return () => clearTimeout(t);
   }, [userLocation]);
 
   // ── Sync location polygons via postMessage (no iframe reload) ──
-  // ISOLATION: locations only at level >= 4
   const prevLocationsRef = useRef<string>("");
   useEffect(() => {
     prevLocationsRef.current = "";
   }, [mapHtml]);
   useEffect(() => {
-    if (ISOLATION_LEVEL < 4) return; // ISOLATION GATE
     if (!locations) return;
     const key = JSON.stringify(locations.map(l => ({ id: l.id, name: l.name, polygonPoints: l.polygonPoints })));
     if (key === prevLocationsRef.current) return;
@@ -1067,25 +995,19 @@ export function LeafletPreviewFallback({
   }, [locations, mapHtml]);
 
   // ── Select location via postMessage ──
-  // ISOLATION: locations only at level >= 4
   useEffect(() => {
-    if (ISOLATION_LEVEL < 4) return;
     const t = setTimeout(() => postToIframe({ type: "select_location", id: selectedLocationId ?? null }), 80);
     return () => clearTimeout(t);
   }, [selectedLocationId]);
 
   // ── Highlight linked locations via postMessage ──
-  // ISOLATION: locations only at level >= 4
   useEffect(() => {
-    if (ISOLATION_LEVEL < 4) return;
     const t = setTimeout(() => postToIframe({ type: "highlight_locations", ids: highlightedLocationIds ?? [] }), 80);
     return () => clearTimeout(t);
   }, [highlightedLocationIds]);
 
   // ── Location boundary editing via postMessage ──
-  // ISOLATION: locations only at level >= 4
   useEffect(() => {
-    if (ISOLATION_LEVEL < 4) return;
     if (editingLocationId != null && editingLocationPoints) {
       const t = setTimeout(() => postToIframe({ type: "start_loc_edit", id: editingLocationId, points: editingLocationPoints }), 150);
       return () => clearTimeout(t);
@@ -1096,9 +1018,7 @@ export function LeafletPreviewFallback({
   }, [editingLocationId]);
 
   // ── Sync personnel live locations via postMessage (no reload) ──
-  // ISOLATION: personnel (emergency overlays) only at level >= 6
   useEffect(() => {
-    if (ISOLATION_LEVEL < 6) return; // ISOLATION GATE
     if (!personnelLocations || personnelLocations.length === 0) {
       postToIframe({ type: "sync_personnel", personnel: [] });
       return;
@@ -1108,9 +1028,7 @@ export function LeafletPreviewFallback({
   }, [personnelLocations]);
 
   // ── Sync hazard zones via postMessage (no reload) ──
-  // ISOLATION: hazard zones only at level >= 5
   useEffect(() => {
-    if (ISOLATION_LEVEL < 5) return; // ISOLATION GATE
     if (!hazardZones || hazardZones.length === 0) {
       postToIframe({ type: "sync_hazard_zones", hazardZones: [] });
       return;

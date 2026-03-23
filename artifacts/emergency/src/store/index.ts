@@ -317,15 +317,6 @@ export const useStore = create<AppState>()(
           hazardZones: [],
           auditLog: [],
           activeBroadcast: null,
-          permissionAssignments: [],
-          emergencyModes: {
-            shelterIn: false,
-            blackout: false,
-            shelterInActivatedAt: null,
-            shelterInActivatedBy: null,
-            blackoutActivatedAt: null,
-            blackoutActivatedBy: null,
-          },
         });
       },
 
@@ -1519,7 +1510,7 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'keas-store-v6',
+      name: 'keas-store-v5',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,

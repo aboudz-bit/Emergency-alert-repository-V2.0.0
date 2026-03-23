@@ -33,13 +33,12 @@ function computeBasePosition(
 }
 
 export function usePersonnelSimulation(enabled: boolean = true) {
+  const currentUser = useStore((s) => s.currentUser);
+  const batchUpdatePersonnelLocations = useStore((s) => s.batchUpdatePersonnelLocations);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const basePositionsRef = useRef<Record<number, { lat: number; lng: number }>>({});
 
   useEffect(() => {
-    // Read current user from store snapshot — avoids subscribing to store
-    // changes which would cause re-renders and an infinite update loop.
-    const { currentUser } = useStore.getState();
     if (!enabled || !currentUser) return;
 
     const currentUserId = currentUser.id;
@@ -47,7 +46,6 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     /** Sync basePositions with current store state — add new, remove gone, update moved. */
     function refreshBasePositions() {
       const { users, locations, zones } = useStore.getState();
-      if (!Array.isArray(users) || !Array.isArray(locations) || !Array.isArray(zones)) return;
       const activeUsers = users.filter(
         (u) => u.isActive && u.id !== currentUserId && u.accountStatus === "active",
       );
@@ -74,11 +72,9 @@ export function usePersonnelSimulation(enabled: boolean = true) {
     }
 
     function simulate() {
-      try {
       refreshBasePositions();
 
-      const { users: liveUsers, locations: liveLocs, batchUpdatePersonnelLocations } = useStore.getState();
-      if (!Array.isArray(liveUsers) || !Array.isArray(liveLocs)) return;
+      const { users: liveUsers, locations: liveLocs } = useStore.getState();
       const bases = basePositionsRef.current;
       const batch: PersonnelLocation[] = [];
 
@@ -105,25 +101,19 @@ export function usePersonnelSimulation(enabled: boolean = true) {
       if (batch.length > 0) {
         batchUpdatePersonnelLocations(batch);
       }
-      } catch (e: any) {
-        console.error('[usePersonnelSimulation] simulate error:', e.message);
-      }
     }
 
-    // Initial run — defer to avoid store updates during React's commit phase
+    // Initial run
     basePositionsRef.current = {};
-    const initialTimeout = setTimeout(() => {
-      refreshBasePositions();
-      simulate();
-    }, 0);
+    refreshBasePositions();
+    simulate();
     intervalRef.current = setInterval(simulate, SIMULATION_INTERVAL_MS);
 
     return () => {
-      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [enabled]);
+  }, [enabled, currentUser?.id]);
 }

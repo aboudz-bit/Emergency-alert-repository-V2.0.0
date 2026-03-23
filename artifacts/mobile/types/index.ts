@@ -33,8 +33,7 @@ export type PermissionKey =
   | 'canUnlockHazardZone'
   | 'canManageShelters'
   | 'canReviewAlertMonitor'
-  | 'canChangeWindDirection'
-  | 'canActivateEmergencyMode';
+  | 'canChangeWindDirection';
 
 export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: string }[] = [
   { key: 'canViewGlobalLiveMap', label: 'View Global Live Map', description: 'Access the full live alert map with all zones, locations, shelters, personnel, and hazard zones' },
@@ -45,7 +44,6 @@ export const ALL_PERMISSIONS: { key: PermissionKey; label: string; description: 
   { key: 'canManageShelters', label: 'Manage Shelters', description: 'Add, edit, and delete shelter locations' },
   { key: 'canReviewAlertMonitor', label: 'Review Alert Monitor', description: 'Access the alert monitor with personnel tracking and response stats' },
   { key: 'canChangeWindDirection', label: 'Change Wind Direction', description: 'Update the wind direction indicator used in the map overlay during alerts' },
-  { key: 'canActivateEmergencyMode', label: 'Activate Emergency Mode', description: 'Activate Shelter In and Blackout emergency modes for selected zones' },
 ];
 
 export interface UserPermissionAssignment {
@@ -162,7 +160,6 @@ export interface Location {
   alertMessage: string;
   alertUpdatedAt: string | null;
   alertHistory: AlertHistoryEntry[];
-  sortOrder?: number;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -315,16 +312,6 @@ export interface HazardZone {
 
 // ─── Emergency Modes ─────────────────────────────────────────────────────────
 
-export type EmergencyModeType = 'shelterIn' | 'blackout';
-
-export interface EmergencyReceipt {
-  userId: number;
-  userName: string;
-  modeType: EmergencyModeType;
-  receiptConfirmed: boolean;
-  receiptConfirmedAt: string | null;
-}
-
 export interface EmergencyModes {
   shelterIn: boolean;
   blackout: boolean;
@@ -334,7 +321,6 @@ export interface EmergencyModes {
   shelterInActivatedBy: string | null;
   blackoutActivatedAt: string | null;
   blackoutActivatedBy: string | null;
-  receipts: EmergencyReceipt[];
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

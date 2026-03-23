@@ -27,17 +27,15 @@ export function useVisiblePersonnel(opts: {
   excludeSelf?: boolean;
   enabled?: boolean;
 }): PersonnelMapEntry[] {
-  const personnelLocations = useStore((s) => s.personnelLocations) ?? {};
-  const users = useStore((s) => s.users) ?? [];
-  const locations = useStore((s) => s.locations) ?? [];
+  const personnelLocations = useStore((s) => s.personnelLocations);
+  const users = useStore((s) => s.users);
+  const locations = useStore((s) => s.locations);
   const currentUser = useStore((s) => s.currentUser);
 
   return useMemo(() => {
     if (opts.enabled === false) return [];
     if (opts.scope === "location" && opts.locationId == null) return [];
     if (opts.scope === "zone" && opts.zoneId == null) return [];
-
-    if (!personnelLocations || typeof personnelLocations !== 'object') return [];
 
     const entries: PersonnelMapEntry[] = [];
     const locs = Object.values(personnelLocations);

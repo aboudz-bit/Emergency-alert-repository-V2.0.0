@@ -6,8 +6,6 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useTranslation } from "@/i18n/useTranslation";
-import { EmergencyReceiptOverlay } from "@/components/ui/EmergencyReceiptOverlay";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -17,7 +15,7 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
   );
 }
 
-function UserLayoutInner() {
+export default function UserLayout() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
   const { t } = useTranslation();
@@ -27,8 +25,6 @@ function UserLayoutInner() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-    <EmergencyReceiptOverlay />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -69,15 +65,6 @@ function UserLayoutInner() {
       />
       <Tabs.Screen name="alert" options={{ href: null }} />
     </Tabs>
-    </View>
-  );
-}
-
-export default function UserLayout() {
-  return (
-    <ErrorBoundary label="UserLayout">
-      <UserLayoutInner />
-    </ErrorBoundary>
   );
 }
 

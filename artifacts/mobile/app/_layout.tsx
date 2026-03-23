@@ -17,23 +17,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Colors } from "@/constants/theme";
 
-// Global error logging — catches errors that happen OUTSIDE React render
-if (typeof globalThis !== 'undefined' && !(globalThis as any).__debugErrorHandlerInstalled) {
-  (globalThis as any).__debugErrorHandlerInstalled = true;
-
-  const origConsoleError = console.error;
-
-  // Catch unhandled promise rejections
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    window.addEventListener('unhandledrejection', (event) => {
-      origConsoleError('[GLOBAL] Unhandled Promise Rejection:', event.reason?.message || event.reason, event.reason?.stack);
-    });
-    window.addEventListener('error', (event) => {
-      origConsoleError('[GLOBAL] Uncaught Error:', event.error?.name, event.error?.message, event.error?.stack);
-    });
-  }
-}
-
 // KeyboardProvider uses native modules (react-native-is-edge-to-edge) that
 // are not available on web, so we only load it on native platforms.
 let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> =
@@ -74,7 +57,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary label="ROOT_APP">
+      <ErrorBoundary>
         <GestureHandlerRootView
           style={{ flex: 1, direction: rtl ? "rtl" : "ltr" }}
         >

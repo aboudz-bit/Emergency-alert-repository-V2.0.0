@@ -29,8 +29,8 @@ const ARAMCO_ROLES: { label: string; value: UserRole }[] = [
 export default function RegisterScreen() {
   const router = useRouter();
   const registerUser = useStore((s) => s.registerUser);
-  const storeZones = useStore((s) => s.zones) ?? [];
-  const storeLocations = useStore((s) => s.locations) ?? [];
+  const storeZones = useStore((s) => s.zones);
+  const storeLocations = useStore((s) => s.locations);
 
   const [name, setName] = useState("");
   const [badge, setBadge] = useState("");
