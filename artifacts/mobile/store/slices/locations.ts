@@ -11,7 +11,7 @@ export function createLocationSlice(set: SetState, get: GetState): Pick<
       const maxOrder = get().locations
         .filter(l => l.zoneId === location.zoneId)
         .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
-      set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), polygonPoints: location.polygonPoints ?? [], alertHistory: location.alertHistory || [], sortOrder: maxOrder + 1 }] }));
+      set(s => ({ locations: [...s.locations, { ...location, id: Date.now(), polygonPoints: Array.isArray(location.polygonPoints) ? location.polygonPoints : [], alertHistory: Array.isArray(location.alertHistory) ? location.alertHistory : [], sortOrder: maxOrder + 1 }] }));
     },
     updateLocation: (id, partial) => set(s => ({ locations: s.locations.map(l => l.id === id ? { ...l, ...partial } : l) })),
     deleteLocation: (id) => set(s => ({

@@ -43,12 +43,12 @@ export function GoogleMapsView({
   );
 
   useEffect(() => {
-    if (mapRef.current && zones.length > 0 && !isEditing) {
+    if (mapRef.current && Array.isArray(zones) && zones.length > 0 && !isEditing) {
       const allPoints = zones.flatMap((z) =>
         Array.isArray(z.polygonPoints) ? z.polygonPoints.map((p) => ({ latitude: p.lat, longitude: p.lng })) : []
       );
       const centers = zones
-        .filter((z) => z.center && (!Array.isArray(z.polygonPoints) || z.polygonPoints.length === 0))
+        .filter((z) => z.center && typeof z.center.lat === 'number' && typeof z.center.lng === 'number' && (!Array.isArray(z.polygonPoints) || z.polygonPoints.length === 0))
         .map((z) => ({ latitude: z.center!.lat, longitude: z.center!.lng }));
       const fitPoints = [...allPoints, ...centers];
       if (fitPoints.length > 1) {

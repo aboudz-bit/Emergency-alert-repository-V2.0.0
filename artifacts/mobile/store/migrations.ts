@@ -45,7 +45,12 @@ export function migrate(persisted: any, version: number): AppState {
     if (Array.isArray(state?.locations)) {
       state.locations = state.locations.map((loc: any) => ({
         ...loc,
-        alertHistory: loc.alertHistory ?? [],
+        alertActive: loc.alertActive ?? false,
+        alertType: loc.alertType ?? null,
+        alertPriority: loc.alertPriority ?? null,
+        alertMessage: loc.alertMessage ?? '',
+        alertUpdatedAt: loc.alertUpdatedAt ?? null,
+        alertHistory: Array.isArray(loc.alertHistory) ? loc.alertHistory : [],
       }));
     }
   }
@@ -297,6 +302,12 @@ export function migrate(persisted: any, version: number): AppState {
       state.locations = state.locations.map((l: any) => ({
         ...l,
         alertActive: false,
+        alertType: l.alertType ?? null,
+        alertPriority: l.alertPriority ?? null,
+        alertMessage: l.alertMessage ?? '',
+        alertUpdatedAt: l.alertUpdatedAt ?? null,
+        alertHistory: Array.isArray(l.alertHistory) ? l.alertHistory : [],
+        polygonPoints: Array.isArray(l.polygonPoints) ? l.polygonPoints : [],
       }));
     }
     if (Array.isArray(state?.alerts)) {
