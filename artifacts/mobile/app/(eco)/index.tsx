@@ -16,13 +16,17 @@ import { EmergencyReceiptTracker } from "@/components/ui/EmergencyReceiptTracker
 export default function ECODashboardScreen() {
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const users = useStore((s) => s.users);
-  const locations = useStore((s) => s.locations);
-  const shelters = useStore((s) => s.shelters);
-  const zones = useStore((s) => s.zones);
-  const alerts = useStore((s) => s.alerts);
-  const activityLogs = useStore((s) => s.activityLogs);
-  const emergencyModes = useStore((s) => s.emergencyModes);
+  const users = useStore((s) => s.users) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
+  const shelters = useStore((s) => s.shelters) ?? [];
+  const zones = useStore((s) => s.zones) ?? [];
+  const alerts = useStore((s) => s.alerts) ?? [];
+  const activityLogs = useStore((s) => s.activityLogs) ?? [];
+  const emergencyModes = useStore((s) => s.emergencyModes) ?? {
+    shelterIn: false, blackout: false, shelterInZones: [], blackoutZones: [],
+    shelterInActivatedAt: null, shelterInActivatedBy: null,
+    blackoutActivatedAt: null, blackoutActivatedBy: null, receipts: [],
+  };
   const activateShelterIn = useStore((s) => s.activateShelterIn);
   const deactivateShelterIn = useStore((s) => s.deactivateShelterIn);
   const activateBlackout = useStore((s) => s.activateBlackout);

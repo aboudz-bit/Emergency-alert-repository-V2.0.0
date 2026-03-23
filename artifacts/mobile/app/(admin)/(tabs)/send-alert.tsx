@@ -13,6 +13,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Colors, DEFAULT_MESSAGES } from "@/constants/theme";
 import { useStore, selectCanActivateEmergencyMode } from "@/store";
 import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
@@ -34,18 +35,22 @@ const priorityColors: Record<AlertPriority, string> = {
 
 type FilterMode = "all" | "active" | "inactive";
 
-export default function AlertManagementScreen() {
+function AlertManagementScreenInner() {
   const allZonesRaw = useStore((s) => s.zones);
   const zones = useMemo(() => (allZonesRaw || []).filter((z: any) => !z.isArchived), [allZonesRaw]);
-  const locations = useStore((s) => s.locations);
-  const users = useStore((s) => s.users);
+  const locations = useStore((s) => s.locations) ?? [];
+  const users = useStore((s) => s.users) ?? [];
   const activateZoneAlert = useStore((s) => s.activateZoneAlert);
   const deactivateZoneAlert = useStore((s) => s.deactivateZoneAlert);
   const editZoneAlert = useStore((s) => s.editZoneAlert);
   const bulkActivateZoneAlerts = useStore((s) => s.bulkActivateZoneAlerts);
   const bulkDeactivateZoneAlerts = useStore((s) => s.bulkDeactivateZoneAlerts);
   const sendZoneNotification = useStore((s) => s.sendZoneNotification);
-  const emergencyModes = useStore((s) => s.emergencyModes);
+  const emergencyModes = useStore((s) => s.emergencyModes) ?? {
+    shelterIn: false, blackout: false, shelterInZones: [], blackoutZones: [],
+    shelterInActivatedAt: null, shelterInActivatedBy: null,
+    blackoutActivatedAt: null, blackoutActivatedBy: null, receipts: [],
+  };
   const activateShelterIn = useStore((s) => s.activateShelterIn);
   const deactivateShelterIn = useStore((s) => s.deactivateShelterIn);
   const activateBlackout = useStore((s) => s.activateBlackout);
@@ -1963,3 +1968,11 @@ const styles = StyleSheet.create({
     fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff",
   },
 });
+
+export default function AlertManagementScreen() {
+  return (
+    <ErrorBoundary label="AlertManagementScreen">
+      <AlertManagementScreenInner />
+    </ErrorBoundary>
+  );
+}

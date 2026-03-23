@@ -41,11 +41,11 @@ const TABS: { key: TabKey; label: string; color: string }[] = [
 export default function AlertMonitorScreen() {
   const focusCount = useRefreshOnFocus();
   const activeAlert = useStore(selectActiveAlert, alertEq);
-  const users = useStore((s) => s.users);
-  const zones = useStore((s) => s.zones);
-  const locations = useStore((s) => s.locations);
-  const shelters = useStore((s) => s.shelters);
-  const hazardZones = useStore((s) => s.hazardZones);
+  const users = useStore((s) => s.users) ?? [];
+  const zones = useStore((s) => s.zones) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
+  const shelters = useStore((s) => s.shelters) ?? [];
+  const hazardZones = useStore((s) => s.hazardZones) ?? [];
   const sendAllClear = useStore((s) => s.sendAllClear);
   const closeAlert = useStore((s) => s.closeAlert);
 

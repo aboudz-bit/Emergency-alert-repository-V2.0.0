@@ -6,6 +6,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyReceiptOverlay } from "@/components/ui/EmergencyReceiptOverlay";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: string; focused: boolean }) {
   return (
@@ -15,7 +16,7 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
   );
 }
 
-export default function SupervisorLayout() {
+function SupervisorLayoutInner() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
 
@@ -78,6 +79,14 @@ export default function SupervisorLayout() {
       />
     </Tabs>
     </View>
+  );
+}
+
+export default function SupervisorLayout() {
+  return (
+    <ErrorBoundary label="SupervisorLayout">
+      <SupervisorLayoutInner />
+    </ErrorBoundary>
   );
 }
 

@@ -71,20 +71,38 @@ function ReceiptSection({
 export function EmergencyReceiptTracker() {
   const emergencyModes = useStore((s) => s.emergencyModes);
 
+  // Safety: guard against undefined/null emergencyModes
+  if (!emergencyModes || typeof emergencyModes !== 'object') {
+    console.error('[EmergencyReceiptTracker] emergencyModes is invalid:', typeof emergencyModes);
+    return null;
+  }
+
   const shelterReceipts = useMemo(
-    () =>
-      emergencyModes.shelterIn
-        ? (emergencyModes.receipts ?? []).filter((r) => r.modeType === "shelterIn")
-        : [],
-    [emergencyModes.shelterIn, emergencyModes.receipts]
+    () => {
+      try {
+        if (!emergencyModes?.shelterIn) return [];
+        const receipts = Array.isArray(emergencyModes.receipts) ? emergencyModes.receipts : [];
+        return receipts.filter((r) => r.modeType === "shelterIn");
+      } catch (e: any) {
+        console.error('[EmergencyReceiptTracker] shelterReceipts CRASHED:', e.name, e.message, e.stack);
+        return [];
+      }
+    },
+    [emergencyModes?.shelterIn, emergencyModes?.receipts]
   );
 
   const blackoutReceipts = useMemo(
-    () =>
-      emergencyModes.blackout
-        ? (emergencyModes.receipts ?? []).filter((r) => r.modeType === "blackout")
-        : [],
-    [emergencyModes.blackout, emergencyModes.receipts]
+    () => {
+      try {
+        if (!emergencyModes?.blackout) return [];
+        const receipts = Array.isArray(emergencyModes.receipts) ? emergencyModes.receipts : [];
+        return receipts.filter((r) => r.modeType === "blackout");
+      } catch (e: any) {
+        console.error('[EmergencyReceiptTracker] blackoutReceipts CRASHED:', e.name, e.message, e.stack);
+        return [];
+      }
+    },
+    [emergencyModes?.blackout, emergencyModes?.receipts]
   );
 
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;

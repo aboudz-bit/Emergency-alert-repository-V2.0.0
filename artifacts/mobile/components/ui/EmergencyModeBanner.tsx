@@ -9,14 +9,21 @@ export function EmergencyModeBanner() {
   const emergencyModes = useStore((s) => s.emergencyModes);
   const { t } = useTranslation();
 
+  if (!emergencyModes || typeof emergencyModes !== 'object') {
+    console.error('[EmergencyModeBanner] emergencyModes is invalid:', typeof emergencyModes);
+    return null;
+  }
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
 
-  const shelterZoneLabel = emergencyModes.shelterInZones?.length > 0
-    ? emergencyModes.shelterInZones.join(", ")
+  const shelterInZones = Array.isArray(emergencyModes.shelterInZones) ? emergencyModes.shelterInZones : [];
+  const blackoutZones = Array.isArray(emergencyModes.blackoutZones) ? emergencyModes.blackoutZones : [];
+
+  const shelterZoneLabel = shelterInZones.length > 0
+    ? shelterInZones.join(", ")
     : null;
 
-  const blackoutZoneLabel = emergencyModes.blackoutZones?.length > 0
-    ? emergencyModes.blackoutZones.join(", ")
+  const blackoutZoneLabel = blackoutZones.length > 0
+    ? blackoutZones.join(", ")
     : null;
 
   return (
