@@ -72,7 +72,7 @@ export interface AppState {
 
   bulkActivateZoneAlerts: (zoneIds: number[], alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   bulkDeactivateZoneAlerts: (zoneIds: number[]) => void;
-  activateZoneAlert: (zoneId: number, locationIds: number[], alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   deactivateZoneAlert: (zoneId: number) => void;
   editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
