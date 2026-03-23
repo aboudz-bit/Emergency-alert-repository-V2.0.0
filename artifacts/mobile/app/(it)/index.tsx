@@ -29,7 +29,7 @@ const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
 export default function ITDashboardScreen() {
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const users = useStore((s) => s.users);
+  const users = useStore((s) => s.users) ?? [];
   const toggleAccountStatus = useStore((s) => s.toggleAccountStatus);
   const resetPassword = useStore((s) => s.resetPassword);
   const logout = useStore((s) => s.logout);

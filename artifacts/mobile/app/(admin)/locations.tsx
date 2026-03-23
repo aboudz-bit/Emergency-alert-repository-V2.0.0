@@ -44,8 +44,8 @@ export default function ZonesAndLocationsScreen() {
   const router = useRouter();
 
   // ─── Store ───
-  const allZones = useStore((s) => s.zones);
-  const locations = useStore((s) => s.locations);
+  const allZones = useStore((s) => s.zones) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
   const addLocation = useStore((s) => s.addLocation);
   const updateLocation = useStore((s) => s.updateLocation);
   const deleteLocation = useStore((s) => s.deleteLocation);
@@ -892,7 +892,7 @@ export default function ZonesAndLocationsScreen() {
                   <View style={styles.impactRow}>
                     <Feather name="alert-circle" size={13} color="#F59E0B" />
                     <Text style={styles.impactText}>
-                      {archiveImpact!.activeLocations} active location{archiveImpact!.activeLocations !== 1 ? "s" : ""} will be hidden from active workflows
+                      {archiveImpact?.activeLocations ?? 0} active location{(archiveImpact?.activeLocations ?? 0) !== 1 ? "s" : ""} will be hidden from active workflows
                     </Text>
                   </View>
                 )}

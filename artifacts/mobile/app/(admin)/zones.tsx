@@ -61,7 +61,7 @@ export default function ZonesScreen() {
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
   const applyDefaultsToHazardZone = useStore((s) => s.applyDefaultsToHazardZone);
-  const hazardZones = useStore((s) => s.hazardZones);
+  const hazardZones = useStore((s) => s.hazardZones) ?? [];
   const settings = useStore((s) => s.settings);
   const emergencyModes = useStore((s) => s.emergencyModes);
 

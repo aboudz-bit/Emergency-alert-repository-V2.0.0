@@ -29,10 +29,10 @@ const selectCanChangeWind = selectCanChangeWindDirection;
 export default function ECOLiveMapScreen() {
   const focusCount = useRefreshOnFocus();
   const activeAlert = useStore(selectActiveAlert, alertEq);
-  const zones = useStore((s) => s.zones);
-  const locations = useStore((s) => s.locations);
-  const shelters = useStore((s) => s.shelters);
-  const hazardZones = useStore((s) => s.hazardZones);
+  const zones = useStore((s) => s.zones) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
+  const shelters = useStore((s) => s.shelters) ?? [];
+  const hazardZones = useStore((s) => s.hazardZones) ?? [];
 
   const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);

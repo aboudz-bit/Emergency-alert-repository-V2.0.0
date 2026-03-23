@@ -50,7 +50,7 @@ export default function AlertMonitorScreen() {
   const closeAlert = useStore((s) => s.closeAlert);
 
   const currentUser = useStore((s) => s.currentUser);
-  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments) ?? [];
 
   const hasActiveAlert = useStore(selectIsEmergencyActive);
   usePersonnelSimulation(hasActiveAlert);

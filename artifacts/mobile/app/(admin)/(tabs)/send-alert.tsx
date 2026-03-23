@@ -1219,13 +1219,16 @@ function AlertManagementScreenInner() {
             <View style={styles.modalTarget}>
               <View style={[styles.modalTargetDot, { backgroundColor: notifyTarget?.color || Colors.textTertiary }]} />
               <Text style={styles.modalTargetText}>{notifyTarget?.name}</Text>
-              {notifyTarget && zoneStats.get(notifyTarget.id) && (
-                <View style={styles.modalTargetZoneBadge}>
-                  <Text style={styles.modalTargetZoneText}>
-                    {zoneStats.get(notifyTarget.id)!.userCount} user{zoneStats.get(notifyTarget.id)!.userCount !== 1 ? "s" : ""}
-                  </Text>
-                </View>
-              )}
+              {notifyTarget && (() => {
+                const s = zoneStats.get(notifyTarget.id);
+                return s ? (
+                  <View style={styles.modalTargetZoneBadge}>
+                    <Text style={styles.modalTargetZoneText}>
+                      {s.userCount} user{s.userCount !== 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                ) : null;
+              })()}
             </View>
 
             <Text style={styles.modalLabel}>Message</Text>

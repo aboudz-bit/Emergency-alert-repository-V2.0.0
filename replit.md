@@ -45,7 +45,7 @@ The project is structured into two main applications:
     - **Shelter System**: Manage shelters, calculate nearest shelters, link shelters to locations.
     - **Role-based Access Control**: Specific dashboards and functionalities for Super Admin, IT, ECO, Supervisor, and normal Users.
     - **Emergency Modes**: Shelter In and Blackout modes with zone-scoped activation, `canActivateEmergencyMode` permission gating, and receipt acknowledgment system. Affected users see a full-screen overlay with "Confirm Receipt" button (30s alarm reminders). ECO/Admin dashboards show real-time receipt tracking (confirmed vs pending, with progress bar).
-    - **Data Management**: Zustand store with versioning (v23) and migration support for persistence. Strict selector rules to prevent excessive re-renders.
+    - **Data Management**: Zustand store with versioning (v26) and migration support for persistence. Strict selector rules to prevent excessive re-renders. All store array reads use `?? []` null guards. Zero non-null assertions (`!.`) in `.tsx` files. All emergency mode resets preserve complete `EmergencyModes` shape including `receipts: []`.
 
 ## External Dependencies
 
