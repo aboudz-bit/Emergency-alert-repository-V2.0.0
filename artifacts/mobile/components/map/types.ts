@@ -57,10 +57,27 @@ export interface ZoneMapProps {
 export type MapProvider = "google" | "leaflet-fallback";
 
 export function zoneToPolygon(zone: Zone, selectedId: number | null): ZonePolygon {
+  const tag = '[ZONE_MAP:zoneToPolygon]';
+  if (!zone) {
+    console.error(`${tag} zone is ${zone}`);
+    return { id: 0, name: '??', coordinates: [], color: '#999', isActive: false, isSelected: false };
+  }
+  const safeCoords = Array.isArray(zone.polygonPoints)
+    ? zone.polygonPoints.filter((pt) => {
+        if (!pt || typeof pt.lat !== 'number' || typeof pt.lng !== 'number' || isNaN(pt.lat) || isNaN(pt.lng)) {
+          console.error(`${tag} zone "${zone.name}" dropping bad coord:`, pt);
+          return false;
+        }
+        return true;
+      })
+    : [];
+  if (!Array.isArray(zone.polygonPoints)) {
+    console.error(`${tag} zone "${zone.name}" polygonPoints is ${typeof zone.polygonPoints}`);
+  }
   return {
     id: zone.id,
     name: zone.name,
-    coordinates: zone.polygonPoints,
+    coordinates: safeCoords,
     center: zone.center,
     color: zone.color,
     isActive: zone.isActive,
@@ -69,14 +86,36 @@ export function zoneToPolygon(zone: Zone, selectedId: number | null): ZonePolygo
 }
 
 export function zonesToRegion(zones: Zone[]): MapRegion {
-  const allPoints = zones.flatMap((z) => z.polygonPoints);
+  const tag = '[ZONE_MAP:zonesToRegion]';
+  const DEFAULT_REGION: MapRegion = {
+    latitude: 25.082,
+    longitude: 48.175,
+    latitudeDelta: 0.03,
+    longitudeDelta: 0.03,
+  };
+
+  if (!Array.isArray(zones)) {
+    console.error(`${tag} zones is not array: ${typeof zones}`);
+    return DEFAULT_REGION;
+  }
+
+  const allPoints = zones.flatMap((z) => {
+    if (!z || !Array.isArray(z.polygonPoints)) {
+      console.error(`${tag} skipping zone with bad polygonPoints:`, z?.name);
+      return [];
+    }
+    return z.polygonPoints;
+  }).filter((p) => {
+    if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number' || isNaN(p.lat) || isNaN(p.lng)) {
+      console.error(`${tag} filtering out invalid point:`, p);
+      return false;
+    }
+    return true;
+  });
+
   if (allPoints.length === 0) {
-    return {
-      latitude: 25.082,
-      longitude: 48.175,
-      latitudeDelta: 0.03,
-      longitudeDelta: 0.03,
-    };
+    console.log(`${tag} no valid points, using default region`);
+    return DEFAULT_REGION;
   }
 
   const lats = allPoints.map((p) => p.lat);
@@ -86,12 +125,19 @@ export function zonesToRegion(zones: Zone[]): MapRegion {
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
 
-  return {
+  const region = {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLng + maxLng) / 2,
     latitudeDelta: (maxLat - minLat) * 1.4 || 0.03,
     longitudeDelta: (maxLng - minLng) * 1.4 || 0.03,
   };
+
+  if (isNaN(region.latitude) || isNaN(region.longitude)) {
+    console.error(`${tag} computed region has NaN values:`, region);
+    return DEFAULT_REGION;
+  }
+
+  return region;
 }
 
 export const KHURAIS_CENTER: MapRegion = {
