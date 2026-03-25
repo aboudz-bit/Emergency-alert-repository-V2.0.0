@@ -409,17 +409,18 @@ export const useStore = create<AppState>()(
           const users = s.users.map(u =>
             u.id === userId ? { ...u, status, lastActivity: new Date().toISOString() } : u,
           );
-          // recalculate active alert stats
+          // recalculate active alert stats (only count active users)
+          const activeUsers = users.filter(u => u.isActive);
           const alerts = s.alerts.map(a => {
             if (!a.isActive) return a;
             return {
               ...a,
               stats: {
-                confirmed: users.filter(u => u.status === 'confirmed').length,
-                missing: users.filter(u => u.status === 'missing').length,
-                noReply: users.filter(u => u.status === 'no_reply').length,
-                needHelp: users.filter(u => u.status === 'need_help').length,
-                total: users.length,
+                confirmed: activeUsers.filter(u => u.status === 'confirmed').length,
+                missing: activeUsers.filter(u => u.status === 'missing').length,
+                noReply: activeUsers.filter(u => u.status === 'no_reply').length,
+                needHelp: activeUsers.filter(u => u.status === 'need_help').length,
+                total: activeUsers.length,
               },
             };
           });
@@ -436,6 +437,7 @@ export const useStore = create<AppState>()(
         const operatorId = currentUser?.id || null;
         const now = new Date().toISOString();
 
+        const activeUsers = users.filter(u => u.isActive);
         const newAlert: Alert = {
           ...data,
           id: Date.now(),
@@ -444,9 +446,9 @@ export const useStore = create<AppState>()(
           stats: {
             confirmed: 0,
             missing: 0,
-            noReply: users.length,
+            noReply: activeUsers.length,
             needHelp: 0,
-            total: users.length,
+            total: activeUsers.length,
           },
           deliveryChannels: channels,
           soundActive: channels.includes('sound'),
@@ -469,7 +471,7 @@ export const useStore = create<AppState>()(
         // This prevents an intermediate state where activeAlert === null
         set(s => ({
           alerts: [newAlert, ...s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a)],
-          users: s.users.map(u => ({ ...u, status: 'no_reply' as UserResponseStatus })),
+          users: s.users.map(u => u.isActive ? { ...u, status: 'no_reply' as UserResponseStatus } : u),
           activeBroadcast: broadcastState,
           mobileUserResponse: null,
           hazardZones: [],
@@ -560,7 +562,7 @@ export const useStore = create<AppState>()(
 
         set(s => ({
           alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a),
-          users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
+          users: s.users.map(u => u.isActive ? { ...u, status: 'confirmed' as UserResponseStatus } : u),
           mobileUserResponse: 'confirmed' as UserResponseStatus,
           activeBroadcast: null,
           hazardZones: [],
@@ -577,7 +579,7 @@ export const useStore = create<AppState>()(
           priority: 'High',
           status: 'closed',
           isActive: false,
-          stats: { confirmed: users.length, missing: 0, noReply: 0, needHelp: 0, total: users.length },
+          stats: { confirmed: users.filter(u => u.isActive).length, missing: 0, noReply: 0, needHelp: 0, total: users.filter(u => u.isActive).length },
           triggeredByName: sentBy,
           triggeredByUserId: operatorId,
         };
@@ -1644,11 +1646,12 @@ export const selectActiveAlert = (s: AppState) => {
   const activeZoneIds = new Set(activeZones.map(z => z.id));
   const zoneUsers = s.users.filter(u => activeZoneIds.has((u as any).zoneId) && u.isActive);
   const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
-  const pending = zoneUsers.filter(u => u.status === 'pending' || u.status === 'no_reply').length;
+  const missing = zoneUsers.filter(u => u.status === 'missing').length;
+  const noReply = zoneUsers.filter(u => u.status === 'no_reply').length;
   const needHelp = zoneUsers.filter(u => u.status === 'need_help').length;
   const total = zoneUsers.length;
   const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
-  const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${pending}|${needHelp}|${total}`;
+  const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${missing}|${noReply}|${needHelp}|${total}`;
 
   if (_cachedZoneAlert && _cachedZoneAlertKey === cacheKey) {
     return _cachedZoneAlert;
@@ -1665,7 +1668,7 @@ export const selectActiveAlert = (s: AppState) => {
     priority: first.alertPriority || 'High',
     status: 'active' as const,
     isActive: true,
-    stats: { confirmed, pending, missing: 0, noReply: 0, needHelp, total },
+    stats: { confirmed, missing, noReply, needHelp, total },
   } as Alert;
   _cachedZoneAlertKey = cacheKey;
   return _cachedZoneAlert;
