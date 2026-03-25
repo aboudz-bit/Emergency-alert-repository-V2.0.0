@@ -1,4 +1,4 @@
-import type { Alert, PermissionKey } from '@/types';
+import type { Alert, PermissionKey, AlertSystemState, BannerState } from '@/types';
 import type { AppState } from './types';
 
 // ─── Alert selectors ─────────────────────────────────────────────────────────
@@ -25,8 +25,8 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   if (fromAlerts) return fromAlerts;
 
   const activeZones = s.zones.filter(z => z.isActive && z.alertActive);
-  const hasShelterIn = s.emergencyModes.shelterIn;
-  const hasBlackout = s.emergencyModes.blackout;
+  const hasShelterIn = s.emergencyModes?.shelterIn ?? false;
+  const hasBlackout = s.emergencyModes?.blackout ?? false;
 
   if (activeZones.length === 0 && !hasShelterIn && !hasBlackout) {
     return null;
@@ -56,7 +56,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   }
 
   if (hasBlackout) {
-    const blackoutZones = s.emergencyModes.blackoutZones ?? [];
+    const blackoutZones = s.emergencyModes?.blackoutZones ?? [];
     const zoneLabel = blackoutZones.length > 0
       ? blackoutZones.join(', ')
       : 'All Zones';
@@ -66,7 +66,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
       zone: zoneLabel,
       title: 'Blackout Active',
       message: 'Blackout mode is active. All lights and non-essential systems should be turned off.',
-      timestamp: s.emergencyModes.blackoutActivatedAt || new Date().toISOString(),
+      timestamp: s.emergencyModes?.blackoutActivatedAt || new Date().toISOString(),
       sentBy: 'System',
       priority: 'High',
       status: 'active' as const,
@@ -75,7 +75,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     } as Alert;
   }
 
-  const shelterInZones = s.emergencyModes.shelterInZones ?? [];
+  const shelterInZones = s.emergencyModes?.shelterInZones ?? [];
   const shelterZoneLabel = shelterInZones.length > 0
     ? shelterInZones.join(', ')
     : 'All Zones';
@@ -85,7 +85,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     zone: shelterZoneLabel,
     title: 'Shelter In Place Active',
     message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',
-    timestamp: s.emergencyModes.shelterInActivatedAt || new Date().toISOString(),
+    timestamp: s.emergencyModes?.shelterInActivatedAt || new Date().toISOString(),
     sentBy: 'System',
     priority: 'High',
     status: 'active' as const,
@@ -101,11 +101,94 @@ export const selectHasActiveAlert = (s: AppState) =>
 export const selectIsEmergencyActive = (s: AppState) =>
   s.alerts.some(a => a.isActive) ||
   s.zones.some(z => z.isActive && z.alertActive) ||
-  s.emergencyModes.shelterIn ||
-  s.emergencyModes.blackout;
+  (s.emergencyModes?.shelterIn ?? false) ||
+  (s.emergencyModes?.blackout ?? false);
 
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
+
+// ─── Unified Alert System State ─────────────────────────────────────────────
+
+/**
+ * Single canonical selector that ALL screens should use.
+ * Returns the complete AlertSystemState — one source of truth for:
+ *   - What emergency mode is active
+ *   - The active alert (real or synthesized)
+ *   - Which zones have alerts
+ *   - What banners to show
+ *   - Last update timestamp
+ */
+export const selectAlertSystemState = (s: AppState): AlertSystemState => {
+  const activeZones = s.zones.filter(z => z.isActive && z.alertActive);
+  const activeZoneIds = activeZones.map(z => z.id);
+  const hasShelterIn = s.emergencyModes?.shelterIn ?? false;
+  const hasBlackout = s.emergencyModes?.blackout ?? false;
+  const realAlert = s.alerts.find(a => a.isActive) ?? null;
+
+  // Build banners
+  const banners: BannerState[] = [];
+  if (hasShelterIn) {
+    const zones = s.emergencyModes?.shelterInZones ?? [];
+    banners.push({
+      type: 'shelterIn',
+      label: 'Shelter In Place Active',
+      zones,
+      activatedAt: s.emergencyModes?.shelterInActivatedAt ?? null,
+    });
+  }
+  if (hasBlackout) {
+    const zones = s.emergencyModes?.blackoutZones ?? [];
+    banners.push({
+      type: 'blackout',
+      label: 'Blackout Active',
+      zones,
+      activatedAt: s.emergencyModes?.blackoutActivatedAt ?? null,
+    });
+  }
+  if (activeZones.length > 0) {
+    banners.push({
+      type: 'zoneAlert',
+      label: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+      zones: activeZones.map(z => z.name),
+      activatedAt: activeZones[0]?.alertUpdatedAt ?? null,
+    });
+  }
+
+  // Determine emergency mode
+  let emergencyMode: AlertSystemState['emergencyMode'] = null;
+  if (realAlert) {
+    emergencyMode = 'broadcastAlert';
+  } else if (activeZones.length > 0) {
+    emergencyMode = 'zoneAlert';
+  } else if (hasBlackout) {
+    emergencyMode = 'blackout';
+  } else if (hasShelterIn) {
+    emergencyMode = 'shelterIn';
+  }
+
+  // Get the canonical active alert (use existing selectActiveAlert logic)
+  const activeAlert = selectActiveAlert(s);
+
+  // Determine last updated timestamp
+  let lastUpdatedAt: string | null = null;
+  if (realAlert) {
+    lastUpdatedAt = realAlert.timestamp;
+  } else if (activeZones.length > 0) {
+    lastUpdatedAt = activeZones[0]?.alertUpdatedAt ?? null;
+  } else if (hasBlackout) {
+    lastUpdatedAt = s.emergencyModes?.blackoutActivatedAt ?? null;
+  } else if (hasShelterIn) {
+    lastUpdatedAt = s.emergencyModes?.shelterInActivatedAt ?? null;
+  }
+
+  return {
+    emergencyMode,
+    activeAlert,
+    activeZoneIds,
+    banners,
+    lastUpdatedAt,
+  };
+};
 
 // ─── Permission selectors ────────────────────────────────────────────────────
 

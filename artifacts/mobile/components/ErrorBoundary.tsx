@@ -5,6 +5,8 @@ import { ErrorFallback, ErrorFallbackProps } from "@/components/ErrorFallback";
 export type ErrorBoundaryProps = PropsWithChildren<{
   FallbackComponent?: ComponentType<ErrorFallbackProps>;
   onError?: (error: Error, stackTrace: string) => void;
+  /** Optional screen/route name for diagnostic logging */
+  screenName?: string;
 }>;
 
 type ErrorBoundaryState = { error: Error | null };
@@ -30,6 +32,13 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    // Diagnostic logging for crash debugging
+    const screenName = this.props.screenName || 'unknown';
+    console.error(`[ErrorBoundary] CRASH on screen: ${screenName}`);
+    console.error(`[ErrorBoundary] Error: ${error.message}`);
+    console.error(`[ErrorBoundary] Stack: ${error.stack}`);
+    console.error(`[ErrorBoundary] Component stack: ${info.componentStack}`);
+
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }

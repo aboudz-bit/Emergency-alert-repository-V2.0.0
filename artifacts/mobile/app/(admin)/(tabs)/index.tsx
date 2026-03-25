@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 
 const DASH_MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.35, 300);
@@ -33,12 +34,16 @@ export default function DashboardScreen() {
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
 
+  // Use canonical alert system state as single source of truth
+  const alertSystem = useAlertSystemState();
+
   const alertZones = useMemo(
     () => zones.filter((z) => z.isActive && z.alertActive),
     [zones]
   );
-  const activeAlertCount = alertZones.length;
-  const hasActiveAlerts = activeAlertCount > 0;
+  // Derive from canonical state — consistent with banner, monitor, and map
+  const activeAlertCount = alertSystem.emergencyMode ? Math.max(alertSystem.activeZoneIds.length, alertSystem.activeAlert ? 1 : 0) : 0;
+  const hasActiveAlerts = alertSystem.emergencyMode !== null;
 
   const stats = useMemo(() => {
     const total = users.length;

@@ -10,11 +10,12 @@ import type { User } from '@/types';
 function selectActiveAlert(s: any) {
   const fromAlerts = s.alerts?.find((a: any) => a.isActive);
   if (fromAlerts) return fromAlerts;
+  const emptyStats = { confirmed: 0, missing: 0, noReply: 0, needHelp: 0, total: 0 };
   if (s.emergencyModes?.blackout) {
-    return { id: -1, type: 'Blackout', isActive: true, stats: {} };
+    return { id: -1, type: 'Blackout', isActive: true, stats: emptyStats };
   }
   if (s.emergencyModes?.shelterIn) {
-    return { id: -1, type: 'Shelter-in', isActive: true, stats: {} };
+    return { id: -1, type: 'Shelter-in', isActive: true, stats: emptyStats };
   }
   return s.getActiveAlert?.() ?? null;
 }
