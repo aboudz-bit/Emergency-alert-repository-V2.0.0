@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, Link } from 'wouter';
+import { useLocation, Link, useParams } from 'wouter';
 import { AlertTriangle, CheckCircle2, AlertCircle, Phone, Clock, ArrowLeft, Siren, Shield, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -7,6 +7,7 @@ import { useStore, useShallow } from '@/store';
 
 export default function MobileAlert() {
   const [, navigate] = useLocation();
+  const params = useParams<{ id: string }>();
   const { alerts, mobileUserResponse, respondToAlert, hazardZones } = useStore(useShallow(s => ({
     alerts: s.alerts,
     mobileUserResponse: s.mobileUserResponse,
@@ -14,7 +15,9 @@ export default function MobileAlert() {
     hazardZones: s.hazardZones,
   })));
 
-  const alert = alerts.find(a => a.isActive);
+  const alert = params.id
+    ? alerts.find(a => a.id === Number(params.id)) || alerts.find(a => a.isActive)
+    : alerts.find(a => a.isActive);
 
   if (!alert) {
     return (

@@ -387,6 +387,8 @@ export default function Zones() {
       center: data.boundaryType === 'Circle' ? { lat: 25.082, lng: 48.178 } : undefined,
       radius: data.boundaryType === 'Circle' ? 500 : undefined,
       isActive: true, color: data.color,
+      alertActive: false, alertType: null, alertPriority: null,
+      alertMessage: '', alertUpdatedAt: null, alertHistory: [],
     });
     const newZone = useStore.getState().zones[useStore.getState().zones.length - 1];
     setEditingZoneId(newZone.id);
