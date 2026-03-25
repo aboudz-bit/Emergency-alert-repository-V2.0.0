@@ -47,7 +47,6 @@ export default function AlertMonitorScreen() {
   const shelters = useStore((s) => s.shelters);
   const hazardZones = useStore((s) => s.hazardZones);
   const sendAllClear = useStore((s) => s.sendAllClear);
-  const closeAlert = useStore((s) => s.closeAlert);
 
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);

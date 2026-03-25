@@ -17,11 +17,14 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         const alerts = s.alerts.map(a => {
           if (!a.isActive) return a;
           const isAllZones = a.zone === 'All Zones' || a.zone === 'all';
-          const targetZone = isAllZones ? null : s.zones.find(z => z.name === a.zone);
+          // Handle comma-separated zone names from multi-zone alerts
+          const zoneNames = a.zone.includes(', ') ? a.zone.split(', ').map(n => n.trim()) : [a.zone];
+          const targetZones = isAllZones ? [] : s.zones.filter(z => zoneNames.includes(z.name));
+          const targetZoneIds = new Set(targetZones.map(z => z.id));
           const relevantUsers = isAllZones
             ? users.filter(u => u.isActive)
-            : targetZone
-              ? users.filter(u => u.zoneId === targetZone.id && u.isActive)
+            : targetZoneIds.size > 0
+              ? users.filter(u => targetZoneIds.has(u.zoneId) && u.isActive)
               : users.filter(u => u.isActive);
           return {
             ...a,
