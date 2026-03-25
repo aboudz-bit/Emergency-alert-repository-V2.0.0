@@ -1,12 +1,6 @@
 import type { Alert, PermissionKey, AlertSystemState, BannerState } from '@/types';
 import type { AppState } from './types';
 
-// ─── Default / fallback state ───────────────────────────────────────────────
-
-/**
- * Canonical default returned by selectAlertSystemState when the store
- * is not yet hydrated or any slice is missing.
- */
 export const defaultAlertSystemState: AlertSystemState = {
   emergencyMode: null,
   activeAlert: null,
@@ -14,8 +8,6 @@ export const defaultAlertSystemState: AlertSystemState = {
   banners: [],
   lastUpdatedAt: null,
 };
-
-// ─── Alert selectors ─────────────────────────────────────────────────────────
 
 export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
   if (a === b) return true;
@@ -35,7 +27,6 @@ export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
 };
 
 export const selectActiveAlert = (s: AppState): Alert | null => {
-  // Null-safety: during hydration, arrays may be undefined
   const alerts = Array.isArray(s.alerts) ? s.alerts : [];
   const zones = Array.isArray(s.zones) ? s.zones : [];
   const users = Array.isArray(s.users) ? s.users : [];
@@ -120,7 +111,6 @@ export const selectHasActiveAlert = (s: AppState) => {
   return alerts.some(a => a.isActive) || zones.some(z => z.isActive && z.alertActive);
 };
 
-/** True when ANY emergency condition is active — alert, zone alert, shelter-in, or blackout. */
 export const selectIsEmergencyActive = (s: AppState) => {
   const alerts = Array.isArray(s.alerts) ? s.alerts : [];
   const zones = Array.isArray(s.zones) ? s.zones : [];
@@ -132,37 +122,50 @@ export const selectIsEmergencyActive = (s: AppState) => {
   );
 };
 
-/** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => {
   const alerts = Array.isArray(s.alerts) ? s.alerts : [];
   return alerts.some(a => a.isActive);
 };
 
-// ─── Unified Alert System State ─────────────────────────────────────────────
+let _cachedAlertSystemState: AlertSystemState = defaultAlertSystemState;
+let _cachedInputKey = '';
 
-/**
- * Single canonical selector that ALL screens should use.
- * Returns the complete AlertSystemState — one source of truth for:
- *   - What emergency mode is active
- *   - The active alert (real or synthesized)
- *   - Which zones have alerts
- *   - What banners to show
- *   - Last update timestamp
- *
- * Fully null-safe: returns defaultAlertSystemState if any slice is missing
- * (e.g. during hydration or with incompatible persisted state).
- */
+function computeInputKey(s: AppState): string {
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  const zones = Array.isArray(s.zones) ? s.zones : [];
+  const users = Array.isArray(s.users) ? s.users : [];
+  const em = s.emergencyModes;
+
+  const activeAlert = alerts.find(a => a.isActive);
+  const activeAlertKey = activeAlert
+    ? `${activeAlert.id}:${activeAlert.timestamp}:${activeAlert.status}:${activeAlert.stats?.confirmed ?? 0}:${activeAlert.stats?.pending ?? 0}:${activeAlert.stats?.needHelp ?? 0}:${activeAlert.stats?.total ?? 0}:${activeAlert.message}:${activeAlert.priority}:${activeAlert.zone}`
+    : 'none';
+  const zoneKey = zones
+    .filter(z => z.isActive && z.alertActive)
+    .map(z => `${z.id}:${z.alertType}:${z.alertPriority}:${z.alertUpdatedAt}:${z.alertMessage}`)
+    .join(',');
+  const shelterIn = em?.shelterIn ?? false;
+  const blackout = em?.blackout ?? false;
+  const siZones = Array.isArray(em?.shelterInZones) ? em.shelterInZones.join(',') : '';
+  const boZones = Array.isArray(em?.blackoutZones) ? em.blackoutZones.join(',') : '';
+  const siAt = em?.shelterInActivatedAt ?? '';
+  const boAt = em?.blackoutActivatedAt ?? '';
+
+  const confirmed = users.filter(u => u.isActive && u.status === 'confirmed').length;
+  const pending = users.filter(u => u.isActive && u.status === 'pending').length;
+  const needHelp = users.filter(u => u.isActive && u.status === 'need_help').length;
+
+  return `${activeAlertKey}|${zoneKey}|${shelterIn}|${blackout}|${siZones}|${boZones}|${siAt}|${boAt}|${confirmed}:${pending}:${needHelp}`;
+}
+
 export const selectAlertSystemState = (s: AppState): AlertSystemState => {
-  // Guard: if core slices are missing, return safe defaults
   if (!s || !Array.isArray(s.zones) || !Array.isArray(s.alerts)) {
-    if (__DEV__) {
-      console.warn('[selectAlertSystemState] Store not ready — returning defaults', {
-        hasState: !!s,
-        hasZones: Array.isArray(s?.zones),
-        hasAlerts: Array.isArray(s?.alerts),
-      });
-    }
     return defaultAlertSystemState;
+  }
+
+  const key = computeInputKey(s);
+  if (key === _cachedInputKey) {
+    return _cachedAlertSystemState;
   }
 
   const zones = s.zones;
@@ -174,7 +177,6 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
   const hasBlackout = em?.blackout ?? false;
   const realAlert = (Array.isArray(s.alerts) ? s.alerts : []).find(a => a.isActive) ?? null;
 
-  // Build banners
   const banners: BannerState[] = [];
   if (hasShelterIn) {
     const bZones = Array.isArray(em?.shelterInZones) ? em.shelterInZones : [];
@@ -203,7 +205,6 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
     });
   }
 
-  // Determine emergency mode
   let emergencyMode: AlertSystemState['emergencyMode'] = null;
   if (realAlert) {
     emergencyMode = 'broadcastAlert';
@@ -215,10 +216,8 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
     emergencyMode = 'shelterIn';
   }
 
-  // Get the canonical active alert (use existing selectActiveAlert logic)
   const activeAlert = selectActiveAlert(s);
 
-  // Determine last updated timestamp
   let lastUpdatedAt: string | null = null;
   if (realAlert) {
     lastUpdatedAt = realAlert.timestamp;
@@ -230,21 +229,19 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
     lastUpdatedAt = em?.shelterInActivatedAt ?? null;
   }
 
-  return {
+  const result: AlertSystemState = {
     emergencyMode,
     activeAlert,
     activeZoneIds,
     banners,
     lastUpdatedAt,
   };
+
+  _cachedInputKey = key;
+  _cachedAlertSystemState = result;
+  return result;
 };
 
-// ─── Permission selectors ────────────────────────────────────────────────────
-
-/**
- * Pre-built permission selectors — safe to use inline with useStore().
- * These are stable references that will never cause re-render loops.
- */
 const _permSel = (permission: PermissionKey) =>
   (s: AppState): boolean => s.currentUser ? s.hasPermission(s.currentUser.id, permission) : false;
 
@@ -257,10 +254,4 @@ export const selectCanManageShelters = _permSel('canManageShelters');
 export const selectCanReviewAlertMonitor = _permSel('canReviewAlertMonitor');
 export const selectCanChangeWindDirection = _permSel('canChangeWindDirection');
 
-/**
- * @deprecated Use the pre-built selectCan* selectors instead.
- * This factory is unsafe when called inline inside a component render
- * (e.g. useStore(selectCurrentUserHasPermission('x'))) because it creates
- * a new function reference every render, causing infinite re-render loops.
- */
 export const selectCurrentUserHasPermission = _permSel;

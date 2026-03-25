@@ -17,19 +17,27 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Colors } from "@/constants/theme";
 
-// KeyboardProvider uses native modules (react-native-is-edge-to-edge) that
-// are not available on web, so we only load it on native platforms.
 let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> =
   React.Fragment;
 if (Platform.OS !== "web") {
-  KeyboardProvider =
-    require("react-native-keyboard-controller").KeyboardProvider;
+  try {
+    KeyboardProvider =
+      require("react-native-keyboard-controller").KeyboardProvider;
+  } catch (e) {
+    console.error('[_layout] react-native-keyboard-controller failed to load:', e);
+  }
 }
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { rtl } = useTranslation();
+  let rtl = false;
+  try {
+    const translation = useTranslation();
+    rtl = translation.rtl;
+  } catch (e) {
+    console.error('[RootLayout] useTranslation failed:', e);
+  }
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -38,8 +46,6 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  // Sync I18nManager with the current language on every mount (no reload here,
-  // just ensures flags stay consistent after a cold start).
   useEffect(() => {
     if (I18nManager.isRTL !== rtl) {
       I18nManager.allowRTL(rtl);
@@ -53,11 +59,13 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
+      <ErrorBoundary screenName="RootLayout">
         <GestureHandlerRootView
           style={{ flex: 1, direction: rtl ? "rtl" : "ltr" }}
         >

@@ -61,7 +61,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
               await AsyncStorage.removeItem(STORE_NAME);
               await reloadAppAsync();
             } catch (e) {
-              console.error("Failed to clear data:", e);
+              console.error("[ErrorFallback] Failed to clear data:", e);
               resetError();
             }
           },
