@@ -51,7 +51,7 @@
       [
         "expo-router",
         {
-          "origin": "<https://keas.app>"
+          "origin": "https://keas.app"
         }
       ],
       "expo-font",
