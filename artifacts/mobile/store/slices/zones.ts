@@ -27,7 +27,11 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       const now = new Date().toISOString();
       const user = get().currentUser?.name || null;
       const zone = get().zones.find(z => z.id === zoneId);
-      if (!zone) return;
+      if (!zone) {
+        console.warn('[activateZoneAlert] Zone not found:', zoneId);
+        return;
+      }
+      console.log('[activateZoneAlert] Activating:', { zoneId, zoneName: zone.name, alertType, priority, user });
       set(s => ({
         zones: s.zones.map(z => z.id === zoneId ? {
           ...z,
@@ -56,6 +60,14 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         mobileUserResponse: null,
         users: s.users.map(u => ({ ...u, status: 'pending' as const })),
       }));
+      // Post-activation diagnostic
+      const postState = get();
+      const activeZoneCount = postState.zones.filter(z => z.isActive && z.alertActive).length;
+      console.log('[activateZoneAlert] Post-activation state:', {
+        activeZoneCount,
+        usersPending: postState.users.filter(u => u.status === 'pending').length,
+        mobileUserResponse: postState.mobileUserResponse,
+      });
     },
 
     deactivateZoneAlert: (zoneId) => {

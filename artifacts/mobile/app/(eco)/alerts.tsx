@@ -8,11 +8,13 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 
 export default function ECOAlertsScreen() {
   const currentUser = useStore((s) => s.currentUser);
-  const alerts = useStore((s) => s.alerts);
-  const zones = useStore((s) => s.zones);
+  const alerts = useStore((s) => s.alerts) ?? [];
+  const zones = useStore((s) => s.zones) ?? [];
+  const { emergencyMode } = useAlertSystemState();
 
   const zoneName = currentUser?.ecoZoneName ?? "CPF";
 
@@ -74,16 +76,16 @@ export default function ECOAlertsScreen() {
                 </View>
                 <View style={styles.statsRow}>
                   <View style={styles.statChip}>
-                    <Text style={[styles.statValue, { color: Colors.safe }]}>{alert.stats.confirmed}</Text>
+                    <Text style={[styles.statValue, { color: Colors.safe }]}>{alert.stats?.confirmed ?? 0}</Text>
                     <Text style={styles.statLabel}>Safe</Text>
                   </View>
                   <View style={styles.statChip}>
-                    <Text style={[styles.statValue, { color: Colors.noreply }]}>{alert.stats.pending}</Text>
+                    <Text style={[styles.statValue, { color: Colors.noreply }]}>{alert.stats?.pending ?? 0}</Text>
                     <Text style={styles.statLabel}>Pending</Text>
                   </View>
-                  {alert.stats.needHelp > 0 && (
+                  {(alert.stats?.needHelp ?? 0) > 0 && (
                     <View style={styles.statChip}>
-                      <Text style={[styles.statValue, { color: Colors.primary }]}>{alert.stats.needHelp}</Text>
+                      <Text style={[styles.statValue, { color: Colors.primary }]}>{alert.stats?.needHelp ?? 0}</Text>
                       <Text style={styles.statLabel}>Help</Text>
                     </View>
                   )}
@@ -104,7 +106,7 @@ export default function ECOAlertsScreen() {
                 </View>
                 <Text style={styles.closedTitle}>{alert.title}</Text>
                 <Text style={styles.alertMetaText}>
-                  Response: {alert.stats.confirmed}/{alert.stats.total} confirmed
+                  Response: {alert.stats?.confirmed ?? 0}/{alert.stats?.total ?? 0} confirmed
                 </Text>
               </Card>
             ))}

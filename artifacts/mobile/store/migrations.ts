@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 22;
+export const STORE_VERSION = 23;
 
 export function migrate(persisted: any, version: number): AppState {
   const state = persisted as any;
@@ -342,6 +342,45 @@ export function migrate(persisted: any, version: number): AppState {
         return u;
       });
     }
+  }
+
+  if (version < 23) {
+    // v23: Reset alert-related state to clean defaults after unified
+    // AlertSystemState / selector refactor.  Old persisted shapes may be
+    // incompatible with the new null-safe selectors.
+    if (Array.isArray(state?.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        alertActive: z.alertActive ?? false,
+        alertType: z.alertType ?? null,
+        alertPriority: z.alertPriority ?? null,
+        alertMessage: z.alertMessage ?? '',
+        alertUpdatedAt: z.alertUpdatedAt ?? null,
+        alertHistory: Array.isArray(z.alertHistory) ? z.alertHistory : [],
+      }));
+    } else {
+      state.zones = seedZones;
+    }
+    if (!Array.isArray(state?.alerts)) {
+      state.alerts = [];
+    }
+    if (!Array.isArray(state?.users)) {
+      state.users = seedUsers;
+    }
+    if (!Array.isArray(state?.locations)) {
+      state.locations = seedLocations;
+    }
+    // Ensure emergencyModes has the full shape
+    state.emergencyModes = {
+      shelterIn: state.emergencyModes?.shelterIn ?? false,
+      blackout: state.emergencyModes?.blackout ?? false,
+      shelterInZones: Array.isArray(state.emergencyModes?.shelterInZones) ? state.emergencyModes.shelterInZones : [],
+      blackoutZones: Array.isArray(state.emergencyModes?.blackoutZones) ? state.emergencyModes.blackoutZones : [],
+      shelterInActivatedAt: state.emergencyModes?.shelterInActivatedAt ?? null,
+      shelterInActivatedBy: state.emergencyModes?.shelterInActivatedBy ?? null,
+      blackoutActivatedAt: state.emergencyModes?.blackoutActivatedAt ?? null,
+      blackoutActivatedBy: state.emergencyModes?.blackoutActivatedBy ?? null,
+    };
   }
 
   return persisted as AppState;

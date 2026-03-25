@@ -14,7 +14,8 @@ import { Feather } from "@expo/vector-icons";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, alertEq } from "@/store";
+import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useTranslation } from "@/i18n/useTranslation";
 import { translateAlertType, translateAlertTitle, translateAlertMessage, translateZone } from "@/i18n/translations";
 
@@ -113,7 +114,7 @@ function PulsingDot({ size = 14 }: { size?: number }) {
 export default function AlertDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const activeAlert = useStore(selectActiveAlert, alertEq);
+  const { activeAlert } = useAlertSystemState();
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const { t } = useTranslation();
@@ -234,7 +235,7 @@ export default function AlertDetailScreen() {
                 style={[styles.statDot, { backgroundColor: Colors.safe }]}
               />
               <Text style={styles.statCount}>
-                {activeAlert.stats.confirmed}
+                {activeAlert.stats?.confirmed ?? 0}
               </Text>
               <Text style={styles.statLabel}>{t.safe}</Text>
             </View>
@@ -243,7 +244,7 @@ export default function AlertDetailScreen() {
                 style={[styles.statDot, { backgroundColor: Colors.noreply }]}
               />
               <Text style={styles.statCount}>
-                {activeAlert.stats.pending}
+                {activeAlert.stats?.pending ?? 0}
               </Text>
               <Text style={styles.statLabel}>{t.pending}</Text>
             </View>
@@ -252,7 +253,7 @@ export default function AlertDetailScreen() {
                 style={[styles.statDot, { backgroundColor: Colors.primary }]}
               />
               <Text style={styles.statCount}>
-                {activeAlert.stats.needHelp}
+                {activeAlert.stats?.needHelp ?? 0}
               </Text>
               <Text style={styles.statLabel}>{t.needHelp}</Text>
             </View>

@@ -17,7 +17,7 @@ import { Header } from "@/components/ui/Header";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize } from "@/constants/theme";
 import { useStore } from "@/store";
-import { selectIsEmergencyActive } from "@/store/selectors";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import type { User, UserResponseStatus, CompanyType } from "@/types";
 
 const SCREEN_H = Dimensions.get("window").height;
@@ -48,7 +48,8 @@ export default function EmergencyUsersScreen() {
   const locations = useStore((s) => s.locations);
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
-  const isEmergencyActive = useStore(selectIsEmergencyActive);
+  const { emergencyMode } = useAlertSystemState();
+  const isEmergencyActive = emergencyMode !== null;
 
   const sectionListRef = useRef<SectionList>(null);
 

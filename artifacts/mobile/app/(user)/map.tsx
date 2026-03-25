@@ -11,7 +11,8 @@ import * as ExpoLocation from "expo-location";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, alertEq } from "@/store";
+import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -24,7 +25,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 export default function ContractorMapScreen() {
   const focusCount = useRefreshOnFocus();
   const currentUser = useStore((s) => s.currentUser);
-  const activeAlert = useStore(selectActiveAlert, alertEq);
+  const { activeAlert } = useAlertSystemState();
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);

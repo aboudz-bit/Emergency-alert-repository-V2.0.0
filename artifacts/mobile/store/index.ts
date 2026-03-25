@@ -24,7 +24,7 @@ import { createPermissionSlice } from './slices/permissions';
 import { createEmergencySlice } from './slices/emergency';
 
 // Re-export selectors so existing imports from '@/store' keep working
-export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState } from './selectors';
+export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState, defaultAlertSystemState } from './selectors';
 export {
   selectCanViewGlobalLiveMap,
   selectCanPlaceWarningZone,
@@ -43,6 +43,20 @@ export type { AppState } from './types';
 // Inject selectActiveAlert into hazardZone slice (avoids circular dep)
 import { selectActiveAlert } from './selectors';
 _injectSelectActiveAlert(selectActiveAlert);
+
+// ─── Hydration tracking ──────────────────────────────────────────────────────
+
+/**
+ * Tracks whether Zustand persist has finished rehydrating from AsyncStorage.
+ * Components that depend on persisted alert state must check this before
+ * rendering to avoid crashes from partially-loaded / undefined slices.
+ */
+let _hasHydrated = false;
+
+/** Returns true once the store has finished rehydrating from AsyncStorage. */
+export function getHasHydrated(): boolean {
+  return _hasHydrated;
+}
 
 export const useStore = create<AppState>()(
   persist(
@@ -109,6 +123,24 @@ export const useStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       migrate,
       partialize,
+      onRehydrateStorage: () => {
+        console.log('[Store] Hydration starting...');
+        return (state, error) => {
+          _hasHydrated = true;
+          if (error) {
+            console.error('[Store] Hydration FAILED:', error);
+          } else {
+            console.log('[Store] Hydration complete', {
+              hasAlerts: Array.isArray(state?.alerts),
+              hasZones: Array.isArray(state?.zones),
+              hasUsers: Array.isArray(state?.users),
+              hasEmergencyModes: !!state?.emergencyModes,
+              alertCount: state?.alerts?.length ?? 0,
+              zoneCount: state?.zones?.length ?? 0,
+            });
+          }
+        };
+      },
     },
   ),
 );

@@ -17,7 +17,8 @@ import * as ExpoLocation from "expo-location";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, alertEq, selectIsEmergencyActive } from "@/store";
+import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
@@ -82,7 +83,7 @@ export default function UserHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const activeAlert = useStore(selectActiveAlert, alertEq);
+  const { activeAlert, emergencyMode } = useAlertSystemState();
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const shelters = useStore((s) => s.shelters);
@@ -94,7 +95,7 @@ export default function UserHomeScreen() {
 
   const { detectedLocationId } = useDetectedLocation(userLocation);
 
-  const hasActiveAlert = useStore(selectIsEmergencyActive);
+  const hasActiveAlert = emergencyMode !== null;
   usePersonnelTracking(hasActiveAlert);
 
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
