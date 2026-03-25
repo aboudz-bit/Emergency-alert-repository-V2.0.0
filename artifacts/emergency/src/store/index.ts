@@ -720,6 +720,30 @@ export const useStore = create<AppState>()(
               user,
             }],
           } : z),
+          // Also update child locations to match zone alert state
+          locations: s.locations.map(l => l.zoneId === zoneId ? {
+            ...l,
+            alertActive: true,
+            alertType,
+            alertPriority: priority,
+            alertMessage: message,
+            alertUpdatedAt: now,
+            alertHistory: [...l.alertHistory, {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'activated' as const,
+              alertType,
+              priority,
+              message,
+              timestamp: now,
+              user,
+            }],
+          } : l),
+          // Reset user statuses to pending for the affected zone
+          users: s.users.map(u => (u as any).zoneId === zoneId
+            ? { ...u, status: 'pending' as const }
+            : u),
+          mobileUserResponse: null,
         }));
       },
 
@@ -747,6 +771,25 @@ export const useStore = create<AppState>()(
               user,
             }],
           } : z),
+          // Also deactivate child locations
+          locations: s.locations.map(l => l.zoneId === zoneId ? {
+            ...l,
+            alertActive: false,
+            alertType: null,
+            alertPriority: null,
+            alertMessage: '',
+            alertUpdatedAt: now,
+            alertHistory: [...l.alertHistory, {
+              id: nextHistoryId(),
+              locationId: l.id,
+              action: 'deactivated' as const,
+              alertType: l.alertType,
+              priority: l.alertPriority,
+              message: l.alertMessage,
+              timestamp: now,
+              user,
+            }],
+          } : l),
         }));
       },
 
@@ -1744,6 +1787,27 @@ export const selectHasActiveAlert = (s: AppState) =>
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
 
 export const selectAlertHistory = (s: AppState) => s.alerts.filter(a => !a.isActive);
+
+/**
+ * Unified alert system state — single source of truth for all screens.
+ * Use this instead of separately querying alerts, zones, and emergencyModes.
+ */
+export const selectAlertSystemState = (s: AppState) => {
+  const activeZones = s.zones.filter(z => z.alertActive);
+  const activeZoneIds = activeZones.map(z => z.id);
+  const hasShelterIn = s.emergencyModes?.shelterIn ?? false;
+  const hasBlackout = s.emergencyModes?.blackout ?? false;
+  const realAlert = s.alerts.find(a => a.isActive) ?? null;
+  const activeAlert = selectActiveAlert(s);
+
+  let emergencyMode: 'shelterIn' | 'blackout' | 'zoneAlert' | 'broadcastAlert' | null = null;
+  if (realAlert) emergencyMode = 'broadcastAlert';
+  else if (activeZones.length > 0) emergencyMode = 'zoneAlert';
+  else if (hasBlackout) emergencyMode = 'blackout';
+  else if (hasShelterIn) emergencyMode = 'shelterIn';
+
+  return { emergencyMode, activeAlert, activeZoneIds, lastUpdatedAt: activeAlert?.timestamp ?? null };
+};
 export const selectCPFUsers = (s: AppState) => s.users.filter(u => u.zone === 'CPF');
 export const selectCampUsers = (s: AppState) => s.users.filter(u => u.zone === 'Camp');
 export const selectAdmins = (s: AppState) =>

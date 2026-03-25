@@ -99,11 +99,11 @@ export default function AlertMonitorScreen() {
 
   const getTabCount = useCallback(
     (key: TabKey) => {
-      if (!activeAlert) return 0;
+      if (!activeAlert?.stats) return 0;
       switch (key) {
-        case "confirmed": return activeAlert.stats.confirmed;
-        case "pending": return activeAlert.stats.pending;
-        case "need_help": return activeAlert.stats.needHelp;
+        case "confirmed": return activeAlert.stats.confirmed ?? 0;
+        case "pending": return activeAlert.stats.pending ?? 0;
+        case "need_help": return activeAlert.stats.needHelp ?? 0;
       }
     },
     [activeAlert]
@@ -142,7 +142,7 @@ export default function AlertMonitorScreen() {
               <View style={styles.alertTitleWrap}>
                 <Text style={styles.alertType}>{activeAlert.type}</Text>
                 <Text style={styles.alertMeta}>
-                  {activeAlert.zone} · {format(new Date(activeAlert.timestamp), "MMM d, HH:mm")}
+                  {activeAlert.zone ?? 'Unknown Zone'} · {activeAlert.timestamp ? format(new Date(activeAlert.timestamp), "MMM d, HH:mm") : 'N/A'}
                 </Text>
               </View>
             </View>

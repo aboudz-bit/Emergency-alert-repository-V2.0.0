@@ -5,6 +5,8 @@ import { useStore } from '@/store';
 export function EmergencyModeBanner() {
   const emergencyModes = useStore(s => s.emergencyModes);
 
+  // Defensive: emergencyModes may be undefined during store hydration
+  if (!emergencyModes) return null;
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
 
   return (

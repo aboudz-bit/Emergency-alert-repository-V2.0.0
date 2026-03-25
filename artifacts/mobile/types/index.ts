@@ -322,6 +322,29 @@ export interface EmergencyModes {
   blackoutActivatedBy: string | null;
 }
 
+// ─── Unified Alert System State ──────────────────────────────────────────────
+// Single canonical state that all screens must use to avoid inconsistencies.
+
+export interface BannerState {
+  type: 'shelterIn' | 'blackout' | 'zoneAlert';
+  label: string;
+  zones: string[];
+  activatedAt: string | null;
+}
+
+export interface AlertSystemState {
+  /** Current emergency mode — null when no emergency is active. */
+  emergencyMode: 'shelterIn' | 'blackout' | 'zoneAlert' | 'broadcastAlert' | null;
+  /** The canonical active alert (real or synthesized from zones/emergency modes). */
+  activeAlert: Alert | null;
+  /** IDs of zones that currently have an active alert. */
+  activeZoneIds: number[];
+  /** Banner(s) to display on all screens. */
+  banners: BannerState[];
+  /** ISO timestamp of the last state change. */
+  lastUpdatedAt: string | null;
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface NotificationPolicy {

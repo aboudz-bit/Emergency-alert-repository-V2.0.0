@@ -9,13 +9,15 @@ export function EmergencyModeBanner() {
   const emergencyModes = useStore((s) => s.emergencyModes);
   const { t } = useTranslation();
 
+  // Defensive: emergencyModes may be undefined during store hydration
+  if (!emergencyModes) return null;
   if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
 
-  const shelterZoneLabel = emergencyModes.shelterInZones?.length > 0
+  const shelterZoneLabel = Array.isArray(emergencyModes.shelterInZones) && emergencyModes.shelterInZones.length > 0
     ? emergencyModes.shelterInZones.join(", ")
     : null;
 
-  const blackoutZoneLabel = emergencyModes.blackoutZones?.length > 0
+  const blackoutZoneLabel = Array.isArray(emergencyModes.blackoutZones) && emergencyModes.blackoutZones.length > 0
     ? emergencyModes.blackoutZones.join(", ")
     : null;
 

@@ -62,7 +62,7 @@ export default function AlertMonitor() {
             <AlertTypeBadge type={alert.type} />
             <span className="text-xs bg-secondary px-2 py-1 rounded text-muted-foreground">ID: #{alert.id}</span>
           </div>
-          <p className="text-sm text-muted-foreground">Initiated by {alert.sentBy} at {new Date(alert.timestamp).toLocaleTimeString()}</p>
+          <p className="text-sm text-muted-foreground">Initiated by {alert.sentBy ?? 'System'} at {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'N/A'}</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <button className="flex-1 md:flex-none px-4 py-2 bg-card border border-border hover:bg-secondary text-foreground rounded-lg font-medium transition-colors">
@@ -80,10 +80,10 @@ export default function AlertMonitor() {
       {/* Stats Tabs */}
       <div className="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-none">
         {[
-          { id: 'missing' as UserResponseStatus, label: 'Missing / Unresponsive', count: alert.stats.missing, color: 'text-missing', bg: 'bg-missing' },
-          { id: 'need_help' as UserResponseStatus, label: 'Need Help', count: alert.stats.needHelp, color: 'text-destructive', bg: 'bg-destructive' },
-          { id: 'no_reply' as UserResponseStatus, label: 'No Reply', count: alert.stats.noReply, color: 'text-noreply', bg: 'bg-noreply' },
-          { id: 'confirmed' as UserResponseStatus, label: 'Confirmed Safe', count: alert.stats.confirmed, color: 'text-safe', bg: 'bg-safe' },
+          { id: 'missing' as UserResponseStatus, label: 'Missing / Unresponsive', count: alert.stats?.missing ?? 0, color: 'text-missing', bg: 'bg-missing' },
+          { id: 'need_help' as UserResponseStatus, label: 'Need Help', count: alert.stats?.needHelp ?? 0, color: 'text-destructive', bg: 'bg-destructive' },
+          { id: 'no_reply' as UserResponseStatus, label: 'No Reply', count: alert.stats?.noReply ?? 0, color: 'text-noreply', bg: 'bg-noreply' },
+          { id: 'confirmed' as UserResponseStatus, label: 'Confirmed Safe', count: alert.stats?.confirmed ?? 0, color: 'text-safe', bg: 'bg-safe' },
         ].map(tab => (
           <button
             key={tab.id}

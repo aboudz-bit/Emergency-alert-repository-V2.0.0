@@ -24,7 +24,7 @@ import { createPermissionSlice } from './slices/permissions';
 import { createEmergencySlice } from './slices/emergency';
 
 // Re-export selectors so existing imports from '@/store' keep working
-export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert } from './selectors';
+export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState } from './selectors';
 export {
   selectCanViewGlobalLiveMap,
   selectCanPlaceWarningZone,

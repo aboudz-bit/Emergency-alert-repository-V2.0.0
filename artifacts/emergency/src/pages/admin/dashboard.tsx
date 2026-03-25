@@ -52,8 +52,8 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-center justify-center w-3 h-3 rounded-full bg-primary animate-pulse" />
                 <AlertTypeBadge type={activeAlert.type} />
-                <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-border bg-card text-foreground">ZONE: {activeAlert.zone}</span>
-                <span className="text-sm text-muted-foreground font-mono">{new Date(activeAlert.timestamp).toLocaleTimeString()}</span>
+                <span className="px-2.5 py-1 rounded-md text-xs font-bold border border-border bg-card text-foreground">ZONE: {activeAlert.zone ?? 'Unknown'}</span>
+                <span className="text-sm text-muted-foreground font-mono">{activeAlert.timestamp ? new Date(activeAlert.timestamp).toLocaleTimeString() : 'N/A'}</span>
                 {activeAlert.deliveryChannels && (
                   <div className="flex items-center gap-1.5 ml-2">
                     {activeAlert.deliveryChannels.includes('app') && (
@@ -102,27 +102,27 @@ export default function AdminDashboard() {
           <div className="mt-4 lg:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative z-10">
             <div className="bg-card border border-border rounded-xl p-4 flex flex-col">
               <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Confirmed Safe</span>
-              <span className="text-3xl font-bold text-safe">{activeAlert.stats.confirmed}</span>
+              <span className="text-3xl font-bold text-safe">{activeAlert.stats?.confirmed ?? 0}</span>
             </div>
             <div className="bg-missing/10 border border-missing/20 rounded-xl p-4 flex flex-col">
               <span className="text-xs text-missing font-semibold uppercase mb-1">Missing / Unresponsive</span>
-              <span className="text-3xl font-bold text-missing">{activeAlert.stats.missing}</span>
+              <span className="text-3xl font-bold text-missing">{activeAlert.stats?.missing ?? 0}</span>
             </div>
             <div className="bg-card border border-border rounded-xl p-4 flex flex-col">
               <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">No Reply Yet</span>
-              <span className="text-3xl font-bold text-noreply">{activeAlert.stats.noReply}</span>
+              <span className="text-3xl font-bold text-noreply">{activeAlert.stats?.noReply ?? 0}</span>
             </div>
             <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-center">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-foreground font-medium">Response Rate</span>
                 <span className="text-primary font-bold">
-                  {activeAlert.stats.total > 0 ? Math.round((activeAlert.stats.confirmed / activeAlert.stats.total) * 100) : 0}%
+                  {(activeAlert.stats?.total ?? 0) > 0 ? Math.round(((activeAlert.stats?.confirmed ?? 0) / activeAlert.stats!.total) * 100) : 0}%
                 </span>
               </div>
               <div className="w-full h-3 bg-secondary rounded-full overflow-hidden border border-border">
                 <div
                   className="h-full bg-primary transition-all duration-1000"
-                  style={{ width: `${activeAlert.stats.total > 0 ? (activeAlert.stats.confirmed / activeAlert.stats.total) * 100 : 0}%` }}
+                  style={{ width: `${(activeAlert.stats?.total ?? 0) > 0 ? ((activeAlert.stats?.confirmed ?? 0) / activeAlert.stats!.total) * 100 : 0}%` }}
                 />
               </div>
             </div>
