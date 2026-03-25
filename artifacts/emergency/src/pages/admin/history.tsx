@@ -48,7 +48,7 @@ function AlertReportModal({ alert, onClose }: { alert: Alert; onClose: () => voi
           </div>
           <div className="bg-background border border-border rounded-xl p-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Response Summary</p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-5 gap-3">
               <div className="text-center">
                 <p className="text-xl font-bold text-safe">{alert.stats.confirmed}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Confirmed</p>
@@ -56,6 +56,10 @@ function AlertReportModal({ alert, onClose }: { alert: Alert; onClose: () => voi
               <div className="text-center">
                 <p className="text-xl font-bold text-missing">{alert.stats.missing}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Missing</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-destructive">{alert.stats.needHelp}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Need Help</p>
               </div>
               <div className="text-center">
                 <p className="text-xl font-bold text-noreply">{alert.stats.noReply}</p>

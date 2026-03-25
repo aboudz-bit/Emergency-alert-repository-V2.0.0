@@ -458,6 +458,19 @@ export const useStore = create<AppState>()(
           timestamp: now,
         } : null;
 
+        // Auto-activate emergency modes based on alert type
+        const emergencyModes = { ...get().emergencyModes };
+        if (data.type === 'Shelter-in' && !emergencyModes.shelterIn) {
+          emergencyModes.shelterIn = true;
+          emergencyModes.shelterInActivatedAt = now;
+          emergencyModes.shelterInActivatedBy = operatorName;
+        }
+        if (data.type === 'Blackout' && !emergencyModes.blackout) {
+          emergencyModes.blackout = true;
+          emergencyModes.blackoutActivatedAt = now;
+          emergencyModes.blackoutActivatedBy = operatorName;
+        }
+
         // Single atomic set: close old alert + add new alert + clear hazard zones
         // This prevents an intermediate state where activeAlert === null
         set(s => ({
@@ -466,6 +479,7 @@ export const useStore = create<AppState>()(
           activeBroadcast: broadcastState,
           mobileUserResponse: null,
           hazardZones: [],
+          emergencyModes,
         }));
 
         // Audit: alert activated
@@ -557,6 +571,14 @@ export const useStore = create<AppState>()(
           mobileUserResponse: 'confirmed' as UserResponseStatus,
           activeBroadcast: null,
           hazardZones: [],
+          emergencyModes: {
+            shelterIn: false,
+            blackout: false,
+            shelterInActivatedAt: null,
+            shelterInActivatedBy: null,
+            blackoutActivatedAt: null,
+            blackoutActivatedBy: null,
+          },
         }));
 
         const allClearAlert: Alert = {
@@ -613,6 +635,8 @@ export const useStore = create<AppState>()(
           alerts: s.alerts.map(a =>
             a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: now, soundActive: false, broadcastActive: false } : a,
           ),
+          users: s.users.map(u => u.isActive ? { ...u, status: 'confirmed' as UserResponseStatus } : u),
+          mobileUserResponse: null,
           activeBroadcast: s.activeBroadcast?.alertId === alertId ? null : s.activeBroadcast,
           hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),
         }));
