@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { reloadAppAsync } from "expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
 import {
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -12,6 +14,8 @@ import {
   useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { STORE_NAME } from "@/store/migrations";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -41,6 +45,29 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
       console.error("Failed to restart app:", restartError);
       resetError();
     }
+  };
+
+  const handleClearAndRestart = () => {
+    Alert.alert(
+      "Clear App Data",
+      "This will clear all saved data and restart the app. You will need to log in again.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear & Restart",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(STORE_NAME);
+              await reloadAppAsync();
+            } catch (e) {
+              console.error("Failed to clear data:", e);
+              resetError();
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatErrorDetails = (): string => {
@@ -99,6 +126,23 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         >
           <Text style={[styles.buttonText, { color: theme.buttonText }]}>
             Try Again
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleClearAndRestart}
+          style={({ pressed }) => [
+            styles.button,
+            styles.clearButton,
+            {
+              borderColor: theme.textSecondary,
+              opacity: pressed ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+            },
+          ]}
+        >
+          <Text style={[styles.buttonText, { color: theme.text }]}>
+            Clear Data & Restart
           </Text>
         </Pressable>
       </View>
@@ -230,6 +274,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  clearButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
     fontWeight: "600",

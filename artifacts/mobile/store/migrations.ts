@@ -1,13 +1,56 @@
 import {
-  seedZones, seedLocations, seedUsers,
+  seedZones, seedLocations, seedUsers, seedSettings,
   seedEcoAssignments, seedSupervisorAssignments, seedShelters,
 } from '@/mock-data';
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 23;
+export const STORE_VERSION = 24;
 
 export function migrate(persisted: any, version: number): AppState {
+  try {
+    return _migrateUnsafe(persisted, version);
+  } catch (e) {
+    console.error('[Store Migration] FAILED — resetting to seed data', e);
+    return _freshState();
+  }
+}
+
+function _freshState(): AppState {
+  return {
+    isAuthenticated: false,
+    currentUser: null,
+    users: seedUsers,
+    alerts: [],
+    zones: seedZones,
+    locations: seedLocations,
+    settings: seedSettings,
+    activityLogs: [],
+    mobileUserResponse: null,
+    ecoAssignments: seedEcoAssignments,
+    supervisorAssignments: seedSupervisorAssignments,
+    shelters: seedShelters,
+    hazardZones: [],
+    personnelLocations: {},
+    zoneNotifications: [],
+    emergencyModes: {
+      shelterIn: false,
+      blackout: false,
+      shelterInZones: [],
+      blackoutZones: [],
+      shelterInActivatedAt: null,
+      shelterInActivatedBy: null,
+      blackoutActivatedAt: null,
+      blackoutActivatedBy: null,
+    },
+    windDirection: null,
+    windSetBy: null,
+    windSetAt: null,
+    permissionAssignments: [],
+  } as unknown as AppState;
+}
+
+function _migrateUnsafe(persisted: any, version: number): AppState {
   const state = persisted as any;
 
   if (version < 1) {
@@ -381,6 +424,38 @@ export function migrate(persisted: any, version: number): AppState {
       blackoutActivatedAt: state.emergencyModes?.blackoutActivatedAt ?? null,
       blackoutActivatedBy: state.emergencyModes?.blackoutActivatedBy ?? null,
     };
+  }
+
+  if (version < 24) {
+    state.isAuthenticated = false;
+    state.currentUser = null;
+    state.mobileUserResponse = null;
+
+    if (!Array.isArray(state?.permissionAssignments)) {
+      state.permissionAssignments = [];
+    }
+    if (!Array.isArray(state?.hazardZones)) {
+      state.hazardZones = [];
+    }
+    if (!Array.isArray(state?.zoneNotifications)) {
+      state.zoneNotifications = [];
+    }
+    if (!Array.isArray(state?.activityLogs)) {
+      state.activityLogs = [];
+    }
+    if (!Array.isArray(state?.ecoAssignments)) {
+      state.ecoAssignments = seedEcoAssignments;
+    }
+    if (!Array.isArray(state?.supervisorAssignments)) {
+      state.supervisorAssignments = seedSupervisorAssignments;
+    }
+    if (!Array.isArray(state?.shelters)) {
+      state.shelters = seedShelters;
+    }
+    state.settings = { ...seedSettings, ...(state.settings ?? {}) };
+    if (!state.settings.notifications || typeof state.settings.notifications !== 'object') {
+      state.settings.notifications = seedSettings.notifications;
+    }
   }
 
   return persisted as AppState;

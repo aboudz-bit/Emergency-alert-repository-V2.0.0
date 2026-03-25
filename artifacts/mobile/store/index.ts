@@ -128,7 +128,10 @@ export const useStore = create<AppState>()(
         return (state, error) => {
           _hasHydrated = true;
           if (error) {
-            console.error('[Store] Hydration FAILED:', error);
+            console.error('[Store] Hydration FAILED — clearing corrupt data:', error);
+            import('@react-native-async-storage/async-storage').then(mod => {
+              mod.default.removeItem(STORE_NAME).catch(() => {});
+            }).catch(() => {});
           } else {
             console.log('[Store] Hydration complete', {
               hasAlerts: Array.isArray(state?.alerts),
