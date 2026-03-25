@@ -1652,46 +1652,93 @@ export const selectActiveAlert = (s: AppState) => {
   }
   // Synthesize an alert from active zone-level alerts
   const activeZones = s.zones.filter(z => z.alertActive);
-  if (activeZones.length === 0) {
+  const hasShelterIn = s.emergencyModes?.shelterIn;
+  const hasBlackout = s.emergencyModes?.blackout;
+  if (activeZones.length === 0 && !hasShelterIn && !hasBlackout) {
     _cachedZoneAlert = null;
     _cachedZoneAlertKey = '';
     return null;
   }
-  const first = activeZones[0];
-  const activeZoneIds = new Set(activeZones.map(z => z.id));
-  const zoneUsers = s.users.filter(u => activeZoneIds.has((u as any).zoneId) && u.isActive);
-  const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
-  const missing = zoneUsers.filter(u => u.status === 'missing').length;
-  const noReply = zoneUsers.filter(u => u.status === 'no_reply').length;
-  const needHelp = zoneUsers.filter(u => u.status === 'need_help').length;
-  const total = zoneUsers.length;
-  const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
-  const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${missing}|${noReply}|${needHelp}|${total}`;
+  if (activeZones.length > 0) {
+    const first = activeZones[0];
+    const activeZoneIds = new Set(activeZones.map(z => z.id));
+    const zoneUsers = s.users.filter(u => activeZoneIds.has((u as any).zoneId) && u.isActive);
+    const confirmed = zoneUsers.filter(u => u.status === 'confirmed').length;
+    const missing = zoneUsers.filter(u => u.status === 'missing').length;
+    const noReply = zoneUsers.filter(u => u.status === 'no_reply').length;
+    const needHelp = zoneUsers.filter(u => u.status === 'need_help').length;
+    const total = zoneUsers.length;
+    const zoneIdKey = activeZones.map(z => z.id).sort().join(',');
+    const cacheKey = `${zoneIdKey}|${first.alertType}|${first.alertMessage}|${first.alertPriority}|${confirmed}|${missing}|${noReply}|${needHelp}|${total}`;
 
-  if (_cachedZoneAlert && _cachedZoneAlertKey === cacheKey) {
+    if (_cachedZoneAlert && _cachedZoneAlertKey === cacheKey) {
+      return _cachedZoneAlert;
+    }
+
+    _cachedZoneAlert = {
+      id: -1,
+      type: first.alertType || 'Zone Alert',
+      zone: activeZones.map(z => z.name).join(', '),
+      title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+      message: first.alertMessage || '',
+      timestamp: first.alertUpdatedAt || new Date().toISOString(),
+      sentBy: 'System',
+      priority: first.alertPriority || 'High',
+      status: 'active' as const,
+      isActive: true,
+      stats: { confirmed, missing, noReply, needHelp, total },
+    } as Alert;
+    _cachedZoneAlertKey = cacheKey;
+    return _cachedZoneAlert;
+  }
+
+  // Synthesize from emergency modes (shelter-in / blackout)
+  const allActiveUsers = s.users.filter(u => u.isActive);
+  const emConfirmed = allActiveUsers.filter(u => u.status === 'confirmed').length;
+  const emMissing = allActiveUsers.filter(u => u.status === 'missing').length;
+  const emNoReply = allActiveUsers.filter(u => u.status === 'no_reply').length;
+  const emNeedHelp = allActiveUsers.filter(u => u.status === 'need_help').length;
+  const emTotal = allActiveUsers.length;
+
+  if (hasBlackout) {
+    _cachedZoneAlert = {
+      id: -1,
+      type: 'Blackout',
+      zone: 'All Zones',
+      title: 'Blackout Active',
+      message: 'Blackout mode is active. All lights and non-essential systems should be turned off.',
+      timestamp: s.emergencyModes.blackoutActivatedAt || new Date().toISOString(),
+      sentBy: 'System',
+      priority: 'High',
+      status: 'active' as const,
+      isActive: true,
+      stats: { confirmed: emConfirmed, missing: emMissing, noReply: emNoReply, needHelp: emNeedHelp, total: emTotal },
+    } as Alert;
+    _cachedZoneAlertKey = `blackout|${emConfirmed}|${emMissing}|${emNoReply}|${emNeedHelp}|${emTotal}`;
     return _cachedZoneAlert;
   }
 
   _cachedZoneAlert = {
     id: -1,
-    type: first.alertType || 'Zone Alert',
-    zone: activeZones.map(z => z.name).join(', '),
-    title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
-    message: first.alertMessage || '',
-    timestamp: first.alertUpdatedAt || new Date().toISOString(),
+    type: 'Shelter-in',
+    zone: 'All Zones',
+    title: 'Shelter In Place Active',
+    message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',
+    timestamp: s.emergencyModes.shelterInActivatedAt || new Date().toISOString(),
     sentBy: 'System',
-    priority: first.alertPriority || 'High',
+    priority: 'High',
     status: 'active' as const,
     isActive: true,
-    stats: { confirmed, missing, noReply, needHelp, total },
+    stats: { confirmed: emConfirmed, missing: emMissing, noReply: emNoReply, needHelp: emNeedHelp, total: emTotal },
   } as Alert;
-  _cachedZoneAlertKey = cacheKey;
+  _cachedZoneAlertKey = `shelter|${emConfirmed}|${emMissing}|${emNoReply}|${emNeedHelp}|${emTotal}`;
   return _cachedZoneAlert;
 };
 
-/** True when ANY alert or zone-level alert is active (includes synthetic id:-1). */
+/** True when ANY alert, zone-level alert, or emergency mode is active (includes synthetic id:-1). */
 export const selectHasActiveAlert = (s: AppState) =>
-  s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive);
+  s.alerts.some(a => a.isActive) || s.zones.some(z => z.alertActive) ||
+  s.emergencyModes?.shelterIn || s.emergencyModes?.blackout;
 
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
 export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);

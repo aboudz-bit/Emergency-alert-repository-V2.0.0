@@ -9,7 +9,42 @@ import type { User, UserResponseStatus } from '@/types';
 function selectActiveAlert(s: any) {
   const fromAlerts = s.alerts?.find((a: any) => a.isActive);
   if (fromAlerts) return fromAlerts;
-  return s.getActiveAlert?.() ?? null;
+  // Check for zone-level alerts
+  const activeZones = s.zones?.filter((z: any) => z.alertActive) ?? [];
+  if (activeZones.length > 0) {
+    const first = activeZones[0];
+    return {
+      id: -1,
+      type: first.alertType || 'Zone Alert',
+      zone: activeZones.map((z: any) => z.name).join(', '),
+      title: `${activeZones.length} Zone Alert${activeZones.length > 1 ? 's' : ''}`,
+      message: first.alertMessage || '',
+      timestamp: first.alertUpdatedAt || new Date().toISOString(),
+      sentBy: 'System',
+      priority: first.alertPriority || 'High',
+      status: 'active',
+      isActive: true,
+      stats: { confirmed: 0, missing: 0, noReply: 0, needHelp: 0, total: 0 },
+    };
+  }
+  // Check for emergency modes
+  if (s.emergencyModes?.blackout) {
+    return {
+      id: -1, type: 'Blackout', zone: 'All Zones', title: 'Blackout Active',
+      message: 'Blackout mode is active.', timestamp: s.emergencyModes.blackoutActivatedAt || new Date().toISOString(),
+      sentBy: 'System', priority: 'High', status: 'active', isActive: true,
+      stats: { confirmed: 0, missing: 0, noReply: 0, needHelp: 0, total: 0 },
+    };
+  }
+  if (s.emergencyModes?.shelterIn) {
+    return {
+      id: -1, type: 'Shelter-in', zone: 'All Zones', title: 'Shelter In Place Active',
+      message: 'Shelter-in-place mode is active.', timestamp: s.emergencyModes.shelterInActivatedAt || new Date().toISOString(),
+      sentBy: 'System', priority: 'High', status: 'active', isActive: true,
+      stats: { confirmed: 0, missing: 0, noReply: 0, needHelp: 0, total: 0 },
+    };
+  }
+  return null;
 }
 
 export default function ECOLiveMap() {
