@@ -14,7 +14,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, alertEq, selectIsEmergencyActive } from "@/store";
+import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
@@ -25,7 +26,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 export default function SupervisorMapScreen() {
   const focusCount = useRefreshOnFocus();
   const currentUser = useStore((s) => s.currentUser);
-  const activeAlert = useStore(selectActiveAlert, alertEq);
+  const { activeAlert, emergencyMode } = useAlertSystemState();
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
   const shelters = useStore((s) => s.shelters);
@@ -61,7 +62,7 @@ export default function SupervisorMapScreen() {
     );
   }, [shelters, myLocation]);
 
-  const hasActiveAlert = useStore(selectIsEmergencyActive);
+  const hasActiveAlert = emergencyMode !== null;
   usePersonnelSimulation(hasActiveAlert);
 
   const visiblePersonnel = useVisiblePersonnel({

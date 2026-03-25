@@ -22,7 +22,8 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { ZoneMap } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore, selectActiveAlert, alertEq, selectIsEmergencyActive } from "@/store";
+import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
@@ -40,7 +41,7 @@ const TABS: { key: TabKey; label: string; color: string }[] = [
 
 export default function AlertMonitorScreen() {
   const focusCount = useRefreshOnFocus();
-  const activeAlert = useStore(selectActiveAlert, alertEq);
+  const { activeAlert, emergencyMode } = useAlertSystemState();
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
   const locations = useStore((s) => s.locations);
@@ -51,7 +52,7 @@ export default function AlertMonitorScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
 
-  const hasActiveAlert = useStore(selectIsEmergencyActive);
+  const hasActiveAlert = emergencyMode !== null;
   usePersonnelSimulation(hasActiveAlert);
 
   // Scope: Super Admin sees all, Supervisor/Backup sees only their assigned location

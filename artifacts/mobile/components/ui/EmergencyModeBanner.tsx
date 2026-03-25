@@ -2,45 +2,48 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useTranslation } from "@/i18n/useTranslation";
 
 export function EmergencyModeBanner() {
-  const emergencyModes = useStore((s) => s.emergencyModes);
+  const { banners } = useAlertSystemState();
   const { t } = useTranslation();
 
-  // Defensive: emergencyModes may be undefined during store hydration
-  if (!emergencyModes) return null;
-  if (!emergencyModes.shelterIn && !emergencyModes.blackout) return null;
-
-  const shelterZoneLabel = Array.isArray(emergencyModes.shelterInZones) && emergencyModes.shelterInZones.length > 0
-    ? emergencyModes.shelterInZones.join(", ")
-    : null;
-
-  const blackoutZoneLabel = Array.isArray(emergencyModes.blackoutZones) && emergencyModes.blackoutZones.length > 0
-    ? emergencyModes.blackoutZones.join(", ")
-    : null;
+  if (banners.length === 0) return null;
 
   return (
     <View style={styles.wrapper}>
-      {emergencyModes.shelterIn && (
-        <View style={[styles.banner, styles.shelterBanner]}>
-          <Feather name="shield" size={16} color="#fff" />
-          <Text style={styles.bannerText}>
-            {t.shelterInActivated}{shelterZoneLabel ? ` — ${shelterZoneLabel}` : ""}
-          </Text>
-          <View style={styles.pulse} />
-        </View>
-      )}
-      {emergencyModes.blackout && (
-        <View style={[styles.banner, styles.blackoutBanner]}>
-          <Feather name="zap-off" size={16} color="#fff" />
-          <Text style={styles.bannerText}>
-            {t.blackoutActivated}{blackoutZoneLabel ? ` — ${blackoutZoneLabel}` : ""}
-          </Text>
-          <View style={styles.pulse} />
-        </View>
-      )}
+      {banners.map((banner) => {
+        const isShelter = banner.type === 'shelterIn';
+        const isBlackout = banner.type === 'blackout';
+        const zoneLabel = banner.zones.length > 0 ? banner.zones.join(", ") : null;
+
+        return (
+          <View
+            key={banner.type}
+            style={[
+              styles.banner,
+              isShelter && styles.shelterBanner,
+              isBlackout && styles.blackoutBanner,
+              banner.type === 'zoneAlert' && styles.zoneAlertBanner,
+            ]}
+          >
+            <Feather
+              name={isShelter ? "shield" : isBlackout ? "zap-off" : "alert-triangle"}
+              size={16}
+              color="#fff"
+            />
+            <Text style={styles.bannerText}>
+              {isShelter
+                ? `${t.shelterInActivated}${zoneLabel ? ` — ${zoneLabel}` : ""}`
+                : isBlackout
+                ? `${t.blackoutActivated}${zoneLabel ? ` — ${zoneLabel}` : ""}`
+                : banner.label}
+            </Text>
+            <View style={styles.pulse} />
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -60,6 +63,9 @@ const styles = StyleSheet.create({
   },
   blackoutBanner: {
     backgroundColor: "#5B3A8E",
+  },
+  zoneAlertBanner: {
+    backgroundColor: Colors.primary,
   },
   bannerText: {
     fontSize: 13,

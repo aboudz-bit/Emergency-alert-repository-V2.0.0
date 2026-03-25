@@ -1,6 +1,20 @@
 import type { Alert, PermissionKey, AlertSystemState, BannerState } from '@/types';
 import type { AppState } from './types';
 
+// ─── Default / fallback state ───────────────────────────────────────────────
+
+/**
+ * Canonical default returned by selectAlertSystemState when the store
+ * is not yet hydrated or any slice is missing.
+ */
+export const defaultAlertSystemState: AlertSystemState = {
+  emergencyMode: null,
+  activeAlert: null,
+  activeZoneIds: [],
+  banners: [],
+  lastUpdatedAt: null,
+};
+
 // ─── Alert selectors ─────────────────────────────────────────────────────────
 
 export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
@@ -21,18 +35,24 @@ export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
 };
 
 export const selectActiveAlert = (s: AppState): Alert | null => {
-  const fromAlerts = s.alerts.find(a => a.isActive);
+  // Null-safety: during hydration, arrays may be undefined
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  const zones = Array.isArray(s.zones) ? s.zones : [];
+  const users = Array.isArray(s.users) ? s.users : [];
+  const em = s.emergencyModes;
+
+  const fromAlerts = alerts.find(a => a.isActive);
   if (fromAlerts) return fromAlerts;
 
-  const activeZones = s.zones.filter(z => z.isActive && z.alertActive);
-  const hasShelterIn = s.emergencyModes?.shelterIn ?? false;
-  const hasBlackout = s.emergencyModes?.blackout ?? false;
+  const activeZones = zones.filter(z => z.isActive && z.alertActive);
+  const hasShelterIn = em?.shelterIn ?? false;
+  const hasBlackout = em?.blackout ?? false;
 
   if (activeZones.length === 0 && !hasShelterIn && !hasBlackout) {
     return null;
   }
 
-  const activeUsers = s.users.filter(u => u.isActive);
+  const activeUsers = users.filter(u => u.isActive);
   const confirmed = activeUsers.filter(u => u.status === 'confirmed').length;
   const pending = activeUsers.filter(u => u.status === 'pending').length;
   const needHelp = activeUsers.filter(u => u.status === 'need_help').length;
@@ -56,7 +76,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   }
 
   if (hasBlackout) {
-    const blackoutZones = s.emergencyModes?.blackoutZones ?? [];
+    const blackoutZones = Array.isArray(em?.blackoutZones) ? em.blackoutZones : [];
     const zoneLabel = blackoutZones.length > 0
       ? blackoutZones.join(', ')
       : 'All Zones';
@@ -66,7 +86,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
       zone: zoneLabel,
       title: 'Blackout Active',
       message: 'Blackout mode is active. All lights and non-essential systems should be turned off.',
-      timestamp: s.emergencyModes?.blackoutActivatedAt || new Date().toISOString(),
+      timestamp: em?.blackoutActivatedAt || new Date().toISOString(),
       sentBy: 'System',
       priority: 'High',
       status: 'active' as const,
@@ -75,7 +95,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     } as Alert;
   }
 
-  const shelterInZones = s.emergencyModes?.shelterInZones ?? [];
+  const shelterInZones = Array.isArray(em?.shelterInZones) ? em.shelterInZones : [];
   const shelterZoneLabel = shelterInZones.length > 0
     ? shelterInZones.join(', ')
     : 'All Zones';
@@ -85,7 +105,7 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
     zone: shelterZoneLabel,
     title: 'Shelter In Place Active',
     message: 'Shelter-in-place mode is active. All personnel should remain in their current location.',
-    timestamp: s.emergencyModes?.shelterInActivatedAt || new Date().toISOString(),
+    timestamp: em?.shelterInActivatedAt || new Date().toISOString(),
     sentBy: 'System',
     priority: 'High',
     status: 'active' as const,
@@ -94,18 +114,29 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
   } as Alert;
 };
 
-export const selectHasActiveAlert = (s: AppState) =>
-  s.alerts.some(a => a.isActive) || s.zones.some(z => z.isActive && z.alertActive);
+export const selectHasActiveAlert = (s: AppState) => {
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  const zones = Array.isArray(s.zones) ? s.zones : [];
+  return alerts.some(a => a.isActive) || zones.some(z => z.isActive && z.alertActive);
+};
 
 /** True when ANY emergency condition is active — alert, zone alert, shelter-in, or blackout. */
-export const selectIsEmergencyActive = (s: AppState) =>
-  s.alerts.some(a => a.isActive) ||
-  s.zones.some(z => z.isActive && z.alertActive) ||
-  (s.emergencyModes?.shelterIn ?? false) ||
-  (s.emergencyModes?.blackout ?? false);
+export const selectIsEmergencyActive = (s: AppState) => {
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  const zones = Array.isArray(s.zones) ? s.zones : [];
+  return (
+    alerts.some(a => a.isActive) ||
+    zones.some(z => z.isActive && z.alertActive) ||
+    (s.emergencyModes?.shelterIn ?? false) ||
+    (s.emergencyModes?.blackout ?? false)
+  );
+};
 
 /** True only when a real (non-synthetic) alert is active — id !== -1. */
-export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive);
+export const selectHasRealAlert = (s: AppState) => {
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  return alerts.some(a => a.isActive);
+};
 
 // ─── Unified Alert System State ─────────────────────────────────────────────
 
@@ -117,32 +148,50 @@ export const selectHasRealAlert = (s: AppState) => s.alerts.some(a => a.isActive
  *   - Which zones have alerts
  *   - What banners to show
  *   - Last update timestamp
+ *
+ * Fully null-safe: returns defaultAlertSystemState if any slice is missing
+ * (e.g. during hydration or with incompatible persisted state).
  */
 export const selectAlertSystemState = (s: AppState): AlertSystemState => {
-  const activeZones = s.zones.filter(z => z.isActive && z.alertActive);
+  // Guard: if core slices are missing, return safe defaults
+  if (!s || !Array.isArray(s.zones) || !Array.isArray(s.alerts)) {
+    if (__DEV__) {
+      console.warn('[selectAlertSystemState] Store not ready — returning defaults', {
+        hasState: !!s,
+        hasZones: Array.isArray(s?.zones),
+        hasAlerts: Array.isArray(s?.alerts),
+      });
+    }
+    return defaultAlertSystemState;
+  }
+
+  const zones = s.zones;
+  const em = s.emergencyModes;
+
+  const activeZones = zones.filter(z => z.isActive && z.alertActive);
   const activeZoneIds = activeZones.map(z => z.id);
-  const hasShelterIn = s.emergencyModes?.shelterIn ?? false;
-  const hasBlackout = s.emergencyModes?.blackout ?? false;
-  const realAlert = s.alerts.find(a => a.isActive) ?? null;
+  const hasShelterIn = em?.shelterIn ?? false;
+  const hasBlackout = em?.blackout ?? false;
+  const realAlert = (Array.isArray(s.alerts) ? s.alerts : []).find(a => a.isActive) ?? null;
 
   // Build banners
   const banners: BannerState[] = [];
   if (hasShelterIn) {
-    const zones = s.emergencyModes?.shelterInZones ?? [];
+    const bZones = Array.isArray(em?.shelterInZones) ? em.shelterInZones : [];
     banners.push({
       type: 'shelterIn',
       label: 'Shelter In Place Active',
-      zones,
-      activatedAt: s.emergencyModes?.shelterInActivatedAt ?? null,
+      zones: bZones,
+      activatedAt: em?.shelterInActivatedAt ?? null,
     });
   }
   if (hasBlackout) {
-    const zones = s.emergencyModes?.blackoutZones ?? [];
+    const bZones = Array.isArray(em?.blackoutZones) ? em.blackoutZones : [];
     banners.push({
       type: 'blackout',
       label: 'Blackout Active',
-      zones,
-      activatedAt: s.emergencyModes?.blackoutActivatedAt ?? null,
+      zones: bZones,
+      activatedAt: em?.blackoutActivatedAt ?? null,
     });
   }
   if (activeZones.length > 0) {
@@ -176,9 +225,9 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
   } else if (activeZones.length > 0) {
     lastUpdatedAt = activeZones[0]?.alertUpdatedAt ?? null;
   } else if (hasBlackout) {
-    lastUpdatedAt = s.emergencyModes?.blackoutActivatedAt ?? null;
+    lastUpdatedAt = em?.blackoutActivatedAt ?? null;
   } else if (hasShelterIn) {
-    lastUpdatedAt = s.emergencyModes?.shelterInActivatedAt ?? null;
+    lastUpdatedAt = em?.shelterInActivatedAt ?? null;
   }
 
   return {
