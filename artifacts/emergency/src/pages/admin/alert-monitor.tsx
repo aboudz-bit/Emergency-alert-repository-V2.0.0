@@ -32,6 +32,7 @@ export default function AlertMonitor() {
   }
 
   const filteredUsers = users.filter(u =>
+    u.isActive &&
     u.status === activeTab &&
     (u.name.toLowerCase().includes(search.toLowerCase()) || u.badge.includes(search)),
   );
