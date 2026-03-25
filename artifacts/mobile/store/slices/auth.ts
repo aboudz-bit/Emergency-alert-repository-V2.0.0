@@ -9,7 +9,10 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
 > {
   return {
     login: (badge, password, roleOverride) => {
-      const { users, ecoAssignments, supervisorAssignments } = get();
+      const state = get();
+      const users = state.users ?? [];
+      const ecoAssignments = state.ecoAssignments ?? [];
+      const supervisorAssignments = state.supervisorAssignments ?? [];
       let user: User | undefined;
 
       if (roleOverride) {
@@ -24,9 +27,10 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
       if (!roleOverride && user.approvalStatus === 'rejected') return { success: false, error: 'Your registration was rejected. Please contact IT.' };
       if (!roleOverride && user.password !== password) return { success: false, error: 'Incorrect password.' };
 
-      const ecoA = ecoAssignments.find(a => a.assignedUserId === user!.id && a.active);
-      const supA = supervisorAssignments.find(a => a.supervisorUserId === user!.id && a.supervisorActive);
-      const backA = supervisorAssignments.find(a => a.backupSupervisorUserId === user!.id && a.backupActive);
+      const uid = user.id;
+      const ecoA = ecoAssignments.find(a => a.assignedUserId === uid && a.active);
+      const supA = supervisorAssignments.find(a => a.supervisorUserId === uid && a.supervisorActive);
+      const backA = supervisorAssignments.find(a => a.backupSupervisorUserId === uid && a.backupActive);
 
       const enrichedUser: User = {
         ...user,

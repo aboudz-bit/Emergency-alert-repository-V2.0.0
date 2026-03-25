@@ -21,9 +21,9 @@ type PickerTarget = "supervisor" | "backup";
 export default function SupervisorManagementScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
-  const users = useStore((s) => s.users);
-  const locations = useStore((s) => s.locations);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments) ?? [];
+  const users = useStore((s) => s.users) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
   const assignSupervisor = useStore((s) => s.assignSupervisor);
   const assignBackupSupervisor = useStore((s) => s.assignBackupSupervisor);
   const toggleSupervisorActive = useStore((s) => s.toggleSupervisorActive);

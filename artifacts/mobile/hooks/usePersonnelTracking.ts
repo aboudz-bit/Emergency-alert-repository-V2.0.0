@@ -48,17 +48,20 @@ export function usePersonnelTracking(enabled: boolean = true) {
         if (cancelled || !enabledRef.current) return;
 
         const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        const currentLocations = useStore.getState().locations;
+        const storeState = useStore.getState();
+        const liveUser = storeState.currentUser;
+        if (!liveUser) return;
+        const currentLocations = storeState.locations ?? [];
         const detectedLocationId = findContainingLocationId(pt, currentLocations);
 
         const loc: PersonnelLocation = {
-          userId: currentUser!.id,
+          userId: liveUser.id,
           lat: pt.lat,
           lng: pt.lng,
           accuracy: pos.coords.accuracy ?? 0,
           timestamp: Date.now(),
           detectedLocationId,
-          zoneId: currentUser!.zoneId,
+          zoneId: liveUser.zoneId,
         };
 
         updatePersonnelLocation(loc);

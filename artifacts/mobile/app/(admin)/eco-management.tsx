@@ -19,9 +19,9 @@ import type { EcoSlot, User } from "@/types";
 export default function EcoManagementScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const ecoAssignments = useStore((s) => s.ecoAssignments);
-  const users = useStore((s) => s.users);
-  const zones = useStore((s) => s.zones);
+  const ecoAssignments = useStore((s) => s.ecoAssignments) ?? [];
+  const users = useStore((s) => s.users) ?? [];
+  const zones = useStore((s) => s.zones) ?? [];
   const assignEco = useStore((s) => s.assignEco);
   const toggleEcoActive = useStore((s) => s.toggleEcoActive);
 

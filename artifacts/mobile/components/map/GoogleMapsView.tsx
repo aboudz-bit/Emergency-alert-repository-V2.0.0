@@ -48,8 +48,8 @@ export function GoogleMapsView({
         Array.isArray(z.polygonPoints) ? z.polygonPoints.map((p) => ({ latitude: p.lat, longitude: p.lng })) : []
       );
       const centers = zones
-        .filter((z) => z.center && typeof z.center.lat === 'number' && typeof z.center.lng === 'number' && (!Array.isArray(z.polygonPoints) || z.polygonPoints.length === 0))
-        .map((z) => ({ latitude: z.center!.lat, longitude: z.center!.lng }));
+        .filter((z): z is typeof z & { center: { lat: number; lng: number } } => z.center != null && typeof z.center.lat === 'number' && typeof z.center.lng === 'number' && (!Array.isArray(z.polygonPoints) || z.polygonPoints.length === 0))
+        .map((z) => ({ latitude: z.center.lat, longitude: z.center.lng }));
       const fitPoints = [...allPoints, ...centers];
       if (fitPoints.length > 1) {
         mapRef.current.fitToCoordinates(fitPoints, {

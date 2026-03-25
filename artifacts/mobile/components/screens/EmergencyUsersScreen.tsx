@@ -43,11 +43,11 @@ type LocationGroup = {
 };
 
 export default function EmergencyUsersScreen() {
-  const users = useStore((s) => s.users);
-  const zones = useStore((s) => s.zones);
-  const locations = useStore((s) => s.locations);
+  const users = useStore((s) => s.users) ?? [];
+  const zones = useStore((s) => s.zones) ?? [];
+  const locations = useStore((s) => s.locations) ?? [];
   const currentUser = useStore((s) => s.currentUser);
-  const supervisorAssignments = useStore((s) => s.supervisorAssignments);
+  const supervisorAssignments = useStore((s) => s.supervisorAssignments) ?? [];
   const isEmergencyActive = useStore(selectIsEmergencyActive);
 
   const sectionListRef = useRef<SectionList>(null);

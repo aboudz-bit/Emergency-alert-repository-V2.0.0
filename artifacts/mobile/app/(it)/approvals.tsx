@@ -44,7 +44,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 export default function ApprovalsScreen() {
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const users = useStore((s) => s.users);
+  const users = useStore((s) => s.users) ?? [];
   const approveUser = useStore((s) => s.approveUser);
   const rejectUser = useStore((s) => s.rejectUser);
 

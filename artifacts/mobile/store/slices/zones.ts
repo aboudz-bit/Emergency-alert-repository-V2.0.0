@@ -43,7 +43,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           shelterInZones: (s.emergencyModes.shelterInZones ?? []).map(n => n === oldName ? newName : n),
           blackoutZones: (s.emergencyModes.blackoutZones ?? []).map(n => n === oldName ? newName : n),
         },
-        zoneNotifications: s.zoneNotifications.map(zn =>
+        zoneNotifications: (s.zoneNotifications ?? []).map(zn =>
           zn.zoneId === id ? { ...zn, zoneName: newName } : zn
         ),
       }));
@@ -346,7 +346,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         sentBy: currentUser?.name || 'Admin',
         sentAt: new Date().toISOString(),
       };
-      set(s => ({ zoneNotifications: [notification, ...s.zoneNotifications] }));
+      set(s => ({ zoneNotifications: [notification, ...(s.zoneNotifications ?? [])] }));
     },
   };
 }

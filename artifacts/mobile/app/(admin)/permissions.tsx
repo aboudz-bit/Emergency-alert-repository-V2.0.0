@@ -73,7 +73,7 @@ const PERMISSION_MODULES: PermissionModule[] = [
 export default function PermissionsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const users = useStore((s) => s.users);
+  const users = useStore((s) => s.users) ?? [];
   const setUserPermissions = useStore((s) => s.setUserPermissions);
   const getUserPermissions = useStore((s) => s.getUserPermissions);
 
