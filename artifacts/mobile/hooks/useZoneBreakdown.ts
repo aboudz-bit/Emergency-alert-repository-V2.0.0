@@ -15,9 +15,12 @@ export function useZoneBreakdown(
 
     const activeZones = zones.filter((z) => z.isActive);
 
+    // Handle comma-separated zone names from multi-zone alerts
     const targetZoneNames = isAllZones
       ? activeZones.map((z) => z.name)
-      : [activeAlert.zone];
+      : activeAlert.zone.includes(", ")
+        ? activeAlert.zone.split(", ").map((n) => n.trim())
+        : [activeAlert.zone];
 
     const zoneColorMap = new Map<string, string>();
     for (const z of zones) {

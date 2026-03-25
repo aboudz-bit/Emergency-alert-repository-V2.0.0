@@ -29,6 +29,13 @@ let MapComponent: React.ComponentType<ZoneMapProps> | null = null;
 
 if (IS_WEB) {
   MapComponent = require("./LeafletPreviewFallback").LeafletPreviewFallback;
+} else {
+  // On native, try to load GoogleMapsView (requires react-native-maps + API key)
+  try {
+    MapComponent = require("./GoogleMapsView").GoogleMapsView;
+  } catch {
+    // GoogleMapsView not available — fallback to placeholder
+  }
 }
 
 function MapPlaceholder({ height }: { height: number }) {
