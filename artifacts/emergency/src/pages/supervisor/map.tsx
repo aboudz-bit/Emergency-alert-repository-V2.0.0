@@ -10,6 +10,12 @@ import type { User } from '@/types';
 function selectActiveAlert(s: any) {
   const fromAlerts = s.alerts?.find((a: any) => a.isActive);
   if (fromAlerts) return fromAlerts;
+  if (s.emergencyModes?.blackout) {
+    return { id: -1, type: 'Blackout', isActive: true, stats: {} };
+  }
+  if (s.emergencyModes?.shelterIn) {
+    return { id: -1, type: 'Shelter-in', isActive: true, stats: {} };
+  }
   return s.getActiveAlert?.() ?? null;
 }
 
