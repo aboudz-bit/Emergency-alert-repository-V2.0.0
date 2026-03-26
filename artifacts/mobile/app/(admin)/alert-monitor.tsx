@@ -4,43 +4,30 @@ import {
   Dimensions,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { format } from "date-fns";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Header } from "@/components/ui/Header";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ZoneBreakdown } from "@/components/ui/ZoneBreakdown";
-import { WindIndicator } from "@/components/ui/WindIndicator";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
-import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
-import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import type { UserResponseStatus } from "@/types";
-
-const MAP_HEIGHT = Math.min(Dimensions.get("window").height * 0.4, 340);
-
-type TabKey = "confirmed" | "pending" | "need_help";
-
-const TABS: { key: TabKey; label: string; color: string }[] = [
-  { key: "confirmed", label: "Safe", color: Colors.safe },
-  { key: "pending", label: "Pending", color: Colors.noreply },
-  { key: "need_help", label: "Help", color: Colors.primary },
-];
+import { useRouter } from "expo-router";
 
 export default function AlertMonitorScreen() {
-  const focusCount = useRefreshOnFocus();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { activeAlert, emergencyMode } = useAlertSystemState();
   const users = useStore((s) => s.users);
   const zones = useStore((s) => s.zones);
@@ -55,14 +42,12 @@ export default function AlertMonitorScreen() {
   const hasActiveAlert = emergencyMode !== null;
   usePersonnelSimulation(hasActiveAlert);
 
-  // Scope: Super Admin sees all, Supervisor/Backup sees only their assigned location
   const personnelScope = useMemo(() => {
     if (!currentUser) return { scope: "all" as const };
     const role = currentUser.role;
     if (role === "Super Admin" || role === "IT") {
       return { scope: "all" as const };
     }
-    // Check if supervisor or backup supervisor for a location
     const sa = supervisorAssignments.find(
       (a) => a.supervisorUserId === currentUser.id || a.backupSupervisorUserId === currentUser.id
     );
@@ -81,8 +66,8 @@ export default function AlertMonitorScreen() {
   const visiblePersonnelRef = useRef(visiblePersonnel);
   visiblePersonnelRef.current = visiblePersonnel;
 
-  const [selectedTab, setSelectedTab] = useState<TabKey>("confirmed");
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
+  const [showZoneBreakdown, setShowZoneBreakdown] = useState(false);
 
   const handlePersonnelPress = useCallback((userId: number) => {
     const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
@@ -96,33 +81,26 @@ export default function AlertMonitorScreen() {
 
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
-  const isMultiZone = zoneStats.length > 1;
-
-  const getTabCount = useCallback(
-    (key: TabKey) => {
-      if (!activeAlert?.stats) return 0;
-      switch (key) {
-        case "confirmed": return activeAlert.stats.confirmed ?? 0;
-        case "pending": return activeAlert.stats.pending ?? 0;
-        case "need_help": return activeAlert.stats.needHelp ?? 0;
-      }
-    },
-    [activeAlert]
-  );
+  const safeCount = activeAlert?.stats?.confirmed ?? 0;
+  const pendingCount = activeAlert?.stats?.pending ?? 0;
+  const helpCount = activeAlert?.stats?.needHelp ?? 0;
 
   if (!activeAlert) {
     return (
       <View style={styles.container}>
         <EmergencyModeBanner />
-        <Header title="Alert Monitor" showBack />
+        <View style={[styles.emptyHeader, { paddingTop: insets.top + 8 }]}>
+          <Pressable style={styles.backBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
+            <Feather name="chevron-left" size={22} color="#333" />
+          </Pressable>
+          <Text style={styles.emptyHeaderTitle}>Alert Monitor</Text>
+        </View>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
             <Feather name="check-circle" size={48} color={Colors.safe} />
           </View>
           <Text style={styles.emptyTitle}>No Active Alert</Text>
-          <Text style={styles.emptyText}>
-            All clear. No emergency alerts are currently active.
-          </Text>
+          <Text style={styles.emptyText}>All clear. No emergency alerts are currently active.</Text>
         </View>
       </View>
     );
@@ -131,124 +109,145 @@ export default function AlertMonitorScreen() {
   return (
     <View style={styles.container}>
       <EmergencyModeBanner />
-      <Header title="Alert Monitor" showBack />
 
-      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.alertCard}>
-          <View style={styles.alertHeader}>
-            <View style={styles.alertHeaderLeft}>
-              <View style={styles.alertIconWrap}>
-                <Feather name="alert-triangle" size={16} color={Colors.primary} />
-              </View>
-              <View style={styles.alertTitleWrap}>
-                <Text style={styles.alertType}>{activeAlert.type}</Text>
-                <Text style={styles.alertMeta}>
-                  {activeAlert.zone ?? 'Unknown Zone'} · {activeAlert.timestamp ? format(new Date(activeAlert.timestamp), "MMM d, HH:mm") : 'N/A'}
-                </Text>
-              </View>
-            </View>
-            <StatusBadge status="active" />
+      <View style={[styles.compactHeader, { paddingTop: insets.top + 4 }]}>
+        <Pressable style={styles.backBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
+          <Feather name="chevron-left" size={20} color="#fff" />
+        </Pressable>
+        <View style={styles.headerInfo}>
+          <View style={styles.headerTitleRow}>
+            <Feather name="activity" size={14} color="#F87171" />
+            <Text style={styles.headerTitle}>{activeAlert.type}</Text>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
           </View>
-        </Card>
+          <Text style={styles.headerMeta}>
+            {activeAlert.zone ?? "Unknown"} · {activeAlert.timestamp ? format(new Date(activeAlert.timestamp), "HH:mm") : ""}
+          </Text>
+        </View>
+      </View>
 
-        <View style={styles.tabBar}>
-          <Text style={styles.tabBarLabel}>Total</Text>
-          <View style={styles.tabBarRow}>
-            {TABS.map((tab) => {
-              const isActive = selectedTab === tab.key;
-              const count = getTabCount(tab.key);
-              return (
-                <Pressable
-                  key={tab.key}
-                  style={[styles.tab, isActive && { borderBottomColor: tab.color }]}
-                  onPress={() => setSelectedTab(tab.key)}
-                >
-                  <Text style={[styles.tabCount, { color: isActive ? tab.color : Colors.textTertiary }]}>
-                    {count}
-                  </Text>
-                  <Text style={[styles.tabLabel, isActive && { color: tab.color }]}>
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+      <View style={styles.statsStrip}>
+        <Text style={styles.statsZone}>{activeAlert.zone ?? "CPF"}</Text>
+        <View style={styles.statsDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statDot, { backgroundColor: "#34D399" }]} />
+          <Text style={styles.statLabel}>Safe</Text>
+          <Text style={[styles.statValue, { color: "#34D399" }]}>{safeCount}</Text>
+        </View>
+        <View style={styles.statItem}>
+          <View style={[styles.statDot, { backgroundColor: "#FBBF24" }]} />
+          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={[styles.statValue, { color: "#FBBF24" }]}>{pendingCount}</Text>
+        </View>
+        <View style={styles.statItem}>
+          <View style={[styles.statDot, { backgroundColor: "#F87171" }]} />
+          <Text style={styles.statLabel}>Help</Text>
+          <Text style={[styles.statValue, { color: "#F87171" }]}>{helpCount}</Text>
+        </View>
+        {zoneStats.length > 1 && (
+          <Pressable style={styles.breakdownBtn} onPress={() => setShowZoneBreakdown(true)}>
+            <Feather name="bar-chart-2" size={14} color="#fff" />
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.mapWrapper}>
+        <ZoneMap
+          zones={zones}
+          selectedZoneId={null}
+          onZonePress={() => {}}
+          height={Dimensions.get("window").height}
+          showLabels
+          locations={locations}
+          shelters={shelters}
+          personnelLocations={visiblePersonnel}
+          onPersonnelPress={handlePersonnelPress}
+          hazardZones={activeHazardZones}
+        />
+        <WindIndicator />
+
+        <View style={[styles.legendOverlay, { bottom: insets.bottom + 72 }]}>
+          <View style={styles.legendChip}>
+            <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
+            <Text style={styles.legendChipText}>Inside</Text>
+          </View>
+          <View style={styles.legendChip}>
+            <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
+            <Text style={styles.legendChipText}>Outside</Text>
+          </View>
+          <View style={styles.legendChip}>
+            <View style={[styles.legendDot, { backgroundColor: "#FB923C" }]} />
+            <Text style={styles.legendChipText}>Contractor</Text>
+          </View>
+          <View style={styles.legendChip}>
+            <View style={[styles.legendDot, { backgroundColor: "#F87171" }]} />
+            <Text style={styles.legendChipText}>Help</Text>
+          </View>
+          <View style={[styles.legendChip, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+            <Text style={styles.legendChipText}>{visiblePersonnel.length} tracked</Text>
           </View>
         </View>
 
-        {zoneStats.length > 0 && (
-          <View style={styles.zoneBreakdownSection}>
-            <Text style={styles.zoneSectionTitle}>
-              {isMultiZone ? "Per-Zone Breakdown" : `${zoneStats[0].zoneName} Zone`}
-            </Text>
-            <ZoneBreakdown zoneStats={zoneStats} />
-          </View>
-        )}
-
-        {hasActiveAlert && (
-          <View style={styles.mapSection}>
-            <Text style={styles.zoneSectionTitle}>Live Personnel Map</Text>
-            <View style={styles.mapContainer}>
-              <ZoneMap
-                key={focusCount}
-                zones={zones}
-                selectedZoneId={null}
-                onZonePress={() => {}}
-                height={MAP_HEIGHT}
-                showLabels
-                locations={locations}
-                shelters={shelters}
-                personnelLocations={visiblePersonnel}
-                onPersonnelPress={handlePersonnelPress}
-                hazardZones={activeHazardZones}
-              />
-              <WindIndicator />
-            </View>
-            <View style={styles.mapLegend}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
-                <Text style={styles.legendText}>Inside</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
-                <Text style={styles.legendText}>Outside</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
-                <Text style={styles.legendText}>Contractor</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-                <Text style={styles.legendText}>Help</Text>
-              </View>
-              <Text style={styles.legendCount}>
-                {visiblePersonnel.length} tracked
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-
-      <View style={styles.bottomActions}>
-        <Button
-          title="All Clear"
-          onPress={() => {
-            Alert.alert(
-              "Send All Clear",
-              "This will close the alert and mark everyone as safe. Continue?",
-              [
-                { text: "Cancel", style: "cancel" },
-                { text: "Confirm", style: "default", onPress: sendAllClear },
-              ]
-            );
-          }}
-          variant="safe"
-          icon="check-circle"
-          size="lg"
-          style={{ flex: 1 }}
-        />
+        <View style={[styles.allClearFab, { bottom: insets.bottom + 16 }]}>
+          <Pressable
+            style={styles.allClearBtn}
+            onPress={() => {
+              Alert.alert(
+                "Send All Clear",
+                "This will close the alert and mark everyone as safe. Continue?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Confirm", style: "default", onPress: sendAllClear },
+                ]
+              );
+            }}
+          >
+            <Feather name="check-circle" size={20} color="#fff" />
+            <Text style={styles.allClearText}>All Clear</Text>
+          </Pressable>
+        </View>
       </View>
+
+      <Modal
+        visible={showZoneBreakdown}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowZoneBreakdown(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowZoneBreakdown(false)}>
+          <View style={[styles.breakdownSheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.breakdownHeader}>
+              <Text style={styles.breakdownTitle}>Zone Breakdown</Text>
+              <Pressable style={styles.closeBtn} onPress={() => setShowZoneBreakdown(false)} hitSlop={8}>
+                <Feather name="x" size={16} color="#999" />
+              </Pressable>
+            </View>
+            {zoneStats.map((zs, i) => (
+              <View key={i} style={styles.breakdownRow}>
+                <View style={[styles.breakdownZoneDot, { backgroundColor: zs.zoneColor }]} />
+                <Text style={styles.breakdownZoneName} numberOfLines={1}>{zs.zoneName}</Text>
+                <View style={styles.breakdownCounts}>
+                  <Text style={[styles.breakdownCount, { color: "#34D399" }]}>{zs.confirmed}</Text>
+                  <Text style={styles.breakdownSep}>/</Text>
+                  <Text style={[styles.breakdownCount, { color: "#FBBF24" }]}>{zs.pending}</Text>
+                  <Text style={styles.breakdownSep}>/</Text>
+                  <Text style={[styles.breakdownCount, { color: "#F87171" }]}>{zs.needHelp}</Text>
+                </View>
+              </View>
+            ))}
+            <View style={styles.breakdownLegend}>
+              <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
+              <Text style={styles.breakdownLegendText}>Safe</Text>
+              <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
+              <Text style={styles.breakdownLegendText}>Pending</Text>
+              <View style={[styles.legendDot, { backgroundColor: "#F87171" }]} />
+              <Text style={styles.breakdownLegendText}>Help</Text>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={personnelDetail !== null}
@@ -260,14 +259,14 @@ export default function AlertMonitorScreen() {
           <View style={styles.detailSheet}>
             <View style={styles.detailHeader}>
               <View style={[styles.detailAvatar, {
-                backgroundColor: personnelDetail?.status === 'confirmed' ? Colors.safeDim
-                  : personnelDetail?.status === 'need_help' ? Colors.primaryDim
-                  : Colors.surfaceElevated
+                backgroundColor: personnelDetail?.status === 'confirmed' ? "#D1FAE5"
+                  : personnelDetail?.status === 'need_help' ? "#FEE2E2"
+                  : "#F3F4F6"
               }]}>
                 <Text style={[styles.detailAvatarText, {
-                  color: personnelDetail?.status === 'confirmed' ? Colors.safe
-                    : personnelDetail?.status === 'need_help' ? Colors.primary
-                    : Colors.textSecondary
+                  color: personnelDetail?.status === 'confirmed' ? "#059669"
+                    : personnelDetail?.status === 'need_help' ? "#DC2626"
+                    : "#6B7280"
                 }]}>
                   {personnelDetail?.name?.charAt(0)?.toUpperCase() ?? "?"}
                 </Text>
@@ -276,39 +275,39 @@ export default function AlertMonitorScreen() {
                 <Text style={styles.detailName}>{personnelDetail?.name}</Text>
                 <Text style={styles.detailBadge}>{personnelDetail?.badge}</Text>
               </View>
-              <Pressable style={styles.detailClose} onPress={() => setPersonnelDetail(null)} hitSlop={8}>
-                <Feather name="x" size={16} color={Colors.textTertiary} />
+              <Pressable style={styles.closeBtn} onPress={() => setPersonnelDetail(null)} hitSlop={8}>
+                <Feather name="x" size={16} color="#999" />
               </Pressable>
             </View>
 
             <View style={styles.detailBody}>
               <View style={styles.detailRow}>
-                <Feather name="shield" size={14} color={Colors.textTertiary} />
+                <Feather name="shield" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Role</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.role || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather name="phone" size={14} color={Colors.textTertiary} />
+                <Feather name="phone" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Phone</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.mobileNumber || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather name="activity" size={14} color={Colors.textTertiary} />
+                <Feather name="activity" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Status</Text>
                 <StatusBadge status={personnelDetail?.status as UserResponseStatus ?? "pending"} />
               </View>
               <View style={styles.detailRow}>
-                <Feather name="map-pin" size={14} color={Colors.textTertiary} />
+                <Feather name="map-pin" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Assigned</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.assignedLocation || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather name="navigation" size={14} color={Colors.textTertiary} />
+                <Feather name="navigation" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Detected</Text>
                 <Text style={styles.detailValue}>{personnelDetail?.detectedLocation || "N/A"}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather name="clock" size={14} color={Colors.textTertiary} />
+                <Feather name="clock" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Last Update</Text>
                 <Text style={styles.detailValue}>
                   {personnelDetail?.lastUpdate
@@ -327,256 +326,230 @@ export default function AlertMonitorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#111827",
+  },
+
+  compactHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    backgroundColor: "#111827",
+  },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerInfo: { flex: 1, gap: 1 },
+  headerTitleRow: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+  },
+  headerTitle: {
+    fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+  liveDot: {
+    width: 6, height: 6, borderRadius: 3, backgroundColor: "#F87171",
+    marginLeft: 4,
+  },
+  liveText: {
+    fontSize: 9, fontFamily: "Inter_700Bold", color: "#F87171",
+    letterSpacing: 1.2,
+  },
+  headerMeta: {
+    fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.5)",
+  },
+
+  statsStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#1F2937",
+  },
+  statsZone: {
+    fontSize: 11, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.6)",
+    letterSpacing: 0.5,
+  },
+  statsDivider: {
+    width: 1, height: 16, backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  statItem: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+  },
+  statDot: {
+    width: 6, height: 6, borderRadius: 3,
+  },
+  statLabel: {
+    fontSize: 10, fontFamily: "Inter_500Medium", color: "rgba(255,255,255,0.45)",
+  },
+  statValue: {
+    fontSize: 13, fontFamily: "Inter_700Bold",
+  },
+  breakdownBtn: {
+    marginLeft: "auto",
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center", justifyContent: "center",
+  },
+
+  mapWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+
+  legendOverlay: {
+    position: "absolute", left: 12, right: 12,
+    flexDirection: "row", flexWrap: "wrap", gap: 6,
+    zIndex: 10,
+  },
+  legendChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
+    backdropFilter: "blur(4px)",
+  },
+  legendDot: {
+    width: 7, height: 7, borderRadius: 4,
+  },
+  legendChipText: {
+    fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#fff",
+  },
+
+  allClearFab: {
+    position: "absolute", left: 16, right: 16,
+    zIndex: 15,
+  },
+  allClearBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#059669",
+    height: 48, borderRadius: 24,
+    shadowColor: "#059669", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+  },
+  allClearText: {
+    fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+
+  emptyHeader: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 12, paddingBottom: 8,
     backgroundColor: Colors.background,
   },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Spacing.xxl,
-  },
-  alertCard: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    borderColor: Colors.primaryBorder,
-    backgroundColor: Colors.primaryDim,
-  },
-  alertHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  alertHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    flex: 1,
-  },
-  alertIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  alertTitleWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  alertType: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
-    color: Colors.primary,
-  },
-  alertMeta: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  tabBar: {
-    marginTop: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-  },
-  tabBarLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  tabBarRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: Spacing.md,
-    gap: 2,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabCount: {
-    fontSize: FontSize.xl,
-    fontFamily: "Inter_700Bold",
-    color: Colors.textTertiary,
-  },
-  tabLabel: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
-  },
-  zoneBreakdownSection: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  zoneSectionTitle: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
-  bottomActions: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.surface,
+  emptyHeaderTitle: {
+    fontSize: 18, fontFamily: "Inter_700Bold", color: Colors.text,
   },
   emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.xxl,
-    gap: Spacing.md,
+    flex: 1, alignItems: "center", justifyContent: "center",
+    padding: Spacing.xxl, gap: Spacing.md,
+    backgroundColor: Colors.background,
   },
   emptyIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 88, height: 88, borderRadius: 44,
     backgroundColor: Colors.safeDim,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
     marginBottom: Spacing.md,
   },
   emptyTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    fontSize: FontSize.xl, fontFamily: "Inter_700Bold", color: Colors.text,
   },
   emptyText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-    textAlign: "center",
+    fontSize: FontSize.md, fontFamily: "Inter_400Regular",
+    color: Colors.textSecondary, textAlign: "center",
   },
 
-  mapSection: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+  modalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end",
   },
-  mapContainer: {
-    borderRadius: BorderRadius.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    height: MAP_HEIGHT,
+  breakdownSheet: {
+    backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 16, gap: 10,
   },
-  mapLegend: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingTop: Spacing.xs,
+  sheetHandle: {
+    width: 32, height: 4, borderRadius: 2, backgroundColor: "#E5E7EB",
+    alignSelf: "center", marginBottom: 4,
   },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  breakdownHeader: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  breakdownTitle: {
+    fontSize: 16, fontFamily: "Inter_700Bold", color: "#1F2937",
   },
-  legendText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
+  closeBtn: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: "#F3F4F6",
+    alignItems: "center", justifyContent: "center",
   },
-  legendCount: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.textTertiary,
-    marginLeft: "auto",
+  breakdownRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingVertical: 8, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: "#F3F4F6",
   },
+  breakdownZoneDot: {
+    width: 10, height: 10, borderRadius: 5,
+  },
+  breakdownZoneName: {
+    flex: 1, fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#374151",
+  },
+  breakdownCounts: {
+    flexDirection: "row", alignItems: "center", gap: 2,
+  },
+  breakdownCount: {
+    fontSize: 14, fontFamily: "Inter_700Bold", minWidth: 20, textAlign: "center",
+  },
+  breakdownSep: {
+    fontSize: 12, color: "#D1D5DB",
+  },
+  breakdownLegend: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingTop: 4,
+  },
+  breakdownLegendText: {
+    fontSize: 10, fontFamily: "Inter_500Medium", color: "#9CA3AF", marginRight: 6,
+  },
+
   detailOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
+    flex: 1, backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center", alignItems: "center",
     paddingHorizontal: 32,
   },
   detailSheet: {
-    width: "100%",
-    maxWidth: 320,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    width: "100%", maxWidth: 320,
+    backgroundColor: "#fff", borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 8,
   },
   detailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    padding: 14, borderBottomWidth: 1, borderBottomColor: "#F3F4F6",
   },
   detailAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: "center", justifyContent: "center",
   },
   detailAvatarText: {
-    fontSize: FontSize.lg,
-    fontFamily: "Inter_700Bold",
+    fontSize: 16, fontFamily: "Inter_700Bold",
   },
-  detailHeaderInfo: {
-    flex: 1,
-    gap: 2,
-  },
+  detailHeaderInfo: { flex: 1, gap: 1 },
   detailName: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_700Bold",
-    color: Colors.text,
+    fontSize: 14, fontFamily: "Inter_700Bold", color: "#1F2937",
   },
   detailBadge: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  detailClose: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 12, fontFamily: "Inter_400Regular", color: "#6B7280",
   },
   detailBody: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: 14, gap: 10,
   },
   detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+    flexDirection: "row", alignItems: "center", gap: 8,
   },
   detailLabel: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textSecondary,
-    width: 72,
+    fontSize: 12, fontFamily: "Inter_500Medium", color: "#6B7280", width: 68,
   },
   detailValue: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.text,
-    textAlign: "right",
+    flex: 1, fontSize: 12, fontFamily: "Inter_600SemiBold",
+    color: "#1F2937", textAlign: "right",
   },
 });
