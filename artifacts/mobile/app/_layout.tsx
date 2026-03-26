@@ -8,8 +8,8 @@ import {
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
-import { I18nManager, Platform } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, I18nManager, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -17,18 +17,22 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Colors } from "@/constants/theme";
 
+const IS_WEB = Platform.OS === "web";
+
 let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> =
   React.Fragment;
-if (Platform.OS !== "web") {
+if (!IS_WEB) {
   try {
     KeyboardProvider =
       require("react-native-keyboard-controller").KeyboardProvider;
   } catch (e) {
-    console.error('[_layout] react-native-keyboard-controller failed to load:', e);
+    // keyboard controller not available on this platform
   }
 }
 
-SplashScreen.preventAutoHideAsync();
+if (!IS_WEB) {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 export default function RootLayout() {
   let rtl = false;
@@ -36,7 +40,7 @@ export default function RootLayout() {
     const translation = useTranslation();
     rtl = translation.rtl;
   } catch (e) {
-    console.error('[RootLayout] useTranslation failed:', e);
+    // translation hook not available yet
   }
 
   const [fontsLoaded, fontError] = useFonts({
@@ -45,6 +49,8 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  const [ready, setReady] = useState(IS_WEB);
 
   useEffect(() => {
     if (I18nManager.isRTL !== rtl) {
@@ -55,12 +61,29 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      setReady(true);
+      if (!IS_WEB) {
+        SplashScreen.hideAsync().catch(() => {});
+      }
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
+  useEffect(() => {
+    if (!IS_WEB) {
+      const timeout = setTimeout(() => {
+        setReady(true);
+        SplashScreen.hideAsync().catch(() => {});
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, []);
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
   }
 
   return (
