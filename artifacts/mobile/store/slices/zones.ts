@@ -15,32 +15,45 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
     updateZone: (id, partial) => set(s => ({ zones: s.zones.map(z => z.id === id ? { ...z, ...partial } : z) })),
     deleteZone: (id) => {
       const { zones, locations } = get();
+      console.log('[deleteZone] called with id:', id, 'typeof:', typeof id, 'zones count:', zones.length);
       const zone = zones.find(z => z.id === id);
-      if (zone?.alertActive) return;
+      if (!zone) { console.log('[deleteZone] zone not found'); return; }
+      if (zone.alertActive) { console.log('[deleteZone] blocked: zone has active alert'); return; }
       const hasActiveChildAlert = locations.some(l => l.zoneId === id && l.alertActive);
-      if (hasActiveChildAlert) return;
+      if (hasActiveChildAlert) { console.log('[deleteZone] blocked: location has active alert'); return; }
       set(s => ({
         zones: s.zones.filter(z => z.id !== id),
         locations: s.locations.filter(l => l.zoneId !== id),
       }));
+      console.log('[deleteZone] done. new zones count:', get().zones.length);
     },
 
     archiveZone: (id) => {
+      const before = get().zones.find(z => z.id === id);
+      console.log('[archiveZone] called with id:', id, 'typeof:', typeof id, 'found:', !!before, 'wasArchived:', before?.isArchived);
       set(s => ({
         zones: s.zones.map(z => z.id === id ? { ...z, isArchived: true } : z),
       }));
+      const after = get().zones.find(z => z.id === id);
+      console.log('[archiveZone] done. isArchived now:', after?.isArchived);
     },
 
     restoreZone: (id) => {
+      console.log('[restoreZone] called with id:', id);
       set(s => ({
         zones: s.zones.map(z => z.id === id ? { ...z, isArchived: false } : z),
       }));
+      console.log('[restoreZone] done. isArchived now:', get().zones.find(z => z.id === id)?.isArchived);
     },
 
     safeDeleteZone: (id) => {
       const { zones, locations, shelters, users, hazardZones, alerts } = get();
+      console.log('[safeDeleteZone] called with id:', id, 'typeof:', typeof id, 'zones count:', zones.length);
       const zone = zones.find(z => z.id === id);
-      if (!zone) return { success: false, error: 'Zone not found.' };
+      if (!zone) {
+        console.log('[safeDeleteZone] zone NOT FOUND. zone ids:', zones.map(z => ({ id: z.id, type: typeof z.id })));
+        return { success: false, error: 'Zone not found.' };
+      }
 
       const hasLocations = locations.some(l => l.zoneId === id);
       const hasShelters = shelters.some(s => s.zoneId === id);
@@ -49,13 +62,25 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       const hasHazardZones = hazardZones.some(hz => hz.zoneId === id);
       const hasLinkedAlerts = alerts.some(a => a.zone === zone.name);
 
+      console.log('[safeDeleteZone] checks:', { hasLocations, hasShelters, hasUsers, hasAlerts, hasHazardZones, hasLinkedAlerts });
+
       if (hasLocations || hasShelters || hasUsers || hasAlerts || hasHazardZones || hasLinkedAlerts) {
-        return { success: false, error: 'Zone cannot be deleted because it has linked data. Archive instead.' };
+        const reasons: string[] = [];
+        if (hasLocations) reasons.push(`${locations.filter(l => l.zoneId === id).length} locations`);
+        if (hasShelters) reasons.push(`${shelters.filter(s => s.zoneId === id).length} shelters`);
+        if (hasUsers) reasons.push(`${users.filter(u => u.zoneId === id).length} users`);
+        if (hasAlerts) reasons.push('active alert or alert history');
+        if (hasHazardZones) reasons.push(`${hazardZones.filter(hz => hz.zoneId === id).length} warning zones`);
+        if (hasLinkedAlerts) reasons.push(`${alerts.filter(a => a.zone === zone.name).length} linked alerts`);
+        const error = `Cannot delete "${zone.name}": has ${reasons.join(', ')}. Archive instead.`;
+        console.log('[safeDeleteZone] blocked:', error);
+        return { success: false, error };
       }
 
       set(s => ({
         zones: s.zones.filter(z => z.id !== id),
       }));
+      console.log('[safeDeleteZone] deleted. new zones count:', get().zones.length);
       return { success: true };
     },
 

@@ -335,13 +335,35 @@ export default function ZonesScreen() {
   );
 
   const handleDeleteZone = useCallback(() => {
-    if (!selectedZone) return;
-    const result = safeDeleteZone(selectedZone.id);
-    if (!result.success) {
-      RNAlert.alert("Cannot Delete", result.error ?? "Zone has linked data. Archive instead.");
-      return;
+    try {
+      console.log('[ZoneMap] handleDeleteZone called, selectedZone:', selectedZone?.id, selectedZone?.name);
+      if (!selectedZone) { console.log('[ZoneMap] handleDeleteZone: no selectedZone'); return; }
+      const zoneId = selectedZone.id;
+      const zoneName = selectedZone.name;
+      RNAlert.alert(
+        "Delete Zone",
+        `Permanently delete "${zoneName}"? This cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              console.log('[ZoneMap] user confirmed delete for zone:', zoneId);
+              const result = safeDeleteZone(zoneId);
+              console.log('[ZoneMap] safeDeleteZone result:', JSON.stringify(result));
+              if (!result.success) {
+                RNAlert.alert("Cannot Delete", result.error ?? "Zone has linked data. Archive instead.");
+              } else {
+                setSelectedZoneId(null);
+              }
+            },
+          },
+        ]
+      );
+    } catch (e) {
+      console.error('[ZoneMap] handleDeleteZone error:', e);
     }
-    setSelectedZoneId(null);
   }, [selectedZone, safeDeleteZone]);
 
   const handleFocusZone = useCallback(() => {

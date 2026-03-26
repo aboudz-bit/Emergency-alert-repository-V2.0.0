@@ -157,11 +157,13 @@ export default function LocationsScreen() {
   }, []);
 
   const handleArchiveZone = useCallback(() => {
-    if (!selectedZone) return;
+    console.log('[Locations] handleArchiveZone called, selectedZone:', selectedZone?.id, selectedZone?.name);
+    if (!selectedZone) { console.log('[Locations] handleArchiveZone: no selectedZone'); return; }
     const zoneId = selectedZone.id;
     const zoneName = selectedZone.name;
     setShowZoneActions(false);
     setTimeout(() => {
+      console.log('[Locations] showing archive Alert for zone:', zoneId, zoneName);
       Alert.alert(
         "Archive Zone",
         `Archive "${zoneName}"? It will be hidden from active lists but all data is preserved.`,
@@ -171,6 +173,7 @@ export default function LocationsScreen() {
             text: "Archive",
             style: "destructive",
             onPress: () => {
+              console.log('[Locations] user confirmed archive for zone:', zoneId);
               archiveZone(zoneId);
               setSelectedZoneId(null);
             },
@@ -181,6 +184,7 @@ export default function LocationsScreen() {
   }, [selectedZone, archiveZone]);
 
   const handleRestoreZone = useCallback(() => {
+    console.log('[Locations] handleRestoreZone called, selectedZone:', selectedZone?.id);
     if (!selectedZone) return;
     const zoneId = selectedZone.id;
     restoreZone(zoneId);
@@ -190,11 +194,13 @@ export default function LocationsScreen() {
   }, [selectedZone, restoreZone]);
 
   const handleSafeDeleteZone = useCallback(() => {
-    if (!selectedZone) return;
+    console.log('[Locations] handleSafeDeleteZone called, selectedZone:', selectedZone?.id, selectedZone?.name);
+    if (!selectedZone) { console.log('[Locations] handleSafeDeleteZone: no selectedZone'); return; }
     const zoneId = selectedZone.id;
     const zoneName = selectedZone.name;
     setShowZoneActions(false);
     setTimeout(() => {
+      console.log('[Locations] showing delete Alert for zone:', zoneId, zoneName);
       Alert.alert(
         "Delete Zone",
         `Permanently delete "${zoneName}"? This cannot be undone.`,
@@ -204,7 +210,9 @@ export default function LocationsScreen() {
             text: "Delete",
             style: "destructive",
             onPress: () => {
+              console.log('[Locations] user confirmed delete for zone:', zoneId);
               const result = safeDeleteZone(zoneId);
+              console.log('[Locations] safeDeleteZone result:', result);
               if (!result.success) {
                 Alert.alert("Cannot Delete", result.error ?? "Unknown error");
               } else {
