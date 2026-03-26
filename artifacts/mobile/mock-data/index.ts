@@ -158,7 +158,7 @@ export const seedZones: Zone[] = [
       { lat: 25.084, lng: 48.155 }, { lat: 25.084, lng: 48.175 },
       { lat: 25.072, lng: 48.175 }, { lat: 25.072, lng: 48.155 },
     ],
-    center: { lat: 25.078, lng: 48.165 }, isActive: true, color: '#EF4444',
+    center: { lat: 25.078, lng: 48.165 }, isActive: true, isArchived: false, sortOrder: 0, color: '#EF4444',
     alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
   {
@@ -168,7 +168,7 @@ export const seedZones: Zone[] = [
       { lat: 25.090, lng: 48.178 }, { lat: 25.090, lng: 48.192 },
       { lat: 25.082, lng: 48.192 }, { lat: 25.082, lng: 48.178 },
     ],
-    center: { lat: 25.086, lng: 48.185 }, isActive: true, color: '#3B82F6',
+    center: { lat: 25.086, lng: 48.185 }, isActive: true, isArchived: false, sortOrder: 1, color: '#3B82F6',
     alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
 ];
@@ -225,7 +225,7 @@ export const seedLocations: Location[] = [
   ...CPF_LOCATIONS.map((name, i) => ({
     id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
     expectedManpower: _expectedManpower[i],
-    isActive: true,
+    isActive: true, sortOrder: i,
     polygonPoints: CPF_LOCATION_POLYGONS[name] ?? [],
     alertActive: false, alertType: null, alertPriority: null,
     alertMessage: '', alertUpdatedAt: null, alertHistory: [],
@@ -233,7 +233,7 @@ export const seedLocations: Location[] = [
   ...CAMP_LOCATION_NAMES.map((name, i) => ({
     id: 101 + i, name, zone: 'Camp' as const, zoneId: 2,
     expectedManpower: i === 2 ? 4 : 6,
-    isActive: true,
+    isActive: true, sortOrder: i,
     polygonPoints: CAMP_LOCATION_POLYGONS[i],
     alertActive: false, alertType: null, alertPriority: null,
     alertMessage: '', alertUpdatedAt: null, alertHistory: [],

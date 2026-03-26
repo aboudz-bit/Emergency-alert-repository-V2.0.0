@@ -47,7 +47,7 @@ export default function AlertMonitorScreen() {
     if (!activeAlert) return [];
     const isAllZones = activeAlert.zone === "All Zones" || activeAlert.zone === "all";
     if (isAllZones) {
-      return zones.filter((z) => z.isActive).map((z) => z.id);
+      return zones.filter((z) => z.isActive && !z.isArchived).map((z) => z.id);
     }
     const targetNames = activeAlert.zone.includes(", ")
       ? activeAlert.zone.split(", ").map((n) => n.trim())

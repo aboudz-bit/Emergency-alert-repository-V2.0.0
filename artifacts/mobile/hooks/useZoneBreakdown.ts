@@ -13,7 +13,7 @@ export function useZoneBreakdown(
     const isAllZones =
       activeAlert.zone === "All Zones" || activeAlert.zone === "all";
 
-    const activeZones = zones.filter((z) => z.isActive);
+    const activeZones = zones.filter((z) => z.isActive && !z.isArchived);
 
     // Handle comma-separated zone names from multi-zone alerts
     const targetZoneNames = isAllZones

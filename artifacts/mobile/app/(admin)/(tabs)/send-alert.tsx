@@ -106,7 +106,7 @@ export default function AlertManagementScreen() {
     return map;
   }, [zones, locations, users]);
 
-  const activeZones = useMemo(() => zones.filter((z) => z.isActive), [zones]);
+  const activeZones = useMemo(() => zones.filter((z) => z.isActive && !z.isArchived), [zones]);
 
   const filteredZones = useMemo(() => {
     let result = activeZones;
@@ -1207,7 +1207,7 @@ export default function AlertManagementScreen() {
             <Text style={styles.ezModalSubtitle}>Select zones to apply</Text>
 
             <ScrollView style={styles.ezModalScroll}>
-              {zones.filter((z) => z.isActive).map((z) => {
+              {zones.filter((z) => z.isActive && !z.isArchived).map((z) => {
                 const selected = emergencyZoneSelection.has(z.name);
                 return (
                   <Pressable

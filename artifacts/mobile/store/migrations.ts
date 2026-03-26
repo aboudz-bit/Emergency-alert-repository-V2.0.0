@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 27;
+export const STORE_VERSION = 28;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -565,6 +565,28 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
         warningLevel: hz.warningLevel ?? 'hot',
         alertId: hz.alertId ?? null,
       }));
+    }
+  }
+
+  if (version < 28) {
+    if (Array.isArray(state.zones)) {
+      state.zones = state.zones.map((z: any, idx: number) => ({
+        ...z,
+        isArchived: z.isArchived ?? false,
+        sortOrder: z.sortOrder ?? idx,
+      }));
+    }
+    if (Array.isArray(state.locations)) {
+      const zoneLocIdx: Record<number, number> = {};
+      state.locations = state.locations.map((l: any) => {
+        const zid = l.zoneId ?? 0;
+        const idx = zoneLocIdx[zid] ?? 0;
+        zoneLocIdx[zid] = idx + 1;
+        return {
+          ...l,
+          sortOrder: l.sortOrder ?? idx,
+        };
+      });
     }
   }
 

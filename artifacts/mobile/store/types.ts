@@ -61,6 +61,11 @@ export interface AppState {
   addZone: (zone: Omit<Zone, 'id'>) => void;
   updateZone: (id: number, partial: Partial<Zone>) => void;
   deleteZone: (id: number) => void;
+  archiveZone: (id: number) => void;
+  restoreZone: (id: number) => void;
+  safeDeleteZone: (id: number) => { success: boolean; error?: string };
+  reorderZones: (orderedIds: number[]) => void;
+  reorderLocations: (zoneId: number, orderedIds: number[]) => void;
 
   addLocation: (location: Omit<Location, 'id'>) => void;
   updateLocation: (id: number, partial: Partial<Location>) => void;

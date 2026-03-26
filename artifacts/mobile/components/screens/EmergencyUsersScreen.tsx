@@ -81,7 +81,7 @@ export default function EmergencyUsersScreen() {
   }, [isSupervisorScoped, currentUser, supervisorAssignments]);
 
   const activeZones = useMemo(
-    () => zones.filter((z) => z.isActive),
+    () => zones.filter((z) => z.isActive && !z.isArchived),
     [zones]
   );
 

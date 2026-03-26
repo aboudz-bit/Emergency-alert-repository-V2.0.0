@@ -43,7 +43,7 @@ export default function ZonesScreen() {
   const zones = useStore((s) => s.zones);
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
-  const deleteZone = useStore((s) => s.deleteZone);
+  const safeDeleteZone = useStore((s) => s.safeDeleteZone);
   const locations = useStore((s) => s.locations);
   const updateLocation = useStore((s) => s.updateLocation);
   const shelters = useStore((s) => s.shelters);
@@ -271,7 +271,9 @@ export default function ZonesScreen() {
     const lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
     addZone({
       name: formName.trim(), type: formType, boundaryType: "Polygon",
-      polygonPoints: pts, center: { lat, lng }, isActive: true, color: formColor,
+      polygonPoints: pts, center: { lat, lng }, isActive: true,
+      isArchived: false, sortOrder: zones.length,
+      color: formColor,
       locationId: formLocationId,
       alertActive: false, alertType: null, alertPriority: null,
       alertMessage: "", alertUpdatedAt: null, alertHistory: [],
@@ -280,7 +282,7 @@ export default function ZonesScreen() {
     setTapPoints([]);
     setFormLocationId(null);
     pendingPointsRef.current = [];
-  }, [formName, formType, formColor, formLocationId, addZone]);
+  }, [formName, formType, formColor, formLocationId, addZone, zones]);
 
   const handleDiscardSave = useCallback(() => {
     setShowSaveSheet(false);
@@ -324,9 +326,13 @@ export default function ZonesScreen() {
 
   const handleDeleteZone = useCallback(() => {
     if (!selectedZone) return;
-    deleteZone(selectedZone.id);
+    const result = safeDeleteZone(selectedZone.id);
+    if (!result.success) {
+      RNAlert.alert("Cannot Delete", result.error ?? "Zone has linked data. Archive instead.");
+      return;
+    }
     setSelectedZoneId(null);
-  }, [selectedZone, deleteZone]);
+  }, [selectedZone, safeDeleteZone]);
 
   const handleFocusZone = useCallback(() => {
     if (selectedZoneId) setFlyToZoneId(selectedZoneId);

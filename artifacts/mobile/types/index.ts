@@ -113,6 +113,8 @@ export interface Zone {
   center?: LatLng;
   radius?: number;
   isActive: boolean;
+  isArchived: boolean;
+  sortOrder: number;
   color: string;
   alertActive: boolean;
   alertType: LocationAlertType | null;
@@ -152,6 +154,7 @@ export interface Location {
   zoneId: number;
   expectedManpower: number;
   isActive: boolean;
+  sortOrder: number;
   polygonPoints: LatLng[];
   alertActive: boolean;
   alertType: LocationAlertType | null;

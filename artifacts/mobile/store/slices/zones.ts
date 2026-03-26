@@ -4,6 +4,8 @@ import { nextHistoryId } from '../helpers';
 export function createZoneSlice(set: SetState, get: GetState): Pick<
   AppState,
   'addZone' | 'updateZone' | 'deleteZone' |
+  'archiveZone' | 'restoreZone' | 'safeDeleteZone' |
+  'reorderZones' | 'reorderLocations' |
   'activateZoneAlert' | 'deactivateZoneAlert' | 'editZoneAlert' |
   'bulkActivateZoneAlerts' | 'bulkDeactivateZoneAlerts' |
   'sendZoneNotification'
@@ -20,6 +22,59 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       set(s => ({
         zones: s.zones.filter(z => z.id !== id),
         locations: s.locations.filter(l => l.zoneId !== id),
+      }));
+    },
+
+    archiveZone: (id) => {
+      set(s => ({
+        zones: s.zones.map(z => z.id === id ? { ...z, isArchived: true } : z),
+      }));
+    },
+
+    restoreZone: (id) => {
+      set(s => ({
+        zones: s.zones.map(z => z.id === id ? { ...z, isArchived: false } : z),
+      }));
+    },
+
+    safeDeleteZone: (id) => {
+      const { zones, locations, shelters, users, hazardZones, alerts } = get();
+      const zone = zones.find(z => z.id === id);
+      if (!zone) return { success: false, error: 'Zone not found.' };
+
+      const hasLocations = locations.some(l => l.zoneId === id);
+      const hasShelters = shelters.some(s => s.zoneId === id);
+      const hasUsers = users.some(u => u.zoneId === id);
+      const hasAlerts = zone.alertActive || (zone.alertHistory && zone.alertHistory.length > 0);
+      const hasHazardZones = hazardZones.some(hz => hz.zoneId === id);
+      const hasLinkedAlerts = alerts.some(a => a.zone === zone.name);
+
+      if (hasLocations || hasShelters || hasUsers || hasAlerts || hasHazardZones || hasLinkedAlerts) {
+        return { success: false, error: 'Zone cannot be deleted because it has linked data. Archive instead.' };
+      }
+
+      set(s => ({
+        zones: s.zones.filter(z => z.id !== id),
+      }));
+      return { success: true };
+    },
+
+    reorderZones: (orderedIds) => {
+      set(s => ({
+        zones: s.zones.map(z => {
+          const idx = orderedIds.indexOf(z.id);
+          return idx >= 0 ? { ...z, sortOrder: idx } : z;
+        }),
+      }));
+    },
+
+    reorderLocations: (zoneId, orderedIds) => {
+      set(s => ({
+        locations: s.locations.map(l => {
+          if (l.zoneId !== zoneId) return l;
+          const idx = orderedIds.indexOf(l.id);
+          return idx >= 0 ? { ...l, sortOrder: idx } : l;
+        }),
       }));
     },
 

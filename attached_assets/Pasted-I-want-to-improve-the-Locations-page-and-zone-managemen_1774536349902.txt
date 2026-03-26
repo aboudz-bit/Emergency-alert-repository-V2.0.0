@@ -1,0 +1,173 @@
+I want to improve the Locations page and zone management, but this must be done in a safe way without breaking any existing logic.
+
+This system already depends on zones for:
+- alerts
+- warning / hazard zones
+- shelters
+- user tracking
+- alert monitor
+- zone map filtering
+- saved history
+
+So zone changes must be non-destructive.
+
+==================================================
+GOALS
+==================================================
+
+I want these improvements:
+
+1) Improve Locations page UI
+2) Support ordering for zones and locations
+3) Add archive zone feature (soft archive)
+4) Add safe delete zone feature (restricted)
+5) Do not break any existing logic
+
+==================================================
+PART 1 — UI IMPROVEMENT (Locations screen)
+==================================================
+
+Improve the Locations page layout.
+
+Keep the current functionality, but make it cleaner:
+
+- better zone tabs
+- clearer active zone indicator
+- cleaner location cards
+- better spacing
+- better edit button placement
+- better toggle placement
+
+Do not change logic, only UI.
+
+==================================================
+PART 2 — ORDERING SUPPORT
+==================================================
+
+Add ordering support.
+
+Zones must support:
+
+- sortOrder field
+- manual order in UI (if possible)
+- fallback: order by sortOrder
+
+Locations must support:
+
+- sortOrder inside each zone
+- display locations based on sortOrder
+
+Ordering must only affect display,
+not alert logic, not tracking logic.
+
+==================================================
+PART 3 — ARCHIVE ZONE (SOFT ARCHIVE)
+==================================================
+
+Add archive feature for zones.
+
+Zone must have:
+
+isArchived: boolean
+
+Archive behavior:
+
+- archived zone stays in database
+- archived zone keeps history
+- archived zone not used for new alerts
+- archived zone not shown in active lists by default
+- archived zone can be restored
+
+Archive must NOT delete:
+
+- locations
+- shelters
+- alerts
+- warnings
+- tracking data
+
+Archive is the main action instead of delete.
+
+==================================================
+PART 4 — SAFE DELETE ZONE
+==================================================
+
+Add delete zone feature, but only when safe.
+
+Delete must be blocked if zone has:
+
+- locations
+- shelters
+- users
+- alerts
+- warning / hazard zones
+- tracking data
+- history
+
+If delete is not safe:
+
+show error message:
+"Zone cannot be deleted because it has linked data. Archive instead."
+
+Delete should only work when zone is empty.
+
+Delete must not break references.
+
+==================================================
+PART 5 — DO NOT BREAK EXISTING SYSTEM
+==================================================
+
+Must keep working:
+
+- zone map
+- alert creation
+- alert monitor
+- hazard / warning zones
+- shelters
+- user tracking
+- CPF / Camp zones
+- existing saved data
+- migrations
+- real-time sync
+
+Do not reset zones again.
+Do not overwrite zones.
+Do not remove existing locations.
+
+==================================================
+PART 6 — DATA MODEL SAFE UPDATE
+==================================================
+
+Zone fields:
+
+- id
+- name
+- sortOrder
+- isArchived
+
+Location fields:
+
+- id
+- zoneId
+- name
+- sortOrder
+- isActive
+
+Use soft state, not destructive changes.
+
+==================================================
+PART 7 — EXPECTED RESULT
+==================================================
+
+Locations page should allow:
+
+- reorder zones
+- reorder locations
+- archive zone
+- restore zone
+- delete zone only if safe
+- clean UI
+- no broken logic
+
+Archive = main action
+Delete = restricted

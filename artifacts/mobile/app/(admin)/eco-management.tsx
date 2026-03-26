@@ -225,7 +225,7 @@ export default function EcoManagementScreen() {
               />
             ) : (
               <FlatList
-                data={zones.filter((z) => z.isActive)}
+                data={zones.filter((z) => z.isActive && !z.isArchived)}
                 keyExtractor={(item) => String(item.id)}
                 style={styles.pickerList}
                 renderItem={({ item }) => (
