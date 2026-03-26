@@ -69,6 +69,32 @@ export default function AlertMonitorScreen() {
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
   const [showZoneBreakdown, setShowZoneBreakdown] = useState(false);
 
+  type FilterKey = "inside" | "outside" | "contractor" | "help";
+  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
+
+  const toggleFilter = useCallback((key: FilterKey) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  const filteredPersonnel = useMemo(() => {
+    if (activeFilters.size === 0) return visiblePersonnel;
+    return visiblePersonnel.filter((p) => {
+      if (activeFilters.has("help") && p.status === "need_help") return true;
+      if (activeFilters.has("contractor") && p.userType === "Contractor") return true;
+      if (activeFilters.has("inside") && p.isInsideAssignedLocation === true && p.userType !== "Contractor") return true;
+      if (activeFilters.has("outside") && p.isInsideAssignedLocation === false && p.status !== "need_help" && p.userType !== "Contractor") return true;
+      return false;
+    });
+  }, [visiblePersonnel, activeFilters]);
+
   const handlePersonnelPress = useCallback((userId: number) => {
     const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
     if (p) setPersonnelDetail(p);
@@ -84,6 +110,11 @@ export default function AlertMonitorScreen() {
   const safeCount = activeAlert?.stats?.confirmed ?? 0;
   const pendingCount = activeAlert?.stats?.pending ?? 0;
   const helpCount = activeAlert?.stats?.needHelp ?? 0;
+
+  const insideCount = useMemo(() => visiblePersonnel.filter((p) => p.isInsideAssignedLocation === true && p.userType !== "Contractor").length, [visiblePersonnel]);
+  const outsideCount = useMemo(() => visiblePersonnel.filter((p) => p.isInsideAssignedLocation === false && p.status !== "need_help" && p.userType !== "Contractor").length, [visiblePersonnel]);
+  const contractorCount = useMemo(() => visiblePersonnel.filter((p) => p.userType === "Contractor").length, [visiblePersonnel]);
+  const helpFilterCount = useMemo(() => visiblePersonnel.filter((p) => p.status === "need_help").length, [visiblePersonnel]);
 
   if (!activeAlert) {
     return (
@@ -161,35 +192,57 @@ export default function AlertMonitorScreen() {
           showLabels
           locations={locations}
           shelters={shelters}
-          personnelLocations={visiblePersonnel}
+          personnelLocations={filteredPersonnel}
           onPersonnelPress={handlePersonnelPress}
           hazardZones={activeHazardZones}
         />
         <WindIndicator />
 
-        <View style={[styles.legendOverlay, { bottom: insets.bottom + 72 }]}>
-          <View style={styles.legendChip}>
+        <View style={[styles.legendOverlay, { bottom: insets.bottom + 72 }]} pointerEvents="box-none">
+          <Pressable
+            style={[styles.legendChip, activeFilters.has("inside") && styles.legendChipActive]}
+            onPress={() => toggleFilter("inside")}
+          >
             <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
-            <Text style={styles.legendChipText}>Inside</Text>
-          </View>
-          <View style={styles.legendChip}>
+            <Text style={styles.legendChipText}>Inside {insideCount}</Text>
+            {activeFilters.has("inside") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+          </Pressable>
+          <Pressable
+            style={[styles.legendChip, activeFilters.has("outside") && styles.legendChipActive]}
+            onPress={() => toggleFilter("outside")}
+          >
             <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
-            <Text style={styles.legendChipText}>Outside</Text>
-          </View>
-          <View style={styles.legendChip}>
+            <Text style={styles.legendChipText}>Outside {outsideCount}</Text>
+            {activeFilters.has("outside") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+          </Pressable>
+          <Pressable
+            style={[styles.legendChip, activeFilters.has("contractor") && styles.legendChipActive]}
+            onPress={() => toggleFilter("contractor")}
+          >
             <View style={[styles.legendDot, { backgroundColor: "#FB923C" }]} />
-            <Text style={styles.legendChipText}>Contractor</Text>
-          </View>
-          <View style={styles.legendChip}>
+            <Text style={styles.legendChipText}>Contractor {contractorCount}</Text>
+            {activeFilters.has("contractor") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+          </Pressable>
+          <Pressable
+            style={[styles.legendChip, activeFilters.has("help") && styles.legendChipActive]}
+            onPress={() => toggleFilter("help")}
+          >
             <View style={[styles.legendDot, { backgroundColor: "#F87171" }]} />
-            <Text style={styles.legendChipText}>Help</Text>
-          </View>
-          <View style={[styles.legendChip, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-            <Text style={styles.legendChipText}>{visiblePersonnel.length} tracked</Text>
-          </View>
+            <Text style={styles.legendChipText}>Help {helpFilterCount}</Text>
+            {activeFilters.has("help") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+          </Pressable>
+          <Pressable
+            style={[styles.legendChip, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+            onPress={() => { if (activeFilters.size > 0) setActiveFilters(new Set()); }}
+          >
+            <Text style={styles.legendChipText}>
+              {activeFilters.size > 0 ? `${filteredPersonnel.length}/${visiblePersonnel.length}` : `${visiblePersonnel.length}`} tracked
+            </Text>
+            {activeFilters.size > 0 && <Feather name="x-circle" size={11} color="rgba(255,255,255,0.6)" />}
+          </Pressable>
         </View>
 
-        <View style={[styles.allClearFab, { bottom: insets.bottom + 16 }]}>
+        <View style={[styles.allClearFab, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
           <Pressable
             style={styles.allClearBtn}
             onPress={() => {
@@ -408,8 +461,11 @@ const styles = StyleSheet.create({
   legendChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
-    backdropFilter: "blur(4px)",
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
+  },
+  legendChipActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.5)",
   },
   legendDot: {
     width: 7, height: 7, borderRadius: 4,
