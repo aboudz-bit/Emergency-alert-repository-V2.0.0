@@ -1,0 +1,95 @@
+I want the Alert Monitor screen to be wired correctly and behave as a real emergency monitoring screen, without breaking any of the current program flow or existing working features.
+
+Please keep the current structure stable and only improve the data mapping and UI behavior safely.
+
+Main requirement:
+When an alert is opened for a zone (example: Camp), the screen must monitor only the personnel related to that alert scope, and the stats/filters must be correctly mapped.
+
+For Camp alert, I want the screen to behave like this:
+
+Camp
+- Safe = people who already responded as SAFE
+- Pending = people who have NOT responded yet
+- Help = people who responded NEED HELP
+
+Also the personnel type mapping must be correct:
+- Aramco = employee of Saudi Aramco
+- Contract = contractor employee
+
+And I want these to be shown properly in the monitor:
+- tracked = total tracked personnel in the alert scope
+
+What I need you to implement carefully:
+
+1) Correct response-state mapping
+For the active alert zone:
+- Safe count = users whose response/status is SAFE
+- Pending count = users who did not reply yet
+- Help count = users whose response/status is NEED_HELP
+
+2) Correct personnel type mapping
+Each tracked person must clearly belong to one of:
+- Aramco
+- Contract
+
+Do not mix personnel type with emergency response state.
+These are separate concepts:
+- response state: Safe / Pending / Help
+- personnel type: Aramco / Contract
+
+3) Correct tracked count
+Tracked must mean:
+- total personnel currently included in the active alert zone scope
+- not global users
+- not all users in the system
+- not users from another zone
+
+4) Zone-scoped monitor only
+When alert is opened for Camp:
+- show Camp personnel only
+- show Camp counts only
+- show Camp tracked count only
+- show Camp map markers only
+
+Do not use:
+- first zone
+- previous zone
+- cached zone
+- all users
+- current visible map area
+
+Source of truth must be the active alert zone scope.
+
+5) Keep the app stable
+Very important:
+- do not break existing flows
+- do not break the map
+- do not break alert activation
+- do not break filtering
+- do not break dashboard logic
+- do not break other roles
+
+Make this a safe, minimal-risk implementation.
+
+6) If needed, add proper demo data for Camp
+If Camp currently has no personnel data, add realistic demo personnel for testing:
+- some Safe
+- some Pending
+- some Help
+- both Aramco and Contract
+- enough tracked users to verify the counts and filters
+
+7) Final expected behavior example
+If the alert is opened for Camp, the screen should clearly show something like:
+Camp
+- Safe = users who pressed Safe
+- Pending = users who did not respond
+- Help = users who pressed Need Help
+- tracked = total users being monitored in Camp
+- Aramco / Contract classification shown correctly on personnel markers/list/filtering
+
+Please implement this carefully and confirm exactly:
+- how Safe/Pending/Help are derived
+- how Aramco/Contract are derived
+- how tracked is calculated
+- how the alert zone scope is enforced

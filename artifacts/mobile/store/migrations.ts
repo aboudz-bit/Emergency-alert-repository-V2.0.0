@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 24;
+export const STORE_VERSION = 25;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -456,6 +456,18 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
     if (!state.settings.notifications || typeof state.settings.notifications !== 'object') {
       state.settings.notifications = seedSettings.notifications;
     }
+  }
+
+  if (version < 25) {
+    state.zones = seedZones;
+    state.locations = seedLocations;
+    state.users = seedUsers;
+    state.shelters = seedShelters;
+    state.supervisorAssignments = seedSupervisorAssignments;
+    state.isAuthenticated = false;
+    state.currentUser = null;
+    state.personnelLocations = {};
+    state.alerts = [];
   }
 
   return persisted as AppState;

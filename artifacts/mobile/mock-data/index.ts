@@ -27,11 +27,14 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
+const CAMP_LOCATIONS = ['Camp Block-A', 'Camp Block-B', 'Camp Mess Hall'];
+
 export const seedUsers: User[] = [
   ...names.map((name, i) => {
     const locIndex = i % CPF_LOCATIONS.length;
-    const status: User['status'] =
-      i < 30 ? 'confirmed' : 'pending';
+    let status: User['status'] = 'pending';
+    if (i < 25) status = 'confirmed';
+    else if (i >= 45) status = 'need_help';
 
     let role: User['role'] = 'User';
     if (i === 0) role = 'Super Admin';
@@ -71,6 +74,42 @@ export const seedUsers: User[] = [
     companyType: 'Contractor' as const,
     companyName: 'Tamimi',
   },
+
+  ...[
+    { id: 100, name: 'Hassan Al-Dosari',   badge: '300001', status: 'confirmed' as const, userType: 'Aramco' as const, locIdx: 0 },
+    { id: 101, name: 'Yousef Al-Subaie',   badge: '300002', status: 'confirmed' as const, userType: 'Aramco' as const, locIdx: 0 },
+    { id: 102, name: 'Fawaz Al-Otaibi',    badge: '300003', status: 'confirmed' as const, userType: 'Aramco' as const, locIdx: 1 },
+    { id: 103, name: 'Mansour Al-Dossari', badge: '300004', status: 'confirmed' as const, userType: 'Aramco' as const, locIdx: 1 },
+    { id: 104, name: 'Abdulaziz Al-Harbi', badge: '300005', status: 'confirmed' as const, userType: 'Aramco' as const, locIdx: 2 },
+    { id: 105, name: 'Naif Al-Shehri',     badge: '300006', status: 'pending' as const,   userType: 'Aramco' as const, locIdx: 0 },
+    { id: 106, name: 'Mishari Al-Qahtani', badge: '300007', status: 'pending' as const,   userType: 'Aramco' as const, locIdx: 1 },
+    { id: 107, name: 'Sultan Al-Mutairi',  badge: '300008', status: 'pending' as const,   userType: 'Aramco' as const, locIdx: 2 },
+    { id: 108, name: 'Turki Al-Ahmadi',    badge: '300009', status: 'pending' as const,   userType: 'Aramco' as const, locIdx: 0 },
+    { id: 109, name: 'Bader Al-Rashidi',   badge: '300010', status: 'need_help' as const, userType: 'Aramco' as const, locIdx: 1 },
+    { id: 110, name: 'Saad Al-Anazi',      badge: '300011', status: 'need_help' as const, userType: 'Aramco' as const, locIdx: 2 },
+    { id: 111, name: 'Ravi Kumar',         badge: '300012', status: 'confirmed' as const, userType: 'Contract' as const, locIdx: 0, companyName: 'Tamimi' },
+    { id: 112, name: 'Arjun Patel',        badge: '300013', status: 'confirmed' as const, userType: 'Contract' as const, locIdx: 1, companyName: 'Tamimi' },
+    { id: 113, name: 'Deepak Sharma',      badge: '300014', status: 'pending' as const,   userType: 'Contract' as const, locIdx: 2, companyName: 'Tamimi' },
+    { id: 114, name: 'Vikram Singh',       badge: '300015', status: 'pending' as const,   userType: 'Contract' as const, locIdx: 0, companyName: 'SRACO' },
+    { id: 115, name: 'Rajesh Nair',        badge: '300016', status: 'need_help' as const, userType: 'Contract' as const, locIdx: 1, companyName: 'SRACO' },
+  ].map((u) => ({
+    id: u.id,
+    name: u.name,
+    badge: u.badge,
+    password: 'demo1234',
+    role: 'User' as const,
+    zone: 'Camp',
+    zoneId: 2,
+    location: CAMP_LOCATIONS[u.locIdx],
+    locationId: 100 + u.locIdx + 1,
+    status: u.status,
+    accountStatus: 'active' as const,
+    lastActivity: new Date(Date.now() - Math.floor(Math.random() * 5_000_000)).toISOString(),
+    isActive: true,
+    userType: u.userType,
+    companyType: (u.userType === 'Contract' ? 'Contractor' : 'Aramco') as User['companyType'],
+    companyName: u.companyName,
+  })),
 ];
 
 export const seedAlerts: Alert[] = [
@@ -79,7 +118,7 @@ export const seedAlerts: Alert[] = [
     message: 'A blackout condition has been detected in the CPF zone. All personnel must immediately proceed to their designated muster points and await further instructions from the emergency coordinator.',
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     sentBy: 'Ahmed Al-Qahtani', priority: 'High', status: 'active', isActive: true,
-    stats: { confirmed: 30, pending: 20, needHelp: 0, total: 50 },
+    stats: { confirmed: 26, pending: 20, needHelp: 5, total: 51 },
   },
   {
     id: 2, type: 'Security Alert', zone: 'CPF', title: 'SECURITY INCIDENT',
@@ -122,23 +161,42 @@ export const seedZones: Zone[] = [
     center: { lat: 25.078, lng: 48.165 }, isActive: true, color: '#EF4444',
     alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   },
+  {
+    id: 2, name: 'Camp', type: 'Custom', boundaryType: 'Polygon',
+    locationId: null,
+    polygonPoints: [
+      { lat: 25.090, lng: 48.178 }, { lat: 25.090, lng: 48.192 },
+      { lat: 25.082, lng: 48.192 }, { lat: 25.082, lng: 48.178 },
+    ],
+    center: { lat: 25.086, lng: 48.185 }, isActive: true, color: '#3B82F6',
+    alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+  },
 ];
 
-// expectedManpower per location — 50 users across 7 locations (50/7 ≈ 7-8 each)
 const _expectedManpower = [8, 8, 8, 7, 7, 6, 6];
-export const seedLocations: Location[] = CPF_LOCATIONS.map((name, i) => ({
-  id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
-  expectedManpower: _expectedManpower[i],
-  isActive: true, polygonPoints: [],
-  alertActive: false, alertType: null, alertPriority: null,
-  alertMessage: '', alertUpdatedAt: null, alertHistory: [],
-}));
+export const seedLocations: Location[] = [
+  ...CPF_LOCATIONS.map((name, i) => ({
+    id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
+    expectedManpower: _expectedManpower[i],
+    isActive: true, polygonPoints: [],
+    alertActive: false, alertType: null, alertPriority: null,
+    alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+  })),
+  ...CAMP_LOCATIONS.map((name, i) => ({
+    id: 101 + i, name, zone: 'Camp' as const, zoneId: 2,
+    expectedManpower: i === 2 ? 4 : 6,
+    isActive: true, polygonPoints: [],
+    alertActive: false, alertType: null, alertPriority: null,
+    alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+  })),
+];
 
 export const seedShelters: Shelter[] = [
   { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true, linkedLocationIds: [1, 2] },
   { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true, linkedLocationIds: [3, 4] },
   { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true, linkedLocationIds: [5, 6] },
   { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true, linkedLocationIds: [7] },
+  { id: 5, name: 'Camp Muster Point', lat: 25.087, lng: 48.184, zoneId: 2, isActive: true, linkedLocationIds: [101, 102, 103] },
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
