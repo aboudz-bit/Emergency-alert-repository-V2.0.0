@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 25;
+export const STORE_VERSION = 26;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -459,15 +459,103 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
   }
 
   if (version < 25) {
-    state.zones = seedZones;
-    state.locations = seedLocations;
-    state.users = seedUsers;
-    state.shelters = seedShelters;
-    state.supervisorAssignments = seedSupervisorAssignments;
+    const existingZoneIds = new Set((state.zones ?? []).map((z: any) => z.id));
+    const existingLocIds = new Set((state.locations ?? []).map((l: any) => l.id));
+    const existingUserIds = new Set((state.users ?? []).map((u: any) => u.id));
+    const existingShelterIds = new Set((state.shelters ?? []).map((s: any) => s.id));
+
+    for (const sz of seedZones) {
+      if (!existingZoneIds.has(sz.id)) {
+        if (!Array.isArray(state.zones)) state.zones = [];
+        state.zones.push(sz);
+      }
+    }
+    for (const sl of seedLocations) {
+      if (!existingLocIds.has(sl.id)) {
+        if (!Array.isArray(state.locations)) state.locations = [];
+        state.locations.push(sl);
+      }
+    }
+    for (const su of seedUsers) {
+      if (!existingUserIds.has(su.id)) {
+        if (!Array.isArray(state.users)) state.users = [];
+        state.users.push(su);
+      }
+    }
+    for (const ss of seedShelters) {
+      if (!existingShelterIds.has(ss.id)) {
+        if (!Array.isArray(state.shelters)) state.shelters = [];
+        state.shelters.push(ss);
+      }
+    }
+  }
+
+  if (version < 26) {
+    if (Array.isArray(state.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        alertActive: z.alertActive ?? false,
+        alertType: z.alertType ?? null,
+        alertPriority: z.alertPriority ?? null,
+        alertMessage: z.alertMessage ?? '',
+        alertUpdatedAt: z.alertUpdatedAt ?? null,
+        alertHistory: Array.isArray(z.alertHistory) ? z.alertHistory : [],
+      }));
+    } else {
+      state.zones = seedZones;
+    }
+
+    if (Array.isArray(state.locations)) {
+      state.locations = state.locations.map((l: any) => ({
+        ...l,
+        polygonPoints: Array.isArray(l.polygonPoints) ? l.polygonPoints : [],
+        alertActive: l.alertActive ?? false,
+        alertType: l.alertType ?? null,
+        alertPriority: l.alertPriority ?? null,
+        alertMessage: l.alertMessage ?? '',
+        alertUpdatedAt: l.alertUpdatedAt ?? null,
+        alertHistory: Array.isArray(l.alertHistory) ? l.alertHistory : [],
+      }));
+    } else {
+      state.locations = seedLocations;
+    }
+
+    if (!Array.isArray(state.users)) {
+      state.users = seedUsers;
+    }
+    if (!Array.isArray(state.shelters)) {
+      state.shelters = seedShelters;
+    }
+
+    const existingZoneIds = new Set(state.zones.map((z: any) => z.id));
+    const existingLocIds = new Set(state.locations.map((l: any) => l.id));
+    const existingUserIds = new Set(state.users.map((u: any) => u.id));
+    const existingShelterIds = new Set(state.shelters.map((s: any) => s.id));
+
+    for (const sz of seedZones) {
+      if (!existingZoneIds.has(sz.id)) state.zones.push(sz);
+    }
+    for (const sl of seedLocations) {
+      if (!existingLocIds.has(sl.id)) state.locations.push(sl);
+    }
+    for (const su of seedUsers) {
+      if (!existingUserIds.has(su.id)) state.users.push(su);
+    }
+    for (const ss of seedShelters) {
+      if (!existingShelterIds.has(ss.id)) state.shelters.push(ss);
+    }
+
+    if (Array.isArray(state.users)) {
+      state.users = state.users.map((u: any) => ({
+        ...u,
+        userType: u.userType ?? 'Aramco',
+        companyType: u.companyType ?? (u.userType === 'Contract' ? 'Contractor' : 'Aramco'),
+      }));
+    }
+
     state.isAuthenticated = false;
     state.currentUser = null;
     state.personnelLocations = {};
-    state.alerts = [];
   }
 
   return persisted as AppState;

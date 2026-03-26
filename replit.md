@@ -25,8 +25,9 @@ Not specified.
 - **Location Awareness**: `utils/geo.ts` for `pointInPolygon`, `haversineDistance`, `findBestShelter`. `useDetectedLocation.ts` for GPS-based location detection.
 - **Personnel Tracking**: Live personnel tracking activated during active alerts. Polls GPS (configurable interval), simulates other users for demo. Displays personnel on maps with color-coded status.
 - **Authentication & Authorization**: Badge and password login. Role-based access (Super Admin, IT, ECO, Supervisor, User). Registration with approval workflow, including role override and rejection reasons. Route guards enforce authentication and authorization across all layouts.
-- **Store**: `keas-mobile-store-v20` (persist key), version 25 with slice architecture. Includes domain-specific slices, user management (approval status, user types), and emergency-related state.
-- **Zones**: CPF (id=1, industrial) and Camp (id=2, residential). Camp zone has 16 personnel with mixed Aramco/Contract types and confirmed/pending/need_help statuses.
+- **Store**: `keas-mobile-store-v20` (persist key), version 26 with slice architecture. Includes domain-specific slices, user management (approval status, user types), and emergency-related state.
+- **Zones**: CPF (id=1, industrial) and Camp (id=2, residential). Camp zone has 16 personnel with mixed Aramco/Contract types and confirmed/pending/need_help statuses. All locations have polygon boundaries.
+- **Migration safety**: Migrations are ADDITIVE — they merge missing seed entities by ID, never overwrite existing user-created zones/locations/users/shelters. Pattern: check `existingIds` Set, only push if missing.
 - **Filter Chips**: Alert Monitor legend chips filter by status (Safe/Pending/Help) and personnel type (Contract). Uses `userType === "Contract"` (matching `UserType` enum), not `"Contractor"` (which is `CompanyType`).
 - **Alert System**: Comprehensive alert lifecycle (activate, clear, reactivate). Includes zone-specific alerts, shelter-in-place, and blackout modes.
 

@@ -27,7 +27,7 @@ const badges = [
   '108317', '102593', '105864', '109742', '101678',
 ];
 
-const CAMP_LOCATIONS = ['Camp Block-A', 'Camp Block-B', 'Camp Mess Hall'];
+const CAMP_LOCATION_NAMES = ['Camp Block-A', 'Camp Block-B', 'Camp Mess Hall'];
 
 export const seedUsers: User[] = [
   ...names.map((name, i) => {
@@ -100,8 +100,8 @@ export const seedUsers: User[] = [
     role: 'User' as const,
     zone: 'Camp',
     zoneId: 2,
-    location: CAMP_LOCATIONS[u.locIdx],
-    locationId: 100 + u.locIdx + 1,
+    location: CAMP_LOCATION_NAMES[u.locIdx],
+    locationId: 101 + u.locIdx,
     status: u.status,
     accountStatus: 'active' as const,
     lastActivity: new Date(Date.now() - Math.floor(Math.random() * 5_000_000)).toISOString(),
@@ -174,29 +174,78 @@ export const seedZones: Zone[] = [
 ];
 
 const _expectedManpower = [8, 8, 8, 7, 7, 6, 6];
+
+const CPF_LOCATION_POLYGONS: Record<string, { lat: number; lng: number }[]> = {
+  'OT-1': [
+    { lat: 25.0835, lng: 48.1550 }, { lat: 25.0835, lng: 48.1600 },
+    { lat: 25.0810, lng: 48.1600 }, { lat: 25.0810, lng: 48.1550 },
+  ],
+  'OT-2': [
+    { lat: 25.0835, lng: 48.1610 }, { lat: 25.0835, lng: 48.1660 },
+    { lat: 25.0810, lng: 48.1660 }, { lat: 25.0810, lng: 48.1610 },
+  ],
+  'OT-3': [
+    { lat: 25.0835, lng: 48.1670 }, { lat: 25.0835, lng: 48.1720 },
+    { lat: 25.0810, lng: 48.1720 }, { lat: 25.0810, lng: 48.1670 },
+  ],
+  'Gas Train-1': [
+    { lat: 25.0800, lng: 48.1550 }, { lat: 25.0800, lng: 48.1620 },
+    { lat: 25.0770, lng: 48.1620 }, { lat: 25.0770, lng: 48.1550 },
+  ],
+  'Gas Train-2': [
+    { lat: 25.0800, lng: 48.1630 }, { lat: 25.0800, lng: 48.1700 },
+    { lat: 25.0770, lng: 48.1700 }, { lat: 25.0770, lng: 48.1630 },
+  ],
+  'Camp': [
+    { lat: 25.0760, lng: 48.1550 }, { lat: 25.0760, lng: 48.1630 },
+    { lat: 25.0730, lng: 48.1630 }, { lat: 25.0730, lng: 48.1550 },
+  ],
+  'CCR': [
+    { lat: 25.0760, lng: 48.1640 }, { lat: 25.0760, lng: 48.1750 },
+    { lat: 25.0730, lng: 48.1750 }, { lat: 25.0730, lng: 48.1640 },
+  ],
+};
+
+const CAMP_LOCATION_POLYGONS: { lat: number; lng: number }[][] = [
+  [
+    { lat: 25.0895, lng: 48.1780 }, { lat: 25.0895, lng: 48.1840 },
+    { lat: 25.0870, lng: 48.1840 }, { lat: 25.0870, lng: 48.1780 },
+  ],
+  [
+    { lat: 25.0865, lng: 48.1780 }, { lat: 25.0865, lng: 48.1840 },
+    { lat: 25.0840, lng: 48.1840 }, { lat: 25.0840, lng: 48.1780 },
+  ],
+  [
+    { lat: 25.0865, lng: 48.1850 }, { lat: 25.0865, lng: 48.1920 },
+    { lat: 25.0830, lng: 48.1920 }, { lat: 25.0830, lng: 48.1850 },
+  ],
+];
+
 export const seedLocations: Location[] = [
   ...CPF_LOCATIONS.map((name, i) => ({
     id: i + 1, name, zone: 'CPF' as const, zoneId: 1,
     expectedManpower: _expectedManpower[i],
-    isActive: true, polygonPoints: [],
+    isActive: true,
+    polygonPoints: CPF_LOCATION_POLYGONS[name] ?? [],
     alertActive: false, alertType: null, alertPriority: null,
     alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   })),
-  ...CAMP_LOCATIONS.map((name, i) => ({
+  ...CAMP_LOCATION_NAMES.map((name, i) => ({
     id: 101 + i, name, zone: 'Camp' as const, zoneId: 2,
     expectedManpower: i === 2 ? 4 : 6,
-    isActive: true, polygonPoints: [],
+    isActive: true,
+    polygonPoints: CAMP_LOCATION_POLYGONS[i],
     alertActive: false, alertType: null, alertPriority: null,
     alertMessage: '', alertUpdatedAt: null, alertHistory: [],
   })),
 ];
 
 export const seedShelters: Shelter[] = [
-  { id: 1, name: 'Shelter A - Main Gate', lat: 25.083, lng: 48.158, zoneId: 1, isActive: true, linkedLocationIds: [1, 2] },
-  { id: 2, name: 'Shelter B - Control Room', lat: 25.080, lng: 48.165, zoneId: 1, isActive: true, linkedLocationIds: [3, 4] },
-  { id: 3, name: 'Shelter C - South Wing', lat: 25.074, lng: 48.170, zoneId: 1, isActive: true, linkedLocationIds: [5, 6] },
-  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.077, lng: 48.160, zoneId: 1, isActive: true, linkedLocationIds: [7] },
-  { id: 5, name: 'Camp Muster Point', lat: 25.087, lng: 48.184, zoneId: 2, isActive: true, linkedLocationIds: [101, 102, 103] },
+  { id: 1, name: 'Shelter A - Main Gate', lat: 25.0830, lng: 48.1575, zoneId: 1, isActive: true, linkedLocationIds: [1, 2] },
+  { id: 2, name: 'Shelter B - Control Room', lat: 25.0800, lng: 48.1650, zoneId: 1, isActive: true, linkedLocationIds: [3, 4] },
+  { id: 3, name: 'Shelter C - South Wing', lat: 25.0745, lng: 48.1700, zoneId: 1, isActive: true, linkedLocationIds: [5, 6] },
+  { id: 4, name: 'Shelter D - Emergency Bay', lat: 25.0770, lng: 48.1600, zoneId: 1, isActive: true, linkedLocationIds: [7] },
+  { id: 5, name: 'Camp Muster Point', lat: 25.0870, lng: 48.1840, zoneId: 2, isActive: true, linkedLocationIds: [101, 102, 103] },
 ];
 
 export const seedActivityLogs: ActivityLog[] = [
