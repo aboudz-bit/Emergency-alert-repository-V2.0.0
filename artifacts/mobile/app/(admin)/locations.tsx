@@ -158,54 +158,63 @@ export default function LocationsScreen() {
 
   const handleArchiveZone = useCallback(() => {
     if (!selectedZone) return;
-    Alert.alert(
-      "Archive Zone",
-      `Archive "${selectedZone.name}"? It will be hidden from active lists but all data is preserved.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Archive",
-          style: "destructive",
-          onPress: () => {
-            archiveZone(selectedZone.id);
-            setShowZoneActions(false);
-            setSelectedZoneId(null);
+    const zoneId = selectedZone.id;
+    const zoneName = selectedZone.name;
+    setShowZoneActions(false);
+    setTimeout(() => {
+      Alert.alert(
+        "Archive Zone",
+        `Archive "${zoneName}"? It will be hidden from active lists but all data is preserved.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Archive",
+            style: "destructive",
+            onPress: () => {
+              archiveZone(zoneId);
+              setSelectedZoneId(null);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }, 300);
   }, [selectedZone, archiveZone]);
 
   const handleRestoreZone = useCallback(() => {
     if (!selectedZone) return;
-    restoreZone(selectedZone.id);
+    const zoneId = selectedZone.id;
+    restoreZone(zoneId);
     setShowZoneActions(false);
     setTabFilter("active");
-    setSelectedZoneId(selectedZone.id);
+    setSelectedZoneId(zoneId);
   }, [selectedZone, restoreZone]);
 
   const handleSafeDeleteZone = useCallback(() => {
     if (!selectedZone) return;
-    Alert.alert(
-      "Delete Zone",
-      `Permanently delete "${selectedZone.name}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            const result = safeDeleteZone(selectedZone.id);
-            if (!result.success) {
-              Alert.alert("Cannot Delete", result.error ?? "Unknown error");
-            } else {
-              setShowZoneActions(false);
-              setSelectedZoneId(null);
-            }
+    const zoneId = selectedZone.id;
+    const zoneName = selectedZone.name;
+    setShowZoneActions(false);
+    setTimeout(() => {
+      Alert.alert(
+        "Delete Zone",
+        `Permanently delete "${zoneName}"? This cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              const result = safeDeleteZone(zoneId);
+              if (!result.success) {
+                Alert.alert("Cannot Delete", result.error ?? "Unknown error");
+              } else {
+                setSelectedZoneId(null);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }, 300);
   }, [selectedZone, safeDeleteZone]);
 
   const handleMoveZone = useCallback(
@@ -551,7 +560,8 @@ export default function LocationsScreen() {
         animationType="fade"
         onRequestClose={() => setShowZoneActions(false)}
       >
-        <Pressable style={styles.actionOverlay} onPress={() => setShowZoneActions(false)}>
+        <View style={styles.actionOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowZoneActions(false)} />
           <View style={[styles.actionSheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.modalHandle} />
             <Text style={styles.actionSheetTitle}>
@@ -611,7 +621,7 @@ export default function LocationsScreen() {
               <Text style={styles.actionRowTitle}>Cancel</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

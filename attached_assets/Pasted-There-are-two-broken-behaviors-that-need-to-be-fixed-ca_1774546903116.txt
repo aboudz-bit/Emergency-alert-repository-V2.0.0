@@ -1,0 +1,87 @@
+There are two broken behaviors that need to be fixed carefully without breaking existing logic.
+
+==================================================
+ISSUE 1 — Archive / Delete not working in Locations page
+==================================================
+
+In the Locations page, the zone actions are visible, but they are not working correctly:
+
+- Archive Zone does not work
+- Delete Zone does not work
+
+The UI exists, but the actions are not completing properly.
+
+Please inspect and fix the full flow for both actions:
+
+1) Archive Zone
+- should mark the zone as archived
+- should remove it from active lists
+- should preserve all data
+- should be restorable later
+- must actually update the store/database/UI
+
+2) Delete Zone
+- should only work when safe
+- if zone has linked data, it must show a clear blocked message
+- if safe to delete, it must actually delete
+- must update UI/store correctly
+
+Please debug:
+- button handlers
+- modal action handlers
+- store actions
+- persistence/database update
+- validation logic
+- UI refresh after action
+
+==================================================
+ISSUE 2 — Shelter Link modal not showing zone locations
+==================================================
+
+In the Zone Map page, when I open a shelter and press Link,
+the modal opens, but it does not show the locations that belong to that shelter’s zone.
+
+Expected behavior:
+- if shelter belongs to a zone
+- the Link Locations modal must list the locations from that SAME zone
+- then I can select them and link them to the shelter
+
+Right now the modal opens, but the zone locations are missing.
+
+Please fix this carefully.
+
+Check:
+- selected shelter zone context
+- shelter.zoneId / linked zone reference
+- filtering logic for locations
+- whether it is incorrectly using empty / wrong zone
+- whether archived/inactive filtering is hiding valid locations
+- modal data source
+- save/link action
+
+Expected behavior:
+- Shelter in CPF → modal shows CPF locations
+- Shelter in Camp → modal shows Camp locations
+- I can select one or more locations
+- Save updates the shelter-location link correctly
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not break:
+- existing zones
+- existing locations
+- shelters
+- alert logic
+- tracking
+- warning zones
+- CPF / Camp data
+- saved data
+- migrations
+
+This is a bug fix, not a reset.
+
+Please fix both issues:
+1) archive/delete zone actions on Locations page
+2) shelter Link modal showing correct locations for the selected zone
