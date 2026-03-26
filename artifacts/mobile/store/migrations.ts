@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 28;
+export const STORE_VERSION = 29;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -587,6 +587,24 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
           sortOrder: l.sortOrder ?? idx,
         };
       });
+    }
+  }
+
+  if (version < 29) {
+    if (Array.isArray(state.shelters) && Array.isArray(state.zones)) {
+      const validZoneIds = new Set(state.zones.map((z: any) => Number(z.id)));
+      state.shelters = state.shelters.map((s: any) => {
+        const zid = Number(s.zoneId);
+        if (validZoneIds.has(zid)) return { ...s, zoneId: zid };
+        const firstZone = state.zones[0];
+        return { ...s, zoneId: firstZone ? Number(firstZone.id) : 0 };
+      });
+    }
+    if (Array.isArray(state.locations)) {
+      state.locations = state.locations.map((l: any) => ({
+        ...l,
+        zoneId: Number(l.zoneId),
+      }));
     }
   }
 

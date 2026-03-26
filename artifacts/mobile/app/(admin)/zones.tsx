@@ -417,10 +417,14 @@ export default function ZonesScreen() {
   const handleOpenLinking = useCallback((shId: number) => {
     const sh = shelters.find((s) => s.id === shId);
     if (!sh) return;
+    const matchCount = locations.filter((l) => Number(l.zoneId) === Number(sh.zoneId)).length;
+    console.log("[LinkModal] shelter:", sh.name, "shelterId:", sh.id, "shelterZoneId:", sh.zoneId,
+      "typeof:", typeof sh.zoneId, "totalLocations:", locations.length, "matchingLocations:", matchCount,
+      "locationZoneIds:", [...new Set(locations.map((l) => l.zoneId))]);
     setLinkingShelterId(shId);
     setLinkingSelectedIds([...(sh.linkedLocationIds || [])]);
     setLinkingModal(true);
-  }, [shelters]);
+  }, [shelters, locations]);
 
   const handleToggleLinkLocation = useCallback((locId: number) => {
     setLinkingSelectedIds((prev) =>
@@ -1041,47 +1045,57 @@ export default function ZonesScreen() {
                 <Feather name="x" size={20} color="#999" />
               </Pressable>
             </View>
-            <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: "#888", marginBottom: 4 }}>
-              Select locations this shelter serves:
-            </Text>
-            <ScrollView style={{ maxHeight: SCREEN_H * 0.35 }}>
-              {(() => {
-                const sh = linkingShelterId != null ? shelters.find((s) => s.id === linkingShelterId) : null;
-                const zoneLocations = sh && sh.zoneId
-                  ? locations.filter((loc) => loc.zoneId === sh.zoneId)
-                  : locations;
-                if (zoneLocations.length === 0) {
-                  return (
-                    <View style={{ alignItems: "center", paddingVertical: 24 }}>
-                      <Feather name="map-pin" size={24} color="#ccc" />
-                      <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: "#999", marginTop: 8 }}>
-                        No locations in this zone
-                      </Text>
-                    </View>
-                  );
-                }
-                return zoneLocations.map((loc) => {
-                  const isLinked = linkingSelectedIds.includes(loc.id);
-                  return (
-                    <Pressable
-                      key={loc.id}
-                      style={[styles.linkLocRow, isLinked && styles.linkLocRowActive]}
-                      onPress={() => handleToggleLinkLocation(loc.id)}
-                    >
-                      <View style={[styles.linkLocCheck, isLinked && styles.linkLocCheckActive]}>
-                        {isLinked && <Feather name="check" size={14} color="#fff" />}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.linkLocName}>{loc.name}</Text>
-                        <Text style={styles.linkLocMeta}>
-                          Zone: {loc.zone} · {loc.polygonPoints.length > 0 ? "Has boundary" : "No boundary"}
+            {(() => {
+              const sh = linkingShelterId != null ? shelters.find((s) => s.id === linkingShelterId) : null;
+              const shelterZoneId = sh ? Number(sh.zoneId) : null;
+              const matchingZone = shelterZoneId != null ? zones.find((z) => z.id === shelterZoneId) : null;
+              const zoneLocations = shelterZoneId != null
+                ? locations.filter((loc) => Number(loc.zoneId) === shelterZoneId)
+                : locations;
+              return (
+                <>
+                  <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: "#888", marginBottom: 4 }}>
+                    Select locations this shelter serves:
+                  </Text>
+                  <View style={{ backgroundColor: "#F3F4F6", borderRadius: 8, padding: 8, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "Inter_500Medium", color: "#6B7280" }}>
+                      Shelter: {sh?.name ?? "?"} · Zone: {matchingZone?.name ?? `ID ${shelterZoneId}`} · {zoneLocations.length} location{zoneLocations.length !== 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                  <ScrollView style={{ maxHeight: SCREEN_H * 0.35 }}>
+                    {zoneLocations.length === 0 ? (
+                      <View style={{ alignItems: "center", paddingVertical: 24 }}>
+                        <Feather name="map-pin" size={24} color="#ccc" />
+                        <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: "#999", marginTop: 8 }}>
+                          No locations in this zone
                         </Text>
                       </View>
-                    </Pressable>
-                  );
-                });
-              })()}
-            </ScrollView>
+                    ) : (
+                      zoneLocations.map((loc) => {
+                        const isLinked = linkingSelectedIds.includes(loc.id);
+                        return (
+                          <Pressable
+                            key={loc.id}
+                            style={[styles.linkLocRow, isLinked && styles.linkLocRowActive]}
+                            onPress={() => handleToggleLinkLocation(loc.id)}
+                          >
+                            <View style={[styles.linkLocCheck, isLinked && styles.linkLocCheckActive]}>
+                              {isLinked && <Feather name="check" size={14} color="#fff" />}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.linkLocName}>{loc.name}</Text>
+                              <Text style={styles.linkLocMeta}>
+                                Zone: {loc.zone} · {loc.polygonPoints.length > 0 ? "Has boundary" : "No boundary"}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </>
+              );
+            })()}
             <View style={styles.saveBtnRow}>
               <Pressable style={styles.discardBtn} onPress={() => setLinkingModal(false)}>
                 <Text style={styles.discardBtnText}>Cancel</Text>
