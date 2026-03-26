@@ -39,14 +39,27 @@ export default function AlertMonitorScreen() {
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
 
+  const { activeZoneIds } = useAlertSystemState();
   const hasActiveAlert = emergencyMode !== null;
   usePersonnelSimulation(hasActiveAlert);
 
+  const alertZoneIds = useMemo(() => {
+    if (!activeAlert) return [];
+    const isAllZones = activeAlert.zone === "All Zones" || activeAlert.zone === "all";
+    if (isAllZones) {
+      return zones.filter((z) => z.isActive).map((z) => z.id);
+    }
+    const targetNames = activeAlert.zone.includes(", ")
+      ? activeAlert.zone.split(", ").map((n) => n.trim())
+      : [activeAlert.zone];
+    return zones.filter((z) => targetNames.includes(z.name)).map((z) => z.id);
+  }, [activeAlert, zones]);
+
   const personnelScope = useMemo(() => {
-    if (!currentUser) return { scope: "all" as const };
+    if (!currentUser) return { scope: "zone" as const, zoneIds: alertZoneIds };
     const role = currentUser.role;
     if (role === "Super Admin" || role === "IT") {
-      return { scope: "all" as const };
+      return { scope: "zone" as const, zoneIds: alertZoneIds };
     }
     const sa = supervisorAssignments.find(
       (a) => a.supervisorUserId === currentUser.id || a.backupSupervisorUserId === currentUser.id
@@ -54,12 +67,13 @@ export default function AlertMonitorScreen() {
     if (sa) {
       return { scope: "location" as const, locationId: sa.locationId };
     }
-    return { scope: "all" as const };
-  }, [currentUser, supervisorAssignments]);
+    return { scope: "zone" as const, zoneIds: alertZoneIds };
+  }, [currentUser, supervisorAssignments, alertZoneIds]);
 
   const visiblePersonnel = useVisiblePersonnel({
     scope: personnelScope.scope,
     locationId: "locationId" in personnelScope ? personnelScope.locationId : undefined,
+    zoneIds: "zoneIds" in personnelScope ? personnelScope.zoneIds : undefined,
     enabled: hasActiveAlert,
   });
 
@@ -107,9 +121,27 @@ export default function AlertMonitorScreen() {
 
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
-  const safeCount = activeAlert?.stats?.confirmed ?? 0;
-  const pendingCount = activeAlert?.stats?.pending ?? 0;
-  const helpCount = activeAlert?.stats?.needHelp ?? 0;
+  const scopedCounts = useMemo(() => {
+    if (zoneStats.length === 0) {
+      return {
+        confirmed: activeAlert?.stats?.confirmed ?? 0,
+        pending: activeAlert?.stats?.pending ?? 0,
+        needHelp: activeAlert?.stats?.needHelp ?? 0,
+      };
+    }
+    return zoneStats.reduce(
+      (acc, zs) => ({
+        confirmed: acc.confirmed + zs.confirmed,
+        pending: acc.pending + zs.pending,
+        needHelp: acc.needHelp + zs.needHelp,
+      }),
+      { confirmed: 0, pending: 0, needHelp: 0 },
+    );
+  }, [zoneStats, activeAlert]);
+
+  const safeCount = scopedCounts.confirmed;
+  const pendingCount = scopedCounts.pending;
+  const helpCount = scopedCounts.needHelp;
 
   const insideCount = useMemo(() => visiblePersonnel.filter((p) => p.isInsideAssignedLocation === true && p.userType !== "Contractor").length, [visiblePersonnel]);
   const outsideCount = useMemo(() => visiblePersonnel.filter((p) => p.isInsideAssignedLocation === false && p.status !== "need_help" && p.userType !== "Contractor").length, [visiblePersonnel]);

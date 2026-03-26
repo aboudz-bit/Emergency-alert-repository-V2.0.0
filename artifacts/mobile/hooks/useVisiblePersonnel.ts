@@ -24,6 +24,7 @@ export function useVisiblePersonnel(opts: {
   scope: "all" | "location" | "zone";
   locationId?: number | null;
   zoneId?: number | null;
+  zoneIds?: number[];
   excludeSelf?: boolean;
   enabled?: boolean;
 }): PersonnelMapEntry[] {
@@ -32,10 +33,16 @@ export function useVisiblePersonnel(opts: {
   const locations = useStore((s) => s.locations);
   const currentUser = useStore((s) => s.currentUser);
 
+  const zoneIdsKey = opts.zoneIds ? opts.zoneIds.join(",") : "";
+
   return useMemo(() => {
     if (opts.enabled === false) return [];
     if (opts.scope === "location" && opts.locationId == null) return [];
-    if (opts.scope === "zone" && opts.zoneId == null) return [];
+    if (opts.scope === "zone" && opts.zoneId == null && (!opts.zoneIds || opts.zoneIds.length === 0)) return [];
+
+    const zoneIdSet = opts.zoneIds && opts.zoneIds.length > 0
+      ? new Set(opts.zoneIds)
+      : opts.zoneId != null ? new Set([opts.zoneId]) : null;
 
     const entries: PersonnelMapEntry[] = [];
     const locs = Object.values(personnelLocations);
@@ -46,7 +53,7 @@ export function useVisiblePersonnel(opts: {
       if (opts.scope === "location") {
         if (loc.detectedLocationId !== opts.locationId) continue;
       } else if (opts.scope === "zone") {
-        if (loc.zoneId !== opts.zoneId) continue;
+        if (!zoneIdSet || !zoneIdSet.has(loc.zoneId as number)) continue;
       }
 
       const staleMs = Date.now() - loc.timestamp;
@@ -76,5 +83,5 @@ export function useVisiblePersonnel(opts: {
     }
 
     return entries;
-  }, [personnelLocations, users, locations, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, opts.excludeSelf, opts.enabled]);
+  }, [personnelLocations, users, locations, currentUser?.id, opts.scope, opts.locationId, opts.zoneId, zoneIdsKey, opts.excludeSelf, opts.enabled]);
 }
