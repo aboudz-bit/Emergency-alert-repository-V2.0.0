@@ -50,7 +50,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
       set(s => ({
         alerts: [newAlert, ...s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a)],
         users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
-        hazardZones: [],
+        hazardZones: s.hazardZones.filter(hz => hz.alertId == null),
         mobileUserResponse: null,
       }));
       return newAlert;
@@ -91,7 +91,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         } : l),
         personnelLocations: {},
         mobileUserResponse: 'confirmed' as UserResponseStatus,
-        hazardZones: [],
+        hazardZones: s.hazardZones.filter(hz => hz.alertId == null),
         emergencyModes: {
           shelterIn: false,
           blackout: false,

@@ -1,0 +1,206 @@
+I need you to correctly restore and implement the Warning feature on the map.
+
+Please read this carefully, because Warning is a separate concept from Alert and separate from normal Zones.
+
+IMPORTANT CONCEPT
+
+Warning is:
+- a geographic danger area on the map
+- used for hazards like gas leak, fire, smoke, chemical risk, unsafe direction, etc.
+
+Warning is NOT:
+- an alert notification
+- an alert message
+- a normal zone
+
+Alert sends notifications.
+Warning does not send notifications.
+Warning is only visual + geographic + detection logic.
+
+==================================================
+WHAT I WANT
+==================================================
+
+I want the Warning tool to be added back to the map as a floating map control on the right side.
+
+I do NOT want the large "+" add button.
+
+The map controls should include the Warning tool again as part of the floating controls.
+
+==================================================
+HOW WARNING MUST WORK
+==================================================
+
+Simple workflow:
+
+1) Admin or ECO opens the map
+2) Taps the Warning tool
+3) Taps ONE point on the map
+4) That point becomes the center of the warning
+5) Then selects the warning level:
+   - Hot
+   - Warm
+   - Green
+6) Then confirms it
+7) The system creates the warning area automatically around that center point
+
+I do NOT want manual drawing of polygons for warning.
+I do NOT want manually drawing each ring one by one.
+
+I want:
+- one center point
+- select warning level
+- confirm
+- automatic radius rendering
+
+==================================================
+WARNING LEVELS
+==================================================
+
+Warning levels are:
+
+- Hot
+- Warm
+- Green
+
+These must use the existing Settings values:
+
+- Hot Zone Radius (Red)
+- Warm Zone Radius (Yellow)
+- Cold Zone Radius (Green)
+
+Note:
+The Settings page currently uses:
+- Hot Zone Radius (Red)
+- Warm Zone Radius (Yellow)
+- Cold Zone Radius (Green)
+
+For the UI/logic:
+- Hot = red danger radius
+- Warm = yellow radius
+- Green = safe perimeter radius
+
+If needed, keep the settings label “Cold Zone Radius (Green)” internally,
+but in the map workflow the selectable levels should be:
+- Hot
+- Warm
+- Green
+
+==================================================
+MAP RENDERING
+==================================================
+
+When warning is created, the map must show:
+
+- center point
+- warning area/radius
+- correct color:
+  - red for Hot
+  - yellow for Warm
+  - green for Green
+
+First version can be simple circle/radius rendering from the center point.
+
+Later, directional cone support can be added if needed,
+but first version should be stable and simple.
+
+==================================================
+DATA / STORAGE RULES
+==================================================
+
+Warning must:
+
+- be linked to the zone it belongs to
+- be stored in the database
+- be shared to all clients in real time
+
+This is not temporary UI only.
+It must persist and sync.
+
+==================================================
+DETECTION LOGIC
+==================================================
+
+If a user is inside the warning radius, the system must detect it.
+
+This warning detection must affect:
+
+- Map
+- Users screen
+- Dashboard counts
+
+Examples:
+- user inside Hot warning
+- user inside Warm warning
+- user inside Green warning
+- user outside warning
+
+==================================================
+SEPARATION FROM ALERT
+==================================================
+
+Please keep this separation very clear:
+
+Alert:
+- communication / notification workflow
+- used to notify users
+
+Warning:
+- map hazard area only
+- visual + geographic + detection
+- no notification sending
+
+Do not mix Warning with Alert logic.
+
+==================================================
+UI REQUIREMENTS
+==================================================
+
+1) Restore the Warning button as a floating map control on the right side
+2) Remove the large "+" add FAB
+3) Keep the map controls floating and clean
+4) Warning must be easy to place from the map directly
+
+==================================================
+VERY IMPORTANT SAFETY REQUIREMENTS
+==================================================
+
+Do NOT break:
+- existing zones
+- existing shelters
+- polygon editing
+- Camp / CPF data
+- alert monitor
+- tracked personnel
+- alert zone scoping
+- saved data
+- migrations
+
+Do NOT reset or overwrite existing zones or locations again.
+
+This must be implemented safely.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+After implementation, Admin/ECO should be able to:
+
+- open the map
+- tap Warning tool
+- tap one point on the map
+- choose Hot / Warm / Green
+- confirm
+- see the warning area appear on the map
+- have it saved to database
+- have it synced live to other clients
+- have users inside the warning area detected properly
+
+==================================================
+PLEASE IMPLEMENT
+==================================================
+
+Please implement the Warning feature exactly with this behavior,
+restore the floating Warning control on the map,
+remove the big "+" button,
+and keep the rest of the program stable.

@@ -82,9 +82,10 @@ export default function SupervisorMapScreen() {
   }, []);
 
   const activeHazardZones = useMemo(() => {
-    if (!activeAlert) return [];
     return hazardZones.filter((hz) => {
-      if (!hz.isActive || hz.alertId !== activeAlert.id) return false;
+      if (!hz.isActive) return false;
+      const alertMatch = hz.alertId == null || (activeAlert && hz.alertId === activeAlert.id);
+      if (!alertMatch) return false;
       if (myLocation && hz.locationId === myLocation.id) return true;
       if (myZone && hz.zoneId === myZone.id) return true;
       if (hz.locationId == null && hz.zoneId == null) return true;

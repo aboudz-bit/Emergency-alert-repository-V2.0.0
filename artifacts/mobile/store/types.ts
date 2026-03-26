@@ -93,7 +93,7 @@ export interface AppState {
   batchUpdatePersonnelLocations: (locs: PersonnelLocation[]) => void;
   clearPersonnelLocations: () => void;
 
-  addHazardZone: (data: { centerLat: number; centerLng: number; zoneId?: number | null; locationId?: number | null }) => void;
+  addHazardZone: (data: { centerLat: number; centerLng: number; warningLevel?: import('@/types').WarningLevel; zoneId?: number | null; locationId?: number | null }) => void;
   removeHazardZone: (id: number) => void;
   unlockHazardZone: (id: number) => void;
   applyDefaultsToHazardZone: (id: number) => void;

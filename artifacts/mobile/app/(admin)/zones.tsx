@@ -20,7 +20,7 @@ import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
-import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
+import type { Zone, ZoneType, LatLng, Shelter, Location, WarningLevel } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 
@@ -51,8 +51,7 @@ export default function ZonesScreen() {
   const updateShelter = useStore((s) => s.updateShelter);
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
-  const { activeAlert, emergencyMode } = useAlertSystemState();
-  const hasRealAlert = emergencyMode !== null;
+  const { activeAlert } = useAlertSystemState();
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
   const unlockHazardZone = useStore((s) => s.unlockHazardZone);
@@ -87,6 +86,7 @@ export default function ZonesScreen() {
 
   const [placingHazard, setPlacingHazard] = useState(false);
   const [hazardCenter, setHazardCenter] = useState<LatLng | null>(null);
+  const [warningLevel, setWarningLevel] = useState<WarningLevel>("hot");
 
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const [formName, setFormName] = useState("");
@@ -195,14 +195,9 @@ export default function ZonesScreen() {
   }, [editingShelter, shelterFormName, updateShelter]);
 
   const handleStartPlacingHazard = useCallback(() => {
-    const state = useStore.getState();
-    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
-    if (!hasAny) {
-      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert found.");
-      return;
-    }
     setPlacingHazard(true);
     setHazardCenter(null);
+    setWarningLevel("hot");
     setSelectedZoneId(null);
     setSelectedShelterId(null);
     setSelectedLocationId(null);
@@ -211,39 +206,20 @@ export default function ZonesScreen() {
 
   const handleConfirmHazard = useCallback(() => {
     if (!hazardCenter) return;
-    const state = useStore.getState();
-    const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
-    if (!hasAny) {
-      setPlacingHazard(false);
-      setHazardCenter(null);
-      RNAlert.alert("No active alert", "Cannot place a warning zone — no active alert found.");
-      return;
-    }
-    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng });
+    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng, warningLevel });
     setPlacingHazard(false);
     setHazardCenter(null);
-  }, [hazardCenter, addHazardZone]);
+  }, [hazardCenter, warningLevel, addHazardZone]);
 
   const handleCancelHazard = useCallback(() => {
     setPlacingHazard(false);
     setHazardCenter(null);
   }, []);
 
-  const alertId = activeAlert?.id ?? null;
-
   const activeHazardZones = useMemo(
-    () => {
-      if (alertId == null) return [];
-      return hazardZones.filter((hz) => hz.isActive && hz.alertId === alertId);
-    },
-    [hazardZones, alertId]
+    () => hazardZones.filter((hz) => hz.isActive),
+    [hazardZones]
   );
-
-  useEffect(() => {
-    setPlacingHazard(false);
-    setHazardCenter(null);
-    setSelectedHazardId(null);
-  }, [alertId]);
 
   const handlePressAdd = useCallback(() => {
     const used = zones.map((z) => z.color);
@@ -521,27 +497,15 @@ export default function ZonesScreen() {
       )}
 
       {mode === "view" && !addingShelter && !placingHazard && (
-        <View style={[styles.fabColumn, { bottom: insets.bottom + 180 }]}>
-          {fabOpen && (
-            <>
-              {hasRealAlert && (
-                <Pressable style={[styles.fabMini, { backgroundColor: "#FEE2E2" }]} onPress={handleStartPlacingHazard}>
-                  <Feather name="alert-triangle" size={18} color="#DC2626" />
-                </Pressable>
-              )}
-              <Pressable style={[styles.fabMini, { backgroundColor: "#FEF3C7" }]} onPress={handleToggleShelterAdd}>
-                <Feather name="home" size={18} color="#D97706" />
-              </Pressable>
-              <Pressable style={[styles.fabMini, { backgroundColor: "#DBEAFE" }]} onPress={handlePressAdd}>
-                <Feather name="hexagon" size={18} color="#2563EB" />
-              </Pressable>
-            </>
-          )}
-          <Pressable
-            style={[styles.fabMain, fabOpen && styles.fabMainOpen]}
-            onPress={() => setFabOpen((p) => !p)}
-          >
-            <Feather name={fabOpen ? "x" : "plus"} size={24} color="#fff" />
+        <View style={[styles.toolColumn, { bottom: insets.bottom + 180 }]}>
+          <Pressable style={[styles.toolBtn, { backgroundColor: "#FEE2E2" }]} onPress={handleStartPlacingHazard}>
+            <Feather name="alert-triangle" size={18} color="#DC2626" />
+          </Pressable>
+          <Pressable style={[styles.toolBtn, { backgroundColor: "#FEF3C7" }]} onPress={handleToggleShelterAdd}>
+            <Feather name="home" size={18} color="#D97706" />
+          </Pressable>
+          <Pressable style={[styles.toolBtn, { backgroundColor: "#DBEAFE" }]} onPress={handlePressAdd}>
+            <Feather name="hexagon" size={18} color="#2563EB" />
           </Pressable>
         </View>
       )}
@@ -549,15 +513,29 @@ export default function ZonesScreen() {
       {placingHazard && (
         <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
           <View style={styles.adminBarInner}>
-            <View style={styles.adminBarInfo}>
-              <Text style={styles.adminBarLabel}>Warning Zone</Text>
-              <Text style={styles.adminBarMeta}>
-                Hot:{settings.hazardHotRadius || 200}m · Warm:{settings.hazardWarmRadius || 500}m · Cold:{settings.hazardColdRadius || 1000}m
-              </Text>
-            </View>
             <Pressable style={styles.adminBarCancel} onPress={handleCancelHazard}>
               <Feather name="x" size={18} color="#666" />
             </Pressable>
+            <View style={styles.levelPicker}>
+              <Pressable
+                style={[styles.levelBtn, warningLevel === "hot" && styles.levelBtnHotActive]}
+                onPress={() => setWarningLevel("hot")}
+              >
+                <Text style={[styles.levelBtnText, warningLevel === "hot" && styles.levelBtnTextActive]}>Hot</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.levelBtn, warningLevel === "warm" && styles.levelBtnWarmActive]}
+                onPress={() => setWarningLevel("warm")}
+              >
+                <Text style={[styles.levelBtnText, warningLevel === "warm" && styles.levelBtnTextActive]}>Warm</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.levelBtn, warningLevel === "green" && styles.levelBtnGreenActive]}
+                onPress={() => setWarningLevel("green")}
+              >
+                <Text style={[styles.levelBtnText, warningLevel === "green" && styles.levelBtnTextActive]}>Green</Text>
+              </Pressable>
+            </View>
             <Pressable
               style={[styles.adminBarConfirm, { backgroundColor: "#DC2626" }, !hazardCenter && { opacity: 0.3 }]}
               onPress={handleConfirmHazard}
@@ -599,7 +577,7 @@ export default function ZonesScreen() {
                 <Feather name="alert-triangle" size={18} color="#DC2626" />
               </View>
               <View style={styles.bsInfo}>
-                <Text style={styles.bsName}>Warning Zone</Text>
+                <Text style={styles.bsName}>Warning Zone ({hz.warningLevel ? hz.warningLevel.charAt(0).toUpperCase() + hz.warningLevel.slice(1) : "Hot"})</Text>
                 <Text style={styles.bsMeta}>
                   {hz.centerLat.toFixed(4)}°N, {hz.centerLng.toFixed(4)}°E · {hz.isLocked ? "Locked" : "Unlocked"}
                 </Text>
@@ -1187,26 +1165,29 @@ const styles = StyleSheet.create({
   },
   modePillCountText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  fabColumn: {
+  toolColumn: {
     position: "absolute", right: 16, zIndex: 25,
     alignItems: "center", gap: 10,
   },
-  fabMain: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center",
-    shadowColor: "#2563EB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8,
-    elevation: 6,
-  },
-  fabMainOpen: {
-    backgroundColor: "#64748B",
-    shadowColor: "#000",
-  },
-  fabMini: {
+  toolBtn: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: "center", justifyContent: "center",
     shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4,
     elevation: 3,
   },
+
+  levelPicker: {
+    flex: 1, flexDirection: "row", gap: 4, justifyContent: "center",
+  },
+  levelBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: "#F3F4F6",
+  },
+  levelBtnHotActive: { backgroundColor: "#DC2626" },
+  levelBtnWarmActive: { backgroundColor: "#F59E0B" },
+  levelBtnGreenActive: { backgroundColor: "#16A34A" },
+  levelBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
+  levelBtnTextActive: { color: "#fff" },
 
   adminBar: {
     position: "absolute", left: 12, right: 12, zIndex: 20,

@@ -288,6 +288,7 @@ export interface ActivityLog {
 
 export type HazardShape = 'circle' | 'plume';
 export type WindMode = 'manual' | 'auto';
+export type WarningLevel = 'hot' | 'warm' | 'green';
 
 export interface HazardZone {
   id: number;
@@ -298,12 +299,12 @@ export interface HazardZone {
   hotRadius: number;
   warmRadius: number;
   coldRadius: number;
-  alertId: number;
+  alertId: number | null;
+  warningLevel: WarningLevel;
   isActive: boolean;
   isLocked: boolean;
   createdBy: string;
   createdAt: string;
-  // Wind direction support (Phase 3 — data model only)
   windDirectionDeg?: number | null;
   windMode?: WindMode | null;
   hazardShape?: HazardShape | null;

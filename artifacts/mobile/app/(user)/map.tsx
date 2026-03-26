@@ -41,7 +41,7 @@ export default function ContractorMapScreen() {
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);
 
   const activeHazardZones = useMemo(
-    () => hazardZones.filter((hz) => hz.isActive && activeAlert && hz.alertId === activeAlert.id),
+    () => hazardZones.filter((hz) => hz.isActive && (hz.alertId == null || (activeAlert && hz.alertId === activeAlert.id))),
     [hazardZones, activeAlert]
   );
 

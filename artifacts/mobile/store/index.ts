@@ -17,7 +17,7 @@ import { createZoneSlice } from './slices/zones';
 import { createLocationSlice } from './slices/locations';
 import { createPersonnelSlice } from './slices/personnel';
 import { createShelterSlice } from './slices/shelters';
-import { createHazardZoneSlice, _injectSelectActiveAlert } from './slices/hazardZones';
+import { createHazardZoneSlice } from './slices/hazardZones';
 import { createAssignmentSlice } from './slices/assignments';
 import { createPermissionSlice } from './slices/permissions';
 import { createEmergencySlice } from './slices/emergency';
@@ -36,9 +36,6 @@ export {
 } from './selectors';
 
 export type { AppState } from './types';
-
-import { selectActiveAlert } from './selectors';
-_injectSelectActiveAlert(selectActiveAlert);
 
 let _hasHydrated = false;
 

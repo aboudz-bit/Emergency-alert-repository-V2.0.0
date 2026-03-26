@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 26;
+export const STORE_VERSION = 27;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -556,6 +556,16 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
     state.isAuthenticated = false;
     state.currentUser = null;
     state.personnelLocations = {};
+  }
+
+  if (version < 27) {
+    if (Array.isArray(state.hazardZones)) {
+      state.hazardZones = state.hazardZones.map((hz: any) => ({
+        ...hz,
+        warningLevel: hz.warningLevel ?? 'hot',
+        alertId: hz.alertId ?? null,
+      }));
+    }
   }
 
   return persisted as AppState;

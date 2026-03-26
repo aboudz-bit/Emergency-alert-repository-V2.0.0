@@ -1,27 +1,16 @@
-import type { HazardZone } from '@/types';
+import type { HazardZone, WarningLevel } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
-
-// selectActiveAlert is needed here — imported lazily to avoid circular deps
-let _selectActiveAlert: ((s: AppState) => import('@/types').Alert | null) | null = null;
-export function _injectSelectActiveAlert(fn: (s: AppState) => import('@/types').Alert | null) {
-  _selectActiveAlert = fn;
-}
 
 export function createHazardZoneSlice(set: SetState, get: GetState): Pick<
   AppState,
   'addHazardZone' | 'removeHazardZone' | 'unlockHazardZone' | 'applyDefaultsToHazardZone' | 'clearHazardZones'
 > {
   return {
-    addHazardZone: ({ centerLat, centerLng, zoneId, locationId }) => {
+    addHazardZone: ({ centerLat, centerLng, warningLevel, zoneId, locationId }) => {
       const state = get();
-      const { settings, currentUser, alerts, zones } = state;
-      let activeAlert = alerts.find(a => a.isActive);
-      if (!activeAlert) {
-        const hasZoneAlert = zones.some(z => z.isActive && z.alertActive);
-        if (!hasZoneAlert) return;
-        activeAlert = _selectActiveAlert?.(state) ?? undefined;
-        if (!activeAlert) return;
-      }
+      const { settings, currentUser } = state;
+      const level: WarningLevel = warningLevel ?? 'hot';
+
       const now = new Date().toISOString();
       const hz: HazardZone = {
         id: Date.now(),
@@ -29,10 +18,11 @@ export function createHazardZoneSlice(set: SetState, get: GetState): Pick<
         locationId: locationId ?? null,
         centerLat,
         centerLng,
-        hotRadius: settings.hazardHotRadius || 200,
-        warmRadius: settings.hazardWarmRadius || 500,
+        hotRadius: level === 'hot' ? (settings.hazardHotRadius || 200) : 0,
+        warmRadius: level === 'hot' || level === 'warm' ? (settings.hazardWarmRadius || 500) : 0,
         coldRadius: settings.hazardColdRadius || 1000,
-        alertId: activeAlert.id,
+        alertId: null,
+        warningLevel: level,
         isActive: true,
         isLocked: true,
         createdBy: currentUser?.name || 'System',
