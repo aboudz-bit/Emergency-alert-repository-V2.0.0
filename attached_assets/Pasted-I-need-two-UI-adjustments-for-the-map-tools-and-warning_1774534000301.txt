@@ -1,0 +1,101 @@
+I need two UI adjustments for the map tools and warning placement workflow.
+
+Please keep the current Warning / Shelter / Zone functionality working,
+but update the layout and simplify the warning placement flow.
+
+==================================================
+PART 1 — MAP TOOLS LAYOUT
+==================================================
+
+Please keep the Warning / Shelter / Zone tool buttons,
+but place them as floating buttons OVER the map, near the top area,
+not lower down and not grouped behind a big "+" button.
+
+What I want:
+
+1) Make the tool buttons floating over the map
+- directly visible
+- always accessible
+- layered on top of the map
+- clean and easy to tap
+
+2) Place them near the top-right side of the map UI
+- top-right is preferred
+- floating vertically is fine
+- but keep them clearly above the map content
+
+3) Do NOT hide them behind a "+" button
+- no expandable FAB
+- no extra step
+- the tools should be visible directly
+
+4) Keep these floating tools:
+- Warning
+- Shelter
+- Zone
+- Layers (if already present)
+
+==================================================
+PART 2 — SIMPLIFY WARNING PLACEMENT
+==================================================
+
+I want to simplify the Warning placement workflow.
+
+Right now after placing the warning center point,
+the UI shows buttons:
+Hot / Warm / Green
+
+I do NOT want these options anymore.
+
+New behavior:
+
+1) User taps Warning tool
+2) User taps one point on the map
+3) System immediately prepares the warning zone using the existing Settings defaults
+4) No level selection
+5) No Hot / Warm / Green buttons
+6) No extra step except confirm/place
+
+The warning must use the default values from Settings:
+
+- Hot Zone Radius (Red)
+- Warm Zone Radius (Yellow)
+- Cold Zone Radius (Green)
+
+When placing a warning, the system must automatically create all three rings:
+- red hot
+- yellow warm
+- green safe
+
+So the workflow becomes:
+
+Tap Warning → tap map → Place → done
+
+Remove the level picker UI completely.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT change anything else.
+
+Keep working:
+- warning rendering
+- radius values from Settings
+- zones
+- shelters
+- map tools
+- saved data
+- tracking
+- alert monitor
+- CPF / Camp
+- existing map interactions
+- zone drawing
+- shelter placement
+
+This is only:
+1) a layout adjustment for the floating map tools
+2) a simplification of warning placement UI
+
+I want the tools floating at the top-right over the map,
+and warning placement to create the full 3-level hazard automatically using the existing default settings.

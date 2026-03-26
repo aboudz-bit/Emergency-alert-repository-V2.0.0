@@ -20,7 +20,7 @@ import type { DrawMode } from "@/components/map";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
-import type { Zone, ZoneType, LatLng, Shelter, Location, WarningLevel } from "@/types";
+import type { Zone, ZoneType, LatLng, Shelter, Location } from "@/types";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 
@@ -86,7 +86,6 @@ export default function ZonesScreen() {
 
   const [placingHazard, setPlacingHazard] = useState(false);
   const [hazardCenter, setHazardCenter] = useState<LatLng | null>(null);
-  const [warningLevel, setWarningLevel] = useState<WarningLevel>("hot");
 
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const [formName, setFormName] = useState("");
@@ -197,7 +196,6 @@ export default function ZonesScreen() {
   const handleStartPlacingHazard = useCallback(() => {
     setPlacingHazard(true);
     setHazardCenter(null);
-    setWarningLevel("hot");
     setSelectedZoneId(null);
     setSelectedShelterId(null);
     setSelectedLocationId(null);
@@ -206,10 +204,10 @@ export default function ZonesScreen() {
 
   const handleConfirmHazard = useCallback(() => {
     if (!hazardCenter) return;
-    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng, warningLevel });
+    addHazardZone({ centerLat: hazardCenter.lat, centerLng: hazardCenter.lng, warningLevel: 'hot' });
     setPlacingHazard(false);
     setHazardCenter(null);
-  }, [hazardCenter, warningLevel, addHazardZone]);
+  }, [hazardCenter, addHazardZone]);
 
   const handleCancelHazard = useCallback(() => {
     setPlacingHazard(false);
@@ -497,7 +495,7 @@ export default function ZonesScreen() {
       )}
 
       {mode === "view" && !addingShelter && !placingHazard && (
-        <View style={[styles.toolColumn, { bottom: insets.bottom + 180 }]}>
+        <View style={[styles.toolColumn, { top: insets.top + 60 }]}>
           <Pressable style={[styles.toolBtn, { backgroundColor: "#FEE2E2" }]} onPress={handleStartPlacingHazard}>
             <Feather name="alert-triangle" size={18} color="#DC2626" />
           </Pressable>
@@ -516,25 +514,11 @@ export default function ZonesScreen() {
             <Pressable style={styles.adminBarCancel} onPress={handleCancelHazard}>
               <Feather name="x" size={18} color="#666" />
             </Pressable>
-            <View style={styles.levelPicker}>
-              <Pressable
-                style={[styles.levelBtn, warningLevel === "hot" && styles.levelBtnHotActive]}
-                onPress={() => setWarningLevel("hot")}
-              >
-                <Text style={[styles.levelBtnText, warningLevel === "hot" && styles.levelBtnTextActive]}>Hot</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.levelBtn, warningLevel === "warm" && styles.levelBtnWarmActive]}
-                onPress={() => setWarningLevel("warm")}
-              >
-                <Text style={[styles.levelBtnText, warningLevel === "warm" && styles.levelBtnTextActive]}>Warm</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.levelBtn, warningLevel === "green" && styles.levelBtnGreenActive]}
-                onPress={() => setWarningLevel("green")}
-              >
-                <Text style={[styles.levelBtnText, warningLevel === "green" && styles.levelBtnTextActive]}>Green</Text>
-              </Pressable>
+            <View style={styles.adminBarInfo}>
+              <Text style={styles.adminBarLabel}>Warning Zone</Text>
+              <Text style={styles.adminBarMeta}>
+                Hot:{settings.hazardHotRadius || 200}m · Warm:{settings.hazardWarmRadius || 500}m · Green:{settings.hazardColdRadius || 1000}m
+              </Text>
             </View>
             <Pressable
               style={[styles.adminBarConfirm, { backgroundColor: "#DC2626" }, !hazardCenter && { opacity: 0.3 }]}
@@ -1175,19 +1159,6 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4,
     elevation: 3,
   },
-
-  levelPicker: {
-    flex: 1, flexDirection: "row", gap: 4, justifyContent: "center",
-  },
-  levelBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-  },
-  levelBtnHotActive: { backgroundColor: "#DC2626" },
-  levelBtnWarmActive: { backgroundColor: "#F59E0B" },
-  levelBtnGreenActive: { backgroundColor: "#16A34A" },
-  levelBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
-  levelBtnTextActive: { color: "#fff" },
 
   adminBar: {
     position: "absolute", left: 12, right: 12, zIndex: 20,
