@@ -1,0 +1,58 @@
+I want the Zone Map UI to feel much closer to Google Maps, especially like the satellite-style map experience, while still keeping it suitable for an emergency operations app.
+
+Current problems in our map screen:
+- map looks too flat / washed out
+- shelter icons and labels are overlapping
+- polygons are too visually heavy
+- too much UI clutter on top of the map
+- it does not feel like a modern live map experience
+
+I do NOT want a literal clone of Google Maps.
+I want a Google Maps-inspired operational map.
+
+Please redesign and refactor the Zone Map with these goals:
+
+1) Use a satellite or hybrid-style map appearance
+- the map should feel rich and spatially real, not flat
+- roads / site structure should be easier to understand visually
+
+2) Reduce map clutter
+- do not show all shelter labels all the time
+- labels should appear only when selected or when zoom level is appropriate
+- default map should show clean markers, not a wall of text
+
+3) Add clustering for nearby shelters / markers
+- when multiple shelters are close together, group them into a cluster
+- expand them as user zooms in
+
+4) Improve polygon styling
+- zone polygons should be lighter and cleaner
+- use subtle fill and thinner borders
+- highlight only the selected zone strongly
+- non-selected zones should stay quiet in the background
+
+5) Move details into a bottom sheet
+- selected zone details
+- nearby shelters
+- capacity / counts / status
+- directions / quick actions
+- do not keep too much text directly on the map
+
+6) Rework controls to feel more like Google Maps
+- floating action buttons on the right side
+- locate me button
+- layers/map-type button
+- cleaner top bar
+- less visual weight from controls
+
+7) Separate admin editing mode from live operational map mode
+- admin edit map can keep technical polygon editing tools
+- live operational map must be clean, polished, and easy to read under pressure
+
+8) Preserve our emergency app needs
+- support zones, shelters, user location, live alert context
+- keep the UX clear during emergency use
+- optimize for mobile first
+
+I want you to implement the map so that it feels premium, clean, modern, and much closer to the Google Maps experience.
+Focus on UX, readability, clustering, selected-state behavior, and map presentation.

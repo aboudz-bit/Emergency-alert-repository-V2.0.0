@@ -52,7 +52,6 @@ export default function ZonesScreen() {
   const deleteShelter = useStore((s) => s.deleteShelter);
   const linkShelterToLocations = useStore((s) => s.linkShelterToLocations);
   const { activeAlert, emergencyMode } = useAlertSystemState();
-  // Show Warning Zone button when there is ANY active alert
   const hasRealAlert = emergencyMode !== null;
   const addHazardZone = useStore((s) => s.addHazardZone);
   const removeHazardZone = useStore((s) => s.removeHazardZone);
@@ -62,7 +61,6 @@ export default function ZonesScreen() {
   const settings = useStore((s) => s.settings);
 
   const [selectedHazardId, setSelectedHazardId] = useState<number | null>(null);
-
   const [mode, setMode] = useState<Mode>("view");
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [selectedShelterId, setSelectedShelterId] = useState<number | null>(null);
@@ -96,6 +94,8 @@ export default function ZonesScreen() {
   const [formColor, setFormColor] = useState(ZONE_COLORS[0]);
   const [formLocationId, setFormLocationId] = useState<number | null>(null);
 
+  const [fabOpen, setFabOpen] = useState(false);
+
   const pendingPointsRef = useRef<LatLng[]>([]);
   const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
   const originalPointsRef = useRef<LatLng[]>([]);
@@ -105,7 +105,6 @@ export default function ZonesScreen() {
     [zones, selectedZoneId]
   );
 
-  // ─── Map handlers ───
   const handleMapCenterChange = useCallback((c: LatLng) => {
     mapCenterRef.current = c;
   }, []);
@@ -115,9 +114,11 @@ export default function ZonesScreen() {
     setSelectedZoneId((prev) => (prev === id ? null : id));
     setSelectedShelterId(null);
     setSelectedLocationId(null);
+    setFabOpen(false);
   }, [mode]);
 
   const handleMapTap = useCallback((pt: LatLng) => {
+    setFabOpen(false);
     if (placingHazard) {
       setHazardCenter(pt);
       return;
@@ -141,6 +142,7 @@ export default function ZonesScreen() {
     setSelectedShelterId((prev) => (prev === shelterId ? null : shelterId));
     setSelectedZoneId(null);
     setSelectedLocationId(null);
+    setFabOpen(false);
   }, []);
 
   const handleSaveShelter = useCallback(() => {
@@ -163,6 +165,7 @@ export default function ZonesScreen() {
     setAddingShelter((p) => !p);
     setSelectedShelterId(null);
     setSelectedZoneId(null);
+    setFabOpen(false);
   }, []);
 
   const handleToggleShelter = useCallback((sh: Shelter) => {
@@ -191,9 +194,7 @@ export default function ZonesScreen() {
     setEditingShelter(null);
   }, [editingShelter, shelterFormName, updateShelter]);
 
-  // ─── HAZARD ZONE flow ───
   const handleStartPlacingHazard = useCallback(() => {
-    // Guard: allow placement when any alert is active (real or zone-level)
     const state = useStore.getState();
     const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
     if (!hasAny) {
@@ -205,11 +206,11 @@ export default function ZonesScreen() {
     setSelectedZoneId(null);
     setSelectedShelterId(null);
     setSelectedLocationId(null);
+    setFabOpen(false);
   }, []);
 
   const handleConfirmHazard = useCallback(() => {
     if (!hazardCenter) return;
-    // Check for any active alert (real or zone-level)
     const state = useStore.getState();
     const hasAny = state.alerts.some((a: { isActive: boolean }) => a.isActive) || state.zones.some((z: { isActive?: boolean; alertActive?: boolean }) => z.isActive && z.alertActive);
     if (!hasAny) {
@@ -228,8 +229,6 @@ export default function ZonesScreen() {
     setHazardCenter(null);
   }, []);
 
-  // Derive a stable primitive for alert identity — avoids useMemo recomputing
-  // when the activeAlert object reference changes but the id is the same.
   const alertId = activeAlert?.id ?? null;
 
   const activeHazardZones = useMemo(
@@ -240,14 +239,12 @@ export default function ZonesScreen() {
     [hazardZones, alertId]
   );
 
-  // Reset hazard placement state when alert changes or disappears
   useEffect(() => {
     setPlacingHazard(false);
     setHazardCenter(null);
     setSelectedHazardId(null);
   }, [alertId]);
 
-  // ─── CREATE flow ───
   const handlePressAdd = useCallback(() => {
     const used = zones.map((z) => z.color);
     setFormColor(ZONE_COLORS.find((c) => !used.includes(c)) || ZONE_COLORS[0]);
@@ -255,6 +252,7 @@ export default function ZonesScreen() {
     setFormType("Custom");
     setSelectedZoneId(null);
     setMode("pick_shape");
+    setFabOpen(false);
   }, [zones]);
 
   const handlePickRect = useCallback(() => {
@@ -317,7 +315,6 @@ export default function ZonesScreen() {
     setFormLocationId(null);
   }, []);
 
-  // ─── EDIT flow — direct to boundary ───
   const handleEditZone = useCallback(() => {
     if (!selectedZone) return;
     originalPointsRef.current = [...selectedZone.polygonPoints];
@@ -361,7 +358,6 @@ export default function ZonesScreen() {
     if (selectedZoneId) setFlyToZoneId(selectedZoneId);
   }, [selectedZoneId]);
 
-  // ─── Derived ───
   const selectedShelter = useMemo(
     () => shelters.find((s) => s.id === selectedShelterId) || null,
     [shelters, selectedShelterId]
@@ -382,7 +378,6 @@ export default function ZonesScreen() {
   const drawMode: DrawMode = mode === "draw" || addingShelter || placingHazard ? "tap" : locDrawMode ? "tap" : "none";
   const showCrosshair = mode === "pick_shape";
 
-  // ─── Location handlers ───
   const handleLocationPress = useCallback((locId: number) => {
     if (locDrawMode || mode !== "view") return;
     setSelectedLocationId((prev) => (prev === locId ? null : locId));
@@ -452,9 +447,10 @@ export default function ZonesScreen() {
     setLinkingSelectedIds([]);
   }, [linkingShelterId, linkingSelectedIds, linkShelterToLocations]);
 
+  const showBottomSheet = mode === "view" && !addingShelter && !placingHazard && !locDrawMode && editingLocationId == null;
+
   return (
     <View style={styles.root}>
-      {/* ═══ FULL-SCREEN MAP ═══ */}
       <ZoneMap
         key={focusCount}
         zones={zones}
@@ -484,101 +480,98 @@ export default function ZonesScreen() {
         hazardZones={activeHazardZones}
       />
 
-      {/* ═══ FLOATING HEADER — VIEW ═══ */}
       {mode === "view" && !addingShelter && !placingHazard && (
-        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
-            <Feather name="chevron-left" size={20} color="#fff" />
+        <View style={[styles.topBar, { top: insets.top + 8 }]}>
+          <Pressable style={styles.topBackBtn} onPress={() => { if (router.canGoBack()) router.back(); }} hitSlop={8}>
+            <Feather name="chevron-left" size={22} color="#333" />
           </Pressable>
-          <View style={styles.fhTitle}>
-            <Text style={styles.fhTitleText}>Zones</Text>
-            <Text style={styles.fhSubtext}>{zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}</Text>
-          </View>
-          {hasRealAlert && (
-            <Pressable style={[styles.fhBtn, { backgroundColor: "#EF4444" }]} onPress={handleStartPlacingHazard} hitSlop={8}>
-              <Feather name="alert-triangle" size={18} color="#fff" />
-            </Pressable>
-          )}
-          <Pressable style={[styles.fhBtn, { backgroundColor: "#F59E0B" }]} onPress={handleToggleShelterAdd} hitSlop={8}>
-            <Feather name="home" size={18} color="#fff" />
-          </Pressable>
-          <Pressable style={styles.fhBtnAccent} onPress={handlePressAdd} hitSlop={8}>
-            <Feather name="plus" size={20} color="#fff" />
-          </Pressable>
-        </View>
-      )}
-
-      {/* ═══ FLOATING HEADER — ADD SHELTER ═══ */}
-      {addingShelter && (
-        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={handleToggleShelterAdd} hitSlop={8}>
-            <Feather name="x" size={20} color="#fff" />
-          </Pressable>
-          <View style={styles.fhTitle}>
-            <Text style={styles.fhTitleText}>Add Shelter</Text>
-            <Text style={styles.fhSubtext}>Tap on map to place shelter</Text>
-          </View>
-        </View>
-      )}
-
-      {/* ═══ FLOATING HEADER — PLACE HAZARD ═══ */}
-      {placingHazard && (
-        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={handleCancelHazard} hitSlop={8}>
-            <Feather name="x" size={20} color="#fff" />
-          </Pressable>
-          <View style={styles.fhTitle}>
-            <Text style={[styles.fhTitleText, { color: "#EF4444" }]}>Warning Zone</Text>
-            <Text style={styles.fhSubtext}>
-              {hazardCenter
-                ? `${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E`
-                : "Tap the map to place center"
-              }
+          <View style={styles.topSearchBar}>
+            <Feather name="map" size={16} color="#999" />
+            <Text style={styles.topSearchText}>
+              {zones.length} zone{zones.length !== 1 ? "s" : ""} · {shelters.length} shelter{shelters.length !== 1 ? "s" : ""}
             </Text>
           </View>
         </View>
       )}
 
-      {/* ═══ HAZARD PLACEMENT — MODE PILL ═══ */}
-      {placingHazard && (
-        <View style={[styles.modeHeader, { top: insets.top + 8 + 52 }]}>
-          <View style={[styles.modePill, { backgroundColor: "#EF4444" }]}>
-            <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>WARNING ZONE</Text>
+      {addingShelter && (
+        <View style={[styles.topBar, { top: insets.top + 8 }]}>
+          <Pressable style={styles.topBackBtn} onPress={handleToggleShelterAdd} hitSlop={8}>
+            <Feather name="x" size={20} color="#333" />
+          </Pressable>
+          <View style={[styles.topSearchBar, { backgroundColor: "#FEF3C7" }]}>
+            <Feather name="home" size={16} color="#D97706" />
+            <Text style={[styles.topSearchText, { color: "#92400E" }]}>Tap map to place shelter</Text>
           </View>
-          {hazardCenter && (
-            <View style={styles.modeCount}>
-              <Text style={styles.modeCountText}>
-                Hot:{settings.hazardHotRadius || 200}m Warm:{settings.hazardWarmRadius || 500}m Cold:{settings.hazardColdRadius || 1000}m
-              </Text>
-            </View>
-          )}
         </View>
       )}
 
-      {/* ═══ HAZARD PLACEMENT — BOTTOM BAR ═══ */}
       {placingHazard && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.drawBar}>
-            <Pressable style={styles.actionBtn} onPress={handleCancelHazard}>
-              <Feather name="x" size={18} color={Colors.textSecondary} />
+        <View style={[styles.topBar, { top: insets.top + 8 }]}>
+          <Pressable style={styles.topBackBtn} onPress={handleCancelHazard} hitSlop={8}>
+            <Feather name="x" size={20} color="#333" />
+          </Pressable>
+          <View style={[styles.topSearchBar, { backgroundColor: "#FEE2E2" }]}>
+            <Feather name="alert-triangle" size={16} color="#DC2626" />
+            <Text style={[styles.topSearchText, { color: "#991B1B" }]}>
+              {hazardCenter ? `${hazardCenter.lat.toFixed(4)}°N, ${hazardCenter.lng.toFixed(4)}°E` : "Tap to place warning zone"}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {mode === "view" && !addingShelter && !placingHazard && (
+        <View style={[styles.fabColumn, { bottom: insets.bottom + 180 }]}>
+          {fabOpen && (
+            <>
+              {hasRealAlert && (
+                <Pressable style={[styles.fabMini, { backgroundColor: "#FEE2E2" }]} onPress={handleStartPlacingHazard}>
+                  <Feather name="alert-triangle" size={18} color="#DC2626" />
+                </Pressable>
+              )}
+              <Pressable style={[styles.fabMini, { backgroundColor: "#FEF3C7" }]} onPress={handleToggleShelterAdd}>
+                <Feather name="home" size={18} color="#D97706" />
+              </Pressable>
+              <Pressable style={[styles.fabMini, { backgroundColor: "#DBEAFE" }]} onPress={handlePressAdd}>
+                <Feather name="hexagon" size={18} color="#2563EB" />
+              </Pressable>
+            </>
+          )}
+          <Pressable
+            style={[styles.fabMain, fabOpen && styles.fabMainOpen]}
+            onPress={() => setFabOpen((p) => !p)}
+          >
+            <Feather name={fabOpen ? "x" : "plus"} size={24} color="#fff" />
+          </Pressable>
+        </View>
+      )}
+
+      {placingHazard && (
+        <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
+          <View style={styles.adminBarInner}>
+            <View style={styles.adminBarInfo}>
+              <Text style={styles.adminBarLabel}>Warning Zone</Text>
+              <Text style={styles.adminBarMeta}>
+                Hot:{settings.hazardHotRadius || 200}m · Warm:{settings.hazardWarmRadius || 500}m · Cold:{settings.hazardColdRadius || 1000}m
+              </Text>
+            </View>
+            <Pressable style={styles.adminBarCancel} onPress={handleCancelHazard}>
+              <Feather name="x" size={18} color="#666" />
             </Pressable>
-            <View style={{ flex: 1 }} />
             <Pressable
-              style={[styles.actionBtnPrimary, { backgroundColor: "#EF4444" }, !hazardCenter && { opacity: 0.3 }]}
+              style={[styles.adminBarConfirm, { backgroundColor: "#DC2626" }, !hazardCenter && { opacity: 0.3 }]}
               onPress={handleConfirmHazard}
               disabled={!hazardCenter}
             >
               <Feather name="check" size={18} color="#fff" />
-              <Text style={styles.actionBtnPrimaryText}>Place</Text>
+              <Text style={styles.adminBarConfirmText}>Place</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {/* ═══ HAZARD ZONES LIST — bottom chips when active ═══ */}
-      {mode === "view" && !addingShelter && !placingHazard && activeHazardZones.length > 0 && !selectedZone && !selectedShelter && !selectedLocation && (
-        <View style={[styles.hazardChipBar, { bottom: insets.bottom + (zones.length > 0 ? 56 : 12) }]}>
+      {showBottomSheet && activeHazardZones.length > 0 && !selectedZone && !selectedShelter && !selectedLocation && (
+        <View style={[styles.chipBar, { bottom: insets.bottom + (zones.length > 0 ? 56 : 12) }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
             {activeHazardZones.map((hz) => (
               <Pressable
@@ -586,25 +579,25 @@ export default function ZonesScreen() {
                 style={[styles.hazardChip, selectedHazardId === hz.id && styles.hazardChipSelected]}
                 onPress={() => setSelectedHazardId(selectedHazardId === hz.id ? null : hz.id)}
               >
-                <Feather name="alert-triangle" size={12} color="#EF4444" />
-                <Text style={styles.hazardChipText}>
-                  WZ {hz.centerLat.toFixed(2)}°
-                </Text>
-                {hz.isLocked && <Feather name="lock" size={10} color="rgba(255,255,255,0.5)" />}
+                <Feather name="alert-triangle" size={11} color="#DC2626" />
+                <Text style={styles.hazardChipText}>WZ {hz.centerLat.toFixed(2)}°</Text>
+                {hz.isLocked && <Feather name="lock" size={9} color="rgba(255,255,255,0.5)" />}
               </Pressable>
             ))}
           </ScrollView>
         </View>
       )}
 
-      {/* ═══ SELECTED HAZARD ZONE — bottom sheet ═══ */}
-      {mode === "view" && !addingShelter && !placingHazard && selectedHazardId != null && !selectedZone && !selectedShelter && !selectedLocation && (() => {
+      {showBottomSheet && selectedHazardId != null && !selectedZone && !selectedShelter && !selectedLocation && (() => {
         const hz = activeHazardZones.find((h) => h.id === selectedHazardId);
         if (!hz) return null;
         return (
           <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={styles.bsHandle} />
             <View style={styles.bsRow}>
-              <View style={[styles.bsDot, { backgroundColor: "#EF4444" }]} />
+              <View style={[styles.bsIconWrap, { backgroundColor: "#FEE2E2" }]}>
+                <Feather name="alert-triangle" size={18} color="#DC2626" />
+              </View>
               <View style={styles.bsInfo}>
                 <Text style={styles.bsName}>Warning Zone</Text>
                 <Text style={styles.bsMeta}>
@@ -612,106 +605,97 @@ export default function ZonesScreen() {
                 </Text>
               </View>
               <Pressable style={styles.bsClose} onPress={() => setSelectedHazardId(null)} hitSlop={8}>
-                <Feather name="x" size={16} color={Colors.textTertiary} />
+                <Feather name="x" size={16} color="#999" />
               </Pressable>
             </View>
-            <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
-              <View style={{ flex: 1, backgroundColor: "#EF444420", borderRadius: 8, padding: 8, alignItems: "center" }}>
-                <Text style={{ fontSize: 10, color: "#EF4444", fontFamily: "Inter_600SemiBold" }}>HOT</Text>
-                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.hotRadius}m</Text>
+            <View style={styles.bsRadiusRow}>
+              <View style={[styles.bsRadiusCard, { backgroundColor: "#FEF2F2" }]}>
+                <Text style={[styles.bsRadiusLabel, { color: "#DC2626" }]}>HOT</Text>
+                <Text style={styles.bsRadiusValue}>{hz.hotRadius}m</Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: "#EAB30820", borderRadius: 8, padding: 8, alignItems: "center" }}>
-                <Text style={{ fontSize: 10, color: "#EAB308", fontFamily: "Inter_600SemiBold" }}>WARM</Text>
-                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.warmRadius}m</Text>
+              <View style={[styles.bsRadiusCard, { backgroundColor: "#FFFBEB" }]}>
+                <Text style={[styles.bsRadiusLabel, { color: "#D97706" }]}>WARM</Text>
+                <Text style={styles.bsRadiusValue}>{hz.warmRadius}m</Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: "#22C55E20", borderRadius: 8, padding: 8, alignItems: "center" }}>
-                <Text style={{ fontSize: 10, color: "#22C55E", fontFamily: "Inter_600SemiBold" }}>COLD</Text>
-                <Text style={{ fontSize: 14, color: Colors.text, fontFamily: "Inter_700Bold" }}>{hz.coldRadius}m</Text>
+              <View style={[styles.bsRadiusCard, { backgroundColor: "#F0FDF4" }]}>
+                <Text style={[styles.bsRadiusLabel, { color: "#16A34A" }]}>COLD</Text>
+                <Text style={styles.bsRadiusValue}>{hz.coldRadius}m</Text>
               </View>
             </View>
             <View style={styles.bsActions}>
               {hz.isLocked ? (
                 <Pressable style={styles.bsActionBtn} onPress={() => unlockHazardZone(hz.id)}>
-                  <Feather name="unlock" size={16} color="#F59E0B" />
-                  <Text style={[styles.bsActionText, { color: "#F59E0B" }]}>Unlock</Text>
+                  <Feather name="unlock" size={15} color="#D97706" />
+                  <Text style={[styles.bsActionText, { color: "#D97706" }]}>Unlock</Text>
                 </Pressable>
               ) : (
                 <Pressable style={styles.bsActionBtn} onPress={() => {}}>
-                  <Feather name="lock" size={16} color={Colors.text} />
+                  <Feather name="lock" size={15} color="#666" />
                   <Text style={styles.bsActionText}>Locked</Text>
                 </Pressable>
               )}
-              <Pressable style={styles.bsActionBtn} onPress={() => {
-                applyDefaultsToHazardZone(hz.id);
-              }}>
-                <Feather name="refresh-cw" size={16} color={Colors.info} />
-                <Text style={[styles.bsActionText, { color: Colors.info }]}>Apply Defaults</Text>
+              <Pressable style={styles.bsActionBtn} onPress={() => applyDefaultsToHazardZone(hz.id)}>
+                <Feather name="refresh-cw" size={15} color="#2563EB" />
+                <Text style={[styles.bsActionText, { color: "#2563EB" }]}>Defaults</Text>
               </Pressable>
-              <Pressable style={styles.bsActionBtn} onPress={() => {
-                removeHazardZone(hz.id);
-                setSelectedHazardId(null);
-              }}>
-                <Feather name="trash-2" size={16} color={Colors.destructive} />
-                <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Delete</Text>
+              <Pressable style={styles.bsActionBtn} onPress={() => { removeHazardZone(hz.id); setSelectedHazardId(null); }}>
+                <Feather name="trash-2" size={15} color="#DC2626" />
+                <Text style={[styles.bsActionText, { color: "#DC2626" }]}>Delete</Text>
               </Pressable>
             </View>
           </View>
         );
       })()}
 
-      {/* ═══ FLOATING HEADER — PICK SHAPE ═══ */}
       {mode === "pick_shape" && (
-        <View style={[styles.floatingHeader, { top: insets.top + 8 }]}>
-          <Pressable style={styles.fhBtn} onPress={handleCancelDraw} hitSlop={8}>
-            <Feather name="x" size={20} color="#fff" />
+        <View style={[styles.topBar, { top: insets.top + 8 }]}>
+          <Pressable style={styles.topBackBtn} onPress={handleCancelDraw} hitSlop={8}>
+            <Feather name="x" size={20} color="#333" />
           </Pressable>
-          <View style={styles.fhTitle}>
-            <Text style={styles.fhTitleText}>New Zone</Text>
-            <Text style={styles.fhSubtext}>Choose a drawing method</Text>
+          <View style={[styles.topSearchBar, { backgroundColor: "#DBEAFE" }]}>
+            <Feather name="hexagon" size={16} color="#2563EB" />
+            <Text style={[styles.topSearchText, { color: "#1E40AF" }]}>Choose drawing method</Text>
           </View>
         </View>
       )}
 
-      {/* ═══ FLOATING HEADER — DRAW ═══ */}
       {mode === "draw" && (
-        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
-          <View style={[styles.modePill, { backgroundColor: Colors.info }]}>
+        <View style={[styles.modeBanner, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#2563EB" }]}>
             <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>DRAW MODE</Text>
+            <Text style={styles.modePillText}>DRAW</Text>
           </View>
-          <View style={styles.modeCount}>
-            <Text style={styles.modeCountText}>{tapPoints.length} pts</Text>
+          <View style={styles.modePillCount}>
+            <Text style={styles.modePillCountText}>{tapPoints.length} pts</Text>
           </View>
         </View>
       )}
 
-      {/* ═══ FLOATING HEADER — EDIT ═══ */}
       {mode === "edit" && (
-        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
-          <View style={[styles.modePill, { backgroundColor: "#F59E0B" }]}>
+        <View style={[styles.modeBanner, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#D97706" }]}>
             <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>EDIT MODE</Text>
+            <Text style={styles.modePillText}>EDIT</Text>
           </View>
-          <View style={styles.modeCount}>
-            <Text style={styles.modeCountText}>{editingPoints.length} vertices</Text>
+          <View style={styles.modePillCount}>
+            <Text style={styles.modePillCountText}>{editingPoints.length} vertices</Text>
           </View>
         </View>
       )}
 
-      {/* ═══ SHAPE PICKER — bottom action bar ═══ */}
       {mode === "pick_shape" && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+        <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
           <View style={styles.shapeRow}>
             <Pressable style={styles.shapeBtn} onPress={handlePickRect}>
-              <View style={[styles.shapeBtnIcon, { backgroundColor: Colors.infoDim }]}>
-                <Feather name="square" size={22} color={Colors.info} />
+              <View style={[styles.shapeBtnIcon, { backgroundColor: "#DBEAFE" }]}>
+                <Feather name="square" size={22} color="#2563EB" />
               </View>
               <Text style={styles.shapeBtnLabel}>Rectangle</Text>
               <Text style={styles.shapeBtnHint}>At center</Text>
             </Pressable>
             <Pressable style={styles.shapeBtn} onPress={handlePickDraw}>
-              <View style={[styles.shapeBtnIcon, { backgroundColor: Colors.infoDim }]}>
-                <Feather name="edit-3" size={22} color={Colors.info} />
+              <View style={[styles.shapeBtnIcon, { backgroundColor: "#DBEAFE" }]}>
+                <Feather name="edit-3" size={22} color="#2563EB" />
               </View>
               <Text style={styles.shapeBtnLabel}>Free Draw</Text>
               <Text style={styles.shapeBtnHint}>Tap points</Text>
@@ -720,82 +704,78 @@ export default function ZonesScreen() {
         </View>
       )}
 
-      {/* ═══ DRAW CONTROLS — bottom action bar ═══ */}
       {mode === "draw" && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.drawBar}>
-            <Pressable style={styles.actionBtn} onPress={handleCancelDraw}>
-              <Feather name="x" size={18} color={Colors.textSecondary} />
+        <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
+          <View style={styles.adminBarInner}>
+            <Pressable style={styles.adminBarCancel} onPress={handleCancelDraw}>
+              <Feather name="x" size={18} color="#666" />
             </Pressable>
             {tapPoints.length > 0 && (
-              <Pressable style={styles.actionBtn} onPress={handleUndoTap}>
-                <Feather name="corner-up-left" size={18} color={Colors.textSecondary} />
+              <Pressable style={styles.adminBarCancel} onPress={handleUndoTap}>
+                <Feather name="corner-up-left" size={18} color="#666" />
               </Pressable>
             )}
             <View style={{ flex: 1 }} />
             <Pressable
-              style={[styles.actionBtnPrimary, tapPoints.length < 3 && { opacity: 0.3 }]}
+              style={[styles.adminBarConfirm, tapPoints.length < 3 && { opacity: 0.3 }]}
               onPress={handleFinishDraw}
               disabled={tapPoints.length < 3}
             >
               <Feather name="check" size={18} color="#fff" />
-              <Text style={styles.actionBtnPrimaryText}>Done</Text>
+              <Text style={styles.adminBarConfirmText}>Done</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {/* ═══ EDIT CONTROLS — bottom action bar ═══ */}
       {mode === "edit" && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.drawBar}>
-            <Pressable style={styles.actionBtn} onPress={handleCancelEdit}>
-              <Feather name="x" size={18} color={Colors.textSecondary} />
+        <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
+          <View style={styles.adminBarInner}>
+            <Pressable style={styles.adminBarCancel} onPress={handleCancelEdit}>
+              <Feather name="x" size={18} color="#666" />
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={handleResetEdit}>
-              <Feather name="rotate-ccw" size={18} color={Colors.textSecondary} />
+            <Pressable style={styles.adminBarCancel} onPress={handleResetEdit}>
+              <Feather name="rotate-ccw" size={18} color="#666" />
             </Pressable>
             <View style={{ flex: 1 }} />
-            <Pressable style={styles.actionBtnPrimary} onPress={handleSaveEdit}>
+            <Pressable style={[styles.adminBarConfirm, { backgroundColor: "#D97706" }]} onPress={handleSaveEdit}>
               <Feather name="check" size={18} color="#fff" />
-              <Text style={styles.actionBtnPrimaryText}>Save</Text>
+              <Text style={styles.adminBarConfirmText}>Save</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {/* ═══ FLOATING HEADER — LOC DRAW ═══ */}
       {locDrawMode && (
-        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
-          <View style={[styles.modePill, { backgroundColor: "#6366F1" }]}>
+        <View style={[styles.modeBanner, { top: insets.top + 8 }]}>
+          <View style={[styles.modePill, { backgroundColor: "#7C3AED" }]}>
             <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>LOCATION BOUNDARY</Text>
+            <Text style={styles.modePillText}>BOUNDARY</Text>
           </View>
-          <View style={styles.modeCount}>
-            <Text style={styles.modeCountText}>{locEditPoints.length} pts</Text>
+          <View style={styles.modePillCount}>
+            <Text style={styles.modePillCountText}>{locEditPoints.length} pts</Text>
           </View>
         </View>
       )}
 
-      {/* ═══ LOC DRAW CONTROLS ═══ */}
       {locDrawMode && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.drawBar}>
-            <Pressable style={styles.actionBtn} onPress={() => {
+        <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
+          <View style={styles.adminBarInner}>
+            <Pressable style={styles.adminBarCancel} onPress={() => {
               setLocDrawMode(false);
               setLocDrawLocationId(null);
               setLocEditPoints([]);
             }}>
-              <Feather name="x" size={18} color={Colors.textSecondary} />
+              <Feather name="x" size={18} color="#666" />
             </Pressable>
             {locEditPoints.length > 0 && (
-              <Pressable style={styles.actionBtn} onPress={() => setLocEditPoints((p) => p.slice(0, -1))}>
-                <Feather name="corner-up-left" size={18} color={Colors.textSecondary} />
+              <Pressable style={styles.adminBarCancel} onPress={() => setLocEditPoints((p) => p.slice(0, -1))}>
+                <Feather name="corner-up-left" size={18} color="#666" />
               </Pressable>
             )}
             <View style={{ flex: 1 }} />
             <Pressable
-              style={[styles.actionBtnPrimary, { backgroundColor: "#6366F1" }, locEditPoints.length < 3 && { opacity: 0.3 }]}
+              style={[styles.adminBarConfirm, { backgroundColor: "#7C3AED" }, locEditPoints.length < 3 && { opacity: 0.3 }]}
               onPress={() => {
                 if (locDrawLocationId && locEditPoints.length >= 3) {
                   updateLocation(locDrawLocationId, { polygonPoints: locEditPoints });
@@ -807,44 +787,45 @@ export default function ZonesScreen() {
               disabled={locEditPoints.length < 3}
             >
               <Feather name="check" size={18} color="#fff" />
-              <Text style={styles.actionBtnPrimaryText}>Save</Text>
+              <Text style={styles.adminBarConfirmText}>Save</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {/* ═══ LOC EDIT CONTROLS ═══ */}
       {editingLocationId != null && (
-        <View style={[styles.modeHeader, { top: insets.top + 8 }]}>
-          <View style={[styles.modePill, { backgroundColor: "#6366F1" }]}>
-            <View style={styles.modePillDot} />
-            <Text style={styles.modePillText}>EDIT BOUNDARY</Text>
+        <>
+          <View style={[styles.modeBanner, { top: insets.top + 8 }]}>
+            <View style={[styles.modePill, { backgroundColor: "#7C3AED" }]}>
+              <View style={styles.modePillDot} />
+              <Text style={styles.modePillText}>EDIT BOUNDARY</Text>
+            </View>
+            <View style={styles.modePillCount}>
+              <Text style={styles.modePillCountText}>{locEditPoints.length} vertices</Text>
+            </View>
           </View>
-          <View style={styles.modeCount}>
-            <Text style={styles.modeCountText}>{locEditPoints.length} vertices</Text>
+          <View style={[styles.adminBar, { bottom: insets.bottom + 12 }]}>
+            <View style={styles.adminBarInner}>
+              <Pressable style={styles.adminBarCancel} onPress={handleCancelLocEdit}>
+                <Feather name="x" size={18} color="#666" />
+              </Pressable>
+              <View style={{ flex: 1 }} />
+              <Pressable style={[styles.adminBarConfirm, { backgroundColor: "#7C3AED" }]} onPress={handleSaveLocEdit}>
+                <Feather name="check" size={18} color="#fff" />
+                <Text style={styles.adminBarConfirmText}>Save</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      )}
-      {editingLocationId != null && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.drawBar}>
-            <Pressable style={styles.actionBtn} onPress={handleCancelLocEdit}>
-              <Feather name="x" size={18} color={Colors.textSecondary} />
-            </Pressable>
-            <View style={{ flex: 1 }} />
-            <Pressable style={[styles.actionBtnPrimary, { backgroundColor: "#6366F1" }]} onPress={handleSaveLocEdit}>
-              <Feather name="check" size={18} color="#fff" />
-              <Text style={styles.actionBtnPrimaryText}>Save</Text>
-            </Pressable>
-          </View>
-        </View>
+        </>
       )}
 
-      {/* ═══ SELECTED ZONE — compact bottom sheet ═══ */}
-      {mode === "view" && selectedZone && (
+      {showBottomSheet && selectedZone && (
         <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsHandle} />
           <View style={styles.bsRow}>
-            <View style={[styles.bsDot, { backgroundColor: selectedZone.color }]} />
+            <View style={[styles.bsIconWrap, { backgroundColor: selectedZone.color + "20" }]}>
+              <Feather name="hexagon" size={18} color={selectedZone.color} />
+            </View>
             <View style={styles.bsInfo}>
               <Text style={styles.bsName} numberOfLines={1}>{selectedZone.name}</Text>
               <Text style={styles.bsMeta}>
@@ -853,56 +834,44 @@ export default function ZonesScreen() {
               </Text>
             </View>
             <Pressable style={styles.bsClose} onPress={() => setSelectedZoneId(null)} hitSlop={8}>
-              <Feather name="x" size={16} color={Colors.textTertiary} />
+              <Feather name="x" size={16} color="#999" />
             </Pressable>
           </View>
           <View style={styles.bsActions}>
             <Pressable style={styles.bsActionBtn} onPress={handleFocusZone}>
-              <Feather name="crosshair" size={16} color={Colors.info} />
-              <Text style={[styles.bsActionText, { color: Colors.info }]}>Focus</Text>
+              <Feather name="crosshair" size={15} color="#2563EB" />
+              <Text style={[styles.bsActionText, { color: "#2563EB" }]}>Focus</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={handleEditZone}>
-              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Feather name="edit-2" size={15} color="#333" />
               <Text style={styles.bsActionText}>Edit</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={() => handleToggleZone(selectedZone)}>
-              <Feather name={selectedZone.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
+              <Feather name={selectedZone.isActive ? "eye-off" : "eye"} size={15} color="#333" />
               <Text style={styles.bsActionText}>{selectedZone.isActive ? "Disable" : "Enable"}</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={handleDeleteZone}>
-              <Feather name="trash-2" size={16} color={Colors.primary} />
-              <Text style={[styles.bsActionText, { color: Colors.primary }]}>Delete</Text>
+              <Feather name="trash-2" size={15} color="#DC2626" />
+              <Text style={[styles.bsActionText, { color: "#DC2626" }]}>Delete</Text>
             </Pressable>
           </View>
           {locationsForZone.length > 0 && (
             <>
-              <View style={{ height: 1, backgroundColor: Colors.border, marginTop: 4 }} />
-              <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary, marginTop: 2 }}>
-                LOCATIONS ({locationsForZone.length})
-              </Text>
+              <View style={styles.bsDivider} />
+              <Text style={styles.bsSectionTitle}>LOCATIONS ({locationsForZone.length})</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                 {locationsForZone.map((loc) => (
                   <Pressable
                     key={loc.id}
-                    style={{
-                      flexDirection: "row", alignItems: "center", gap: 6,
-                      paddingHorizontal: 10, paddingVertical: 6,
-                      backgroundColor: Colors.surfaceElevated, borderRadius: 8,
-                      borderWidth: 1, borderColor: loc.polygonPoints.length > 0 ? "#6366F1" : Colors.border,
-                    }}
-                    onPress={() => {
-                      setSelectedLocationId(loc.id);
-                      setSelectedZoneId(null);
-                    }}
+                    style={[styles.bsLocChip, loc.polygonPoints.length > 0 && styles.bsLocChipActive]}
+                    onPress={() => { setSelectedLocationId(loc.id); setSelectedZoneId(null); }}
                   >
                     <Feather
                       name={loc.polygonPoints.length > 0 ? "check-circle" : "circle"}
                       size={12}
-                      color={loc.polygonPoints.length > 0 ? "#6366F1" : Colors.textTertiary}
+                      color={loc.polygonPoints.length > 0 ? "#7C3AED" : "#999"}
                     />
-                    <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.text }} numberOfLines={1}>
-                      {loc.name}
-                    </Text>
+                    <Text style={styles.bsLocChipText} numberOfLines={1}>{loc.name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -911,11 +880,13 @@ export default function ZonesScreen() {
         </View>
       )}
 
-      {/* ═══ SELECTED SHELTER — bottom sheet ═══ */}
-      {mode === "view" && !addingShelter && selectedShelter && !selectedZone && !selectedLocation && (
+      {showBottomSheet && !addingShelter && selectedShelter && !selectedZone && !selectedLocation && (
         <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsHandle} />
           <View style={styles.bsRow}>
-            <View style={[styles.bsDot, { backgroundColor: "#F59E0B" }]} />
+            <View style={[styles.bsIconWrap, { backgroundColor: "#FEF3C7" }]}>
+              <Feather name="home" size={18} color="#D97706" />
+            </View>
             <View style={styles.bsInfo}>
               <Text style={styles.bsName} numberOfLines={1}>{selectedShelter.name}</Text>
               <Text style={styles.bsMeta}>
@@ -923,35 +894,37 @@ export default function ZonesScreen() {
               </Text>
             </View>
             <Pressable style={styles.bsClose} onPress={() => setSelectedShelterId(null)} hitSlop={8}>
-              <Feather name="x" size={16} color={Colors.textTertiary} />
+              <Feather name="x" size={16} color="#999" />
             </Pressable>
           </View>
           <View style={styles.bsActions}>
             <Pressable style={styles.bsActionBtn} onPress={() => handleOpenLinking(selectedShelter.id)}>
-              <Feather name="link" size={16} color="#6366F1" />
-              <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Link</Text>
+              <Feather name="link" size={15} color="#7C3AED" />
+              <Text style={[styles.bsActionText, { color: "#7C3AED" }]}>Link</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={handleEditShelterName}>
-              <Feather name="edit-2" size={16} color={Colors.text} />
+              <Feather name="edit-2" size={15} color="#333" />
               <Text style={styles.bsActionText}>Rename</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={() => handleToggleShelter(selectedShelter)}>
-              <Feather name={selectedShelter.isActive ? "eye-off" : "eye"} size={16} color={Colors.text} />
+              <Feather name={selectedShelter.isActive ? "eye-off" : "eye"} size={15} color="#333" />
               <Text style={styles.bsActionText}>{selectedShelter.isActive ? "Disable" : "Enable"}</Text>
             </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={handleDeleteShelter}>
-              <Feather name="trash-2" size={16} color={Colors.destructive} />
-              <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Delete</Text>
+              <Feather name="trash-2" size={15} color="#DC2626" />
+              <Text style={[styles.bsActionText, { color: "#DC2626" }]}>Delete</Text>
             </Pressable>
           </View>
         </View>
       )}
 
-      {/* ═══ SELECTED LOCATION — bottom sheet ═══ */}
-      {mode === "view" && !addingShelter && !locDrawMode && !editingLocationId && selectedLocation && !selectedZone && !selectedShelter && (
+      {showBottomSheet && !addingShelter && !locDrawMode && !editingLocationId && selectedLocation && !selectedZone && !selectedShelter && (
         <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.bsHandle} />
           <View style={styles.bsRow}>
-            <View style={[styles.bsDot, { backgroundColor: "#6366F1" }]} />
+            <View style={[styles.bsIconWrap, { backgroundColor: "#EDE9FE" }]}>
+              <Feather name="map-pin" size={18} color="#7C3AED" />
+            </View>
             <View style={styles.bsInfo}>
               <Text style={styles.bsName} numberOfLines={1}>{selectedLocation.name}</Text>
               <Text style={styles.bsMeta}>
@@ -959,28 +932,28 @@ export default function ZonesScreen() {
               </Text>
             </View>
             <Pressable style={styles.bsClose} onPress={() => setSelectedLocationId(null)} hitSlop={8}>
-              <Feather name="x" size={16} color={Colors.textTertiary} />
+              <Feather name="x" size={16} color="#999" />
             </Pressable>
           </View>
           <View style={styles.bsActions}>
             {selectedLocation.polygonPoints.length === 0 ? (
               <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocDraw(selectedLocation.id)}>
-                <Feather name="edit-3" size={16} color="#6366F1" />
-                <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Draw Boundary</Text>
+                <Feather name="edit-3" size={15} color="#7C3AED" />
+                <Text style={[styles.bsActionText, { color: "#7C3AED" }]}>Draw Boundary</Text>
               </Pressable>
             ) : (
               <>
                 <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocEdit(selectedLocation.id)}>
-                  <Feather name="move" size={16} color="#6366F1" />
-                  <Text style={[styles.bsActionText, { color: "#6366F1" }]}>Edit</Text>
+                  <Feather name="move" size={15} color="#7C3AED" />
+                  <Text style={[styles.bsActionText, { color: "#7C3AED" }]}>Edit</Text>
                 </Pressable>
                 <Pressable style={styles.bsActionBtn} onPress={() => handleStartLocDraw(selectedLocation.id)}>
-                  <Feather name="refresh-cw" size={16} color={Colors.text} />
+                  <Feather name="refresh-cw" size={15} color="#333" />
                   <Text style={styles.bsActionText}>Redraw</Text>
                 </Pressable>
                 <Pressable style={styles.bsActionBtn} onPress={() => handleClearLocBoundary(selectedLocation.id)}>
-                  <Feather name="trash-2" size={16} color={Colors.destructive} />
-                  <Text style={[styles.bsActionText, { color: Colors.destructive }]}>Clear</Text>
+                  <Feather name="trash-2" size={15} color="#DC2626" />
+                  <Text style={[styles.bsActionText, { color: "#DC2626" }]}>Clear</Text>
                 </Pressable>
               </>
             )}
@@ -988,8 +961,7 @@ export default function ZonesScreen() {
         </View>
       )}
 
-      {/* ═══ ZONE LIST — small floating chips when nothing selected ═══ */}
-      {mode === "view" && !selectedZone && !selectedShelter && !addingShelter && !placingHazard && zones.length > 0 && (
+      {showBottomSheet && !selectedZone && !selectedShelter && !selectedLocation && selectedHazardId == null && zones.length > 0 && (
         <View style={[styles.chipBar, { bottom: insets.bottom + 12 }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBarContent}>
             {zones.map((z) => (
@@ -1006,7 +978,6 @@ export default function ZonesScreen() {
         </View>
       )}
 
-      {/* ═══ SAVE NEW ZONE — compact bottom sheet modal ═══ */}
       <Modal visible={showSaveSheet} transparent animationType="slide" onRequestClose={handleDiscardSave}>
         <View style={styles.modalOverlay}>
           <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20 }]}>
@@ -1014,7 +985,7 @@ export default function ZonesScreen() {
             <View style={styles.saveSheetHeader}>
               <Text style={styles.saveSheetTitle}>Save Zone</Text>
               <Pressable onPress={handleDiscardSave} hitSlop={8}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color="#999" />
               </Pressable>
             </View>
 
@@ -1023,7 +994,7 @@ export default function ZonesScreen() {
               value={formName}
               onChangeText={setFormName}
               placeholder="Zone name..."
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor="#bbb"
             />
 
             <View style={styles.inlineRow}>
@@ -1046,10 +1017,7 @@ export default function ZonesScreen() {
               ))}
             </View>
 
-            {/* Location link picker */}
-            <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary, marginTop: 8, marginBottom: 4 }}>
-              LINK TO LOCATION (optional)
-            </Text>
+            <Text style={styles.saveSheetSectionLabel}>LINK TO LOCATION (optional)</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
               <Pressable
                 style={[styles.typeBtn, formLocationId === null && styles.typeBtnActive]}
@@ -1084,7 +1052,7 @@ export default function ZonesScreen() {
           </View>
         </View>
       </Modal>
-      {/* ═══ SHELTER-LOCATION LINKING MODAL ═══ */}
+
       <Modal visible={linkingModal} transparent animationType="slide" onRequestClose={() => setLinkingModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20, maxHeight: SCREEN_H * 0.6 }]}>
@@ -1092,10 +1060,10 @@ export default function ZonesScreen() {
             <View style={styles.saveSheetHeader}>
               <Text style={styles.saveSheetTitle}>Link Locations</Text>
               <Pressable onPress={() => setLinkingModal(false)} hitSlop={8}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color="#999" />
               </Pressable>
             </View>
-            <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginBottom: 4 }}>
+            <Text style={{ fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: "#888", marginBottom: 4 }}>
               Select locations this shelter serves:
             </Text>
             <ScrollView style={{ maxHeight: SCREEN_H * 0.35 }}>
@@ -1107,25 +1075,15 @@ export default function ZonesScreen() {
                 return (
                   <Pressable
                     key={loc.id}
-                    style={{
-                      flexDirection: "row", alignItems: "center", gap: 10,
-                      paddingVertical: 10, paddingHorizontal: 12,
-                      backgroundColor: isLinked ? "rgba(99,102,241,0.08)" : "transparent",
-                      borderRadius: 10, marginBottom: 2,
-                    }}
+                    style={[styles.linkLocRow, isLinked && styles.linkLocRowActive]}
                     onPress={() => handleToggleLinkLocation(loc.id)}
                   >
-                    <View style={{
-                      width: 22, height: 22, borderRadius: 6,
-                      borderWidth: 2, borderColor: isLinked ? "#6366F1" : Colors.border,
-                      backgroundColor: isLinked ? "#6366F1" : "transparent",
-                      alignItems: "center", justifyContent: "center",
-                    }}>
+                    <View style={[styles.linkLocCheck, isLinked && styles.linkLocCheckActive]}>
                       {isLinked && <Feather name="check" size={14} color="#fff" />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text }}>{loc.name}</Text>
-                      <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary }}>
+                      <Text style={styles.linkLocName}>{loc.name}</Text>
+                      <Text style={styles.linkLocMeta}>
                         Zone: {loc.zone} · {loc.polygonPoints.length > 0 ? "Has boundary" : "No boundary"}
                       </Text>
                     </View>
@@ -1138,7 +1096,7 @@ export default function ZonesScreen() {
                 <Text style={styles.discardBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.saveBtn, { backgroundColor: "#6366F1" }]}
+                style={[styles.saveBtn, { backgroundColor: "#7C3AED" }]}
                 onPress={handleSaveLinking}
               >
                 <Feather name="check" size={16} color="#fff" />
@@ -1149,7 +1107,6 @@ export default function ZonesScreen() {
         </View>
       </Modal>
 
-      {/* ═══ SHELTER NAME MODAL ═══ */}
       <Modal visible={shelterNameModal} transparent animationType="slide" onRequestClose={() => { setShelterNameModal(false); setEditingShelter(null); }}>
         <View style={styles.modalOverlay}>
           <View style={[styles.saveSheet, { paddingBottom: insets.bottom + 20 }]}>
@@ -1157,7 +1114,7 @@ export default function ZonesScreen() {
             <View style={styles.saveSheetHeader}>
               <Text style={styles.saveSheetTitle}>{editingShelter ? "Rename Shelter" : "New Shelter"}</Text>
               <Pressable onPress={() => { setShelterNameModal(false); setEditingShelter(null); }} hitSlop={8}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color="#999" />
               </Pressable>
             </View>
 
@@ -1166,7 +1123,7 @@ export default function ZonesScreen() {
               value={shelterFormName}
               onChangeText={setShelterFormName}
               placeholder="Shelter name..."
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor="#bbb"
               autoFocus
             />
 
@@ -1175,7 +1132,7 @@ export default function ZonesScreen() {
                 <Text style={styles.discardBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.saveBtn, { backgroundColor: "#F59E0B" }, !shelterFormName.trim() && { opacity: 0.3 }]}
+                style={[styles.saveBtn, { backgroundColor: "#D97706" }, !shelterFormName.trim() && { opacity: 0.3 }]}
                 onPress={editingShelter ? handleSaveEditShelter : handleSaveShelter}
                 disabled={!shelterFormName.trim()}
               >
@@ -1191,33 +1148,30 @@ export default function ZonesScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1, backgroundColor: "#1a1a2e" },
 
-  // ─── Floating header ───
-  floatingHeader: {
+  topBar: {
     position: "absolute", left: 12, right: 12, flexDirection: "row",
-    alignItems: "center", gap: 10, zIndex: 20,
+    alignItems: "center", gap: 8, zIndex: 20,
   },
-  fhBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center",
+  topBackBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6,
+    elevation: 4,
   },
-  fhBtnAccent: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: Colors.info, alignItems: "center", justifyContent: "center",
+  topSearchBar: {
+    flex: 1, flexDirection: "row", alignItems: "center", gap: 10,
+    height: 44, borderRadius: 22, backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6,
+    elevation: 3,
   },
-  fhTitle: { flex: 1, gap: 1 },
-  fhTitleText: {
-    fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: "#fff",
-    textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
-  },
-  fhSubtext: {
-    fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)",
-    textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  topSearchText: {
+    fontSize: 14, fontFamily: "Inter_500Medium", color: "#666",
   },
 
-  // ─── Mode header ───
-  modeHeader: {
+  modeBanner: {
     position: "absolute", left: 12, right: 12, flexDirection: "row",
     alignItems: "center", gap: 8, zIndex: 20,
   },
@@ -1227,129 +1181,196 @@ const styles = StyleSheet.create({
   },
   modePillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
   modePillText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 1 },
-  modeCount: {
-    backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 12,
+  modePillCount: {
+    backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  modeCountText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  modePillCountText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  // ─── Bottom bar (shape picker, draw, edit) ───
-  bottomBar: {
-    position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, zIndex: 20,
+  fabColumn: {
+    position: "absolute", right: 16, zIndex: 25,
+    alignItems: "center", gap: 10,
   },
+  fabMain: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center",
+    shadowColor: "#2563EB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8,
+    elevation: 6,
+  },
+  fabMainOpen: {
+    backgroundColor: "#64748B",
+    shadowColor: "#000",
+  },
+  fabMini: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4,
+    elevation: 3,
+  },
+
+  adminBar: {
+    position: "absolute", left: 12, right: 12, zIndex: 20,
+  },
+  adminBarInner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#fff", borderRadius: 16, padding: 8,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10,
+    elevation: 5,
+  },
+  adminBarInfo: { flex: 1, gap: 1, paddingLeft: 4 },
+  adminBarLabel: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#333" },
+  adminBarMeta: { fontSize: 10, fontFamily: "Inter_400Regular", color: "#888" },
+  adminBarCancel: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center",
+  },
+  adminBarConfirm: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#2563EB", borderRadius: 12,
+    paddingHorizontal: 20, height: 40,
+  },
+  adminBarConfirmText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
+
   shapeRow: { flexDirection: "row", gap: 10 },
   shapeBtn: {
     flex: 1, alignItems: "center", gap: 6, paddingVertical: 16,
-    backgroundColor: "rgba(15,17,23,0.88)", borderRadius: 16,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "#fff", borderRadius: 16,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6,
+    elevation: 3,
   },
   shapeBtnIcon: {
     width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center",
   },
-  shapeBtnLabel: { fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  shapeBtnHint: { fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
-  drawBar: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "rgba(15,17,23,0.88)", borderRadius: 16, padding: 8,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
-  },
-  actionBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center",
-  },
-  actionBtnPrimary: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.info, borderRadius: 12,
-    paddingHorizontal: 20, height: 44,
-  },
-  actionBtnPrimaryText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
+  shapeBtnLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#333" },
+  shapeBtnHint: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#999" },
 
-  // ─── Zone chips (view, no selection) ───
   chipBar: { position: "absolute", left: 0, right: 0, zIndex: 15 },
   chipBarContent: { paddingHorizontal: 12, gap: 6 },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 12, paddingVertical: 8,
-    backgroundColor: "rgba(15,17,23,0.75)", borderRadius: 20,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "#fff", borderRadius: 20,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4,
+    elevation: 2,
   },
   chipDot: { width: 8, height: 8, borderRadius: 4 },
-  chipText: { fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: "#fff", maxWidth: 100 },
+  chipText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#333", maxWidth: 100 },
 
-  // ─── Selected zone bottom sheet ───
+  hazardChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 7,
+    backgroundColor: "rgba(220,38,38,0.1)", borderRadius: 20,
+    borderWidth: 1, borderColor: "rgba(220,38,38,0.2)",
+  },
+  hazardChipSelected: {
+    backgroundColor: "rgba(220,38,38,0.2)",
+    borderColor: "rgba(220,38,38,0.4)",
+  },
+  hazardChipText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#333", maxWidth: 120 },
+
   bottomSheet: {
     position: "absolute", bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 16, gap: 12, zIndex: 20,
-    borderTopWidth: 1, borderTopColor: Colors.border,
+    shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12,
+    elevation: 8,
   },
-  bsRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  bsDot: { width: 12, height: 12, borderRadius: 6 },
-  bsInfo: { flex: 1, gap: 1 },
-  bsName: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: Colors.text },
-  bsMeta: { fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
+  bsHandle: {
+    width: 32, height: 4, borderRadius: 2, backgroundColor: "#E5E7EB", alignSelf: "center",
+    marginBottom: 4,
+  },
+  bsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  bsIconWrap: {
+    width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center",
+  },
+  bsInfo: { flex: 1, gap: 2 },
+  bsName: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#1F2937" },
+  bsMeta: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#6B7280" },
   bsClose: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceElevated,
+    width: 32, height: 32, borderRadius: 16, backgroundColor: "#F3F4F6",
     alignItems: "center", justifyContent: "center",
   },
   bsActions: { flexDirection: "row", gap: 6 },
   bsActionBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    backgroundColor: Colors.surfaceElevated, borderRadius: 10,
-    paddingVertical: 10, minHeight: 44,
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
+    backgroundColor: "#F9FAFB", borderRadius: 10,
+    paddingVertical: 10, minHeight: 42,
+    borderWidth: 1, borderColor: "#F3F4F6",
   },
-  bsActionText: { fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: Colors.text },
+  bsActionText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#374151" },
 
-  // ─── Save sheet modal ───
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  bsRadiusRow: { flexDirection: "row", gap: 6 },
+  bsRadiusCard: {
+    flex: 1, borderRadius: 10, padding: 10, alignItems: "center", gap: 2,
+  },
+  bsRadiusLabel: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  bsRadiusValue: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#1F2937" },
+
+  bsDivider: { height: 1, backgroundColor: "#F3F4F6", marginTop: 2 },
+  bsSectionTitle: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#9CA3AF", letterSpacing: 0.5, marginTop: 2 },
+  bsLocChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: "#F9FAFB", borderRadius: 8,
+    borderWidth: 1, borderColor: "#F3F4F6",
+  },
+  bsLocChipActive: { borderColor: "#7C3AED" },
+  bsLocChipText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#374151" },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   saveSheet: {
-    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 16, gap: 14,
   },
   saveSheetHandle: {
-    width: 32, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center",
+    width: 32, height: 4, borderRadius: 2, backgroundColor: "#E5E7EB", alignSelf: "center",
   },
   saveSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  saveSheetTitle: { fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text },
+  saveSheetTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#1F2937" },
+  saveSheetSectionLabel: {
+    fontSize: 10, fontFamily: "Inter_700Bold", color: "#9CA3AF",
+    letterSpacing: 0.5, marginTop: 4, marginBottom: 2,
+  },
   nameInput: {
-    backgroundColor: Colors.surfaceElevated, borderRadius: 10, borderWidth: 1,
-    borderColor: Colors.border, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.text,
+    backgroundColor: "#F9FAFB", borderRadius: 12, borderWidth: 1,
+    borderColor: "#E5E7EB", paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#1F2937",
   },
   inlineRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   typeBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: Colors.surfaceElevated, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB",
     minHeight: 36,
   },
-  typeBtnActive: { backgroundColor: Colors.info, borderColor: Colors.info },
-  typeBtnText: { fontSize: FontSize.sm, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
-  inlineDivider: { width: 1, height: 24, backgroundColor: Colors.border, marginHorizontal: 4 },
+  typeBtnActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  typeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
+  inlineDivider: { width: 1, height: 24, backgroundColor: "#E5E7EB", marginHorizontal: 4 },
   colorDot: { width: 28, height: 28, borderRadius: 14 },
-  colorDotActive: { borderWidth: 2.5, borderColor: "#fff" },
+  colorDotActive: { borderWidth: 2.5, borderColor: "#1F2937" },
   saveBtnRow: { flexDirection: "row", gap: 8 },
   discardBtn: {
     flex: 1, alignItems: "center", justifyContent: "center", minHeight: 48,
-    borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surfaceElevated,
+    borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#F9FAFB",
   },
-  discardBtnText: { fontSize: FontSize.md, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
+  discardBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
   saveBtn: {
     flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    minHeight: 48, borderRadius: 10, backgroundColor: Colors.info,
+    minHeight: 48, borderRadius: 12, backgroundColor: "#2563EB",
   },
-  saveBtnText: { fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: "#fff" },
+  saveBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
 
-  // ─── Hazard zone chips ───
-  hazardChipBar: { position: "absolute", left: 0, right: 0, zIndex: 14 },
-  hazardChip: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 7,
-    backgroundColor: "rgba(239,68,68,0.15)", borderRadius: 20,
-    borderWidth: 1, borderColor: "rgba(239,68,68,0.3)",
+  linkLocRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 10, paddingHorizontal: 12,
+    borderRadius: 10, marginBottom: 2,
   },
-  hazardChipSelected: {
-    backgroundColor: "rgba(239,68,68,0.3)",
-    borderColor: "rgba(239,68,68,0.6)",
+  linkLocRowActive: { backgroundColor: "rgba(124,58,237,0.06)" },
+  linkLocCheck: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: "#E5E7EB",
+    alignItems: "center", justifyContent: "center",
   },
-  hazardChipText: { fontSize: FontSize.xs, fontFamily: "Inter_600SemiBold", color: "#fff", maxWidth: 120 },
+  linkLocCheckActive: { borderColor: "#7C3AED", backgroundColor: "#7C3AED" },
+  linkLocName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#1F2937" },
+  linkLocMeta: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
 });
