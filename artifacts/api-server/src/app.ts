@@ -1,9 +1,12 @@
 import express, { type Express } from "express";
+import cors from "cors";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import accountabilityRouter from "./routes/accountability";
 
 const app: Express = express();
 
-// ── Health-check routes served directly (no proxy dependency) ──
+app.use(cors());
+
 app.get("/", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -12,7 +15,8 @@ app.get("/api/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// ── Proxy everything else to the boutique server ──
+app.use("/api/accountability", accountabilityRouter);
+
 app.use(
   createProxyMiddleware({
     target: "http://localhost:5000",

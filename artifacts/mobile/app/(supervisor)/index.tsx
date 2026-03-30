@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert as RNAlert,
   Modal,
@@ -33,6 +33,12 @@ export default function SupervisorDashboardScreen() {
   const logout = useStore((s) => s.logout);
   const setExpectedManpower = useStore((s) => s.setExpectedManpower);
   const startAccountability = useStore((s) => s.startAccountability);
+  const accountabilitySession = useStore((s) => s.accountabilitySession);
+  const accountabilityPersonnel = useStore((s) => s.accountabilityPersonnel);
+  const accountabilityLoading = useStore((s) => s.accountabilityLoading);
+  const startAccountabilitySession = useStore((s) => s.startAccountabilitySession);
+  const endAccountabilitySession = useStore((s) => s.endAccountabilitySession);
+  const refreshAccountabilitySession = useStore((s) => s.refreshAccountabilitySession);
 
   const isBackup =
     currentUser?.isBackupSupervisorAssigned === true &&
@@ -117,7 +123,45 @@ export default function SupervisorDashboardScreen() {
     setManpowerModalVisible(false);
   }, [manpowerInput, myLocation, setExpectedManpower]);
 
-  // ── Start Accountability ─────────────────────────────────────────────
+  // ── Accountability Session ──────────────────────────────────────────
+  const sessionActive = accountabilitySession?.status === "active";
+
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (sessionActive && accountabilitySession?.startedAt) {
+      const tick = () => {
+        const diff = Math.floor((Date.now() - new Date(accountabilitySession.startedAt).getTime()) / 1000);
+        setElapsed(diff);
+      };
+      tick();
+      timerRef.current = setInterval(tick, 1000);
+      pollRef.current = setInterval(() => refreshAccountabilitySession(), 5000);
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        if (pollRef.current) clearInterval(pollRef.current);
+      };
+    } else {
+      setElapsed(0);
+    }
+  }, [sessionActive, accountabilitySession?.startedAt, refreshAccountabilitySession]);
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
+
+  const sessionStats = useMemo(() => {
+    if (!accountabilityPersonnel.length) return { safe: 0, help: 0, pending: 0, total: 0 };
+    const safe = accountabilityPersonnel.filter((p) => p.status === "safe").length;
+    const help = accountabilityPersonnel.filter((p) => p.status === "need_help").length;
+    const pending = accountabilityPersonnel.filter((p) => p.status === "pending").length;
+    return { safe, help, pending, total: accountabilityPersonnel.length };
+  }, [accountabilityPersonnel]);
+
   const handleStartAccountability = useCallback(() => {
     if (!myLocation) return;
     RNAlert.alert(
@@ -128,11 +172,24 @@ export default function SupervisorDashboardScreen() {
         {
           text: "Start",
           style: "destructive",
-          onPress: () => startAccountability(myLocation.id),
+          onPress: () => {
+            startAccountabilitySession(myLocation.id);
+          },
         },
       ]
     );
-  }, [myLocation, locationUsers.length, locName, startAccountability]);
+  }, [myLocation, locationUsers.length, locName, startAccountabilitySession]);
+
+  const handleEndAccountability = useCallback(() => {
+    RNAlert.alert(
+      "End Session",
+      "End this accountability session and generate a report?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "End Session", style: "destructive", onPress: () => endAccountabilitySession() },
+      ]
+    );
+  }, [endAccountabilitySession]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -295,14 +352,75 @@ export default function SupervisorDashboardScreen() {
             </Pressable>
           </View>
         )}
-        {!isBackup && (
+        {/* ── Accountability Session Panel ── */}
+        {!isBackup && sessionActive && (
+          <Card style={styles.sessionCard}>
+            <View style={styles.sessionHeader}>
+              <View style={styles.sessionLive}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE SESSION</Text>
+              </View>
+              <Text style={styles.sessionTimer}>{formatTimer(elapsed)}</Text>
+            </View>
+
+            <View style={styles.sessionCounters}>
+              <View style={styles.counterItem}>
+                <Text style={[styles.counterValue, { color: Colors.safe }]}>{sessionStats.safe}</Text>
+                <Text style={styles.counterLabel}>Safe</Text>
+              </View>
+              <View style={styles.counterDivider} />
+              <View style={styles.counterItem}>
+                <Text style={[styles.counterValue, { color: Colors.primary }]}>{sessionStats.help}</Text>
+                <Text style={styles.counterLabel}>Need Help</Text>
+              </View>
+              <View style={styles.counterDivider} />
+              <View style={styles.counterItem}>
+                <Text style={[styles.counterValue, { color: Colors.missing }]}>{sessionStats.pending}</Text>
+                <Text style={styles.counterLabel}>Pending</Text>
+              </View>
+              <View style={styles.counterDivider} />
+              <View style={styles.counterItem}>
+                <Text style={[styles.counterValue, { color: Colors.text }]}>{sessionStats.total}</Text>
+                <Text style={styles.counterLabel}>Total</Text>
+              </View>
+            </View>
+
+            {sessionStats.total > 0 && (
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${Math.round(((sessionStats.safe + sessionStats.help) / sessionStats.total) * 100)}%` }]} />
+              </View>
+            )}
+            <Text style={styles.progressText}>
+              {sessionStats.safe + sessionStats.help} of {sessionStats.total} responded ({sessionStats.total > 0 ? Math.round(((sessionStats.safe + sessionStats.help) / sessionStats.total) * 100) : 0}%)
+            </Text>
+
+            {accountabilityPersonnel.filter((p) => p.status === "need_help").length > 0 && (
+              <View style={styles.helpAlert}>
+                <Feather name="alert-circle" size={14} color={Colors.primary} />
+                <Text style={styles.helpAlertText}>
+                  {accountabilityPersonnel.filter((p) => p.status === "need_help").length} personnel requesting help
+                </Text>
+              </View>
+            )}
+
+            <Pressable style={styles.endSessionBtn} onPress={handleEndAccountability} disabled={accountabilityLoading}>
+              <Feather name="square" size={16} color={Colors.white} />
+              <Text style={styles.endSessionBtnText}>
+                {accountabilityLoading ? "Ending..." : "End Session"}
+              </Text>
+            </Pressable>
+          </Card>
+        )}
+
+        {!isBackup && !sessionActive && (
           <Pressable
-            style={styles.accountabilityBtn}
+            style={[styles.accountabilityBtn, accountabilityLoading && { opacity: 0.6 }]}
             onPress={handleStartAccountability}
+            disabled={accountabilityLoading}
           >
             <Feather name="play-circle" size={18} color={Colors.white} />
             <Text style={styles.accountabilityBtnText}>
-              Start Accountability
+              {accountabilityLoading ? "Starting..." : "Start Accountability"}
             </Text>
           </Pressable>
         )}
@@ -315,26 +433,56 @@ export default function SupervisorDashboardScreen() {
           Expected: {stats.expected} • Actual: {stats.actual} • Safe:{" "}
           {stats.safe} • Pending: {stats.pending}
         </Text>
-        {locationUsers.map((user) => (
-          <Card key={user.id} style={styles.personnelCard}>
-            <View style={styles.personnelRow}>
-              <View style={styles.personnelInfo}>
-                <Text style={styles.personnelName}>{user.name}</Text>
-                <Text style={styles.personnelBadge}>
-                  Badge: {user.badge}
-                </Text>
-              </View>
-              <View style={styles.personnelStatus}>
-                <StatusBadge status={user.status} />
-                <Text style={styles.personnelTime}>
-                  {format(new Date(user.lastActivity), "h:mm a")}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        ))}
 
-        {locationUsers.length === 0 && (
+        {sessionActive && accountabilityPersonnel.length > 0
+          ? accountabilityPersonnel.map((p) => (
+              <Card key={p.id} style={styles.personnelCard}>
+                <View style={styles.personnelRow}>
+                  <View style={styles.personnelInfo}>
+                    <Text style={styles.personnelName}>{p.userName}</Text>
+                    <Text style={styles.personnelBadge}>
+                      Badge: {p.badge || "—"} • {p.userType || "User"}
+                    </Text>
+                  </View>
+                  <View style={styles.personnelStatus}>
+                    <StatusBadge
+                      status={
+                        p.status === "safe" ? "confirmed" :
+                        p.status === "need_help" ? "need_help" :
+                        p.status === "no_response" ? "closed" : "pending"
+                      }
+                      label={p.status === "safe" ? "Safe" : p.status === "need_help" ? "Help" : p.status === "no_response" ? "No Response" : "Pending"}
+                    />
+                    {p.respondedAt && (
+                      <Text style={styles.personnelTime}>
+                        {format(new Date(p.respondedAt), "h:mm a")}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </Card>
+            ))
+          : locationUsers.map((user) => (
+              <Card key={user.id} style={styles.personnelCard}>
+                <View style={styles.personnelRow}>
+                  <View style={styles.personnelInfo}>
+                    <Text style={styles.personnelName}>{user.name}</Text>
+                    <Text style={styles.personnelBadge}>
+                      Badge: {user.badge}
+                    </Text>
+                  </View>
+                  <View style={styles.personnelStatus}>
+                    <StatusBadge status={user.status} />
+                    <Text style={styles.personnelTime}>
+                      {format(new Date(user.lastActivity), "h:mm a")}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            ))
+        }
+
+        {locationUsers.length === 0 && !sessionActive && (
           <Card>
             <Text style={styles.emptyText}>
               No personnel assigned to this location.
@@ -551,6 +699,108 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   accountabilityBtnText: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+  },
+  sessionCard: {
+    borderColor: Colors.safe,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  sessionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sessionLive: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.safe,
+  },
+  liveText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_700Bold",
+    color: Colors.safe,
+    letterSpacing: 1,
+  },
+  sessionTimer: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.text,
+  },
+  sessionCounters: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: BorderRadius.sm,
+  },
+  counterItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  counterValue: {
+    fontSize: FontSize.xl,
+    fontFamily: "Inter_700Bold",
+  },
+  counterLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  counterDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: Colors.border,
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.surfaceElevated,
+    overflow: "hidden" as const,
+  },
+  progressBarFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.safe,
+  },
+  progressText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    textAlign: "center" as const,
+    marginTop: -Spacing.xs,
+  },
+  helpAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: Colors.primaryDim,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+  },
+  helpAlertText: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.primary,
+  },
+  endSessionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+  },
+  endSessionBtnText: {
     fontSize: FontSize.md,
     fontFamily: "Inter_700Bold",
     color: Colors.white,

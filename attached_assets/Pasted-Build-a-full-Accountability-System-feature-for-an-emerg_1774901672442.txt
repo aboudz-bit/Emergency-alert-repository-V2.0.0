@@ -1,0 +1,179 @@
+Build a full “Accountability System” feature for an emergency management application (industrial-grade like Aramco / Honeywell).
+
+STACK:
+- Frontend: React (Vite) + Zustand + TypeScript
+- Backend: Express.js + TypeScript
+- DB: PostgreSQL + Drizzle ORM
+
+========================================
+CORE FEATURE: START ACCOUNTABILITY
+========================================
+
+When Supervisor clicks “Start Accountability”:
+
+1) Create Accountability Session
+- Table: accountability_sessions
+  - id (uuid)
+  - zoneId (number)
+  - locationId (string)
+  - startedBy (userId)
+  - startedAt (timestamp)
+  - status: "active" | "completed"
+
+2) Initialize Personnel Status
+- Table: personnel_status
+  - id
+  - sessionId
+  - userId
+  - status: "pending" | "safe" | "need_help" | "no_response"
+  - lastUpdatedAt
+
+- On session start:
+  → All users in that location = "pending"
+
+========================================
+STATE MACHINE
+========================================
+
+Each user follows:
+
+PENDING → SAFE
+PENDING → NEED_HELP
+PENDING → NO_RESPONSE (timeout)
+
+ESCALATION:
+- After 5 minutes → level 1 warning
+- After 10 minutes → CRITICAL
+
+========================================
+API ENDPOINTS
+========================================
+
+POST /accountability/start
+Body:
+{
+  zoneId,
+  locationId,
+  startedBy
+}
+
+POST /accountability/respond
+Body:
+{
+  sessionId,
+  userId,
+  status: "safe" | "need_help"
+}
+
+POST /accountability/end
+Body:
+{
+  sessionId
+}
+
+GET /accountability/session/:id
+→ return:
+- counts (safe, pending, help)
+- list of personnel
+- elapsed time
+
+========================================
+ESCALATION ENGINE
+========================================
+
+- Background timer (setInterval or job)
+- Check each session:
+  IF pending users exist:
+    > 5 min → mark escalation level 1
+    > 10 min → mark CRITICAL
+
+- Send notification (mock function):
+notifyECO({
+  zone,
+  location,
+  pendingCount,
+  level
+})
+
+========================================
+FRONTEND (REACT + ZUSTAND)
+========================================
+
+STATE:
+- activeSession
+- personnelStatuses
+- timer
+- counts
+
+ACTIONS:
+- startSession()
+- respondSafe(userId)
+- respondHelp(userId)
+- endSession()
+
+========================================
+UI FLOW
+========================================
+
+BEFORE:
+- Button: “Start Accountability”
+
+ON CLICK:
+→ show confirm modal
+
+AFTER START:
+- Button becomes: “Session Active” (disabled)
+- Show timer (elapsed time)
+- Show live counters:
+  Safe / Pending / Need Help
+
+- Show alert banner:
+  “⚠️ X users not responding”
+
+- List personnel:
+  - Name
+  - Status badge
+  - Last update time
+
+========================================
+MAP LOGIC (IMPORTANT)
+========================================
+
+Each user marker:
+- Blue = Aramco
+- Yellow = Contractor
+- Green = Safe
+- Red = Need Help
+
+========================================
+END SESSION
+========================================
+
+- Button: “End Accountability”
+- Save report:
+  - total users
+  - safe %
+  - response time
+
+========================================
+CONSTRAINTS
+========================================
+
+- Must support multi-zone
+- Must persist in DB (no mock-only)
+- Must handle refresh (rehydrate state)
+- Must be scalable (no tight coupling)
+
+========================================
+OUTPUT REQUIRED
+========================================
+
+1) Full DB schema (Drizzle)
+2) Express routes + controllers
+3) Zustand store
+4) React components (Dashboard + Session UI)
+5) Escalation service
+6) Clean, production-level code structure
+
+Do NOT give explanation.
+Give complete implementation-ready code.

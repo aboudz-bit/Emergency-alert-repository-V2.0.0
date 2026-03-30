@@ -54,7 +54,15 @@ export function createAuthSlice(set: SetState, get: GetState): Pick<
       return { success: true };
     },
 
-    logout: () => set({ isAuthenticated: false, currentUser: null, mobileUserResponse: null }),
+    logout: () => set({
+      isAuthenticated: false,
+      currentUser: null,
+      mobileUserResponse: null,
+      accountabilitySession: null,
+      accountabilityPersonnel: [],
+      accountabilityLoading: false,
+      accountabilityError: null,
+    }),
 
     registerUser: ({ name, badge, password, zone, location, mobileNumber, userType, role, companyType, companyName }) => {
       const { users, zones, locations: locs } = get();

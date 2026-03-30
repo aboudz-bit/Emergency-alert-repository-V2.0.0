@@ -7,8 +7,9 @@ import type {
   EmergencyModes, WindDirection, Language,
   AlertNotification, AlertNotificationScope,
 } from '@/types';
+import type { AccountabilityState, AccountabilityActions } from './slices/accountability';
 
-export interface AppState {
+export interface AppState extends AccountabilityState, AccountabilityActions {
   isAuthenticated: boolean;
   currentUser: User | null;
   users: User[];

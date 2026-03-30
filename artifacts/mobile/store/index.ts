@@ -21,6 +21,7 @@ import { createHazardZoneSlice } from './slices/hazardZones';
 import { createAssignmentSlice } from './slices/assignments';
 import { createPermissionSlice } from './slices/permissions';
 import { createEmergencySlice } from './slices/emergency';
+import { createAccountabilitySlice, accountabilityInitialState } from './slices/accountability';
 
 export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState, defaultAlertSystemState } from './selectors';
 export {
@@ -126,6 +127,8 @@ export const useStore = create<AppState>()(
       ...createAssignmentSlice(set, get),
       ...createPermissionSlice(set, get),
       ...createEmergencySlice(set, get),
+      ...accountabilityInitialState,
+      ...createAccountabilitySlice(set, get),
     }),
     {
       name: STORE_NAME,
