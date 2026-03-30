@@ -1,0 +1,189 @@
+Do NOT fix anything yet.
+
+I want a technical audit report only.
+
+This is a senior-engineering diagnostic review of the current emergency system wiring.
+
+Current observed issue:
+- When Shelter In or Blackout is activated, the expected live map behavior does not happen
+- Warning / hazard behavior appears to be working correctly
+
+I do NOT want implementation yet.
+I want a deep wiring and architecture report.
+
+==================================================
+AUDIT GOAL
+==================================================
+
+Determine whether the current code is wired correctly from an emergency-system perspective, especially around:
+
+- Shelter In / Blackout
+- live map behavior
+- Users screen
+- Dashboard
+- Alerts screen
+- Warning / hazard system
+- real-time updates
+- role-based behavior
+
+I want to know if the current codebase is conceptually correct, partially correct, or architecturally flawed.
+
+==================================================
+WHAT TO AUDIT
+==================================================
+
+1) Emergency state architecture
+Audit how emergency state is currently modeled and propagated.
+
+Questions to answer:
+- What is the single source of truth for emergency state?
+- Is there truly a unified emergency provider/state, or are there hidden duplicates?
+- Which screens read from the unified source?
+- Which screens still derive emergency state from other endpoints, flags, or local logic?
+- Is Shelter In / Blackout represented consistently across the app?
+
+2) Shelter In / Blackout data flow
+Trace the full data flow for Shelter In and Blackout.
+
+From:
+- activation
+through:
+- backend state
+- API response
+- React Query cache / invalidation
+- context/provider
+- screen consumption
+to:
+- UI reaction on Dashboard / Users / Zone Map / Alerts
+
+Questions:
+- Is activation correctly updating backend state?
+- Is the frontend correctly invalidating/refetching?
+- Which screens react immediately?
+- Which do not?
+- Is the live map expected to react with current code, or is that behavior simply not implemented?
+
+3) Zone Map / live map behavior
+This is the most important part.
+
+Audit the current Zone Map behavior and explain:
+
+- What the map currently does when no emergency is active
+- What the map currently does when a normal alert is active
+- What the map currently does when Shelter In / Blackout is active
+- Whether personnel markers, status colors, live overlays, hazard/warning overlays, or other map layers are actually connected to Shelter / Blackout
+
+Questions:
+- Is the map reading the correct emergency source?
+- Is it reading the correct people/status source?
+- Is there any code path that should activate “live map mode” but currently does not?
+- Is this a missing feature or a broken connection?
+- Is the map behavior architecturally consistent with the rest of the system?
+
+4) Warning / Hazard system comparison
+Warning appears to be working better than Shelter / Blackout in map behavior.
+
+I want a comparison:
+
+- How is Warning wired?
+- What state / API / props / overlays does it use?
+- Why does Warning visually react correctly?
+- What is Warning connected to that Shelter / Blackout is not?
+- Is Warning using a different pipeline than emergency state?
+
+Be explicit:
+Warning flow vs Shelter/Blackout flow.
+
+5) Users / Dashboard / Alert / Map consistency
+Audit whether these screens are actually synchronized.
+
+For each screen:
+- Dashboard
+- Alert
+- Users
+- Zone Map
+
+Explain:
+- what source(s) it reads
+- whether it reflects emergency state correctly
+- whether it reflects Shelter / Blackout correctly
+- whether it reflects Warning correctly
+- whether it uses shared cache/state or separate local logic
+
+Questions:
+- Are all these screens truly consistent with each other?
+- If not, exactly where do they diverge?
+
+6) Real-time mechanism audit
+We expect real-time behavior through WebSockets primarily, with polling/refetch fallback.
+
+Audit:
+- What currently uses WebSockets?
+- What currently uses React Query polling/refetch?
+- Which updates are actually real-time?
+- Which updates are only eventual / polled?
+- Does Shelter / Blackout change push live to all screens?
+- Does the map subscribe to live state or only fetch on render/refetch?
+
+Be precise:
+- list each real-time event path
+- identify any missing live connection for map behavior
+
+7) Role / permission interaction
+Audit whether the missing live map behavior could be caused by permissions.
+
+Roles:
+- Admin / Super Admin
+- ECO
+- Supervisor
+- User
+- affiliation is separate (Aramco / Contractor)
+
+Questions:
+- Do Admin / ECO / Supervisor see the same map behavior?
+- Does User see reduced behavior by design?
+- Are permissions gating any map overlays or live state incorrectly?
+- Could the issue be role filtering rather than missing wiring?
+
+8) Architectural quality assessment
+I want your engineering judgment, not just code tracing.
+
+Answer clearly:
+- Is the current architecture sound?
+- Are the pieces mostly correct but one feature is unimplemented?
+- Or are the data flows conceptually wrong?
+- Is the emergency/live map behavior suffering from technical debt or just missing implementation?
+
+I want your honest technical assessment:
+- solid
+- partially solid
+- flawed
+- needs refactor
+- needs only targeted fixes
+
+==================================================
+IMPORTANT RULES
+==================================================
+
+- Do NOT modify code
+- Do NOT refactor
+- Do NOT fix
+- Do NOT suggest speculative solutions without first proving the wiring
+- Do NOT give a vague answer
+- Base the report on actual code tracing
+
+==================================================
+OUTPUT FORMAT REQUIRED
+==================================================
+
+Give the report in this exact structure:
+
+A) What is working correctly
+B) What is partially working
+C) What is not working
+D) What is wired correctly
+E) What is wired incorrectly
+F) Whether Shelter / Blackout is actually connected to live map behavior
+G) Why Warning works but Shelter / Blackout does not
+H) Whether the current architecture is correct or flawed
+I) Recommended fix order (report only, no implementation)
