@@ -51,16 +51,18 @@ export function useVisiblePersonnel(opts: {
     for (const loc of locs) {
       if (opts.excludeSelf && currentUser && loc.userId === currentUser.id) continue;
 
-      if (opts.scope === "location") {
-        if (loc.detectedLocationId !== opts.locationId) continue;
-      } else if (opts.scope === "zone") {
-        if (!zoneIdSet || !zoneIdSet.has(loc.zoneId as number)) continue;
-      }
-
       const staleMs = Date.now() - loc.timestamp;
       if (staleMs > 120_000) continue;
 
       const user = users.find((u) => u.id === loc.userId);
+      if (!user?.isActive) continue;
+
+      if (opts.scope === "location") {
+        if (loc.detectedLocationId !== opts.locationId) continue;
+      } else if (opts.scope === "zone") {
+        const userZoneId = loc.zoneId ?? user.zoneId ?? null;
+        if (!zoneIdSet || userZoneId == null || !zoneIdSet.has(userZoneId)) continue;
+      }
       const assignedLoc = user?.locationId ? locations.find((l) => l.id === user.locationId) : null;
       const detectedLoc = loc.detectedLocationId ? locations.find((l) => l.id === loc.detectedLocationId) : null;
       const isInsideAssigned = !!(assignedLoc && loc.detectedLocationId === assignedLoc.id);
