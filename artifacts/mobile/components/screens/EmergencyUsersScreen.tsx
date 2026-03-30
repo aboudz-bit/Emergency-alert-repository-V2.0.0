@@ -200,6 +200,9 @@ export default function EmergencyUsersScreen() {
         const pa = STATUS_PRIORITY[a.status] ?? 2;
         const pb = STATUS_PRIORITY[b.status] ?? 2;
         if (pa !== pb) return pa - pb;
+        const ea = a.escalationLevel ?? 0;
+        const eb = b.escalationLevel ?? 0;
+        if (eb !== ea) return eb - ea;
         return a.name.localeCompare(b.name);
       });
     }
@@ -385,12 +388,24 @@ export default function EmergencyUsersScreen() {
                 );
               })()}
               <StatusBadge status={item.status} />
+              {isEmergencyActive && (item.escalationLevel ?? 0) >= 2 && (
+                <View style={styles.escalationBadgeCritical}>
+                  <Feather name="alert-triangle" size={10} color="#fff" />
+                  <Text style={styles.escalationBadgeText}>Critical</Text>
+                </View>
+              )}
+              {isEmergencyActive && (item.escalationLevel ?? 0) === 1 && (
+                <View style={styles.escalationBadgeWarning}>
+                  <Feather name="clock" size={10} color={Colors.amber} />
+                  <Text style={[styles.escalationBadgeText, { color: Colors.amber }]}>Escalated</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
       </Pressable>
     ),
-    []
+    [isEmergencyActive]
   );
 
   const statusFilterOptions: { key: "All" | UserResponseStatus; label: string }[] = [
@@ -1077,6 +1092,34 @@ const styles = StyleSheet.create({
   },
   companyBadgeTextContractor: {
     color: "#3B82F6",
+  },
+
+  escalationBadgeCritical: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: Colors.destructive + "20",
+    borderWidth: 1,
+    borderColor: Colors.destructive + "40",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  escalationBadgeWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: Colors.amber + "20",
+    borderWidth: 1,
+    borderColor: Colors.amber + "40",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  escalationBadgeText: {
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    color: Colors.destructive,
   },
 
   emptyContainer: {

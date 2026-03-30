@@ -48,16 +48,21 @@ export default function DashboardScreen() {
   const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
 
   const personnelStatus = useMemo(() => {
-    if (!hasActiveAlerts) return { safe: 0, pending: 0, needHelp: 0 };
+    if (!hasActiveAlerts) return { safe: 0, pending: 0, needHelp: 0, escalated: 0, critical: 0 };
     let safe = 0;
     let pending = 0;
     let needHelp = 0;
+    let escalated = 0;
+    let critical = 0;
     for (const u of activeUsers) {
       if (u.status === "confirmed") safe++;
       else if (u.status === "need_help") needHelp++;
       else if (u.status === "pending") pending++;
+      const lvl = u.escalationLevel ?? 0;
+      if (lvl >= 2) critical++;
+      else if (lvl === 1) escalated++;
     }
-    return { safe, pending, needHelp };
+    return { safe, pending, needHelp, escalated, critical };
   }, [activeUsers, hasActiveAlerts]);
 
   const stats = useMemo(() => {
@@ -224,6 +229,28 @@ export default function DashboardScreen() {
                         {personnelStatus.needHelp}
                       </Text>
                       <Text style={styles.statLabel}>Need Help</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                  </>
+                )}
+                {personnelStatus.critical > 0 && (
+                  <>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: Colors.destructive }]}>
+                        {personnelStatus.critical}
+                      </Text>
+                      <Text style={styles.statLabel}>Critical</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                  </>
+                )}
+                {personnelStatus.escalated > 0 && (
+                  <>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: Colors.amber }]}>
+                        {personnelStatus.escalated}
+                      </Text>
+                      <Text style={styles.statLabel}>Escalated</Text>
                     </View>
                     <View style={styles.statDivider} />
                   </>

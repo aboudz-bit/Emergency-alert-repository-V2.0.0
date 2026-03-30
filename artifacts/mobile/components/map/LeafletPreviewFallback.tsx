@@ -282,7 +282,10 @@ function generateLeafletHtml(
   .personnel-dot.safe{background:#34D399}
   .personnel-dot.outside{background:#FBBF24}
   .personnel-dot.need-help{background:#EF4444;animation:help-pulse 1.4s ease-in-out infinite;box-shadow:0 0 6px rgba(239,68,68,0.6)}
+  .personnel-dot.escalated{box-shadow:0 0 8px rgba(251,191,36,0.7);animation:esc-pulse 2s ease-in-out infinite}
+  .personnel-dot.critical{background:#EF4444;box-shadow:0 0 10px rgba(239,68,68,0.8);animation:help-pulse 1.4s ease-in-out infinite}
   @keyframes help-pulse{0%,100%{transform:scale(1);box-shadow:0 0 6px rgba(239,68,68,0.4)}50%{transform:scale(1.3);box-shadow:0 0 14px rgba(239,68,68,0.8)}}
+  @keyframes esc-pulse{0%,100%{box-shadow:0 0 6px rgba(251,191,36,0.4)}50%{box-shadow:0 0 12px rgba(251,191,36,0.8)}}
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
@@ -662,8 +665,11 @@ function generateLeafletHtml(
       if (p.status === 'need_help') { statusClass = 'need-help'; }
       else if (p.isInsideAssignedLocation) { statusClass = 'safe'; }
       else { statusClass = 'outside'; }
+      var escClass = '';
+      if (p.escalationLevel >= 2) { escClass = ' critical'; }
+      else if (p.escalationLevel === 1) { escClass = ' escalated'; }
       var shapeClass = (p.userType === 'Contract') ? ' square' : '';
-      var fullClass = 'personnel-dot ' + statusClass + shapeClass;
+      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass;
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();

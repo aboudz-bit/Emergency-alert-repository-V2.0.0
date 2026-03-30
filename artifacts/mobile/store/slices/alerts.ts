@@ -49,7 +49,14 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
       };
       set(s => ({
         alerts: [newAlert, ...s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a)],
-        users: s.users.map(u => ({ ...u, status: 'pending' as UserResponseStatus })),
+        users: s.users.map(u => ({
+          ...u,
+          status: 'pending' as UserResponseStatus,
+          escalationLevel: 0,
+          alertReceivedAt: now,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        })),
         hazardZones: s.hazardZones.filter(hz => hz.alertId == null),
         mobileUserResponse: null,
       }));
@@ -62,7 +69,14 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
       const now = new Date().toISOString();
       set(s => ({
         alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a),
-        users: s.users.map(u => ({ ...u, status: 'confirmed' as UserResponseStatus })),
+        users: s.users.map(u => ({
+          ...u,
+          status: 'confirmed' as UserResponseStatus,
+          escalationLevel: 0,
+          alertReceivedAt: null,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        })),
         zones: s.zones.map(z => z.alertActive ? {
           ...z,
           alertActive: false,
@@ -137,8 +151,21 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
     respondToAlert: (response) => {
       const { currentUser } = get();
       if (!currentUser) return;
+      const now = new Date().toISOString();
       get().updateUserResponse(currentUser.id, response);
-      set({ mobileUserResponse: response });
+      set(s => ({
+        mobileUserResponse: response,
+        users: s.users.map(u =>
+          u.id === currentUser.id
+            ? {
+                ...u,
+                respondedAt: now,
+                receiptConfirmedAt: response === 'confirmed' ? now : u.receiptConfirmedAt,
+                escalationLevel: response === 'need_help' ? 3 : 0,
+              }
+            : u,
+        ),
+      }));
     },
   };
 }

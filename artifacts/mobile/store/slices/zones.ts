@@ -198,7 +198,14 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           }],
         } : l),
         mobileUserResponse: null,
-        users: s.users.map(u => ({ ...u, status: 'pending' as const })),
+        users: s.users.map(u => ({
+          ...u,
+          status: 'pending' as const,
+          alertReceivedAt: u.alertReceivedAt ?? now,
+          escalationLevel: 0,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        })),
       }));
       // Post-activation diagnostic
       const postState = get();

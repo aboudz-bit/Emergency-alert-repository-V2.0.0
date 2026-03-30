@@ -1,0 +1,227 @@
+We need to upgrade the emergency system from a demo-style app into a real operational emergency response app.
+
+Goal:
+Make alerts impossible to miss, make critical users stand out immediately, and ensure escalation happens automatically when users do not respond.
+
+This implementation must cover:
+
+1) alert sound
+2) vibration
+3) push notifications
+4) escalation system
+
+Do this in a clean, integrated way using the current emergency architecture.
+Do NOT duplicate logic.
+Do NOT create a second alert state.
+Do NOT break existing flows.
+
+==================================================
+PART 1 — ALERT SOUND
+==================================================
+
+Trigger alert sound when any new emergency becomes active:
+
+- broadcast alert
+- zone-targeted alert
+- shelter in
+- blackout
+
+Behavior:
+- play alert sound immediately
+- loop continuously until the user interacts
+
+Stop conditions:
+- user opens the alert / emergency screen
+- user presses Confirm Receipt
+- user responds Safe / Need Help
+- alert / emergency is cleared
+
+Requirements:
+- use native mobile audio
+- sound must be clear, urgent, and distinct
+- do not play for normal non-emergency actions
+- avoid duplicate overlapping sound playback
+- no memory leaks
+- no infinite sound loops after alert is cleared
+
+==================================================
+PART 2 — VIBRATION
+==================================================
+
+Trigger vibration for the same emergency events:
+
+- broadcast alert
+- zone-targeted alert
+- shelter in
+- blackout
+
+Behavior:
+- repeating vibration pattern
+- strong enough to be noticed
+- stops when the user interacts or the alert clears
+
+Stop conditions:
+- same as sound
+
+Requirements:
+- use mobile vibration API
+- avoid duplicate overlapping vibration loops
+- no vibration for non-emergency actions
+- safe cleanup when alert is cleared or app state changes
+
+==================================================
+PART 3 — PUSH NOTIFICATIONS
+==================================================
+
+Add real push notifications so users receive alerts even when the app is closed or in background.
+
+Use:
+- Expo Push Notifications
+
+Required infrastructure:
+- request notification permission
+- generate and store push token
+- associate token with correct user
+- update token when it changes
+- handle denied permission cleanly
+
+Push triggers:
+1) New alert activated
+   - broadcast alert
+   - zone-targeted alert
+
+2) Emergency mode activated
+   - Shelter In
+   - Blackout
+
+3) Need Help submitted
+   - immediately notify Supervisor / ECO / Admin
+
+4) Escalation
+   - if user has not responded in time, notify responsible roles
+
+Delivery rules:
+- zone-targeted alerts → only users inside target zone
+- broadcast alerts → intended recipients only
+- need help → notify responsible operational roles only
+- do NOT notify everyone blindly
+
+Tapping the notification should open the correct emergency / alert screen.
+
+Profile / Settings must show real notification state:
+- granted
+- denied
+- unavailable
+
+Do not leave fake notification UI.
+
+==================================================
+PART 4 — ESCALATION SYSTEM
+==================================================
+
+We need automatic escalation when users do not respond.
+
+Track per user:
+- alertReceivedAt
+- receiptConfirmedAt
+- respondedAt
+- responseStatus
+
+Escalation rules:
+- if user does not respond after X minutes → escalation level 1
+- if still no response after Y minutes → escalation level 2
+- if user selects Need Help → immediate highest priority escalation
+
+Suggested meaning:
+Level 1:
+- warning state
+- visible in Dashboard / Users
+
+Level 2:
+- critical state
+- top priority for Supervisor / ECO / Admin
+
+Need Help:
+- always critical immediately
+
+Escalation must affect:
+- Dashboard
+- Users screen
+- notifications
+- map marker emphasis (where applicable)
+- supervisor / ECO awareness
+
+==================================================
+PART 5 — UI / SCREEN INTEGRATION
+==================================================
+
+Dashboard:
+- show alert state
+- show escalation status summary
+- show critical / need help users clearly
+- show unresponsive users clearly
+
+Users screen:
+- sort users by urgency:
+  1) Need Help
+  2) Critical no response
+  3) Pending
+  4) Safe
+- show escalation badge/state if applicable
+
+Map:
+- Need Help users already stand out / should stand out
+- critical non-responsive users should also be visually emphasized
+- do not confuse escalation with normal status colors
+
+Profile / Settings:
+- make alert sound setting real
+- make push notifications setting real
+- make session / timeout / escalation settings real if included
+- remove “Not yet connected” state once functionality exists
+
+==================================================
+PART 6 — ARCHITECTURE RULES
+==================================================
+
+Important:
+- use current emergency source of truth
+- do not duplicate state
+- reuse existing role/zone targeting logic
+- keep Confirm Receipt separate from Safe / Need Help
+- keep affiliation separate from role
+- preserve existing role-based behavior
+- preserve current tests and architecture
+- no fake UI
+
+This must integrate into the current system cleanly.
+
+==================================================
+PART 7 — STABILITY / PERFORMANCE
+==================================================
+
+Requirements:
+- no regressions
+- no duplicated sound/vibration loops
+- no memory leaks
+- no infinite intervals
+- no unnecessary map re-renders
+- no breaking of current emergency flow
+- no breaking of zone targeting
+- no fake success states
+
+==================================================
+PART 8 — OUTPUT
+==================================================
+
+After implementation report:
+
+1) files changed
+2) how sound works
+3) how vibration works
+4) how push notifications work
+5) how escalation works
+6) what screens were updated
+7) what settings became real
+8) what was intentionally postponed
+9) how stability was protected

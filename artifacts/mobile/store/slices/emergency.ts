@@ -17,7 +17,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
     activateShelterIn: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
-      set({
+      set(s => ({
         emergencyModes: {
           ...emergencyModes,
           shelterIn: true,
@@ -25,7 +25,14 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           shelterInActivatedAt: now,
           shelterInActivatedBy: currentUser?.name ?? 'System',
         },
-      });
+        users: s.users.map(u => u.alertReceivedAt ? u : {
+          ...u,
+          alertReceivedAt: now,
+          escalationLevel: 0,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        }),
+      }));
     },
 
     deactivateShelterIn: () => {
@@ -44,7 +51,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
     activateBlackout: (zoneNames) => {
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
-      set({
+      set(s => ({
         emergencyModes: {
           ...emergencyModes,
           blackout: true,
@@ -52,7 +59,14 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           blackoutActivatedAt: now,
           blackoutActivatedBy: currentUser?.name ?? 'System',
         },
-      });
+        users: s.users.map(u => u.alertReceivedAt ? u : {
+          ...u,
+          alertReceivedAt: now,
+          escalationLevel: 0,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        }),
+      }));
     },
 
     deactivateBlackout: () => {

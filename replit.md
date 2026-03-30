@@ -32,6 +32,11 @@ Not specified.
 - **Migration safety**: Migrations are ADDITIVE — they merge missing seed entities by ID, never overwrite existing user-created zones/locations/users/shelters. Pattern: check `existingIds` Set, only push if missing.
 - **Filter Chips**: Alert Monitor legend chips filter by status (Safe/Pending/Help) and personnel type (Contract). Uses `userType === "Contract"` (matching `UserType` enum), not `"Contractor"` (which is `CompanyType`).
 - **Alert System**: Comprehensive alert lifecycle (activate, clear, reactivate). Includes zone-specific alerts, shelter-in-place, and blackout modes.
+- **Emergency Sound & Vibration**: `useEmergencyAlerts` hook plays Web Audio oscillator siren (web) or expo-av WAV (native) plus vibration pattern during active emergencies. Auto-stops on user response or alert clear. Mounted via `SystemServices` component in root layout.
+- **Escalation System**: `useEscalation` hook auto-promotes unresponsive users: Level 0→1 (warning, after timeout), 1→2 (critical, after 2×timeout), need_help=Level 3 (immediate). Timer-based checks every 30s during active emergencies. `alertReceivedAt` set on all emergency types (broadcast, zone, shelter-in, blackout). Reset on all-clear.
+- **Notification Triggers**: Admin/ECO/Supervisor roles receive local notifications on escalation level changes and immediate `need_help` submissions via store subscription. Settings page controls alert sound, push notifications, and escalation timeout (1–30 min stepper).
+- **Map Escalation Visualization**: Leaflet personnel dots add `.escalated` (amber glow pulse) and `.critical` (red glow pulse) CSS classes based on `escalationLevel` from `useVisiblePersonnel`.
+- **Users Escalation UI**: User cards show "Critical" (red) and "Escalated" (amber) badges. Users sorted by urgency: need_help → escalation level → status → name.
 
 ## External Dependencies
 

@@ -18,6 +18,7 @@ export interface PersonnelMapEntry {
   detectedLocationId?: number | null;
   isInsideAssignedLocation?: boolean;
   lastUpdate?: number;
+  escalationLevel?: number;
 }
 
 export function useVisiblePersonnel(opts: {
@@ -79,6 +80,7 @@ export function useVisiblePersonnel(opts: {
         detectedLocationId: loc.detectedLocationId,
         isInsideAssignedLocation: isInsideAssigned,
         lastUpdate: loc.timestamp,
+        escalationLevel: user?.escalationLevel ?? 0,
       });
     }
 

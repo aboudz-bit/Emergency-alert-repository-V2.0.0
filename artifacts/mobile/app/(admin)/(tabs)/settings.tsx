@@ -168,38 +168,80 @@ export default function SettingsScreen() {
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabelDisabled}>Alert Sound</Text>
-                <Text style={styles.settingDescription}>Not yet connected</Text>
+                <Text style={styles.settingLabel}>Alert Sound</Text>
+                <Text style={styles.settingDescription}>
+                  Play alarm sound during active emergencies
+                </Text>
               </View>
               <Switch
-                value={false}
-                disabled
+                value={settings.notifications.alertSound}
+                onValueChange={(v) =>
+                  updateSettings({
+                    notifications: { ...settings.notifications, alertSound: v },
+                  })
+                }
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={Colors.textTertiary}
+                thumbColor={
+                  settings.notifications.alertSound ? Colors.safe : Colors.textTertiary
+                }
               />
             </View>
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabelDisabled}>Push Notifications</Text>
-                <Text style={styles.settingDescription}>Not yet connected</Text>
+                <Text style={styles.settingLabel}>Push Notifications</Text>
+                <Text style={styles.settingDescription}>
+                  Receive alerts when app is in background
+                </Text>
               </View>
               <Switch
-                value={false}
-                disabled
+                value={settings.notifications.pushNotifications}
+                onValueChange={(v) =>
+                  updateSettings({
+                    notifications: { ...settings.notifications, pushNotifications: v },
+                  })
+                }
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={Colors.textTertiary}
+                thumbColor={
+                  settings.notifications.pushNotifications ? Colors.safe : Colors.textTertiary
+                }
               />
             </View>
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabelDisabled}>Escalation Timeout</Text>
-                <Text style={styles.settingDescription}>Not yet connected</Text>
+                <Text style={styles.settingLabel}>Escalation Timeout</Text>
+                <Text style={styles.settingDescription}>
+                  Minutes before unresponsive users escalate
+                </Text>
               </View>
-              <Text style={styles.settingValueDisabled}>
-                {settings.notifications.escalationTimeoutMinutes}m
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Pressable
+                  onPress={() => {
+                    const cur = settings.notifications.escalationTimeoutMinutes;
+                    if (cur > 1) updateSettings({
+                      notifications: { ...settings.notifications, escalationTimeoutMinutes: cur - 1 },
+                    });
+                  }}
+                  style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surface, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Feather name="minus" size={14} color={Colors.textSecondary} />
+                </Pressable>
+                <Text style={[styles.settingValue, { minWidth: 32, textAlign: "center" }]}>
+                  {settings.notifications.escalationTimeoutMinutes}m
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    const cur = settings.notifications.escalationTimeoutMinutes;
+                    if (cur < 30) updateSettings({
+                      notifications: { ...settings.notifications, escalationTimeoutMinutes: cur + 1 },
+                    });
+                  }}
+                  style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surface, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Feather name="plus" size={14} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
             </View>
           </Card>
         </View>

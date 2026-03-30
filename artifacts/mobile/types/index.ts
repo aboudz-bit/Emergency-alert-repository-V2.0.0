@@ -203,6 +203,12 @@ export interface User {
 
   // Granular permissions assigned by Super Admin
   permissions?: PermissionKey[];
+
+  // Escalation tracking
+  escalationLevel?: number;
+  alertReceivedAt?: string | null;
+  receiptConfirmedAt?: string | null;
+  respondedAt?: string | null;
 }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
