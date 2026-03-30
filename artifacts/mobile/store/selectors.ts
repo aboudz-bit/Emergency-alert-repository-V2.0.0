@@ -172,9 +172,21 @@ export const selectAlertSystemState = (s: AppState): AlertSystemState => {
   const em = s.emergencyModes;
 
   const activeZones = zones.filter(z => z.isActive && z.alertActive);
-  const activeZoneIds = activeZones.map(z => z.id);
+  const zoneAlertIds = activeZones.map(z => z.id);
   const hasShelterIn = em?.shelterIn ?? false;
   const hasBlackout = em?.blackout ?? false;
+
+  const shelterInNames = hasShelterIn && Array.isArray(em?.shelterInZones) ? em.shelterInZones : [];
+  const blackoutNames = hasBlackout && Array.isArray(em?.blackoutZones) ? em.blackoutZones : [];
+  const emergencyZoneNames = new Set([...shelterInNames, ...blackoutNames]);
+  const emergencyZoneIds = emergencyZoneNames.size > 0
+    ? zones.filter(z => z.isActive && emergencyZoneNames.has(z.name)).map(z => z.id)
+    : [];
+  const allZoneIds = (shelterInNames.length === 0 && hasShelterIn) || (blackoutNames.length === 0 && hasBlackout)
+    ? zones.filter(z => z.isActive && !z.isArchived).map(z => z.id)
+    : [];
+  const mergedSet = new Set([...zoneAlertIds, ...emergencyZoneIds, ...allZoneIds]);
+  const activeZoneIds = Array.from(mergedSet);
   const realAlert = (Array.isArray(s.alerts) ? s.alerts : []).find(a => a.isActive) ?? null;
 
   const banners: BannerState[] = [];
