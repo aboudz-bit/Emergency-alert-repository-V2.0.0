@@ -1,0 +1,158 @@
+Do a focused cleanup pass.
+
+Do NOT touch the map.
+Do NOT change backend architecture.
+Do NOT start realtime/websocket/push work.
+Do NOT refactor unrelated screens.
+
+I want a clean operational polish pass only for:
+
+1) Profile / Settings
+2) Users screen
+3) Dashboard
+
+==================================================
+GOAL
+==================================================
+
+Make these screens consistent, clean, and operationally correct.
+
+I want:
+- real fields where possible
+- no misleading fake status
+- matching counts across screens
+- correct status logic
+- correct role/affiliation display
+- cleaner UX
+- no regressions
+
+==================================================
+1) PROFILE / SETTINGS CLEANUP
+==================================================
+
+Audit Profile / Settings and clean them up.
+
+Requirements:
+
+- Keep only fields that are real and correctly wired
+- If a field is placeholder/fake, either:
+  - remove it from UI
+  - or label it clearly / disable it
+- Do NOT leave misleading fake status in production-looking UI
+
+Specifically check:
+- badge
+- role
+- affiliation
+- zone
+- location
+- company
+- account status
+- GPS status
+- notification status
+- session timeout
+- alert sound
+- push notification setting
+
+Rules:
+- real values should stay
+- fake values should not look real
+- settings that do nothing should not pretend to work
+- keep screen professional and clean
+
+==================================================
+2) USERS SCREEN CONSISTENCY
+==================================================
+
+Audit and clean Users screen.
+
+Requirements:
+
+- verify status logic is correct:
+  - safe
+  - pending
+  - need_help
+  - no_reply
+- verify counts and grouping are correct
+- verify filters work correctly:
+  - search
+  - zone
+  - location
+  - affiliation
+  - status
+- verify badge / role / affiliation / zone / location all display correctly
+- keep it as an operations monitor, not a management page
+- keep urgent statuses first
+- keep clean grouping and sectioning
+
+Make sure Users screen matches the intended operational behavior.
+
+==================================================
+3) DASHBOARD CONSISTENCY
+==================================================
+
+Audit and clean Dashboard.
+
+Requirements:
+
+- verify the counts match Users screen
+- verify:
+  - safe
+  - pending
+  - need_help
+  - no_reply
+  are correct
+- verify active zone names are correct
+- verify emergency summary is correct
+- verify quick actions are clean
+- improve clarity, not complexity
+- remove misleading or inconsistent widgets
+
+Dashboard should feel like a command overview, not random cards.
+
+==================================================
+4) CROSS-SCREEN CONSISTENCY
+==================================================
+
+Users and Dashboard must agree.
+
+Check:
+- same emergency source
+- same status logic
+- same counts
+- same affiliations
+- same zone/location interpretation
+
+If something is inconsistent, fix the wiring only in these screens.
+
+Do NOT touch map.
+
+==================================================
+5) STABILITY RULES
+==================================================
+
+- no backend changes unless absolutely required for correctness
+- no schema changes unless absolutely required
+- no map changes
+- no new architecture
+- no unrelated refactor
+- no regressions
+- preserve current tests
+- preserve current emergency provider
+- keep all arrays safe
+- no new loops
+- no heavy re-renders
+
+==================================================
+6) OUTPUT FORMAT
+==================================================
+
+After the cleanup pass, report:
+
+1) files changed
+2) what was cleaned in Profile / Settings
+3) what was cleaned in Users
+4) what was cleaned in Dashboard
+5) what inconsistency was found between Users and Dashboard
+6) what was intentionally left for later
+7) how stability was protected

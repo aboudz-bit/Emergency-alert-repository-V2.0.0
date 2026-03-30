@@ -367,21 +367,23 @@ export default function EmergencyUsersScreen() {
               <Text style={styles.userBadge}>{item.badge}</Text>
             </View>
             <View style={styles.userBadgeRow}>
-              <View style={[
-                styles.companyBadge,
-                (item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor"
-                  ? styles.companyBadgeContractor
-                  : styles.companyBadgeAramco,
-              ]}>
-                <Text style={[
-                  styles.companyBadgeText,
-                  (item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor"
-                    ? styles.companyBadgeTextContractor
-                    : styles.companyBadgeTextAramco,
-                ]}>
-                  {(item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco")) === "Contractor" ? "Contractor" : "Aramco"}
-                </Text>
-              </View>
+              {(() => {
+                const company = item.companyType ?? (item.userType === "Contract" ? "Contractor" : "Aramco");
+                const isContractor = company === "Contractor";
+                return (
+                  <View style={[
+                    styles.companyBadge,
+                    isContractor ? styles.companyBadgeContractor : styles.companyBadgeAramco,
+                  ]}>
+                    <Text style={[
+                      styles.companyBadgeText,
+                      isContractor ? styles.companyBadgeTextContractor : styles.companyBadgeTextAramco,
+                    ]}>
+                      {isContractor ? "Contractor" : "Aramco"}
+                    </Text>
+                  </View>
+                );
+              })()}
               <StatusBadge status={item.status} />
             </View>
           </View>

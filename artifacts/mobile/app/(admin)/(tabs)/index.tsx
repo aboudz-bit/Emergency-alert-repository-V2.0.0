@@ -45,14 +45,30 @@ export default function DashboardScreen() {
   const activeAlertCount = alertSystem.emergencyMode ? Math.max(alertSystem.activeZoneIds.length, alertSystem.activeAlert ? 1 : 0) : 0;
   const hasActiveAlerts = alertSystem.emergencyMode !== null;
 
+  const activeUsers = useMemo(() => users.filter((u) => u.isActive), [users]);
+
+  const personnelStatus = useMemo(() => {
+    if (!hasActiveAlerts) return { safe: 0, pending: 0, needHelp: 0 };
+    let safe = 0;
+    let pending = 0;
+    let needHelp = 0;
+    for (const u of activeUsers) {
+      if (u.status === "confirmed") safe++;
+      else if (u.status === "need_help") needHelp++;
+      else if (u.status === "pending") pending++;
+    }
+    return { safe, pending, needHelp };
+  }, [activeUsers, hasActiveAlerts]);
+
   const stats = useMemo(() => {
     const total = users.length;
     const affectedLocations = locations.filter((l) => l.alertActive && l.isActive).length;
+    const alertZoneIds = new Set(alertZones.map((z) => z.id));
     const affectedUsers = hasActiveAlerts
-      ? users.filter((u) => alertZones.some((z) => z.name === u.zone)).length
+      ? users.filter((u) => u.isActive && u.zoneId != null && alertZoneIds.has(u.zoneId)).length
       : 0;
     const zoneCounts = zones
-      .filter((z) => z.isActive)
+      .filter((z) => z.isActive && !z.isArchived)
       .map((z) => ({
         name: z.name,
         count: users.filter((u) => u.zoneId === z.id).length,
@@ -163,10 +179,10 @@ export default function DashboardScreen() {
                   </View>
                   <View style={styles.alertBannerTitleWrap}>
                     <Text style={styles.alertBannerTitle}>
-                      {activeAlertCount} Active Alert{activeAlertCount !== 1 ? "s" : ""}
+                      {alertSystem.activeAlert?.title || "Emergency Active"}
                     </Text>
                     <Text style={styles.alertBannerMeta}>
-                      {alertZones.map((z) => z.name).join(", ")}
+                      {alertSystem.activeAlert?.zone || ""}
                     </Text>
                   </View>
                 </View>
@@ -188,24 +204,35 @@ export default function DashboardScreen() {
 
               <View style={styles.alertStats}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.primary }]}>
-                    {activeAlertCount}
+                  <Text style={[styles.statValue, { color: Colors.safe }]}>
+                    {personnelStatus.safe}
                   </Text>
-                  <Text style={styles.statLabel}>Zones</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.info }]}>
-                    {stats.affectedLocations}
-                  </Text>
-                  <Text style={styles.statLabel}>Locations</Text>
+                  <Text style={styles.statLabel}>Safe</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statValue, { color: Colors.amber }]}>
+                    {personnelStatus.pending}
+                  </Text>
+                  <Text style={styles.statLabel}>Pending</Text>
+                </View>
+                <View style={styles.statDivider} />
+                {personnelStatus.needHelp > 0 && (
+                  <>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: Colors.destructive }]}>
+                        {personnelStatus.needHelp}
+                      </Text>
+                      <Text style={styles.statLabel}>Need Help</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                  </>
+                )}
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: Colors.info }]}>
                     {stats.affectedUsers}
                   </Text>
-                  <Text style={styles.statLabel}>Users</Text>
+                  <Text style={styles.statLabel}>Affected</Text>
                 </View>
               </View>
 

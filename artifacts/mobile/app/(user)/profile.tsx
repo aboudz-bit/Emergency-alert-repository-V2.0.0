@@ -161,50 +161,15 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        {/* System Info */}
         <Card style={styles.sectionCard}>
           <Text style={[styles.sectionTitle, textAlign ? { textAlign } : undefined]}>
             {t.system}
           </Text>
           <View style={styles.infoList}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIconWrap}>
-                <Feather
-                  name="crosshair"
-                  size={16}
-                  color={Colors.textSecondary}
-                />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>{t.gpsStatus}</Text>
-                <View style={styles.gpsStatusRow}>
-                  <View style={styles.gpsActiveDot} />
-                  <Text style={styles.gpsActiveText}>{t.statusActive}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.infoSeparator} />
-            <View style={styles.infoRow}>
-              <View style={styles.infoIconWrap}>
-                <Feather
-                  name="bell"
-                  size={16}
-                  color={Colors.textSecondary}
-                />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>{t.notificationStatus}</Text>
-                <View style={styles.gpsStatusRow}>
-                  <View style={styles.gpsActiveDot} />
-                  <Text style={styles.gpsActiveText}>{t.statusEnabled}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.infoSeparator} />
             <InfoRow
               icon="smartphone"
               label={t.appVersion}
-              value="2.0.0-ios"
+              value="2.0.0"
             />
           </View>
         </Card>
@@ -388,23 +353,6 @@ const styles = StyleSheet.create({
   },
   infoStatusRow: {
     marginTop: Spacing.xs,
-  },
-  gpsStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginTop: 2,
-  },
-  gpsActiveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.safe,
-  },
-  gpsActiveText: {
-    fontSize: FontSize.md,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.safe,
   },
   logoutBtn: {
     marginTop: Spacing.md,

@@ -168,66 +168,38 @@ export default function SettingsScreen() {
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Alert Sound</Text>
-                <Text style={styles.settingDescription}>Play sound for alerts</Text>
+                <Text style={styles.settingLabelDisabled}>Alert Sound</Text>
+                <Text style={styles.settingDescription}>Not yet connected</Text>
               </View>
               <Switch
-                value={settings.notifications.alertSound}
-                onValueChange={(value) =>
-                  updateSettings({ notifications: { ...settings.notifications, alertSound: value } })
-                }
+                value={false}
+                disabled
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={settings.notifications.alertSound ? Colors.safe : Colors.textSecondary}
+                thumbColor={Colors.textTertiary}
               />
             </View>
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDescription}>Receive push for alerts</Text>
+                <Text style={styles.settingLabelDisabled}>Push Notifications</Text>
+                <Text style={styles.settingDescription}>Not yet connected</Text>
               </View>
               <Switch
-                value={settings.notifications.pushNotifications}
-                onValueChange={(value) =>
-                  updateSettings({
-                    notifications: { ...settings.notifications, pushNotifications: value },
-                  })
-                }
+                value={false}
+                disabled
                 trackColor={{ false: Colors.border, true: Colors.safe + "60" }}
-                thumbColor={
-                  settings.notifications.pushNotifications ? Colors.safe : Colors.textSecondary
-                }
+                thumbColor={Colors.textTertiary}
               />
             </View>
             <Divider />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Escalation Timeout</Text>
-                <Text style={styles.settingDescription}>Minutes before escalation</Text>
+                <Text style={styles.settingLabelDisabled}>Escalation Timeout</Text>
+                <Text style={styles.settingDescription}>Not yet connected</Text>
               </View>
-              <Stepper
-                value={settings.notifications.escalationTimeoutMinutes}
-                suffix="m"
-                onDecrement={() =>
-                  updateSettings({
-                    notifications: {
-                      ...settings.notifications,
-                      escalationTimeoutMinutes: Math.max(
-                        1,
-                        settings.notifications.escalationTimeoutMinutes - 1
-                      ),
-                    },
-                  })
-                }
-                onIncrement={() =>
-                  updateSettings({
-                    notifications: {
-                      ...settings.notifications,
-                      escalationTimeoutMinutes: settings.notifications.escalationTimeoutMinutes + 1,
-                    },
-                  })
-                }
-              />
+              <Text style={styles.settingValueDisabled}>
+                {settings.notifications.escalationTimeoutMinutes}m
+              </Text>
             </View>
           </Card>
         </View>
@@ -237,21 +209,12 @@ export default function SettingsScreen() {
           <Card>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Session Timeout</Text>
-                <Text style={styles.settingDescription}>Auto logout after inactivity</Text>
+                <Text style={styles.settingLabelDisabled}>Session Timeout</Text>
+                <Text style={styles.settingDescription}>Not yet connected</Text>
               </View>
-              <Stepper
-                value={settings.sessionTimeoutMinutes}
-                suffix="m"
-                onDecrement={() =>
-                  updateSettings({
-                    sessionTimeoutMinutes: Math.max(5, settings.sessionTimeoutMinutes - 5),
-                  })
-                }
-                onIncrement={() =>
-                  updateSettings({ sessionTimeoutMinutes: settings.sessionTimeoutMinutes + 5 })
-                }
-              />
+              <Text style={styles.settingValueDisabled}>
+                {settings.sessionTimeoutMinutes}m
+              </Text>
             </View>
             <Divider />
             <View style={styles.settingRow}>
@@ -400,10 +363,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     color: Colors.text,
   },
+  settingLabelDisabled: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_500Medium",
+    color: Colors.textTertiary,
+  },
   settingValue: {
     fontSize: FontSize.sm,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
+    flexShrink: 1,
+  },
+  settingValueDisabled: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
     flexShrink: 1,
   },
   settingDescription: {
