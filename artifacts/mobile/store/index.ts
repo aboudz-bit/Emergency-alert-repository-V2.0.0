@@ -86,6 +86,7 @@ export const useStore = create<AppState>()(
       hazardZones: [],
       personnelLocations: {},
       zoneNotifications: [],
+      alertNotifications: [],
       permissionAssignments: [],
       emergencyModes: {
         shelterIn: false,
@@ -149,6 +150,7 @@ export const useStore = create<AppState>()(
             hazardZones: [],
             personnelLocations: {},
             zoneNotifications: [],
+            alertNotifications: [],
             permissionAssignments: [],
             emergencyModes: {
               shelterIn: false,

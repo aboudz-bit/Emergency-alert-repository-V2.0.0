@@ -94,6 +94,29 @@ export default function AlertManagementScreen() {
   // Notification modal
   const [notifyTarget, setNotifyTarget] = useState<Zone | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyScope, setNotifyScope] = useState<"all" | "locations">("all");
+  const [notifySelectedLocations, setNotifySelectedLocations] = useState<number[]>([]);
+  const [notifyStep, setNotifyStep] = useState<"compose" | "confirm" | "sent">("compose");
+  const [lastSentNotification, setLastSentNotification] = useState<{ recipientCount: number; scope: string } | null>(null);
+
+  const sendAlertNotification = useStore((s) => s.sendAlertNotification);
+  const currentUser = useStore((s) => s.currentUser);
+  const permissionAssignments = useStore((s) => s.permissionAssignments);
+
+  const canSendNotification = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "Super Admin") return true;
+    if (currentUser.role === "ECO") {
+      const assignment = permissionAssignments.find(p => p.userId === currentUser.id);
+      return assignment?.permissions.includes("canSendAlertNotification") ?? false;
+    }
+    return false;
+  }, [currentUser, permissionAssignments]);
+
+  const notifyZoneLocations = useMemo(() => {
+    if (!notifyTarget) return [];
+    return locations.filter(l => l.zoneId === notifyTarget.id && l.isActive);
+  }, [notifyTarget, locations]);
 
   // ─── Derived counts ───
   const zoneStats = useMemo(() => {
@@ -1009,20 +1032,26 @@ export default function AlertManagementScreen() {
                 <Text style={styles.menuItemText}>Edit Alert</Text>
               </Pressable>
             )}
-            <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-              onPress={() => {
-                const z = menuTarget;
-                setMenuTarget(null);
-                if (z) {
-                  setNotifyTarget(z);
-                  setNotifyMessage("");
-                }
-              }}
-            >
-              <Feather name="bell" size={16} color={Colors.textSecondary} />
-              <Text style={styles.menuItemText}>Notification</Text>
-            </Pressable>
+            {canSendNotification && menuTarget?.isActive && menuTarget?.alertActive && (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={() => {
+                  const z = menuTarget;
+                  setMenuTarget(null);
+                  if (z) {
+                    setNotifyTarget(z);
+                    setNotifyMessage("");
+                    setNotifyScope("all");
+                    setNotifySelectedLocations([]);
+                    setNotifyStep("compose");
+                    setLastSentNotification(null);
+                  }
+                }}
+              >
+                <Feather name="bell" size={16} color={Colors.textSecondary} />
+                <Text style={styles.menuItemText}>Send Notification</Text>
+              </Pressable>
+            )}
           </View>
         </Pressable>
       </Modal>
@@ -1035,14 +1064,16 @@ export default function AlertManagementScreen() {
         onRequestClose={() => setNotifyTarget(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { maxHeight: "85%" }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
                 <View style={[styles.modalTitleIcon, { backgroundColor: Colors.info + "18" }]}>
                   <Feather name="bell" size={14} color={Colors.info} />
                 </View>
-                <Text style={styles.modalTitle}>Send Notification</Text>
+                <Text style={styles.modalTitle}>
+                  {notifyStep === "confirm" ? "Confirm Notification" : notifyStep === "sent" ? "Notification Sent" : "Send Notification"}
+                </Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setNotifyTarget(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textSecondary} />
@@ -1061,39 +1092,176 @@ export default function AlertManagementScreen() {
               )}
             </View>
 
-            <Text style={styles.modalLabel}>Message</Text>
-            <TextInput
-              style={[styles.messageInput, { minHeight: 100 }]}
-              value={notifyMessage}
-              onChangeText={setNotifyMessage}
-              placeholder="Type notification message..."
-              placeholderTextColor={Colors.textTertiary}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
+            <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+              {notifyStep === "compose" && (
+                <>
+                  <Text style={styles.modalLabel}>Target Scope</Text>
+                  <View style={styles.notifyScopeRow}>
+                    <Pressable
+                      style={[styles.notifyScopeBtn, notifyScope === "all" && styles.notifyScopeBtnActive]}
+                      onPress={() => { setNotifyScope("all"); setNotifySelectedLocations([]); }}
+                    >
+                      <Feather name="users" size={14} color={notifyScope === "all" ? "#fff" : Colors.textSecondary} />
+                      <Text style={[styles.notifyScopeBtnText, notifyScope === "all" && styles.notifyScopeBtnTextActive]}>
+                        All Users in Zone
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.notifyScopeBtn, notifyScope === "locations" && styles.notifyScopeBtnActive]}
+                      onPress={() => setNotifyScope("locations")}
+                    >
+                      <Feather name="map-pin" size={14} color={notifyScope === "locations" ? "#fff" : Colors.textSecondary} />
+                      <Text style={[styles.notifyScopeBtnText, notifyScope === "locations" && styles.notifyScopeBtnTextActive]}>
+                        Specific Locations
+                      </Text>
+                    </Pressable>
+                  </View>
 
-            <View style={styles.modalBtnRow}>
-              <Pressable
-                style={({ pressed }) => [styles.modalBtnCancel, pressed && { opacity: 0.8 }]}
-                onPress={() => setNotifyTarget(null)}
-              >
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.modalBtnSave, pressed && { opacity: 0.8 }, !notifyMessage.trim() && { opacity: 0.4 }]}
-                onPress={() => {
-                  if (!notifyTarget || !notifyMessage.trim()) return;
-                  sendZoneNotification(notifyTarget.id, notifyMessage);
-                  setNotifyTarget(null);
-                  setNotifyMessage("");
-                }}
-                disabled={!notifyMessage.trim()}
-              >
-                <Feather name="send" size={14} color="#fff" />
-                <Text style={styles.modalBtnConfirmText}>Send</Text>
-              </Pressable>
-            </View>
+                  {notifyScope === "locations" && (
+                    <View style={styles.notifyLocList}>
+                      {notifyZoneLocations.length === 0 && (
+                        <Text style={styles.notifyLocEmpty}>No active locations in this zone</Text>
+                      )}
+                      {notifyZoneLocations.map(loc => {
+                        const isSelected = notifySelectedLocations.includes(loc.id);
+                        const locUserCount = users.filter(u => u.isActive && u.locationId === loc.id).length;
+                        return (
+                          <Pressable
+                            key={loc.id}
+                            style={[styles.notifyLocItem, isSelected && styles.notifyLocItemSelected]}
+                            onPress={() => {
+                              setNotifySelectedLocations(prev =>
+                                isSelected ? prev.filter(id => id !== loc.id) : [...prev, loc.id]
+                              );
+                            }}
+                          >
+                            <View style={[styles.notifyLocCheck, isSelected && styles.notifyLocCheckActive]}>
+                              {isSelected && <Feather name="check" size={12} color="#fff" />}
+                            </View>
+                            <Text style={styles.notifyLocName}>{loc.name}</Text>
+                            <Text style={styles.notifyLocCount}>{locUserCount} user{locUserCount !== 1 ? "s" : ""}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <Text style={[styles.modalLabel, { marginTop: 12 }]}>Message</Text>
+                  <TextInput
+                    style={[styles.messageInput, { minHeight: 100 }]}
+                    value={notifyMessage}
+                    onChangeText={setNotifyMessage}
+                    placeholder="e.g. Move to Shelter B immediately..."
+                    placeholderTextColor={Colors.textTertiary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+
+                  <View style={styles.modalBtnRow}>
+                    <Pressable
+                      style={({ pressed }) => [styles.modalBtnCancel, pressed && { opacity: 0.8 }]}
+                      onPress={() => setNotifyTarget(null)}
+                    >
+                      <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.modalBtnSave, pressed && { opacity: 0.8 },
+                        (!notifyMessage.trim() || (notifyScope === "locations" && notifySelectedLocations.length === 0)) && { opacity: 0.4 },
+                      ]}
+                      onPress={() => setNotifyStep("confirm")}
+                      disabled={!notifyMessage.trim() || (notifyScope === "locations" && notifySelectedLocations.length === 0)}
+                    >
+                      <Feather name="arrow-right" size={14} color="#fff" />
+                      <Text style={styles.modalBtnConfirmText}>Review</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+
+              {notifyStep === "confirm" && (
+                <>
+                  <View style={styles.notifyConfirmCard}>
+                    <View style={styles.notifyConfirmRow}>
+                      <Text style={styles.notifyConfirmLabel}>Target</Text>
+                      <Text style={styles.notifyConfirmValue}>
+                        {notifyScope === "all"
+                          ? `All users in ${notifyTarget?.name}`
+                          : notifySelectedLocations.map(id => notifyZoneLocations.find(l => l.id === id)?.name).filter(Boolean).join(", ")}
+                      </Text>
+                    </View>
+                    <View style={styles.notifyConfirmRow}>
+                      <Text style={styles.notifyConfirmLabel}>Recipients</Text>
+                      <Text style={styles.notifyConfirmValue}>
+                        {(() => {
+                          const targetSet = notifyScope === "all"
+                            ? new Set(notifyZoneLocations.map(l => l.id))
+                            : new Set(notifySelectedLocations);
+                          return users.filter(u => u.isActive && u.locationId != null && targetSet.has(u.locationId)).length;
+                        })()} user(s)
+                      </Text>
+                    </View>
+                    <View style={[styles.notifyConfirmRow, { borderBottomWidth: 0 }]}>
+                      <Text style={styles.notifyConfirmLabel}>Message</Text>
+                      <Text style={[styles.notifyConfirmValue, { fontStyle: "italic" }]}>
+                        "{notifyMessage.trim()}"
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalBtnRow}>
+                    <Pressable
+                      style={({ pressed }) => [styles.modalBtnCancel, pressed && { opacity: 0.8 }]}
+                      onPress={() => setNotifyStep("compose")}
+                    >
+                      <Text style={styles.modalBtnCancelText}>Back</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [styles.modalBtnSave, { backgroundColor: Colors.info }, pressed && { opacity: 0.8 }]}
+                      onPress={() => {
+                        if (!notifyTarget) return;
+                        const result = sendAlertNotification({
+                          zoneId: notifyTarget.id,
+                          scope: notifyScope,
+                          targetLocationIds: notifySelectedLocations,
+                          message: notifyMessage,
+                        });
+                        if (result) {
+                          setLastSentNotification({ recipientCount: result.recipientCount, scope: result.scope === "all" ? "all users" : result.targetLocationNames.join(", ") });
+                          setNotifyStep("sent");
+                        }
+                      }}
+                    >
+                      <Feather name="send" size={14} color="#fff" />
+                      <Text style={styles.modalBtnConfirmText}>Send Now</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+
+              {notifyStep === "sent" && (
+                <>
+                  <View style={styles.notifySentContainer}>
+                    <View style={styles.notifySentIcon}>
+                      <Feather name="check-circle" size={32} color={Colors.safe} />
+                    </View>
+                    <Text style={styles.notifySentTitle}>Notification Sent</Text>
+                    <Text style={styles.notifySentDetail}>
+                      Delivered to {lastSentNotification?.recipientCount ?? 0} user(s) — {lastSentNotification?.scope}
+                    </Text>
+                  </View>
+                  <View style={[styles.modalBtnRow, { justifyContent: "center" }]}>
+                    <Pressable
+                      style={({ pressed }) => [styles.modalBtnSave, pressed && { opacity: 0.8 }]}
+                      onPress={() => setNotifyTarget(null)}
+                    >
+                      <Text style={styles.modalBtnConfirmText}>Done</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1503,6 +1671,86 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.info, alignItems: "center", justifyContent: "center", gap: 6,
   },
   modalBtnConfirmText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
+
+  // ─── Notification scope ───
+  notifyScopeRow: {
+    flexDirection: "row", gap: 8, marginBottom: 8,
+  },
+  notifyScopeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: Colors.surfaceElevated, borderWidth: 1, borderColor: Colors.border,
+  },
+  notifyScopeBtnActive: {
+    backgroundColor: Colors.info, borderColor: Colors.info,
+  },
+  notifyScopeBtnText: {
+    fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary,
+  },
+  notifyScopeBtnTextActive: { color: "#fff" },
+  notifyLocList: {
+    gap: 4, marginBottom: 4,
+  },
+  notifyLocEmpty: {
+    fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
+    textAlign: "center", paddingVertical: 12,
+  },
+  notifyLocItem: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8,
+    backgroundColor: Colors.surfaceElevated, borderWidth: 1, borderColor: Colors.border,
+  },
+  notifyLocItemSelected: {
+    borderColor: Colors.info, backgroundColor: Colors.info + "0A",
+  },
+  notifyLocCheck: {
+    width: 20, height: 20, borderRadius: 4,
+    borderWidth: 2, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center",
+  },
+  notifyLocCheckActive: {
+    backgroundColor: Colors.info, borderColor: Colors.info,
+  },
+  notifyLocName: {
+    flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.text,
+  },
+  notifyLocCount: {
+    fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
+  },
+  notifyConfirmCard: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.border, marginBottom: 12,
+    overflow: "hidden",
+  },
+  notifyConfirmRow: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start",
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    gap: 12,
+  },
+  notifyConfirmLabel: {
+    fontSize: 11, fontFamily: "Inter_600SemiBold", color: Colors.textTertiary,
+    textTransform: "uppercase", minWidth: 70,
+  },
+  notifyConfirmValue: {
+    flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.text,
+    textAlign: "right",
+  },
+  notifySentContainer: {
+    alignItems: "center", paddingVertical: 24, gap: 8,
+  },
+  notifySentIcon: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: Colors.safe + "18",
+    alignItems: "center", justifyContent: "center", marginBottom: 4,
+  },
+  notifySentTitle: {
+    fontSize: 16, fontFamily: "Inter_700Bold", color: Colors.text,
+  },
+  notifySentDetail: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textSecondary,
+    textAlign: "center",
+  },
 
   // ─── Deactivate confirmation ───
   deactivateOverlay: {

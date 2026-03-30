@@ -1,4 +1,5 @@
 import type { SetState, GetState, AppState } from '../types';
+import type { AlertNotification } from '@/types';
 import { nextHistoryId } from '../helpers';
 
 export function createZoneSlice(set: SetState, get: GetState): Pick<
@@ -9,7 +10,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
   'reorderZones' | 'reorderLocations' |
   'activateZoneAlert' | 'deactivateZoneAlert' | 'editZoneAlert' |
   'bulkActivateZoneAlerts' | 'bulkDeactivateZoneAlerts' |
-  'sendZoneNotification'
+  'sendZoneNotification' | 'sendAlertNotification'
 > {
   return {
     addZone: (zone) => set(s => ({ zones: [...s.zones, { ...zone, id: Date.now() }] })),
@@ -374,6 +375,64 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         sentAt: new Date().toISOString(),
       };
       set(s => ({ zoneNotifications: [notification, ...s.zoneNotifications] }));
+    },
+
+    sendAlertNotification: (opts) => {
+      const { zones, locations, users, currentUser, permissionAssignments } = get();
+      if (!currentUser) return null;
+
+      const hasPermission =
+        currentUser.role === 'Super Admin' ||
+        (currentUser.role === 'ECO' &&
+          (permissionAssignments.find(p => p.userId === currentUser.id)
+            ?.permissions.includes('canSendAlertNotification') ?? false));
+      if (!hasPermission) return null;
+
+      const zone = zones.find(z => z.id === opts.zoneId);
+      if (!zone || !zone.alertActive) return null;
+
+      const zoneLocations = locations.filter(l => l.zoneId === opts.zoneId && l.isActive);
+      const targetLocIds = opts.scope === 'all'
+        ? zoneLocations.map(l => l.id)
+        : opts.targetLocationIds;
+      const targetLocNames = targetLocIds.map(id => {
+        const loc = locations.find(l => l.id === id);
+        return loc?.name ?? `Location ${id}`;
+      });
+
+      const targetLocSet = new Set(targetLocIds);
+      const recipientCount = users.filter(u =>
+        u.isActive && u.locationId != null && targetLocSet.has(u.locationId)
+      ).length;
+
+      const now = new Date().toISOString();
+      const notification: AlertNotification = {
+        id: Date.now(),
+        zoneId: opts.zoneId,
+        zoneName: zone.name,
+        scope: opts.scope,
+        targetLocationIds: targetLocIds,
+        targetLocationNames: targetLocNames,
+        message: opts.message.trim(),
+        sentBy: currentUser.name,
+        sentById: currentUser.id,
+        sentAt: now,
+        recipientCount,
+      };
+
+      set(s => ({
+        alertNotifications: [notification, ...s.alertNotifications],
+        activityLogs: [{
+          id: Date.now(),
+          type: 'alert' as const,
+          message: `Notification sent to ${opts.scope === 'all' ? 'all users in ' + zone.name : targetLocNames.join(', ')}: "${opts.message.trim()}"`,
+          timestamp: now,
+          actorId: currentUser.id,
+          actorName: currentUser.name,
+        }, ...s.activityLogs],
+      }));
+
+      return notification;
     },
   };
 }

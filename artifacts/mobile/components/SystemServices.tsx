@@ -32,6 +32,7 @@ function SystemServicesInner() {
   const role = currentUser?.role;
   const isAdmin = role === "Super Admin" || role === "ECO" || role === "Supervisor";
   const prevNeedHelpRef = React.useRef<Set<number>>(new Set());
+  const prevAlertNotifCountRef = React.useRef(0);
 
   const sendNotification = useCallback(
     async (title: string, body: string) => {
@@ -111,10 +112,38 @@ function SystemServicesInner() {
           `${names}${extra} requested immediate assistance.`
         );
       }
+
     });
 
     return unsub;
   }, [isAdmin, sendNotification]);
+
+  useEffect(() => {
+    prevAlertNotifCountRef.current = useStore.getState().alertNotifications.length;
+
+    const unsub = useStore.subscribe((state) => {
+      const notifCount = state.alertNotifications.length;
+      if (notifCount > prevAlertNotifCountRef.current) {
+        const latest = state.alertNotifications[0];
+        if (latest && state.currentUser) {
+          const user = state.currentUser;
+          const inTargetZone = latest.zoneId === user.zoneId;
+          const inTargetLocation =
+            latest.scope === "all" ||
+            (latest.targetLocationIds ?? []).includes(user.locationId);
+          if (inTargetZone && inTargetLocation) {
+            sendNotification(
+              `Alert Update — ${latest.zoneName}`,
+              latest.message
+            );
+          }
+        }
+      }
+      prevAlertNotifCountRef.current = notifCount;
+    });
+
+    return unsub;
+  }, [sendNotification]);
 
   return null;
 }

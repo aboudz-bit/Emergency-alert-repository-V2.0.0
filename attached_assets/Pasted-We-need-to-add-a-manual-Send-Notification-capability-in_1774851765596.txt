@@ -1,0 +1,122 @@
+We need to add a manual "Send Notification" capability inside an already active alert.
+
+Goal:
+When an alert is already active, an authorized operator must be able to type a custom notification message and send it immediately.
+
+==================================================
+PART 1 — SEND NOTIFICATION ACTION
+==================================================
+
+Inside the active alert management flow, add a new action:
+
+- Send Notification
+
+This action must allow the operator to:
+
+1) type the notification message manually
+2) send it immediately without creating a new unrelated alert
+3) keep the current alert active
+
+This is a live update / operational message during the same active emergency.
+
+==================================================
+PART 2 — TARGET SCOPE
+==================================================
+
+The operator must be able to choose target scope:
+
+1) All
+- send to all users inside the active zone
+
+2) Specific Locations
+- send only to selected locations inside that active zone
+
+Important:
+Do NOT force the operator to select location by location every time.
+
+There must be a clear option:
+- All users in zone
+- Selected locations only
+
+==================================================
+PART 3 — MESSAGE INPUT
+==================================================
+
+The operator must be able to write the message manually.
+
+Examples:
+- Move to Shelter B immediately
+- Avoid OT-3 until further notice
+- Use west route only
+- Gas leak near CCR
+- Stand by for further instructions
+
+This should be a free text field, not fixed templates only.
+
+==================================================
+PART 4 — PERMISSIONS
+==================================================
+
+Super Admin:
+- always allowed to use Send Notification
+
+ECO:
+- allowed only if explicit permission is granted
+
+Use permission-based control, for example:
+- can_send_alert_notification
+- can_update_active_alert
+
+Do NOT allow all ECOs automatically.
+
+==================================================
+PART 5 — PUSH NOTIFICATION BEHAVIOR
+==================================================
+
+When Send Notification is used:
+
+- send push notification to the selected scope
+- do not create a separate new emergency state
+- do not clear the current alert
+- do not break the current active alert
+- treat this as an update / live operational notification during the same alert
+
+==================================================
+PART 6 — UI / UX
+==================================================
+
+Inside active alert management, add:
+
+- Send Notification button
+
+Flow:
+1) open active alert
+2) tap Send Notification
+3) type custom message
+4) choose target:
+   - All users in zone
+   - Specific locations
+5) preview / confirm
+6) send
+
+==================================================
+PART 7 — HISTORY / AUDIT
+==================================================
+
+Every sent notification must be logged with:
+- sender
+- timestamp
+- active zone
+- target scope
+- locations selected (if not All)
+- message content
+
+==================================================
+PART 8 — RULES
+==================================================
+
+- Do NOT break existing alert flow
+- Do NOT require creating a brand new alert
+- Keep targeting accurate
+- Keep permissions strict
+- Reuse existing active alert architecture where possible

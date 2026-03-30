@@ -5,6 +5,7 @@ import type {
   UserType, CompanyType, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
   EmergencyModes, WindDirection, Language,
+  AlertNotification, AlertNotificationScope,
 } from '@/types';
 
 export interface AppState {
@@ -23,6 +24,7 @@ export interface AppState {
   hazardZones: HazardZone[];
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
+  alertNotifications: AlertNotification[];
   emergencyModes: EmergencyModes;
 
   // Wind direction (set by ECO)
@@ -107,6 +109,12 @@ export interface AppState {
   clearHazardZones: () => void;
 
   sendZoneNotification: (zoneId: number, message: string) => void;
+  sendAlertNotification: (opts: {
+    zoneId: number;
+    scope: AlertNotificationScope;
+    targetLocationIds: number[];
+    message: string;
+  }) => AlertNotification | null;
 
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;
