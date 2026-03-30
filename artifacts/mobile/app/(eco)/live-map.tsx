@@ -154,20 +154,25 @@ export default function ECOLiveMapScreen() {
       {/* Floating legend + count */}
       <View style={styles.floatingLegend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.safe }]} />
-          <Text style={styles.legendText}>Inside</Text>
+          <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
+          <Text style={styles.legendText}>Safe</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.amber }]} />
-          <Text style={styles.legendText}>Outside</Text>
+          <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
+          <Text style={styles.legendText}>Pending</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#F97316" }]} />
+          <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
+          <Text style={styles.legendText}>Need Help</Text>
+        </View>
+        <View style={{ width: 1, height: 14, backgroundColor: "rgba(255,255,255,0.3)", marginHorizontal: 4 }} />
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 10 }]} />
+          <Text style={styles.legendText}>Aramco</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
           <Text style={styles.legendText}>Contractor</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-          <Text style={styles.legendText}>Help</Text>
         </View>
         <Text style={styles.legendCount}>{visiblePersonnel.length} tracked</Text>
       </View>

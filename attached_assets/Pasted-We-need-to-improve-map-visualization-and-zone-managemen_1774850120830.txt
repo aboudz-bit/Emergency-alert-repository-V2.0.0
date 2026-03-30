@@ -1,0 +1,101 @@
+We need to improve map visualization and zone management in a clean, consistent, and safe way.
+
+==================================================
+PART 1 — User Visualization (CRITICAL)
+==================================================
+
+Goal:
+Separate STATUS from USER TYPE clearly and make critical users stand out instantly.
+
+1) Status (color — keep existing):
+- Safe = green
+- Pending = yellow
+- Need Help = red
+
+2) User Type (shape):
+- Aramco → circle marker
+- Contractor → square marker
+
+3) Rendering rules:
+- Fill color = status
+- Shape = user type
+- Optional: thin border for clarity
+
+4) "Need Help" special behavior:
+- Apply ONLY when status = "need_help"
+- Marker should pulse continuously
+- Scale animation: 1 → 1.3 → 1
+- Add soft glow / halo
+- Smooth infinite animation
+- Lightweight (no full map re-render)
+
+5) Do NOT change:
+- status logic
+- tracking logic
+- filtering logic
+
+6) Apply consistently across:
+- ECO live map
+- Alert monitor
+- Supervisor map
+- User map
+
+Goal:
+At a glance:
+- Color = situation
+- Shape = user type
+- Animation = urgency
+
+==================================================
+PART 2 — Rename Zone (SAFE EDIT)
+==================================================
+
+Goal:
+Allow editing zone names without breaking system integrity.
+
+Requirements:
+
+1) In Zone Edit modal:
+- Add editable input field for "Zone Name"
+
+2) On Save:
+- Update ONLY:
+  - zone.name
+- DO NOT change:
+  - zoneId
+
+3) Validation:
+- Name must not be empty
+- Name must be unique (no duplicates)
+
+4) Propagation:
+New name must reflect instantly in:
+- Map labels
+- Users screen filters
+- Alerts targeting UI
+- Dashboard
+- Zone list
+
+5) Safety:
+- Do NOT break relationships
+- All logic must remain based on zoneId
+- Only the display name changes
+
+==================================================
+PART 3 — UX CONSISTENCY RULES
+==================================================
+
+1) No breaking changes
+2) No fake data
+3) No duplicated logic
+4) Keep single source of truth (store/selectors)
+5) Maintain performance (especially map rendering)
+
+==================================================
+FINAL GOAL
+==================================================
+
+- Clear emergency visibility
+- Zero confusion between user type and status
+- Instant identification of critical users
+- Safe and flexible zone management

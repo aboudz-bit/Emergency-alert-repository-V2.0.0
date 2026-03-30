@@ -277,12 +277,12 @@ function generateLeafletHtml(
   }
 
   .personnel-dot-wrap{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-  .personnel-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);pointer-events:none}
+  .personnel-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,0.9);box-shadow:0 1px 4px rgba(0,0,0,0.3);pointer-events:none;transition:background 0.3s}
+  .personnel-dot.square{border-radius:2px}
   .personnel-dot.safe{background:#34D399}
   .personnel-dot.outside{background:#FBBF24}
-  .personnel-dot.contractor{background:#FB923C}
-  .personnel-dot.need-help{background:#F87171;animation:personnel-pulse 1.5s infinite}
-  @keyframes personnel-pulse{0%,100%{box-shadow:0 0 4px rgba(248,113,113,0.4)}50%{box-shadow:0 0 12px rgba(248,113,113,0.8)}}
+  .personnel-dot.need-help{background:#EF4444;animation:help-pulse 1.4s ease-in-out infinite;box-shadow:0 0 6px rgba(239,68,68,0.6)}
+  @keyframes help-pulse{0%,100%{transform:scale(1);box-shadow:0 0 6px rgba(239,68,68,0.4)}50%{transform:scale(1.3);box-shadow:0 0 14px rgba(239,68,68,0.8)}}
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
@@ -660,21 +660,22 @@ function generateLeafletHtml(
       seen[p.userId] = true;
       var statusClass;
       if (p.status === 'need_help') { statusClass = 'need-help'; }
-      else if (p.userType === 'Contract') { statusClass = 'contractor'; }
       else if (p.isInsideAssignedLocation) { statusClass = 'safe'; }
       else { statusClass = 'outside'; }
+      var shapeClass = (p.userType === 'Contract') ? ' square' : '';
+      var fullClass = 'personnel-dot ' + statusClass + shapeClass;
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();
         if (el) {
           var dot = el.querySelector('.personnel-dot');
-          if (dot) dot.className = 'personnel-dot ' + statusClass;
+          if (dot) dot.className = fullClass;
         }
       } else {
         var m = L.marker([p.lat, p.lng], {
           icon: L.divIcon({
             className: 'shelter-icon',
-            html: '<div class="personnel-dot-wrap"><div class="personnel-dot ' + statusClass + '"></div></div>',
+            html: '<div class="personnel-dot-wrap"><div class="' + fullClass + '"></div></div>',
             iconAnchor: [12, 12],
             iconSize: [24, 24],
           }),

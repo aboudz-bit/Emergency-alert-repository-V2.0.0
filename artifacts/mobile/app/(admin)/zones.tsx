@@ -44,6 +44,7 @@ export default function ZonesScreen() {
   const updateZone = useStore((s) => s.updateZone);
   const safeDeleteZone = useStore((s) => s.safeDeleteZone);
   const bulkReassignUsersToZone = useStore((s) => s.bulkReassignUsersToZone);
+  const renameZone = useStore((s) => s.renameZone);
   const users = useStore((s) => s.users);
   const locations = useStore((s) => s.locations);
   const updateLocation = useStore((s) => s.updateLocation);
@@ -106,6 +107,9 @@ export default function ZonesScreen() {
     visible: false, step: "select", sourceZoneId: 0, sourceZoneName: "",
     userCount: 0, targetZoneId: null, targetZoneName: "",
   });
+  const [renameModal, setRenameModal] = useState<{
+    visible: boolean; zoneId: number; currentName: string; newName: string; error: string;
+  }>({ visible: false, zoneId: 0, currentName: "", newName: "", error: "" });
 
   const pendingPointsRef = useRef<LatLng[]>([]);
   const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
@@ -434,6 +438,23 @@ export default function ZonesScreen() {
       targetZoneId: null, targetZoneName: "",
     }));
   }, []);
+
+  const handleOpenRename = useCallback(() => {
+    if (!selectedZone) return;
+    setRenameModal({
+      visible: true, zoneId: selectedZone.id,
+      currentName: selectedZone.name, newName: selectedZone.name, error: "",
+    });
+  }, [selectedZone]);
+
+  const handleConfirmRename = useCallback(() => {
+    const result = renameZone(renameModal.zoneId, renameModal.newName);
+    if (result.success) {
+      setRenameModal(prev => ({ ...prev, visible: false }));
+    } else {
+      setRenameModal(prev => ({ ...prev, error: result.error ?? "Rename failed" }));
+    }
+  }, [renameModal, renameZone]);
 
   const handleFocusZone = useCallback(() => {
     if (selectedZoneId) setFlyToZoneId(selectedZoneId);
@@ -919,6 +940,10 @@ export default function ZonesScreen() {
               <Feather name="edit-2" size={15} color="#333" />
               <Text style={styles.bsActionText}>Edit</Text>
             </Pressable>
+            <Pressable style={styles.bsActionBtn} onPress={handleOpenRename}>
+              <Feather name="type" size={15} color="#2563EB" />
+              <Text style={[styles.bsActionText, { color: "#2563EB" }]}>Rename</Text>
+            </Pressable>
             <Pressable style={styles.bsActionBtn} onPress={() => handleToggleZone(selectedZone)}>
               <Feather name={selectedZone.isActive ? "eye-off" : "eye"} size={15} color="#333" />
               <Text style={styles.bsActionText}>{selectedZone.isActive ? "Disable" : "Enable"}</Text>
@@ -1296,6 +1321,43 @@ export default function ZonesScreen() {
                   <Text style={styles.deleteModalDeleteText}>Delete</Text>
                 </Pressable>
               )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={renameModal.visible} transparent animationType="fade" onRequestClose={() => setRenameModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.renameSheet}>
+            <View style={styles.renameIconWrap}>
+              <Feather name="type" size={24} color="#2563EB" />
+            </View>
+            <Text style={styles.renameTitle}>Rename Zone</Text>
+            <Text style={styles.renameSubtitle}>Current: "{renameModal.currentName}"</Text>
+            <TextInput
+              style={[styles.renameInput, renameModal.error ? { borderColor: "#EF4444" } : null]}
+              value={renameModal.newName}
+              onChangeText={(t) => setRenameModal(prev => ({ ...prev, newName: t, error: "" }))}
+              placeholder="New zone name..."
+              placeholderTextColor="#bbb"
+              autoFocus
+              selectTextOnFocus
+            />
+            {renameModal.error ? (
+              <Text style={styles.renameError}>{renameModal.error}</Text>
+            ) : null}
+            <View style={styles.renameBtnRow}>
+              <Pressable style={styles.renameCancelBtn} onPress={() => setRenameModal(prev => ({ ...prev, visible: false }))}>
+                <Text style={styles.renameCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.renameConfirmBtn, !renameModal.newName.trim() && { opacity: 0.4 }]}
+                onPress={handleConfirmRename}
+                disabled={!renameModal.newName.trim()}
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text style={styles.renameConfirmText}>Rename</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -1701,6 +1763,48 @@ const styles = StyleSheet.create({
     gap: 6, minHeight: 44, borderRadius: 10, backgroundColor: "#7C3AED",
   },
   reassignConfirmText: {
+    fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+
+  renameSheet: {
+    width: "85%", maxWidth: 360, backgroundColor: "#fff", borderRadius: 20,
+    padding: 24, alignItems: "center",
+  },
+  renameIconWrap: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: "#EFF6FF",
+    alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  renameTitle: {
+    fontSize: 18, fontFamily: "Inter_700Bold", color: "#1F2937", marginBottom: 4,
+  },
+  renameSubtitle: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: "#9CA3AF", marginBottom: 16,
+  },
+  renameInput: {
+    alignSelf: "stretch", height: 48, borderRadius: 10,
+    borderWidth: 1.5, borderColor: "#E5E7EB", paddingHorizontal: 14,
+    fontSize: 15, fontFamily: "Inter_500Medium", color: "#1F2937",
+    backgroundColor: "#F9FAFB",
+  },
+  renameError: {
+    alignSelf: "stretch", fontSize: 12, fontFamily: "Inter_500Medium",
+    color: "#EF4444", marginTop: 6, paddingHorizontal: 4,
+  },
+  renameBtnRow: {
+    flexDirection: "row", gap: 10, marginTop: 20, alignSelf: "stretch",
+  },
+  renameCancelBtn: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    minHeight: 44, borderRadius: 10, backgroundColor: "#F3F4F6",
+  },
+  renameCancelText: {
+    fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#4B5563",
+  },
+  renameConfirmBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, minHeight: 44, borderRadius: 10, backgroundColor: "#2563EB",
+  },
+  renameConfirmText: {
     fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff",
   },
 });

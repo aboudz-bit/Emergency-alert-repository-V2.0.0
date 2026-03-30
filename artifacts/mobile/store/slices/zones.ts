@@ -5,7 +5,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
   AppState,
   'addZone' | 'updateZone' | 'deleteZone' |
   'archiveZone' | 'restoreZone' | 'safeDeleteZone' |
-  'bulkReassignUsersToZone' |
+  'bulkReassignUsersToZone' | 'renameZone' |
   'reorderZones' | 'reorderLocations' |
   'activateZoneAlert' | 'deactivateZoneAlert' | 'editZoneAlert' |
   'bulkActivateZoneAlerts' | 'bulkDeactivateZoneAlerts' |
@@ -113,6 +113,35 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       }));
 
       return { success: true, count: affected.length };
+    },
+
+    renameZone: (id, newName) => {
+      const trimmed = newName.trim();
+      if (!trimmed) return { success: false, error: "Name cannot be empty" };
+
+      const { zones, users, alerts, ecoAssignments, supervisorAssignments } = get();
+      const zone = zones.find(z => z.id === Number(id));
+      if (!zone) return { success: false, error: "Zone not found" };
+
+      const duplicate = zones.find(z => z.id !== Number(id) && z.name.toLowerCase() === trimmed.toLowerCase());
+      if (duplicate) return { success: false, error: "A zone with this name already exists" };
+
+      const oldName = zone.name;
+      if (oldName === trimmed) return { success: true };
+
+      set(s => ({
+        zones: s.zones.map(z => z.id === Number(id) ? { ...z, name: trimmed } : z),
+        users: s.users.map(u => u.zone === oldName ? { ...u, zone: trimmed } : u),
+        alerts: s.alerts.map(a => a.zone === oldName ? { ...a, zone: trimmed } : a),
+        ecoAssignments: s.ecoAssignments.map(e =>
+          e.assignedZoneName === oldName ? { ...e, assignedZoneName: trimmed } : e
+        ),
+        supervisorAssignments: s.supervisorAssignments.map(sa =>
+          sa.zoneName === oldName ? { ...sa, zoneName: trimmed } : sa
+        ),
+      }));
+
+      return { success: true };
     },
 
     reorderZones: (orderedIds) => {

@@ -251,7 +251,7 @@ export default function AlertMonitorScreen() {
             style={[styles.legendChip, activeFilters.has("contract") && styles.legendChipActive]}
             onPress={() => toggleFilter("contract")}
           >
-            <View style={[styles.legendDot, { backgroundColor: "#FB923C" }]} />
+            <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
             <Text style={styles.legendChipText}>Contract {contractFilterCount}</Text>
             {activeFilters.has("contract") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
           </Pressable>
@@ -259,7 +259,7 @@ export default function AlertMonitorScreen() {
             style={[styles.legendChip, activeFilters.has("help") && styles.legendChipActive]}
             onPress={() => toggleFilter("help")}
           >
-            <View style={[styles.legendDot, { backgroundColor: "#F87171" }]} />
+            <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
             <Text style={styles.legendChipText}>Help {helpFilterCount}</Text>
             {activeFilters.has("help") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
           </Pressable>
