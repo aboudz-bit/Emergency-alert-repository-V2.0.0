@@ -59,6 +59,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         })),
         hazardZones: s.hazardZones.filter(hz => hz.alertId == null),
         mobileUserResponse: null,
+        alertSoundDismissed: false,
       }));
       return newAlert;
     },
@@ -155,6 +156,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
       get().updateUserResponse(currentUser.id, response);
       set(s => ({
         mobileUserResponse: response,
+        alertSoundDismissed: true,
         users: s.users.map(u =>
           u.id === currentUser.id
             ? {

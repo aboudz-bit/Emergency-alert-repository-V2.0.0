@@ -18,6 +18,8 @@ export interface AppState {
   settings: AppSettings;
   activityLogs: ActivityLog[];
   mobileUserResponse: UserResponseStatus | null;
+  alertSoundDismissed: boolean;
+  dismissAlertSound: () => void;
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
   shelters: Shelter[];

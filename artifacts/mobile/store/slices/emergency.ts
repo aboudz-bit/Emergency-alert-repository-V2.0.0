@@ -18,6 +18,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
       set(s => ({
+        alertSoundDismissed: false,
         emergencyModes: {
           ...emergencyModes,
           shelterIn: true,
@@ -52,6 +53,7 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
       const { emergencyModes, currentUser } = get();
       const now = new Date().toISOString();
       set(s => ({
+        alertSoundDismissed: false,
         emergencyModes: {
           ...emergencyModes,
           blackout: true,

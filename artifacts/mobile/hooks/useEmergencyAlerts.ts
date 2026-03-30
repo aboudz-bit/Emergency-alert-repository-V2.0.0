@@ -67,13 +67,47 @@ function stopWebSound() {
   }
 }
 
+let webVibrationInterval: ReturnType<typeof setInterval> | null = null;
+
+function startWebVibration() {
+  if (webVibrationInterval) return;
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    navigator.vibrate(VIBRATION_PATTERN);
+    webVibrationInterval = setInterval(() => {
+      navigator.vibrate(VIBRATION_PATTERN);
+    }, 2400);
+  }
+}
+
+function stopWebVibration() {
+  if (webVibrationInterval) {
+    clearInterval(webVibrationInterval);
+    webVibrationInterval = null;
+  }
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    navigator.vibrate(0);
+  }
+}
+
+const ADMIN_ROLES = new Set(["Super Admin", "ECO", "Supervisor", "IT"]);
+
 export function useEmergencyAlerts() {
-  const { emergencyMode } = useAlertSystemState();
+  const { emergencyMode, activeZoneIds } = useAlertSystemState();
   const alertSoundEnabled = useStore(
     (s) => s.settings.notifications.alertSound
   );
   const currentUser = useStore((s) => s.currentUser);
+  const alertSoundDismissed = useStore((s) => s.alertSoundDismissed);
+  const emergencyModes = useStore((s) => s.emergencyModes);
+  const zones = useStore((s) => s.zones);
+
+  const userRole = currentUser?.role;
+  const userZoneId = currentUser?.zoneId;
   const userStatus = currentUser?.status;
+
+  const userZoneName = userZoneId != null
+    ? zones.find((z) => z.id === userZoneId)?.name ?? null
+    : null;
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const isPlayingRef = useRef(false);
@@ -81,9 +115,32 @@ export function useEmergencyAlerts() {
   const vibrationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const hasActiveEmergency = emergencyMode !== null;
+  const isAdmin = userRole ? ADMIN_ROLES.has(userRole) : false;
   const userHasResponded = userStatus === "confirmed" || userStatus === "need_help";
 
-  const shouldAlert = hasActiveEmergency && !userHasResponded && alertSoundEnabled;
+  const userInAffectedZone = (() => {
+    if (emergencyMode === "broadcastAlert") return true;
+    if (emergencyMode === "zoneAlert") {
+      return userZoneId != null && activeZoneIds.includes(userZoneId);
+    }
+    if (emergencyMode === "shelterIn") {
+      const targetZones = emergencyModes?.shelterInZones ?? [];
+      return targetZones.length === 0 || (userZoneName != null && targetZones.includes(userZoneName));
+    }
+    if (emergencyMode === "blackout") {
+      const targetZones = emergencyModes?.blackoutZones ?? [];
+      return targetZones.length === 0 || (userZoneName != null && targetZones.includes(userZoneName));
+    }
+    return false;
+  })();
+
+  const shouldAlert =
+    hasActiveEmergency &&
+    !isAdmin &&
+    userInAffectedZone &&
+    !userHasResponded &&
+    !alertSoundDismissed &&
+    alertSoundEnabled;
 
   const startNativeSound = useCallback(async () => {
     if (isPlayingRef.current) return;
@@ -125,7 +182,10 @@ export function useEmergencyAlerts() {
   }, []);
 
   const startVibration = useCallback(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web") {
+      startWebVibration();
+      return;
+    }
     if (vibrationIntervalRef.current) return;
     Vibration.vibrate(VIBRATION_PATTERN, VIBRATION_REPEAT);
     if (Platform.OS === "ios") {
@@ -136,6 +196,10 @@ export function useEmergencyAlerts() {
   }, []);
 
   const stopVibration = useCallback(() => {
+    if (Platform.OS === "web") {
+      stopWebVibration();
+      return;
+    }
     Vibration.cancel();
     if (vibrationIntervalRef.current) {
       clearInterval(vibrationIntervalRef.current);

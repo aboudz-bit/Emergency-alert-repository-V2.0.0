@@ -117,7 +117,14 @@ export default function AlertDetailScreen() {
   const { activeAlert } = useAlertSystemState();
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
+  const dismissAlertSound = useStore((s) => s.dismissAlertSound);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (activeAlert) {
+      dismissAlertSound();
+    }
+  }, [activeAlert, dismissAlertSound]);
 
   const handleRespond = (response: "confirmed" | "need_help") => {
     respondToAlert(response);

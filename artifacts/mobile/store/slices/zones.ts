@@ -174,6 +174,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       }
       console.log('[activateZoneAlert] Activating:', { zoneId, zoneName: zone.name, alertType, priority, user });
       set(s => ({
+        alertSoundDismissed: false,
         zones: s.zones.map(z => z.id === zoneId ? {
           ...z,
           alertActive: true,
@@ -295,6 +296,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       const user = get().currentUser?.name || null;
       const idSet = new Set(zoneIds);
       set(s => ({
+        alertSoundDismissed: false,
         zones: s.zones.map(z => idSet.has(z.id) ? {
           ...z,
           alertActive: true,

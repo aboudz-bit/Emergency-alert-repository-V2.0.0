@@ -99,6 +99,10 @@ export default function AlertManagementScreen() {
   const [notifyStep, setNotifyStep] = useState<"compose" | "confirm" | "sent">("compose");
   const [lastSentNotification, setLastSentNotification] = useState<{ recipientCount: number; scope: string } | null>(null);
 
+  // Notification log modal
+  const [notifLogTarget, setNotifLogTarget] = useState<Zone | null>(null);
+  const alertNotifications = useStore((s) => s.alertNotifications);
+
   const sendAlertNotification = useStore((s) => s.sendAlertNotification);
   const currentUser = useStore((s) => s.currentUser);
   const permissionAssignments = useStore((s) => s.permissionAssignments);
@@ -1052,6 +1056,19 @@ export default function AlertManagementScreen() {
                 <Text style={styles.menuItemText}>Send Notification</Text>
               </Pressable>
             )}
+            {menuTarget?.isActive && menuTarget?.alertActive && (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={() => {
+                  const z = menuTarget;
+                  setMenuTarget(null);
+                  if (z) setNotifLogTarget(z);
+                }}
+              >
+                <Feather name="list" size={16} color={Colors.textSecondary} />
+                <Text style={styles.menuItemText}>Notification Log</Text>
+              </Pressable>
+            )}
           </View>
         </Pressable>
       </Modal>
@@ -1261,6 +1278,75 @@ export default function AlertManagementScreen() {
                   </View>
                 </>
               )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══ NOTIFICATION LOG MODAL ═══ */}
+      <Modal
+        visible={notifLogTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotifLogTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: "85%" }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalTitleIcon, { backgroundColor: Colors.info + "18" }]}>
+                  <Feather name="list" size={14} color={Colors.info} />
+                </View>
+                <Text style={styles.modalTitle}>Notification Log</Text>
+              </View>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setNotifLogTarget(null)} hitSlop={8}>
+                <Feather name="x" size={16} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {notifLogTarget && (
+              <View style={styles.modalTarget}>
+                <View style={[styles.modalTargetDot, { backgroundColor: notifLogTarget.color || Colors.textTertiary }]} />
+                <Text style={styles.modalTargetText}>{notifLogTarget.name}</Text>
+              </View>
+            )}
+
+            <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+              {(() => {
+                const zoneNotifs = alertNotifications.filter(n => n.zoneId === notifLogTarget?.id);
+                if (zoneNotifs.length === 0) {
+                  return (
+                    <View style={styles.notifLogEmpty}>
+                      <Feather name="inbox" size={32} color={Colors.textTertiary} />
+                      <Text style={styles.notifLogEmptyText}>No notifications sent during this alert</Text>
+                    </View>
+                  );
+                }
+                return zoneNotifs.map(n => (
+                  <View key={n.id} style={styles.notifLogItem}>
+                    <View style={styles.notifLogItemHeader}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+                        <Feather name="bell" size={12} color={Colors.info} />
+                        <Text style={styles.notifLogSender}>{n.sentBy}</Text>
+                      </View>
+                      <Text style={styles.notifLogTime}>
+                        {new Date(n.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                    </View>
+                    <Text style={styles.notifLogMessage}>"{n.message}"</Text>
+                    <View style={styles.notifLogMeta}>
+                      <View style={styles.notifLogMetaTag}>
+                        <Feather name={n.scope === "all" ? "users" : "map-pin"} size={10} color={Colors.textTertiary} />
+                        <Text style={styles.notifLogMetaText}>
+                          {n.scope === "all" ? "All users in zone" : (n.targetLocationNames ?? []).join(", ")}
+                        </Text>
+                      </View>
+                      <Text style={styles.notifLogMetaText}>{n.recipientCount} recipient{n.recipientCount !== 1 ? "s" : ""}</Text>
+                    </View>
+                  </View>
+                ));
+              })()}
             </ScrollView>
           </View>
         </View>
@@ -1750,6 +1836,45 @@ const styles = StyleSheet.create({
   notifySentDetail: {
     fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textSecondary,
     textAlign: "center",
+  },
+
+  // ─── Notification log ───
+  notifLogEmpty: {
+    alignItems: "center", paddingVertical: 32, gap: 10,
+  },
+  notifLogEmptyText: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
+  },
+  notifLogItem: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.border,
+    padding: 12, marginBottom: 8,
+  },
+  notifLogItemHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  notifLogSender: {
+    fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.text,
+  },
+  notifLogTime: {
+    fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
+  },
+  notifLogMessage: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.text,
+    fontStyle: "italic", marginBottom: 8, lineHeight: 19,
+  },
+  notifLogMeta: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: 8,
+  },
+  notifLogMetaTag: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: Colors.surface, borderRadius: 4,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  notifLogMetaText: {
+    fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textTertiary,
   },
 
   // ─── Deactivate confirmation ───
