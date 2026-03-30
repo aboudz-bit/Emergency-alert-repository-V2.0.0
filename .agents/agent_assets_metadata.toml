@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "uFA3slonTWy1PZJCr9x72"
+uri = "file://.local/KEAS_FULL_SYSTEM_AUDIT.md"
+type = "text"
+title = "KEAS Full System Wiring Audit"

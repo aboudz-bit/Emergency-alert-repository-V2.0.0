@@ -1,0 +1,271 @@
+Do NOT fix anything yet.
+
+I want a full system wiring audit of the entire app.
+
+This is not only about Shelter / Blackout or live map.
+I want a complete architecture and wiring report.
+
+My goal:
+I want to know exactly where every important thing is used, where it comes from, where it goes, and whether it is wired correctly according to the intended system design.
+
+Do not modify code.
+Do not refactor.
+Do not implement.
+Report only.
+
+==================================================
+AUDIT SCOPE
+==================================================
+
+Audit the full system, including:
+
+- Dashboard
+- Alert screen
+- Users screen
+- Zone Map
+- More screen
+- Profile / Settings
+- Zones
+- Locations
+- People / hidden routes if they still exist
+- Permissions
+- ECO / Supervisor pages
+- Emergency state
+- Alerts
+- Shelter In / Blackout
+- Warning / Hazard system
+- Confirm Receipt
+- Safe / Need Help
+- GPS / current location
+- zone-targeted alerts
+- roles / permissions
+- WebSocket / polling / real-time
+- backend entities / APIs
+- provider / store / cache wiring
+
+==================================================
+WHAT I WANT FOR EACH MAJOR ENTITY / FEATURE
+==================================================
+
+For each important entity or feature, I want you to explain all of the following:
+
+1) What it is
+2) Where it is created / updated
+3) Which backend endpoint(s) provide it
+4) Which frontend screen(s) read it
+5) Which provider / store / query / cache path it uses
+6) What other screens/features it affects
+7) Whether the wiring is correct
+8) Whether the wiring is partial / missing / incorrect
+9) Whether it matches the intended app design
+
+==================================================
+ENTITIES / FEATURES TO TRACE
+==================================================
+
+1) Users
+I want to know:
+- where user data comes from
+- where badge is used
+- where affiliation is used
+- where zone/location assignment is used
+- where user status is used
+- where profile data is used
+- which screens consume users
+- whether Users screen, Dashboard, Map, and Profile all use users correctly
+
+2) Zones
+I want to know:
+- where zones are created
+- where zones are edited
+- where polygons are stored
+- where zones are used for map rendering
+- where zones are used for filtering
+- where zones are used for alert targeting
+- where zones are used in Dashboard / Users / Alerts / More
+- whether all screens use the same zone source
+
+3) Locations
+I want to know:
+- where locations are created
+- where lat/lng is stored
+- where locations are shown
+- where locations are used in filters
+- where locations are used in Users grouping
+- where locations are used on the map
+- whether zone/location relationships are consistent everywhere
+
+4) Alerts
+I want to know:
+- where alerts are created
+- where alerts are stored
+- where alerts are filtered
+- where alerts are shown
+- how alerts affect Dashboard
+- how alerts affect Users
+- how alerts affect Zone Map
+- whether global alerts and zone alerts are handled correctly
+- whether alert creation and consumption are wired correctly
+
+5) Emergency State
+I want to know:
+- what is the single source of truth
+- which screens read emergency state
+- whether any screen still uses separate logic
+- whether Dashboard / Users / Alert / Zone Map all use the same emergency state
+- whether emergency state is architecturally correct
+
+6) Shelter In / Blackout
+I want to know:
+- where they are activated
+- where they are stored
+- which screens react to them
+- whether Users reacts
+- whether Dashboard reacts
+- whether Zone Map reacts
+- whether they are fully wired or only partially wired
+- exactly what is missing right now
+
+7) Warning / Hazard
+I want to know:
+- where warning is created
+- where warning is stored
+- where warning is rendered
+- whether it affects users
+- whether it affects dashboard
+- whether it affects zone map
+- why warning seems to work better than shelter/blackout
+- whether warning is correctly integrated into the system or isolated
+
+8) Confirm Receipt
+I want to know:
+- where receipt is created
+- where it is read
+- where it is shown
+- which screens use it
+- whether it correctly affects Users / Dashboard / Alerts / Map
+- whether receipt is correctly separated from safe/help
+
+9) Safe / Need Help
+I want to know:
+- where response status is stored
+- where it is read
+- which screens consume it
+- whether Users / Dashboard / Map all use the same response status
+- whether logic is fully correct or partly fake / deferred
+
+10) GPS / Current Location
+I want to know:
+- where current location is captured
+- where it is pushed to backend
+- where it is stored
+- where it is used for alert targeting
+- where it is used on the map
+- whether it is also used in user display / filters / profile
+- whether GPS flow is fully wired or only partially used
+
+11) Zone-targeted alert delivery
+I want to know:
+- where point-in-polygon is called
+- how user current location is checked
+- where the filtering happens
+- whether only correct users receive zone alerts
+- what happens if GPS is missing
+- whether this flow is implemented correctly end-to-end
+
+12) Dashboard
+I want to know:
+- exactly what data Dashboard consumes
+- where each count comes from
+- whether active zones / no reply / safe / pending / help counts are correct
+- whether Dashboard is fully wired or partially placeholder
+
+13) Users Screen
+I want to know:
+- what data it reads
+- whether search / filters / grouping are based on correct data
+- whether its status values come from the correct source
+- whether it is true operations monitor or partially management UI
+- whether it matches intended design
+
+14) Zone Map
+I want to know:
+- what props/data it receives
+- which layers are actually wired
+- zones, locations, personnel, current location, warning, wind, hazard, emergency, shelter/blackout
+- which of these are actually real vs missing vs placeholder
+- whether Zone Map is architecturally correct
+
+15) Profile / Settings
+I want to know:
+- which fields are real backend fields
+- which fields are placeholders
+- whether badge / role / affiliation / zone / location are truly wired
+- whether profile is operationally correct or not finished
+
+16) More / hidden routes / management pages
+I want to know:
+- what pages exist
+- which are visible
+- which are hidden
+- which are still redundant
+- whether People / Permissions / ECO / Supervisor pages are correctly placed
+- whether any route exists but is not really part of the intended app
+
+17) Roles / permissions
+I want to know:
+- exactly what Admin can do
+- exactly what ECO can do
+- exactly what Supervisor can do
+- exactly what User can do
+- whether role-based visibility and action permissions are correctly wired
+- whether anything is only hidden in UI but not truly protected
+- whether affiliation is mistakenly treated like a role anywhere
+
+18) Real-time behavior
+I want to know:
+- what uses WebSocket
+- what uses polling / refetch
+- what is real-time
+- what is only eventual
+- whether Dashboard / Users / Map / Alerts stay in sync
+- whether real-time architecture is correct
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+I want the report in this structure:
+
+A) Overall architectural judgment
+- Is the system architecture correct, partially correct, or flawed?
+
+B) Full wiring map
+For each major entity/feature above:
+- what it is
+- where it comes from
+- where it is used
+- what it affects
+- whether wiring is correct
+
+C) Correctly wired parts
+- list them clearly
+
+D) Partially wired parts
+- list them clearly
+
+E) Incorrectly wired parts
+- list them clearly
+
+F) Placeholder / fake / unfinished parts
+- list them clearly
+
+G) Highest-risk disconnects
+- what could cause wrong behavior in production
+
+H) Does this app match the intended design?
+- yes / partially / no
+- explain why
+
+I) Recommended fix order
+- report only, no implementation yet
