@@ -80,10 +80,13 @@ export default function SupervisorDashboardScreen() {
     const needHelp = locationUsers.filter(
       (u) => u.status === "need_help"
     ).length;
+    const critical = locationUsers.filter(
+      (u) => u.status === "pending" && (u.escalationLevel ?? 0) >= 2
+    ).length;
     const zoneAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { actual, expected, safe, pending, needHelp, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
+    return { actual, expected, safe, pending, needHelp, critical, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
 
   const myLinkedShelters = useMemo(() => {
@@ -246,6 +249,18 @@ export default function SupervisorDashboardScreen() {
             dimColor={Colors.missingDim}
           />
         </View>
+        {(stats.needHelp > 0 || stats.critical > 0) && (
+          <View style={styles.kpiRow}>
+            {stats.needHelp > 0 && (
+              <KPICard title="Need Help" value={stats.needHelp} icon="alert-circle" color={Colors.primary} dimColor={Colors.primaryDim} />
+            )}
+            {stats.critical > 0 && (
+              <KPICard title="Critical" value={stats.critical} icon="alert-octagon" color={Colors.amber} dimColor={Colors.missingDim} />
+            )}
+            {stats.needHelp === 0 && stats.critical > 0 && <View style={{ flex: 1 }} />}
+            {stats.needHelp > 0 && stats.critical === 0 && <View style={{ flex: 1 }} />}
+          </View>
+        )}
         {myLinkedShelters.length > 0 && (
           <View style={styles.kpiRow}>
             <KPICard
@@ -255,13 +270,7 @@ export default function SupervisorDashboardScreen() {
               color={Colors.info}
               dimColor={Colors.surfaceElevated}
             />
-            <KPICard
-              title="Need Help"
-              value={stats.needHelp}
-              icon="alert-circle"
-              color={stats.needHelp > 0 ? Colors.primary : Colors.safe}
-              dimColor={stats.needHelp > 0 ? Colors.missingDim : Colors.safeDim}
-            />
+            <View style={{ flex: 1 }} />
           </View>
         )}
 

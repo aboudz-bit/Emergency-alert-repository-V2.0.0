@@ -47,10 +47,11 @@ export default function ECODashboardScreen() {
       (u) => u.status === "pending"
     ).length;
     const needHelp = zoneUsers.filter((u) => u.status === "need_help").length;
+    const critical = zoneUsers.filter((u) => u.status === "pending" && (u.escalationLevel ?? 0) >= 2).length;
     const activeAlerts = alerts.filter(
       (a) => a.isActive && (a.zone === zoneName || a.zone === "All Zones")
     ).length;
-    return { total, safe, pending, needHelp, activeAlerts, locationCount: zoneLocations.length };
+    return { total, safe, pending, needHelp, critical, activeAlerts, locationCount: zoneLocations.length };
   }, [zoneUsers, alerts, zoneName, zoneLocations]);
 
   const locationBreakdown = useMemo(() => {
@@ -134,10 +135,16 @@ export default function ECODashboardScreen() {
           <KPICard title="Safe" value={stats.safe} icon="check-circle" color={Colors.safe} dimColor={Colors.safeDim} />
           <KPICard title="Pending" value={stats.pending} icon="clock" color={Colors.missing} dimColor={Colors.missingDim} />
         </View>
-        {stats.needHelp > 0 && (
+        {(stats.needHelp > 0 || stats.critical > 0) && (
           <View style={styles.kpiRow}>
-            <KPICard title="Need Help" value={stats.needHelp} icon="alert-circle" color={Colors.primary} dimColor={Colors.primaryDim} />
-            <View style={{ flex: 1 }} />
+            {stats.needHelp > 0 && (
+              <KPICard title="Need Help" value={stats.needHelp} icon="alert-circle" color={Colors.primary} dimColor={Colors.primaryDim} />
+            )}
+            {stats.critical > 0 && (
+              <KPICard title="Critical" value={stats.critical} icon="alert-octagon" color={Colors.amber} dimColor={Colors.missingDim} />
+            )}
+            {stats.needHelp === 0 && stats.critical > 0 && <View style={{ flex: 1 }} />}
+            {stats.needHelp > 0 && stats.critical === 0 && <View style={{ flex: 1 }} />}
           </View>
         )}
 

@@ -5,7 +5,16 @@ import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 
 const ESCALATION_CHECK_INTERVAL_MS = 30_000;
 
-type EscalationCallback = (escalated: Array<{ id: number; name: string; level: number; prevLevel: number }>) => void;
+export interface EscalationEntry {
+  id: number;
+  name: string;
+  level: number;
+  prevLevel: number;
+  zoneName?: string;
+  locationName?: string;
+}
+
+type EscalationCallback = (escalated: EscalationEntry[]) => void;
 
 let onEscalationChange: EscalationCallback | null = null;
 export function setEscalationCallback(cb: EscalationCallback | null) {
@@ -20,22 +29,24 @@ export function useEscalation() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const checkEscalation = useCallback(() => {
-    const { users, currentUser } = useStore.getState();
+    const { users, currentUser, zones, locations } = useStore.getState();
     if (!currentUser) return;
     const hasActiveEmergency = emergencyMode !== null;
     if (!hasActiveEmergency) return;
 
     const now = Date.now();
-    const level1Ms = escalationTimeout * 60 * 1000;
-    const level2Ms = level1Ms * 2;
-    const updates: Array<{ id: number; level: number; prevLevel: number; name: string }> = [];
+    const warningMs = (escalationTimeout * 60 * 1000) / 2;
+    const criticalMs = escalationTimeout * 60 * 1000;
+    const updates: EscalationEntry[] = [];
 
     for (const user of users) {
       if (!user.isActive) continue;
 
       if (user.status === "need_help") {
         if ((user.escalationLevel ?? 0) < 3) {
-          updates.push({ id: user.id, level: 3, prevLevel: user.escalationLevel ?? 0, name: user.name });
+          const zone = zones.find((z) => z.id === user.zoneId);
+          const loc = locations.find((l) => l.id === user.locationId);
+          updates.push({ id: user.id, level: 3, prevLevel: user.escalationLevel ?? 0, name: user.name, zoneName: zone?.name, locationName: loc?.name });
         }
         continue;
       }
@@ -53,14 +64,16 @@ export function useEscalation() {
       const elapsed = now - receivedAt;
 
       let newLevel = 0;
-      if (elapsed >= level2Ms) {
+      if (elapsed >= criticalMs) {
         newLevel = 2;
-      } else if (elapsed >= level1Ms) {
+      } else if (elapsed >= warningMs) {
         newLevel = 1;
       }
 
       if (newLevel !== (user.escalationLevel ?? 0)) {
-        updates.push({ id: user.id, level: newLevel, prevLevel: user.escalationLevel ?? 0, name: user.name });
+        const zone = zones.find((z) => z.id === user.zoneId);
+        const loc = locations.find((l) => l.id === user.locationId);
+        updates.push({ id: user.id, level: newLevel, prevLevel: user.escalationLevel ?? 0, name: user.name, zoneName: zone?.name, locationName: loc?.name });
       }
     }
 

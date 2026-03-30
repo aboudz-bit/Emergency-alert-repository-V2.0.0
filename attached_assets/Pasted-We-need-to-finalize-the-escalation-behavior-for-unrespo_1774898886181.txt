@@ -1,0 +1,125 @@
+We need to finalize the escalation behavior for unresponsive users.
+
+Goal:
+If a user does not respond in time, the system should automatically promote them to Critical and notify ECO immediately.
+
+==================================================
+PART 1 — CRITICAL AFTER 10 MINUTES
+==================================================
+
+Rule:
+If a user remains in status = "pending" for 10 minutes after the alert was received,
+the user must become Critical automatically.
+
+Use:
+- alertReceivedAt
+- current time
+- status === "pending"
+
+Behavior:
+- after 10 minutes with no response → escalationLevel becomes Critical
+- this applies only while the current alert/emergency is still active
+- if the user responds before 10 minutes, escalation must stop/reset
+
+==================================================
+PART 2 — VISUAL BEHAVIOR
+==================================================
+
+Important:
+Do NOT change the base status color.
+
+Color rules must stay:
+- confirmed → green
+- pending → yellow
+- need_help → red
+
+Critical is escalation, not status.
+
+So:
+- pending + critical → still yellow
+- but add stronger visual emphasis:
+  - pulse
+  - glow
+  - critical badge / label
+  - sort higher in lists
+
+Need Help:
+- remains red
+- remains highest urgency
+- may also have pulse/glow
+
+==================================================
+PART 3 — AUTO NOTIFICATION TO ECO
+==================================================
+
+When a pending user becomes Critical automatically after 10 minutes:
+
+- send automatic notification to ECO
+- notification must clearly state:
+  - user name
+  - zone
+  - location if available
+  - that the user has not responded for 10 minutes
+
+Example:
+"Critical: Abdullah in CPF / OT-1 has not responded for 10 minutes."
+
+If multiple ECO users exist:
+- notify the relevant ECO scope according to current system rules
+
+Do not notify everyone blindly.
+
+==================================================
+PART 4 — USERS / DASHBOARD / MAP
+==================================================
+
+When a user becomes Critical:
+
+Users screen:
+- user should move higher in sort order
+- show critical badge/state clearly
+
+Dashboard:
+- critical count must increase
+- critical users must appear in urgent summary
+
+Map:
+- keep status color based on status
+- add stronger pulse/glow for critical pending users
+- do not turn pending users red
+
+==================================================
+PART 5 — RESET RULES
+==================================================
+
+If the user:
+- confirms receipt
+- responds Safe
+- responds Need Help
+- or alert is cleared
+
+Then:
+- escalation should stop/reset appropriately
+- critical state should not remain incorrectly
+
+==================================================
+PART 6 — RULES
+==================================================
+
+- Do NOT break existing status logic
+- Do NOT change color mapping
+- Do NOT duplicate state
+- Reuse current escalation system
+- Keep performance lightweight
+- No fake critical states
+- No unnecessary re-renders
+
+==================================================
+OUTPUT
+==================================================
+
+After implementation, report:
+1) where the 10-minute escalation rule was added
+2) how ECO auto-notification works
+3) how critical pending users appear in Users / Dashboard / Map
+4) how escalation resets correctly

@@ -2,7 +2,7 @@ import React, { useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 import { useStore } from "@/store";
 import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
-import { useEscalation, setEscalationCallback } from "@/hooks/useEscalation";
+import { useEscalation, setEscalationCallback, type EscalationEntry } from "@/hooks/useEscalation";
 import * as Notifications from "expo-notifications";
 
 if (Platform.OS !== "web") {
@@ -57,38 +57,35 @@ function SystemServicesInner() {
     []
   );
 
+  const isEcoOrAdmin = role === "Super Admin" || role === "ECO";
+  const ecoZoneName = currentUser?.ecoZoneName ?? currentUser?.zone ?? "";
+
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isEcoOrAdmin) {
       setEscalationCallback(null);
       return;
     }
 
     setEscalationCallback((escalated) => {
-      const criticals = escalated.filter((e) => e.level >= 2);
-      const warnings = escalated.filter((e) => e.level === 1);
+      const isEco = role === "ECO";
+      const criticals = escalated.filter((e) => {
+        if (e.level < 2 || e.level >= 3) return false;
+        if (isEco && e.zoneName && e.zoneName !== ecoZoneName) return false;
+        return true;
+      });
 
-      if (criticals.length > 0) {
-        const names = criticals
-          .slice(0, 3)
-          .map((e) => e.name)
-          .join(", ");
-        const extra = criticals.length > 3 ? ` +${criticals.length - 3} more` : "";
+      for (const e of criticals) {
+        const loc = [e.zoneName, e.locationName].filter(Boolean).join(" / ");
+        const where = loc ? ` in ${loc}` : "";
         sendNotification(
           "CRITICAL: Unresponsive Personnel",
-          `${names}${extra} — no response received. Immediate action required.`
-        );
-      }
-
-      if (warnings.length > 0) {
-        sendNotification(
-          "Escalation Warning",
-          `${warnings.length} personnel have not responded within the timeout period.`
+          `${e.name}${where} has not responded for 10 minutes. Immediate action required.`
         );
       }
     });
 
     return () => setEscalationCallback(null);
-  }, [isAdmin, sendNotification]);
+  }, [isEcoOrAdmin, role, ecoZoneName, sendNotification]);
 
   useEffect(() => {
     if (!isAdmin) return;

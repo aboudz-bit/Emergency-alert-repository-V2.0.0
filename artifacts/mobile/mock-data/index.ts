@@ -319,7 +319,7 @@ export const seedSettings: AppSettings = {
   autoDetectZone: true,
   gpsAccuracyMeters: 50,
   locationUpdateIntervalSeconds: 30,
-  notifications: { alertSound: true, pushNotifications: true, escalationTimeoutMinutes: 15 },
+  notifications: { alertSound: true, pushNotifications: true, escalationTimeoutMinutes: 10 },
   sessionTimeoutMinutes: 60,
   requireLocationPermission: true,
   badgeAsUsername: true,
