@@ -52,6 +52,8 @@ export interface ZoneMapProps {
   personnelLocations?: PersonnelMapEntry[];
   onPersonnelPress?: (userId: number) => void;
   hazardZones?: HazardZone[];
+  trackedUserIds?: number[];
+  fitTrackedTrigger?: number;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

@@ -284,8 +284,12 @@ function generateLeafletHtml(
   .personnel-dot.need-help{background:#EF4444;animation:help-pulse 1.4s ease-in-out infinite;box-shadow:0 0 6px rgba(239,68,68,0.6)}
   .personnel-dot.escalated{box-shadow:0 0 8px rgba(251,191,36,0.7);animation:esc-pulse 2s ease-in-out infinite}
   .personnel-dot.esc-critical{box-shadow:0 0 12px rgba(239,68,68,0.8);animation:help-pulse 1.4s ease-in-out infinite}
+  .personnel-dot.tracked{border:3px solid rgba(255,255,255,1);box-shadow:0 0 10px rgba(96,165,250,0.7),0 0 20px rgba(96,165,250,0.3);animation:track-glow 2.5s ease-in-out infinite}
+  .personnel-dot.tracked.need-help{animation:help-pulse 1.4s ease-in-out infinite}
+  .personnel-dot.tracked.esc-critical{animation:help-pulse 1.4s ease-in-out infinite}
   @keyframes help-pulse{0%,100%{transform:scale(1);box-shadow:0 0 6px rgba(239,68,68,0.4)}50%{transform:scale(1.3);box-shadow:0 0 14px rgba(239,68,68,0.8)}}
   @keyframes esc-pulse{0%,100%{box-shadow:0 0 6px rgba(251,191,36,0.4)}50%{box-shadow:0 0 12px rgba(251,191,36,0.8)}}
+  @keyframes track-glow{0%,100%{box-shadow:0 0 8px rgba(96,165,250,0.5),0 0 16px rgba(96,165,250,0.2)}50%{box-shadow:0 0 14px rgba(96,165,250,0.8),0 0 24px rgba(96,165,250,0.4)}}
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
@@ -657,6 +661,35 @@ function generateLeafletHtml(
   }
 
   var personnelMarkers = {};
+  var trackedUserIds = {};
+  function setTrackedUsers(ids) {
+    trackedUserIds = {};
+    (ids || []).forEach(function(id) { trackedUserIds[id] = true; });
+    Object.keys(personnelMarkers).forEach(function(uid) {
+      var el = personnelMarkers[uid].getElement();
+      if (!el) return;
+      var dot = el.querySelector('.personnel-dot');
+      if (!dot) return;
+      if (trackedUserIds[uid]) {
+        if (!dot.classList.contains('tracked')) dot.classList.add('tracked');
+      } else {
+        dot.classList.remove('tracked');
+      }
+    });
+  }
+  function fitTrackedUsers() {
+    var ids = Object.keys(trackedUserIds);
+    if (ids.length === 0) return;
+    var latlngs = [];
+    ids.forEach(function(uid) {
+      if (personnelMarkers[uid]) latlngs.push(personnelMarkers[uid].getLatLng());
+    });
+    if (latlngs.length === 1) {
+      map.flyTo(latlngs[0], Math.max(map.getZoom(), 16), {duration: 0.6});
+    } else if (latlngs.length > 1) {
+      map.flyToBounds(L.latLngBounds(latlngs).pad(0.3), {duration: 0.6, maxZoom: 17});
+    }
+  }
   function syncPersonnel(list) {
     var seen = {};
     list.forEach(function(p) {
@@ -669,7 +702,8 @@ function generateLeafletHtml(
       if (p.escalationLevel >= 2) { escClass = ' esc-critical'; }
       else if (p.escalationLevel === 1) { escClass = ' escalated'; }
       var shapeClass = (p.userType === 'Contract') ? ' square' : '';
-      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass;
+      var trackClass = trackedUserIds[p.userId] ? ' tracked' : '';
+      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass + trackClass;
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();
@@ -924,6 +958,12 @@ function generateLeafletHtml(
       if (d.type === 'sync_personnel' && Array.isArray(d.personnel)) {
         syncPersonnel(d.personnel);
       }
+      if (d.type === 'set_tracked_users' && Array.isArray(d.userIds)) {
+        setTrackedUsers(d.userIds);
+      }
+      if (d.type === 'fit_tracked_users') {
+        fitTrackedUsers();
+      }
       if (d.type === 'sync_hazard_zones' && Array.isArray(d.hazardZones)) {
         syncHazardZones(d.hazardZones);
       }
@@ -1031,6 +1071,8 @@ export function LeafletPreviewFallback({
   personnelLocations,
   onPersonnelPress,
   hazardZones,
+  trackedUserIds,
+  fitTrackedTrigger,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -1238,6 +1280,19 @@ export function LeafletPreviewFallback({
     const t = setTimeout(() => postToIframe({ type: "sync_personnel", personnel: personnelLocations }), 80);
     return () => clearTimeout(t);
   }, [personnelLocations]);
+
+  useEffect(() => {
+    postToIframe({ type: "set_tracked_users", userIds: trackedUserIds || [] });
+  }, [trackedUserIds]);
+
+  const prevFitTriggerRef = useRef(0);
+  useEffect(() => {
+    if (fitTrackedTrigger && fitTrackedTrigger !== prevFitTriggerRef.current) {
+      prevFitTriggerRef.current = fitTrackedTrigger;
+      const t = setTimeout(() => postToIframe({ type: "fit_tracked_users" }), 100);
+      return () => clearTimeout(t);
+    }
+  }, [fitTrackedTrigger]);
 
   useEffect(() => {
     if (!hazardZones || hazardZones.length === 0) {

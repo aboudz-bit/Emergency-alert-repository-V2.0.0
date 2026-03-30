@@ -1,0 +1,196 @@
+We need to upgrade the Supervisor Map into a complete operational tracking tool.
+
+Goal:
+Give the Supervisor a clear, real-time view of ALL personnel (Aramco + Contractor), with compact stats and full tracking control.
+
+==================================================
+PART 1 — PERSONNEL SCOPE
+==================================================
+
+Supervisor must ONLY see personnel within their assigned scope:
+- Zone
+- Location
+
+Within that scope include:
+- Aramco users
+- Contractor users
+
+Do NOT exclude contractors.
+
+Use existing:
+- visiblePersonnel dataset
+
+==================================================
+PART 2 — COMPACT BOTTOM LEGEND (MATCH DESIGN)
+==================================================
+
+Replace current legend with a compact floating bar:
+
+Row 1:
+[ 🟢 Safe X | 🟡 Pending X | 🔴 Help X | 🔵 Aramco X | ⬜ Contractor X ]
+
+Row 2:
+[ N tracked ]
+
+Requirements:
+
+1) Counts:
+- Safe = status === "confirmed"
+- Pending = status === "pending"
+- Help = status === "need_help"
+- Aramco = userType === "aramco"
+- Contractor = userType === "contractor"
+- tracked = visiblePersonnel.length
+
+2) Style:
+- Dark rounded container
+- Small, clean UI
+- Bottom center floating
+- Inline dots + numbers
+- No text explanations
+
+3) Must update live
+
+==================================================
+PART 3 — MAP VISUAL RULES
+==================================================
+
+DO NOT change logic, only visuals:
+
+1) Color = status:
+- Safe → green
+- Pending → yellow
+- Need Help → red
+
+2) Shape = user type:
+- Aramco → circle
+- Contractor → square
+
+3) Critical (escalationLevel >= 2):
+- NO color change
+- Add:
+  - glow
+  - pulse
+  - emphasis
+
+4) Need Help:
+- red + strong pulse
+
+==================================================
+PART 4 — TRACKING SYSTEM
+==================================================
+
+Supervisor can track personnel directly from map.
+
+--------------------------------------------------
+4A — SELECT TO TRACK
+--------------------------------------------------
+
+On marker tap:
+- open mini user card
+- show:
+  - name
+  - badge
+  - status
+  - "Track" button
+
+On press:
+- add user to trackedUsers (store)
+
+--------------------------------------------------
+4B — TRACKED VISUAL
+--------------------------------------------------
+
+Tracked users:
+- thicker border
+- glow ring
+- optional soft pulse
+
+Do NOT change:
+- color
+- shape
+
+--------------------------------------------------
+4C — FOLLOW MODE
+--------------------------------------------------
+
+Add toggle button:
+
+"Follow Mode"
+
+When ON:
+- map auto-centers on tracked users
+- if multiple:
+  - fitBounds
+- smooth movement
+
+--------------------------------------------------
+4D — QUICK ACTIONS
+--------------------------------------------------
+
+Add floating actions:
+
+1) Track All Pending
+→ add all pending users
+
+2) Track Critical
+→ add escalationLevel >= 2
+
+3) Clear Tracking
+→ reset trackedUsers
+
+==================================================
+PART 5 — CONTRACTOR SUPPORT
+==================================================
+
+Contractors must:
+- appear on map
+- be counted in summary
+- be trackable
+- use square markers
+
+Do NOT treat them differently in logic.
+
+==================================================
+PART 6 — PERFORMANCE
+==================================================
+
+- Do NOT re-render full map
+- Update marker styles only
+- Memoize counts
+- Lightweight animations only
+
+==================================================
+PART 7 — DATA SOURCES
+==================================================
+
+Use existing:
+- visiblePersonnel
+- status
+- userType
+- escalationLevel
+
+Do NOT create duplicate state.
+
+==================================================
+PART 8 — APPLY ONLY TO
+==================================================
+
+- Supervisor map only
+
+Do NOT modify:
+- ECO map
+- User map
+
+==================================================
+OUTPUT
+==================================================
+
+After implementation confirm:
+
+1) Counts match actual visible personnel
+2) Contractor count is correct
+3) Tracking works (single + bulk)
+4) Follow mode centers correctly
+5) No performance issues
+6) Visual rules strictly respected

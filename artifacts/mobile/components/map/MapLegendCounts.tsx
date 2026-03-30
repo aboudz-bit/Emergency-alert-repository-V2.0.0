@@ -5,9 +5,10 @@ import type { PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 
 interface Props {
   personnel: PersonnelMapEntry[];
+  trackedCount?: number;
 }
 
-export const MapLegendCounts = React.memo(function MapLegendCounts({ personnel }: Props) {
+export const MapLegendCounts = React.memo(function MapLegendCounts({ personnel, trackedCount }: Props) {
   const counts = useMemo(() => {
     let safe = 0;
     let pending = 0;
@@ -48,6 +49,16 @@ export const MapLegendCounts = React.memo(function MapLegendCounts({ personnel }
         <View style={[s.dot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
         <Text style={[s.num, { color: "#9CA3AF" }]}>{counts.contractor}</Text>
       </View>
+      {(trackedCount ?? 0) > 0 && (
+        <>
+          <View style={s.sep} />
+          <View style={s.badge}>
+            <View style={[s.dot, { backgroundColor: "#60A5FA", borderWidth: 1.5, borderColor: "#fff" }]} />
+            <Text style={[s.num, { color: "#60A5FA" }]}>{trackedCount}</Text>
+            <Text style={s.trackLabel}>tracked</Text>
+          </View>
+        </>
+      )}
     </View>
   );
 });
@@ -88,5 +99,10 @@ const s = StyleSheet.create({
     width: 1,
     height: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  trackLabel: {
+    fontSize: 9,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.5)",
   },
 });

@@ -3,6 +3,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,6 +24,8 @@ import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import type { UserResponseStatus } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+
+type StatusFilter = "all" | "confirmed" | "pending" | "need_help";
 
 export default function SupervisorMapScreen() {
   const focusCount = useRefreshOnFocus();
@@ -76,6 +79,22 @@ export default function SupervisorMapScreen() {
   visiblePersonnelRef.current = visiblePersonnel;
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
+  const [trackedUserIds, setTrackedUserIds] = useState<number[]>([]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [showTrackedPanel, setShowTrackedPanel] = useState(false);
+  const [fitTrackedTrigger, setFitTrackedTrigger] = useState(0);
+
+  const toggleTracked = useCallback((userId: number) => {
+    setTrackedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  }, []);
+
+  const clearAllTracked = useCallback(() => {
+    setTrackedUserIds([]);
+  }, []);
 
   const handlePersonnelPress = useCallback((userId: number) => {
     const p = visiblePersonnelRef.current.find((v) => v.userId === userId);
@@ -94,9 +113,32 @@ export default function SupervisorMapScreen() {
     });
   }, [hazardZones, activeAlert, myLocation, myZone]);
 
+  const filteredPersonnel = useMemo(() => {
+    if (statusFilter === "all") return visiblePersonnel;
+    return visiblePersonnel.filter((p) => {
+      if (statusFilter === "confirmed") return p.status === "confirmed";
+      if (statusFilter === "need_help") return p.status === "need_help";
+      return p.status !== "confirmed" && p.status !== "need_help";
+    });
+  }, [visiblePersonnel, statusFilter]);
+
+  const trackedPersonnel = useMemo(
+    () => visiblePersonnel.filter((p) => trackedUserIds.includes(p.userId)),
+    [visiblePersonnel, trackedUserIds]
+  );
+
+  const statusFilterCounts = useMemo(() => {
+    let safe = 0, pending = 0, needHelp = 0;
+    for (const p of visiblePersonnel) {
+      if (p.status === "confirmed") safe++;
+      else if (p.status === "need_help") needHelp++;
+      else pending++;
+    }
+    return { all: visiblePersonnel.length, confirmed: safe, pending, need_help: needHelp };
+  }, [visiblePersonnel]);
+
   return (
     <View style={styles.container}>
-      {/* Full-screen map scoped to supervisor's location */}
       <ZoneMap
         key={focusCount}
         zones={myZone ? [myZone] : []}
@@ -107,15 +149,15 @@ export default function SupervisorMapScreen() {
         locations={myLocation ? [myLocation] : []}
         highlightedLocationIds={myLocation ? [myLocation.id] : []}
         shelters={myLinkedShelters}
-        personnelLocations={visiblePersonnel}
+        personnelLocations={filteredPersonnel}
         onPersonnelPress={handlePersonnelPress}
         hazardZones={activeHazardZones}
+        trackedUserIds={trackedUserIds}
+        fitTrackedTrigger={fitTrackedTrigger}
       />
 
-      {/* Wind indicator overlay */}
       <WindIndicator />
 
-      {/* Floating info bar */}
       <View style={styles.floatingBar}>
         <View style={styles.infoRow}>
           <Feather name="map-pin" size={14} color={Colors.primary} />
@@ -141,9 +183,51 @@ export default function SupervisorMapScreen() {
         )}
       </View>
 
-      {hasActiveAlert && <MapLegendCounts personnel={visiblePersonnel} />}
+      {hasActiveAlert && (
+        <View style={styles.controlRow}>
+          {statusFilter !== "all" && (
+            <Pressable
+              style={styles.filterResetBtn}
+              onPress={() => setStatusFilter("all")}
+            >
+              <Feather name="x" size={12} color="#fff" />
+              <Text style={styles.filterResetText}>
+                {statusFilter === "confirmed" ? "Safe" : statusFilter === "need_help" ? "Help" : "Pending"}
+              </Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={[styles.controlBtn, statusFilter !== "all" && styles.controlBtnActive]}
+            onPress={() => {
+              const filters: StatusFilter[] = ["all", "confirmed", "pending", "need_help"];
+              const idx = filters.indexOf(statusFilter);
+              setStatusFilter(filters[(idx + 1) % filters.length]);
+            }}
+          >
+            <Feather name="filter" size={14} color="#fff" />
+          </Pressable>
+          {trackedPersonnel.length > 0 && (
+            <Pressable
+              style={[styles.controlBtn, styles.trackedBtn]}
+              onPress={() => {
+                setShowTrackedPanel(true);
+                setFitTrackedTrigger((c) => c + 1);
+              }}
+            >
+              <Feather name="eye" size={14} color="#60A5FA" />
+              <Text style={styles.trackedBtnText}>{trackedPersonnel.length}</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
 
-      {/* Personnel Detail Modal */}
+      {hasActiveAlert && (
+        <MapLegendCounts
+          personnel={visiblePersonnel}
+          trackedCount={trackedPersonnel.length}
+        />
+      )}
+
       <Modal
         visible={personnelDetail !== null}
         transparent
@@ -170,6 +254,21 @@ export default function SupervisorMapScreen() {
                 <Text style={styles.detailName}>{personnelDetail?.name}</Text>
                 <Text style={styles.detailBadge}>{personnelDetail?.badge}</Text>
               </View>
+              <Pressable
+                style={[
+                  styles.trackBtn,
+                  personnelDetail && trackedUserIds.includes(personnelDetail.userId) && styles.trackBtnActive,
+                ]}
+                onPress={() => {
+                  if (personnelDetail) toggleTracked(personnelDetail.userId);
+                }}
+              >
+                <Feather
+                  name={personnelDetail && trackedUserIds.includes(personnelDetail.userId) ? "eye-off" : "eye"}
+                  size={14}
+                  color={personnelDetail && trackedUserIds.includes(personnelDetail.userId) ? "#60A5FA" : Colors.textTertiary}
+                />
+              </Pressable>
               <Pressable style={styles.detailClose} onPress={() => setPersonnelDetail(null)} hitSlop={8}>
                 <Feather name="x" size={16} color={Colors.textTertiary} />
               </Pressable>
@@ -209,6 +308,66 @@ export default function SupervisorMapScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={showTrackedPanel}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTrackedPanel(false)}
+      >
+        <View style={styles.trackedOverlay}>
+          <View style={styles.trackedPanel}>
+            <View style={styles.trackedPanelHeader}>
+              <View style={styles.trackedPanelTitleRow}>
+                <Feather name="eye" size={16} color="#60A5FA" />
+                <Text style={styles.trackedPanelTitle}>
+                  Tracked Personnel ({trackedPersonnel.length})
+                </Text>
+              </View>
+              <View style={styles.trackedPanelActions}>
+                {trackedPersonnel.length > 0 && (
+                  <Pressable style={styles.clearAllBtn} onPress={clearAllTracked}>
+                    <Text style={styles.clearAllText}>Clear All</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  style={styles.detailClose}
+                  onPress={() => setShowTrackedPanel(false)}
+                  hitSlop={8}
+                >
+                  <Feather name="x" size={16} color={Colors.textTertiary} />
+                </Pressable>
+              </View>
+            </View>
+
+            <ScrollView style={styles.trackedList}>
+              {trackedPersonnel.length === 0 && (
+                <Text style={styles.trackedEmpty}>No tracked personnel</Text>
+              )}
+              {trackedPersonnel.map((p) => (
+                <View key={p.userId} style={styles.trackedItem}>
+                  <View style={[styles.trackedDot, {
+                    backgroundColor: p.status === 'confirmed' ? '#34D399'
+                      : p.status === 'need_help' ? '#EF4444' : '#FBBF24'
+                  }]} />
+                  <View style={styles.trackedInfo}>
+                    <Text style={styles.trackedName}>{p.name}</Text>
+                    <Text style={styles.trackedBadgeText}>{p.badge}</Text>
+                  </View>
+                  <StatusBadge status={p.status as UserResponseStatus ?? "pending"} />
+                  <Pressable
+                    style={styles.removeTrackBtn}
+                    onPress={() => toggleTracked(p.userId)}
+                    hitSlop={6}
+                  >
+                    <Feather name="eye-off" size={14} color={Colors.textTertiary} />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -216,7 +375,6 @@ export default function SupervisorMapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  // Floating info bar
   floatingBar: {
     position: "absolute",
     top: 8,
@@ -279,7 +437,74 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Personnel detail modal
+  controlRow: {
+    position: "absolute",
+    top: 80,
+    right: 12,
+    flexDirection: "column",
+    gap: 8,
+    alignItems: "flex-end",
+  },
+  controlBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(15,23,42,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  controlBtnActive: {
+    backgroundColor: "rgba(96,165,250,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.5)",
+  },
+  filterResetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(96,165,250,0.2)",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.4)",
+  },
+  filterResetText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: "#60A5FA",
+  },
+  trackedBtn: {
+    flexDirection: "row",
+    gap: 4,
+    width: "auto",
+    paddingHorizontal: 10,
+  },
+  trackedBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    color: "#60A5FA",
+  },
+
+  trackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trackBtnActive: {
+    backgroundColor: "rgba(96,165,250,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.4)",
+  },
+
   detailOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   detailSheet: {
     backgroundColor: Colors.surface,
@@ -299,4 +524,97 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   detailLabel: { fontSize: FontSize.sm, fontFamily: "Inter_500Medium", color: Colors.textSecondary, width: 80 },
   detailValue: { fontSize: FontSize.sm, fontFamily: "Inter_400Regular", color: Colors.text, flex: 1 },
+
+  trackedOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  trackedPanel: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: SCREEN_HEIGHT * 0.55,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+  },
+  trackedPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  trackedPanelTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  trackedPanelTitle: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  trackedPanelActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  clearAllBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(239,68,68,0.1)",
+  },
+  clearAllText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_600SemiBold",
+    color: "#EF4444",
+  },
+  trackedList: {
+    flexGrow: 0,
+  },
+  trackedEmpty: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+    textAlign: "center",
+    paddingVertical: Spacing.xl,
+  },
+  trackedItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  trackedDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  trackedInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  trackedName: {
+    fontSize: FontSize.sm,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.text,
+  },
+  trackedBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    color: Colors.textTertiary,
+  },
+  removeTrackBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
