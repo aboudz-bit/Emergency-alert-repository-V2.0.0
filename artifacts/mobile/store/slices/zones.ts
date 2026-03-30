@@ -55,24 +55,30 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         return { success: false, error: 'Zone not found.' };
       }
 
-      const hasLocations = locations.some(l => l.zoneId === id);
-      const hasShelters = shelters.some(s => s.zoneId === id);
-      const hasUsers = users.some(u => u.zoneId === id);
-      const hasAlerts = zone.alertActive || (zone.alertHistory && zone.alertHistory.length > 0);
-      const hasHazardZones = hazardZones.some(hz => hz.zoneId === id);
-      const hasLinkedAlerts = alerts.some(a => a.zone === zone.name);
+      const activeLocations = locations.filter(l => l.zoneId === id);
+      const activeShelters = shelters.filter(s => s.zoneId === id);
+      const activeUsers = users.filter(u => u.zoneId === id);
+      const hasActiveAlert = zone.alertActive === true;
+      const activeHazardZones = hazardZones.filter(hz => hz.zoneId === id);
+      const activeLinkedAlerts = alerts.filter(a => a.isActive && a.zone === zone.name);
 
-      console.log('[safeDeleteZone] checks:', { hasLocations, hasShelters, hasUsers, hasAlerts, hasHazardZones, hasLinkedAlerts });
+      const hasLocations = activeLocations.length > 0;
+      const hasShelters = activeShelters.length > 0;
+      const hasUsers = activeUsers.length > 0;
+      const hasHazardZones = activeHazardZones.length > 0;
+      const hasLinkedAlerts = activeLinkedAlerts.length > 0;
 
-      if (hasLocations || hasShelters || hasUsers || hasAlerts || hasHazardZones || hasLinkedAlerts) {
+      console.log('[safeDeleteZone] checks:', { hasLocations, hasShelters, hasUsers, hasActiveAlert, hasHazardZones, hasLinkedAlerts });
+
+      if (hasLocations || hasShelters || hasUsers || hasActiveAlert || hasHazardZones || hasLinkedAlerts) {
         const reasons: string[] = [];
-        if (hasLocations) reasons.push(`${locations.filter(l => l.zoneId === id).length} locations`);
-        if (hasShelters) reasons.push(`${shelters.filter(s => s.zoneId === id).length} shelters`);
-        if (hasUsers) reasons.push(`${users.filter(u => u.zoneId === id).length} users`);
-        if (hasAlerts) reasons.push('active alert or alert history');
-        if (hasHazardZones) reasons.push(`${hazardZones.filter(hz => hz.zoneId === id).length} warning zones`);
-        if (hasLinkedAlerts) reasons.push(`${alerts.filter(a => a.zone === zone.name).length} linked alerts`);
-        const error = `Cannot delete "${zone.name}": has ${reasons.join(', ')}. Archive instead.`;
+        if (hasLocations) reasons.push(`${activeLocations.length} location${activeLocations.length > 1 ? 's' : ''}`);
+        if (hasShelters) reasons.push(`${activeShelters.length} shelter${activeShelters.length > 1 ? 's' : ''}`);
+        if (hasUsers) reasons.push(`${activeUsers.length} user${activeUsers.length > 1 ? 's' : ''}`);
+        if (hasActiveAlert) reasons.push('an active alert');
+        if (hasHazardZones) reasons.push(`${activeHazardZones.length} warning zone${activeHazardZones.length > 1 ? 's' : ''}`);
+        if (hasLinkedAlerts) reasons.push(`${activeLinkedAlerts.length} active linked alert${activeLinkedAlerts.length > 1 ? 's' : ''}`);
+        const error = `Cannot delete "${zone.name}":\n• ${reasons.join('\n• ')}\n\nRemove these first, or archive the zone instead.`;
         console.log('[safeDeleteZone] blocked:', error);
         return { success: false, error };
       }

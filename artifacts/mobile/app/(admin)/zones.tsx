@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
-  Alert as RNAlert,
   Dimensions,
   Modal,
   Pressable,
@@ -94,6 +93,9 @@ export default function ZonesScreen() {
   const [formLocationId, setFormLocationId] = useState<number | null>(null);
 
   const [fabOpen, setFabOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ visible: boolean; canDelete: boolean; zoneName: string; zoneId: number; blockReasons: string }>({
+    visible: false, canDelete: false, zoneName: "", zoneId: 0, blockReasons: "",
+  });
 
   const pendingPointsRef = useRef<LatLng[]>([]);
   const mapCenterRef = useRef<LatLng>({ lat: 25.082, lng: 48.175 });
@@ -335,36 +337,47 @@ export default function ZonesScreen() {
   );
 
   const handleDeleteZone = useCallback(() => {
-    try {
-      console.log('[ZoneMap] handleDeleteZone called, selectedZone:', selectedZone?.id, selectedZone?.name);
-      if (!selectedZone) { console.log('[ZoneMap] handleDeleteZone: no selectedZone'); return; }
-      const zoneId = selectedZone.id;
-      const zoneName = selectedZone.name;
-      RNAlert.alert(
-        "Delete Zone",
-        `Permanently delete "${zoneName}"? This cannot be undone.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => {
-              console.log('[ZoneMap] user confirmed delete for zone:', zoneId);
-              const result = safeDeleteZone(zoneId);
-              console.log('[ZoneMap] safeDeleteZone result:', JSON.stringify(result));
-              if (!result.success) {
-                RNAlert.alert("Cannot Delete", result.error ?? "Zone has linked data. Archive instead.");
-              } else {
-                setSelectedZoneId(null);
-              }
-            },
-          },
-        ]
-      );
-    } catch (e) {
-      console.error('[ZoneMap] handleDeleteZone error:', e);
+    if (!selectedZone) return;
+    const zoneId = selectedZone.id;
+    const zoneName = selectedZone.name;
+
+    const { locations: locs, shelters: shs, users: us, hazardZones: hzs, alerts: als } = useStore.getState();
+    const reasons: string[] = [];
+    const locCount = locs.filter(l => l.zoneId === zoneId).length;
+    const shCount = shs.filter(s => s.zoneId === zoneId).length;
+    const uCount = us.filter(u => u.zoneId === zoneId).length;
+    const hzCount = hzs.filter(hz => hz.zoneId === zoneId).length;
+    const alCount = als.filter(a => a.isActive && a.zone === zoneName).length;
+    if (selectedZone.alertActive) reasons.push("Has an active alert");
+    if (locCount > 0) reasons.push(`${locCount} location${locCount > 1 ? "s" : ""} assigned`);
+    if (shCount > 0) reasons.push(`${shCount} shelter${shCount > 1 ? "s" : ""} linked`);
+    if (uCount > 0) reasons.push(`${uCount} user${uCount > 1 ? "s" : ""} assigned`);
+    if (hzCount > 0) reasons.push(`${hzCount} warning zone${hzCount > 1 ? "s" : ""}`);
+    if (alCount > 0) reasons.push(`${alCount} active alert${alCount > 1 ? "s" : ""}`);
+
+    setDeleteModal({
+      visible: true,
+      canDelete: reasons.length === 0,
+      zoneName,
+      zoneId,
+      blockReasons: reasons.join("\n"),
+    });
+  }, [selectedZone]);
+
+  const handleConfirmDelete = useCallback(() => {
+    const { zoneId } = deleteModal;
+    const result = safeDeleteZone(zoneId);
+    if (result.success) {
+      setSelectedZoneId(null);
+      setDeleteModal(prev => ({ ...prev, visible: false }));
+    } else {
+      setDeleteModal(prev => ({
+        ...prev,
+        canDelete: false,
+        blockReasons: result.error ?? "Zone has linked data. Archive instead.",
+      }));
     }
-  }, [selectedZone, safeDeleteZone]);
+  }, [deleteModal, safeDeleteZone]);
 
   const handleFocusZone = useCallback(() => {
     if (selectedZoneId) setFlyToZoneId(selectedZoneId);
@@ -1170,6 +1183,55 @@ export default function ZonesScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={deleteModal.visible} transparent animationType="fade" onRequestClose={() => setDeleteModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteModalSheet}>
+            <View style={styles.deleteModalIconWrap}>
+              <Feather name={deleteModal.canDelete ? "trash-2" : "alert-circle"} size={28} color={deleteModal.canDelete ? "#DC2626" : "#F59E0B"} />
+            </View>
+            <Text style={styles.deleteModalTitle}>
+              {deleteModal.canDelete ? "Delete Zone" : "Cannot Delete Zone"}
+            </Text>
+            {deleteModal.canDelete ? (
+              <Text style={styles.deleteModalMessage}>
+                Are you sure you want to delete "{deleteModal.zoneName}"?{"\n"}This cannot be undone.
+              </Text>
+            ) : (
+              <View>
+                <Text style={styles.deleteModalMessage}>
+                  "{deleteModal.zoneName}" has linked data that must be removed first:
+                </Text>
+                <View style={styles.deleteModalReasons}>
+                  {deleteModal.blockReasons.split("\n").map((reason, i) => (
+                    <View key={i} style={styles.deleteModalReasonRow}>
+                      <Feather name="x-circle" size={14} color="#DC2626" />
+                      <Text style={styles.deleteModalReasonText}>{reason}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.deleteModalHint}>
+                  Remove these items first, or archive the zone instead.
+                </Text>
+              </View>
+            )}
+            <View style={styles.deleteModalBtnRow}>
+              <Pressable
+                style={styles.deleteModalCancelBtn}
+                onPress={() => setDeleteModal(prev => ({ ...prev, visible: false }))}
+              >
+                <Text style={styles.deleteModalCancelText}>Cancel</Text>
+              </Pressable>
+              {deleteModal.canDelete && (
+                <Pressable style={styles.deleteModalDeleteBtn} onPress={handleConfirmDelete}>
+                  <Feather name="trash-2" size={16} color="#fff" />
+                  <Text style={styles.deleteModalDeleteText}>Delete</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1390,4 +1452,50 @@ const styles = StyleSheet.create({
   linkLocCheckActive: { borderColor: "#7C3AED", backgroundColor: "#7C3AED" },
   linkLocName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#1F2937" },
   linkLocMeta: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280" },
+
+  deleteModalSheet: {
+    width: "85%", maxWidth: 360, backgroundColor: "#fff", borderRadius: 20,
+    padding: 24, alignItems: "center",
+  },
+  deleteModalIconWrap: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: "#FEE2E2",
+    alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  deleteModalTitle: {
+    fontSize: 18, fontFamily: "Inter_700Bold", color: "#1F2937", marginBottom: 8, textAlign: "center",
+  },
+  deleteModalMessage: {
+    fontSize: 14, fontFamily: "Inter_400Regular", color: "#6B7280", textAlign: "center", lineHeight: 20,
+  },
+  deleteModalReasons: {
+    marginTop: 12, marginBottom: 8, gap: 6, alignSelf: "stretch",
+  },
+  deleteModalReasonRow: {
+    flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4,
+    paddingHorizontal: 12, backgroundColor: "#FEF2F2", borderRadius: 8,
+  },
+  deleteModalReasonText: {
+    fontSize: 13, fontFamily: "Inter_500Medium", color: "#991B1B", flex: 1,
+  },
+  deleteModalHint: {
+    fontSize: 12, fontFamily: "Inter_400Regular", color: "#9CA3AF", textAlign: "center",
+    marginTop: 4,
+  },
+  deleteModalBtnRow: {
+    flexDirection: "row", gap: 10, marginTop: 20, alignSelf: "stretch",
+  },
+  deleteModalCancelBtn: {
+    flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44,
+    borderRadius: 10, backgroundColor: "#F3F4F6",
+  },
+  deleteModalCancelText: {
+    fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#4B5563",
+  },
+  deleteModalDeleteBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, minHeight: 44, borderRadius: 10, backgroundColor: "#DC2626",
+  },
+  deleteModalDeleteText: {
+    fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff",
+  },
 });
