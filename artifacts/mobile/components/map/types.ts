@@ -1,5 +1,6 @@
 import type { LatLng, Zone, Shelter, Location, HazardZone } from "@/types";
 import type { PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
+import type { LegendFilter } from "@/components/map/MapLegendCounts";
 
 export interface MapRegion {
   latitude: number;
@@ -54,6 +55,7 @@ export interface ZoneMapProps {
   hazardZones?: HazardZone[];
   trackedUserIds?: number[];
   fitTrackedTrigger?: number;
+  legendHighlight?: LegendFilter;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

@@ -287,6 +287,8 @@ function generateLeafletHtml(
   .personnel-dot.tracked{border:3px solid rgba(255,255,255,1);box-shadow:0 0 10px rgba(96,165,250,0.7),0 0 20px rgba(96,165,250,0.3);animation:track-glow 2.5s ease-in-out infinite}
   .personnel-dot.tracked.need-help{animation:help-pulse 1.4s ease-in-out infinite}
   .personnel-dot.tracked.esc-critical{animation:help-pulse 1.4s ease-in-out infinite}
+  .personnel-dot.dimmed{opacity:0.25;transform:scale(0.7);animation:none !important;box-shadow:none !important}
+  .personnel-dot.highlighted{transform:scale(1.3);box-shadow:0 0 8px rgba(255,255,255,0.5)}
   @keyframes help-pulse{0%,100%{transform:scale(1);box-shadow:0 0 6px rgba(239,68,68,0.4)}50%{transform:scale(1.3);box-shadow:0 0 14px rgba(239,68,68,0.8)}}
   @keyframes esc-pulse{0%,100%{box-shadow:0 0 6px rgba(251,191,36,0.4)}50%{box-shadow:0 0 12px rgba(251,191,36,0.8)}}
   @keyframes track-glow{0%,100%{box-shadow:0 0 8px rgba(96,165,250,0.5),0 0 16px rgba(96,165,250,0.2)}50%{box-shadow:0 0 14px rgba(96,165,250,0.8),0 0 24px rgba(96,165,250,0.4)}}
@@ -661,6 +663,7 @@ function generateLeafletHtml(
   }
 
   var personnelMarkers = {};
+  var personnelData = {};
   var trackedUserIds = {};
   function setTrackedUsers(ids) {
     trackedUserIds = {};
@@ -690,10 +693,41 @@ function generateLeafletHtml(
       map.flyToBounds(L.latLngBounds(latlngs).pad(0.3), {duration: 0.6, maxZoom: 17});
     }
   }
+  var currentLegendHighlight = null;
+  function matchesLegendFilter(pData, filter) {
+    if (!filter) return true;
+    if (filter === 'safe') return pData.status === 'confirmed';
+    if (filter === 'pending') return pData.status !== 'confirmed' && pData.status !== 'need_help';
+    if (filter === 'help') return pData.status === 'need_help';
+    if (filter === 'aramco') return pData.userType !== 'Contract';
+    if (filter === 'contractor') return pData.userType === 'Contract';
+    return true;
+  }
+  function setLegendHighlight(filter) {
+    currentLegendHighlight = filter || null;
+    Object.keys(personnelMarkers).forEach(function(uid) {
+      var el = personnelMarkers[uid].getElement();
+      if (!el) return;
+      var dot = el.querySelector('.personnel-dot');
+      if (!dot) return;
+      var pd = personnelData[uid];
+      if (!currentLegendHighlight || !pd) {
+        dot.classList.remove('dimmed');
+        dot.classList.remove('highlighted');
+      } else if (matchesLegendFilter(pd, currentLegendHighlight)) {
+        dot.classList.remove('dimmed');
+        dot.classList.add('highlighted');
+      } else {
+        dot.classList.add('dimmed');
+        dot.classList.remove('highlighted');
+      }
+    });
+  }
   function syncPersonnel(list) {
     var seen = {};
     list.forEach(function(p) {
       seen[p.userId] = true;
+      personnelData[p.userId] = { status: p.status, userType: p.userType };
       var statusClass;
       if (p.status === 'confirmed') { statusClass = 'safe'; }
       else if (p.status === 'need_help') { statusClass = 'need-help'; }
@@ -703,7 +737,11 @@ function generateLeafletHtml(
       else if (p.escalationLevel === 1) { escClass = ' escalated'; }
       var shapeClass = (p.userType === 'Contract') ? ' square' : '';
       var trackClass = trackedUserIds[p.userId] ? ' tracked' : '';
-      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass + trackClass;
+      var dimClass = '';
+      if (currentLegendHighlight) {
+        dimClass = matchesLegendFilter({status: p.status, userType: p.userType}, currentLegendHighlight) ? ' highlighted' : ' dimmed';
+      }
+      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass + trackClass + dimClass;
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();
@@ -734,6 +772,7 @@ function generateLeafletHtml(
       if (!seen[id]) {
         map.removeLayer(personnelMarkers[id]);
         delete personnelMarkers[id];
+        delete personnelData[id];
       }
     });
   }
@@ -961,6 +1000,9 @@ function generateLeafletHtml(
       if (d.type === 'set_tracked_users' && Array.isArray(d.userIds)) {
         setTrackedUsers(d.userIds);
       }
+      if (d.type === 'set_legend_highlight') {
+        setLegendHighlight(d.filter || null);
+      }
       if (d.type === 'fit_tracked_users') {
         fitTrackedUsers();
       }
@@ -1073,6 +1115,7 @@ export function LeafletPreviewFallback({
   hazardZones,
   trackedUserIds,
   fitTrackedTrigger,
+  legendHighlight,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -1284,6 +1327,10 @@ export function LeafletPreviewFallback({
   useEffect(() => {
     postToIframe({ type: "set_tracked_users", userIds: trackedUserIds || [] });
   }, [trackedUserIds]);
+
+  useEffect(() => {
+    postToIframe({ type: "set_legend_highlight", filter: legendHighlight || null });
+  }, [legendHighlight]);
 
   const prevFitTriggerRef = useRef(0);
   useEffect(() => {

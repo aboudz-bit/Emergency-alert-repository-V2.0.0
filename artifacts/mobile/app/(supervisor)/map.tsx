@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
-import { MapLegendCounts } from "@/components/map/MapLegendCounts";
+import { MapLegendCounts, type LegendFilter } from "@/components/map/MapLegendCounts";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
@@ -24,8 +24,6 @@ import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import type { UserResponseStatus } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-
-type StatusFilter = "all" | "confirmed" | "pending" | "need_help";
 
 export default function SupervisorMapScreen() {
   const focusCount = useRefreshOnFocus();
@@ -80,9 +78,9 @@ export default function SupervisorMapScreen() {
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
   const [trackedUserIds, setTrackedUserIds] = useState<number[]>([]);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showTrackedPanel, setShowTrackedPanel] = useState(false);
   const [fitTrackedTrigger, setFitTrackedTrigger] = useState(0);
+  const [legendHighlight, setLegendHighlight] = useState<LegendFilter>(null);
 
   const toggleTracked = useCallback((userId: number) => {
     setTrackedUserIds((prev) =>
@@ -113,29 +111,14 @@ export default function SupervisorMapScreen() {
     });
   }, [hazardZones, activeAlert, myLocation, myZone]);
 
-  const filteredPersonnel = useMemo(() => {
-    if (statusFilter === "all") return visiblePersonnel;
-    return visiblePersonnel.filter((p) => {
-      if (statusFilter === "confirmed") return p.status === "confirmed";
-      if (statusFilter === "need_help") return p.status === "need_help";
-      return p.status !== "confirmed" && p.status !== "need_help";
-    });
-  }, [visiblePersonnel, statusFilter]);
-
   const trackedPersonnel = useMemo(
     () => visiblePersonnel.filter((p) => trackedUserIds.includes(p.userId)),
     [visiblePersonnel, trackedUserIds]
   );
 
-  const statusFilterCounts = useMemo(() => {
-    let safe = 0, pending = 0, needHelp = 0;
-    for (const p of visiblePersonnel) {
-      if (p.status === "confirmed") safe++;
-      else if (p.status === "need_help") needHelp++;
-      else pending++;
-    }
-    return { all: visiblePersonnel.length, confirmed: safe, pending, need_help: needHelp };
-  }, [visiblePersonnel]);
+  const handleLegendPress = useCallback((filter: LegendFilter) => {
+    setLegendHighlight(filter);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -149,11 +132,12 @@ export default function SupervisorMapScreen() {
         locations={myLocation ? [myLocation] : []}
         highlightedLocationIds={myLocation ? [myLocation.id] : []}
         shelters={myLinkedShelters}
-        personnelLocations={filteredPersonnel}
+        personnelLocations={visiblePersonnel}
         onPersonnelPress={handlePersonnelPress}
         hazardZones={activeHazardZones}
         trackedUserIds={trackedUserIds}
         fitTrackedTrigger={fitTrackedTrigger}
+        legendHighlight={legendHighlight}
       />
 
       <WindIndicator />
@@ -183,41 +167,18 @@ export default function SupervisorMapScreen() {
         )}
       </View>
 
-      {hasActiveAlert && (
+      {hasActiveAlert && trackedPersonnel.length > 0 && (
         <View style={styles.controlRow}>
-          {statusFilter !== "all" && (
-            <Pressable
-              style={styles.filterResetBtn}
-              onPress={() => setStatusFilter("all")}
-            >
-              <Feather name="x" size={12} color="#fff" />
-              <Text style={styles.filterResetText}>
-                {statusFilter === "confirmed" ? "Safe" : statusFilter === "need_help" ? "Help" : "Pending"}
-              </Text>
-            </Pressable>
-          )}
           <Pressable
-            style={[styles.controlBtn, statusFilter !== "all" && styles.controlBtnActive]}
+            style={[styles.controlBtn, styles.trackedBtn]}
             onPress={() => {
-              const filters: StatusFilter[] = ["all", "confirmed", "pending", "need_help"];
-              const idx = filters.indexOf(statusFilter);
-              setStatusFilter(filters[(idx + 1) % filters.length]);
+              setShowTrackedPanel(true);
+              setFitTrackedTrigger((c) => c + 1);
             }}
           >
-            <Feather name="filter" size={14} color="#fff" />
+            <Feather name="eye" size={14} color="#60A5FA" />
+            <Text style={styles.trackedBtnText}>{trackedPersonnel.length}</Text>
           </Pressable>
-          {trackedPersonnel.length > 0 && (
-            <Pressable
-              style={[styles.controlBtn, styles.trackedBtn]}
-              onPress={() => {
-                setShowTrackedPanel(true);
-                setFitTrackedTrigger((c) => c + 1);
-              }}
-            >
-              <Feather name="eye" size={14} color="#60A5FA" />
-              <Text style={styles.trackedBtnText}>{trackedPersonnel.length}</Text>
-            </Pressable>
-          )}
         </View>
       )}
 
@@ -225,6 +186,8 @@ export default function SupervisorMapScreen() {
         <MapLegendCounts
           personnel={visiblePersonnel}
           trackedCount={trackedPersonnel.length}
+          activeLegend={legendHighlight}
+          onLegendPress={handleLegendPress}
         />
       )}
 
@@ -457,27 +420,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
-  },
-  controlBtnActive: {
-    backgroundColor: "rgba(96,165,250,0.25)",
-    borderWidth: 1,
-    borderColor: "rgba(96,165,250,0.5)",
-  },
-  filterResetBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(96,165,250,0.2)",
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: "rgba(96,165,250,0.4)",
-  },
-  filterResetText: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: "#60A5FA",
   },
   trackedBtn: {
     flexDirection: "row",
