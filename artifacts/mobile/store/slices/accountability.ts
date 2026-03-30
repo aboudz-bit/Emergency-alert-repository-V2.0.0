@@ -44,6 +44,7 @@ export interface AccountabilityActions {
   respondToAccountability: (response: "safe" | "need_help") => Promise<void>;
   endAccountabilitySession: () => Promise<void>;
   refreshAccountabilitySession: () => Promise<void>;
+  resumeAccountabilitySession: (locationId: number) => Promise<void>;
   clearAccountabilityState: () => void;
 }
 
@@ -211,6 +212,29 @@ export function createAccountabilitySlice(set: SetState, get: GetState): Account
           accountabilitySession: result.session,
           accountabilityPersonnel: result.personnel,
         });
+      } catch {}
+    },
+
+    resumeAccountabilitySession: async (locationId: number) => {
+      const state = get();
+      if (state.accountabilitySession?.status === "active") return;
+
+      try {
+        const result = await api.get<{ sessions: AccountabilitySession[] }>(
+          `/accountability/active?locationId=${locationId}`
+        );
+        if (result.sessions.length > 0) {
+          const session = result.sessions[0];
+          const detail = await api.get<{
+            session: AccountabilitySession;
+            personnel: AccountabilityPersonnel[];
+          }>(`/accountability/session/${session.id}`);
+
+          set({
+            accountabilitySession: detail.session,
+            accountabilityPersonnel: detail.personnel,
+          });
+        }
       } catch {}
     },
 

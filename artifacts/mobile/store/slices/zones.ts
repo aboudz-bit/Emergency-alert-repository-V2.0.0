@@ -297,6 +297,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       const idSet = new Set(zoneIds);
       set(s => ({
         alertSoundDismissed: false,
+        mobileUserResponse: null,
         zones: s.zones.map(z => idSet.has(z.id) ? {
           ...z,
           alertActive: true,

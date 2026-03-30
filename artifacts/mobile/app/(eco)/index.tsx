@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { SelfStatusBar } from "@/components/ui/SelfStatusBar";
 
 export default function ECODashboardScreen() {
   const router = useRouter();
@@ -96,6 +97,7 @@ export default function ECODashboardScreen() {
   return (
     <View style={styles.container}>
       <EmergencyModeBanner />
+      <SelfStatusBar />
       <Header
         title={`ECO ${currentUser?.ecoSlot ?? ""} — ${zoneName}`}
         subtitle={`${currentUser?.name} • Operational: CCR`}

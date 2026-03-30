@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { SelfStatusBar } from "@/components/ui/SelfStatusBar";
 
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function SupervisorDashboardScreen() {
   const startAccountabilitySession = useStore((s) => s.startAccountabilitySession);
   const endAccountabilitySession = useStore((s) => s.endAccountabilitySession);
   const refreshAccountabilitySession = useStore((s) => s.refreshAccountabilitySession);
+  const resumeAccountabilitySession = useStore((s) => s.resumeAccountabilitySession);
 
   const isBackup =
     currentUser?.isBackupSupervisorAssigned === true &&
@@ -55,6 +57,12 @@ export default function SupervisorDashboardScreen() {
     );
     return sa?.locationId ?? null;
   }, [currentUser]);
+
+  useEffect(() => {
+    if (myLocationId && !accountabilitySession) {
+      resumeAccountabilitySession(myLocationId);
+    }
+  }, [myLocationId]);
 
   const myLocation = useMemo(
     () => myLocationId ? locations.find((l) => l.id === myLocationId) : locations.find((l) => l.name === locName && l.zone === zoneName),
@@ -210,6 +218,7 @@ export default function SupervisorDashboardScreen() {
   return (
     <View style={styles.container}>
       <EmergencyModeBanner />
+      <SelfStatusBar />
       <Header
         title={`${roleLabel} — ${locName}`}
         subtitle={`${currentUser?.name} • ${zoneName} • ${locName}`}
