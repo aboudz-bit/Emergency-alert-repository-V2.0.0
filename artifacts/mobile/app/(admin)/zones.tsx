@@ -43,6 +43,8 @@ export default function ZonesScreen() {
   const addZone = useStore((s) => s.addZone);
   const updateZone = useStore((s) => s.updateZone);
   const safeDeleteZone = useStore((s) => s.safeDeleteZone);
+  const bulkReassignUsersToZone = useStore((s) => s.bulkReassignUsersToZone);
+  const users = useStore((s) => s.users);
   const locations = useStore((s) => s.locations);
   const updateLocation = useStore((s) => s.updateLocation);
   const shelters = useStore((s) => s.shelters);
@@ -95,6 +97,14 @@ export default function ZonesScreen() {
   const [fabOpen, setFabOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ visible: boolean; canDelete: boolean; zoneName: string; zoneId: number; blockReasons: string }>({
     visible: false, canDelete: false, zoneName: "", zoneId: 0, blockReasons: "",
+  });
+  const [reassignModal, setReassignModal] = useState<{
+    visible: boolean; step: "select" | "confirm" | "done";
+    sourceZoneId: number; sourceZoneName: string; userCount: number;
+    targetZoneId: number | null; targetZoneName: string;
+  }>({
+    visible: false, step: "select", sourceZoneId: 0, sourceZoneName: "",
+    userCount: 0, targetZoneId: null, targetZoneName: "",
   });
 
   const pendingPointsRef = useRef<LatLng[]>([]);
@@ -378,6 +388,52 @@ export default function ZonesScreen() {
       }));
     }
   }, [deleteModal, safeDeleteZone]);
+
+  const usersInSelectedZone = useMemo(() => {
+    if (!selectedZoneId) return 0;
+    return users.filter(u => Number(u.zoneId) === Number(selectedZoneId)).length;
+  }, [users, selectedZoneId]);
+
+  const availableTargetZones = useMemo(() => {
+    return zones.filter(z => z.isActive && !z.isArchived && z.id !== reassignModal.sourceZoneId);
+  }, [zones, reassignModal.sourceZoneId]);
+
+  const handleOpenReassign = useCallback(() => {
+    if (!selectedZone) return;
+    const count = users.filter(u => Number(u.zoneId) === Number(selectedZone.id)).length;
+    if (count === 0) return;
+    setReassignModal({
+      visible: true, step: "select",
+      sourceZoneId: selectedZone.id, sourceZoneName: selectedZone.name,
+      userCount: count, targetZoneId: null, targetZoneName: "",
+    });
+  }, [selectedZone, users]);
+
+  const handleSelectTargetZone = useCallback((zone: Zone) => {
+    setReassignModal(prev => ({
+      ...prev, step: "confirm",
+      targetZoneId: zone.id, targetZoneName: zone.name,
+    }));
+  }, []);
+
+  const handleConfirmReassign = useCallback(() => {
+    if (!reassignModal.targetZoneId) return;
+    const result = bulkReassignUsersToZone(reassignModal.sourceZoneId, reassignModal.targetZoneId);
+    if (result.success) {
+      setReassignModal(prev => ({ ...prev, step: "done" }));
+    } else {
+      setReassignModal(prev => ({
+        ...prev, step: "select", targetZoneId: null, targetZoneName: "",
+      }));
+    }
+  }, [reassignModal, bulkReassignUsersToZone]);
+
+  const handleCloseReassign = useCallback(() => {
+    setReassignModal(prev => ({
+      ...prev, visible: false, step: "select",
+      targetZoneId: null, targetZoneName: "",
+    }));
+  }, []);
 
   const handleFocusZone = useCallback(() => {
     if (selectedZoneId) setFlyToZoneId(selectedZoneId);
@@ -872,6 +928,18 @@ export default function ZonesScreen() {
               <Text style={[styles.bsActionText, { color: "#DC2626" }]}>Delete</Text>
             </Pressable>
           </View>
+          {usersInSelectedZone > 0 && (
+            <>
+              <View style={styles.bsDivider} />
+              <Pressable style={styles.moveUsersBtn} onPress={handleOpenReassign}>
+                <Feather name="users" size={15} color="#7C3AED" />
+                <Text style={styles.moveUsersBtnText}>
+                  Move {usersInSelectedZone} user{usersInSelectedZone > 1 ? "s" : ""} to another zone
+                </Text>
+                <Feather name="chevron-right" size={16} color="#7C3AED" />
+              </Pressable>
+            </>
+          )}
           {locationsForZone.length > 0 && (
             <>
               <View style={styles.bsDivider} />
@@ -1232,6 +1300,75 @@ export default function ZonesScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={reassignModal.visible} transparent animationType="fade" onRequestClose={handleCloseReassign}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.reassignSheet}>
+            {reassignModal.step === "select" && (
+              <>
+                <View style={styles.reassignIconWrap}>
+                  <Feather name="users" size={28} color="#7C3AED" />
+                </View>
+                <Text style={styles.reassignTitle}>Move Users</Text>
+                <Text style={styles.reassignMessage}>
+                  Select a target zone for {reassignModal.userCount} user{reassignModal.userCount > 1 ? "s" : ""} from "{reassignModal.sourceZoneName}"
+                </Text>
+                <ScrollView style={styles.reassignList} bounces={false}>
+                  {availableTargetZones.map(z => (
+                    <Pressable key={z.id} style={styles.reassignZoneRow} onPress={() => handleSelectTargetZone(z)}>
+                      <View style={[styles.reassignZoneDot, { backgroundColor: z.color }]} />
+                      <Text style={styles.reassignZoneName} numberOfLines={1}>{z.name}</Text>
+                      <Text style={styles.reassignZoneMeta}>{z.type}</Text>
+                      <Feather name="chevron-right" size={16} color="#9CA3AF" />
+                    </Pressable>
+                  ))}
+                  {availableTargetZones.length === 0 && (
+                    <Text style={styles.reassignEmpty}>No other active zones available</Text>
+                  )}
+                </ScrollView>
+                <Pressable style={styles.reassignCancelBtn} onPress={handleCloseReassign}>
+                  <Text style={styles.reassignCancelText}>Cancel</Text>
+                </Pressable>
+              </>
+            )}
+            {reassignModal.step === "confirm" && (
+              <>
+                <View style={[styles.reassignIconWrap, { backgroundColor: "#FEF3C7" }]}>
+                  <Feather name="alert-triangle" size={28} color="#D97706" />
+                </View>
+                <Text style={styles.reassignTitle}>Confirm Move</Text>
+                <Text style={styles.reassignMessage}>
+                  Move {reassignModal.userCount} user{reassignModal.userCount > 1 ? "s" : ""} from "{reassignModal.sourceZoneName}" to "{reassignModal.targetZoneName}"?
+                </Text>
+                <Text style={styles.reassignHint}>This will update all user zone assignments at once.</Text>
+                <View style={styles.reassignBtnRow}>
+                  <Pressable style={styles.reassignBackBtn} onPress={() => setReassignModal(prev => ({ ...prev, step: "select", targetZoneId: null, targetZoneName: "" }))}>
+                    <Text style={styles.reassignCancelText}>Back</Text>
+                  </Pressable>
+                  <Pressable style={styles.reassignConfirmBtn} onPress={handleConfirmReassign}>
+                    <Feather name="check" size={16} color="#fff" />
+                    <Text style={styles.reassignConfirmText}>Move Users</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+            {reassignModal.step === "done" && (
+              <>
+                <View style={[styles.reassignIconWrap, { backgroundColor: "#D1FAE5" }]}>
+                  <Feather name="check-circle" size={28} color="#059669" />
+                </View>
+                <Text style={styles.reassignTitle}>Users Moved Successfully</Text>
+                <Text style={styles.reassignMessage}>
+                  {reassignModal.userCount} user{reassignModal.userCount > 1 ? "s" : ""} moved from "{reassignModal.sourceZoneName}" to "{reassignModal.targetZoneName}"
+                </Text>
+                <Pressable style={[styles.reassignConfirmBtn, { backgroundColor: "#059669", marginTop: 20, alignSelf: "stretch" }]} onPress={handleCloseReassign}>
+                  <Text style={styles.reassignConfirmText}>Done</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1496,6 +1633,74 @@ const styles = StyleSheet.create({
     gap: 6, minHeight: 44, borderRadius: 10, backgroundColor: "#DC2626",
   },
   deleteModalDeleteText: {
+    fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff",
+  },
+
+  moveUsersBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingVertical: 10, paddingHorizontal: 4,
+  },
+  moveUsersBtnText: {
+    flex: 1, fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#7C3AED",
+  },
+
+  reassignSheet: {
+    width: "90%", maxWidth: 400, backgroundColor: "#fff", borderRadius: 20,
+    padding: 24, alignItems: "center", maxHeight: "70%",
+  },
+  reassignIconWrap: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: "#EDE9FE",
+    alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  reassignTitle: {
+    fontSize: 18, fontFamily: "Inter_700Bold", color: "#1F2937", marginBottom: 8, textAlign: "center",
+  },
+  reassignMessage: {
+    fontSize: 14, fontFamily: "Inter_400Regular", color: "#6B7280", textAlign: "center", lineHeight: 20,
+  },
+  reassignHint: {
+    fontSize: 12, fontFamily: "Inter_400Regular", color: "#9CA3AF", textAlign: "center", marginTop: 8,
+  },
+  reassignList: {
+    alignSelf: "stretch", marginTop: 16, marginBottom: 12, maxHeight: 240,
+  },
+  reassignZoneRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 12, paddingHorizontal: 14,
+    borderRadius: 10, backgroundColor: "#F9FAFB", marginBottom: 6,
+  },
+  reassignZoneDot: {
+    width: 12, height: 12, borderRadius: 6,
+  },
+  reassignZoneName: {
+    flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#1F2937",
+  },
+  reassignZoneMeta: {
+    fontSize: 11, fontFamily: "Inter_400Regular", color: "#9CA3AF", marginRight: 4,
+  },
+  reassignEmpty: {
+    fontSize: 13, fontFamily: "Inter_400Regular", color: "#9CA3AF",
+    textAlign: "center", paddingVertical: 20,
+  },
+  reassignCancelBtn: {
+    alignSelf: "stretch", alignItems: "center", justifyContent: "center",
+    minHeight: 44, borderRadius: 10, backgroundColor: "#F3F4F6",
+  },
+  reassignCancelText: {
+    fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#4B5563",
+  },
+  reassignBtnRow: {
+    flexDirection: "row", gap: 10, marginTop: 20, alignSelf: "stretch",
+  },
+  reassignBackBtn: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    minHeight: 44, borderRadius: 10, backgroundColor: "#F3F4F6",
+  },
+  reassignConfirmBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, minHeight: 44, borderRadius: 10, backgroundColor: "#7C3AED",
+  },
+  reassignConfirmText: {
     fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff",
   },
 });

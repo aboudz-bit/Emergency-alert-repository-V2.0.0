@@ -5,6 +5,7 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
   AppState,
   'addZone' | 'updateZone' | 'deleteZone' |
   'archiveZone' | 'restoreZone' | 'safeDeleteZone' |
+  'bulkReassignUsersToZone' |
   'reorderZones' | 'reorderLocations' |
   'activateZoneAlert' | 'deactivateZoneAlert' | 'editZoneAlert' |
   'bulkActivateZoneAlerts' | 'bulkDeactivateZoneAlerts' |
@@ -88,6 +89,30 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
       }));
       console.log('[safeDeleteZone] deleted. new zones count:', get().zones.length);
       return { success: true };
+    },
+
+    bulkReassignUsersToZone: (sourceZoneId, targetZoneId) => {
+      const { zones, users } = get();
+      const sourceZone = zones.find(z => z.id === Number(sourceZoneId));
+      const targetZone = zones.find(z => z.id === Number(targetZoneId));
+      if (!sourceZone) return { success: false, count: 0, error: "Source zone not found" };
+      if (!targetZone) return { success: false, count: 0, error: "Target zone not found" };
+      if (Number(sourceZoneId) === Number(targetZoneId)) return { success: false, count: 0, error: "Source and target zones are the same" };
+      if (!targetZone.isActive) return { success: false, count: 0, error: "Target zone is not active" };
+      if (targetZone.isArchived) return { success: false, count: 0, error: "Target zone is archived" };
+
+      const affected = users.filter(u => Number(u.zoneId) === Number(sourceZoneId));
+      if (affected.length === 0) return { success: false, count: 0, error: "No users in this zone" };
+
+      set(s => ({
+        users: s.users.map(u =>
+          Number(u.zoneId) === Number(sourceZoneId)
+            ? { ...u, zoneId: Number(targetZoneId), zone: targetZone.name }
+            : u
+        ),
+      }));
+
+      return { success: true, count: affected.length };
     },
 
     reorderZones: (orderedIds) => {

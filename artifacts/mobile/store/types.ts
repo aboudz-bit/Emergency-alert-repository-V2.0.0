@@ -64,6 +64,7 @@ export interface AppState {
   archiveZone: (id: number) => void;
   restoreZone: (id: number) => void;
   safeDeleteZone: (id: number) => { success: boolean; error?: string };
+  bulkReassignUsersToZone: (sourceZoneId: number, targetZoneId: number) => { success: boolean; count: number; error?: string };
   reorderZones: (orderedIds: number[]) => void;
   reorderLocations: (zoneId: number, orderedIds: number[]) => void;
 
