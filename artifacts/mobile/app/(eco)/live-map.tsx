@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { WindDirectionPicker } from "@/components/ui/WindDirectionPicker";
 import { ZoneMap } from "@/components/map";
+import { MapLegendCounts } from "@/components/map/MapLegendCounts";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectCanChangeWindDirection } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
@@ -151,31 +152,7 @@ export default function ECOLiveMapScreen() {
         </>
       )}
 
-      {/* Floating legend + count */}
-      <View style={styles.floatingLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
-          <Text style={styles.legendText}>Safe</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
-          <Text style={styles.legendText}>Pending</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
-          <Text style={styles.legendText}>Need Help</Text>
-        </View>
-        <View style={{ width: 1, height: 14, backgroundColor: "rgba(255,255,255,0.3)", marginHorizontal: 4 }} />
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 10 }]} />
-          <Text style={styles.legendText}>Aramco</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
-          <Text style={styles.legendText}>Contractor</Text>
-        </View>
-        <Text style={styles.legendCount}>{visiblePersonnel.length} tracked</Text>
-      </View>
+      <MapLegendCounts personnel={visiblePersonnel} />
 
       {/* Personnel Detail Modal */}
       <Modal
@@ -324,47 +301,6 @@ const styles = StyleSheet.create({
   },
   windButtonActive: {
     backgroundColor: Colors.primary,
-  },
-
-  // Floating legend
-  floatingLegend: {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    right: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: Spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_400Regular",
-    color: Colors.textSecondary,
-  },
-  legendCount: {
-    fontSize: FontSize.xs,
-    fontFamily: "Inter_500Medium",
-    color: Colors.textTertiary,
-    marginLeft: "auto",
   },
 
   // Personnel detail modal
