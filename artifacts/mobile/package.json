@@ -66,9 +66,11 @@
     "zustand": "^5.0.0"
   },
   "dependencies": {
+    "connect": "^3.7.0",
     "expo-av": "^16.0.8",
     "expo-notifications": "^55.0.14",
     "expo-updates": "^55.0.15",
+    "http-proxy-middleware": "^3.0.5",
     "react-native-maps": "^1.27.2",
     "react-native-webview": "^13.16.1"
   }

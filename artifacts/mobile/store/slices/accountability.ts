@@ -75,6 +75,7 @@ export function createAccountabilitySlice(set: SetState, get: GetState): Account
         }));
 
       set({ accountabilityLoading: true, accountabilityError: null });
+      console.log("[AccountabilitySlice] Starting session for location", locationId, "with", personnel.length, "personnel");
 
       try {
         const result = await api.post<{ session: AccountabilitySession }>("/accountability/start", {
@@ -113,10 +114,12 @@ export function createAccountabilitySlice(set: SetState, get: GetState): Account
           actorName: currentUser.name,
         });
       } catch (err: any) {
+        console.error("[AccountabilitySlice] Start session error:", err);
         set({
           accountabilityLoading: false,
           accountabilityError: err.message || "Failed to start session",
         });
+        throw err;
       }
     },
 

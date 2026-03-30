@@ -163,7 +163,12 @@ export default function SupervisorDashboardScreen() {
   }, [accountabilityPersonnel]);
 
   const handleStartAccountability = useCallback(() => {
-    if (!myLocation) return;
+    console.log("[Accountability] Button pressed, myLocation:", myLocation?.id, myLocation?.name);
+    if (!myLocation) {
+      console.warn("[Accountability] No location assigned — cannot start session");
+      RNAlert.alert("Error", "No location assigned to this supervisor.");
+      return;
+    }
     RNAlert.alert(
       "Start Accountability",
       `Reset all ${locationUsers.length} personnel at ${locName} to "Pending" and begin accountability?`,
@@ -173,7 +178,13 @@ export default function SupervisorDashboardScreen() {
           text: "Start",
           style: "destructive",
           onPress: () => {
-            startAccountabilitySession(myLocation.id);
+            console.log("[Accountability] Confirmed — starting session for location", myLocation.id);
+            startAccountabilitySession(myLocation.id).then(() => {
+              console.log("[Accountability] Session started successfully");
+            }).catch((err: any) => {
+              console.error("[Accountability] Failed to start session:", err);
+              RNAlert.alert("Error", err?.message || "Failed to start accountability session.");
+            });
           },
         },
       ]
