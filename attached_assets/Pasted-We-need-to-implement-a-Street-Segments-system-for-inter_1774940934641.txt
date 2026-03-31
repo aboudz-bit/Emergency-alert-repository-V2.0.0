@@ -1,0 +1,97 @@
+We need to implement a Street Segments system for internal CPF routing.
+
+This is the foundation for all future routing features.
+
+Do NOT build routing yet.
+Do NOT build smart suggestions.
+Focus ONLY on defining and managing street segments.
+
+========================
+GOAL
+========================
+
+Allow Super Admin to create, edit, and manage internal streets inside CPF.
+
+These streets will later be used by ECO to build routes during emergencies.
+
+========================
+1) DATA MODEL
+========================
+
+Create:
+
+Street {
+  id: string
+  name: string
+  path: LatLng[]   // polyline
+  createdAt: number
+  updatedAt: number
+}
+
+========================
+2) ADMIN MODE (CREATE)
+========================
+
+Super Admin can:
+
+- enter "Street Drawing Mode"
+- tap on map to create a polyline
+- finish drawing to save street
+
+System behavior:
+- auto-generate default name:
+  "Street-1", "Street-2", etc.
+- allow rename later
+
+========================
+3) EDITING
+========================
+
+Super Admin can:
+
+- rename street
+- delete street
+- edit path (move points / adjust line)
+- duplicate street and modify it
+
+========================
+4) VISUALIZATION
+========================
+
+- all streets are visible on map
+- default color: neutral gray
+- selected street: highlighted (blue)
+- editing mode: show draggable points
+
+========================
+5) INTERACTION
+========================
+
+- tap street → select it
+- long press → edit mode (optional)
+- clear visual feedback for selected vs non-selected
+
+========================
+6) STORAGE
+========================
+
+- store streets in Zustand (similar to zones)
+- persist locally
+- prepare structure to later move to backend
+
+========================
+7) RULES
+========================
+
+- Do NOT mix with alert logic
+- Do NOT mix with routing logic
+- Do NOT allow ECO to create streets
+
+Only Super Admin manages streets.
+
+========================
+GOAL RESULT
+========================
+
+We should have a clean layer of predefined internal streets inside CPF,
+ready to be used later for route selection during emergencies.

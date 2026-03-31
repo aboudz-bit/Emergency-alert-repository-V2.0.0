@@ -969,6 +969,161 @@ function generateLeafletHtml(
     editModeActive = false;
   }
 
+  var streetPolylines = {};
+  var selectedStreetId = null;
+  var streetEditId = null;
+  var streetEditPoints = [];
+  var streetEditMarkers = [];
+  var streetEditPoly = null;
+  var streetDrawModeActive = false;
+  var streetDrawPoints = [];
+  var streetDrawMarkers = [];
+  var streetDrawPoly = null;
+
+  function syncStreets(streets) {
+    var existingIds = {};
+    streets.forEach(function(st) {
+      existingIds[st.id] = true;
+      if (streetEditId === st.id) return;
+      if (streetPolylines[st.id]) {
+        streetPolylines[st.id].layer.setLatLngs(st.path.map(function(p) { return [p.lat, p.lng]; }));
+        streetPolylines[st.id].data = st;
+        if (streetPolylines[st.id].label) {
+          var updMid = st.path.length > 0 ? st.path[Math.floor(st.path.length / 2)] : null;
+          if (updMid) {
+            streetPolylines[st.id].label.setLatLng([updMid.lat, updMid.lng]);
+            streetPolylines[st.id].label.setIcon(L.divIcon({
+              className: 'street-label',
+              html: '<div style="background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:sans-serif;">' + st.name + '</div>',
+              iconAnchor: [0, 0],
+            }));
+          }
+        }
+      } else {
+        var line = L.polyline(st.path.map(function(p) { return [p.lat, p.lng]; }), {
+          color: '#9CA3AF', weight: 4, opacity: 0.8, lineCap: 'round', lineJoin: 'round',
+        }).addTo(map);
+        var mid = st.path.length > 0 ? st.path[Math.floor(st.path.length / 2)] : null;
+        var label = null;
+        if (mid) {
+          label = L.marker([mid.lat, mid.lng], {
+            interactive: false,
+            icon: L.divIcon({
+              className: 'street-label',
+              html: '<div style="background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:sans-serif;">' + st.name + '</div>',
+              iconAnchor: [0, 0],
+            })
+          }).addTo(map);
+        }
+        line.on('click', function() {
+          window.parent.postMessage(JSON.stringify({type:'street_select', id: st.id}), '*');
+        });
+        streetPolylines[st.id] = { layer: line, label: label, data: st };
+      }
+    });
+    Object.keys(streetPolylines).forEach(function(id) {
+      if (!existingIds[id]) {
+        map.removeLayer(streetPolylines[id].layer);
+        if (streetPolylines[id].label) map.removeLayer(streetPolylines[id].label);
+        delete streetPolylines[id];
+      }
+    });
+    refreshStreetStyles();
+  }
+
+  function refreshStreetStyles() {
+    Object.keys(streetPolylines).forEach(function(id) {
+      var isSel = id === selectedStreetId;
+      streetPolylines[id].layer.setStyle({
+        color: isSel ? '#3B82F6' : '#9CA3AF',
+        weight: isSel ? 5 : 4,
+        opacity: isSel ? 1 : 0.8,
+      });
+    });
+  }
+
+  function startStreetEdit(id, points) {
+    clearStreetEdit();
+    streetEditId = id;
+    streetEditPoints = points.map(function(p) { return {lat: p.lat, lng: p.lng}; });
+    if (streetPolylines[id]) { streetPolylines[id].layer.setStyle({opacity: 0}); if (streetPolylines[id].label) streetPolylines[id].label.setOpacity(0); }
+    streetEditPoly = L.polyline(streetEditPoints.map(function(p) { return [p.lat, p.lng]; }), {
+      color: '#3B82F6', weight: 5, opacity: 1, dashArray: '8,6',
+    }).addTo(map);
+    streetEditPoints.forEach(function(pt, idx) {
+      var m = L.marker([pt.lat, pt.lng], {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'edit-vertex',
+          html: '<div class="vertex-outer"><div class="vertex-inner" style="background:#3B82F6;"></div><div class="vertex-num">' + (idx+1) + '</div></div>',
+          iconAnchor: [24, 24],
+        })
+      }).addTo(map);
+      m.on('dragstart', function() { vertexDragging = true; map.dragging.disable(); });
+      m.on('drag', function(e) {
+        var ll = e.target.getLatLng();
+        streetEditPoints[idx] = {lat: ll.lat, lng: ll.lng};
+        streetEditPoly.setLatLngs(streetEditPoints.map(function(p) { return [p.lat, p.lng]; }));
+        window.parent.postMessage(JSON.stringify({type:'street_edit_points', id: streetEditId, points: streetEditPoints}), '*');
+      });
+      m.on('dragend', function() { map.dragging.enable(); vertexDragging = false; });
+      streetEditMarkers.push(m);
+    });
+    if (streetEditPoints.length > 0) {
+      map.fitBounds(streetEditPoly.getBounds(), {padding: [60, 60]});
+    }
+  }
+
+  function clearStreetEdit() {
+    if (streetEditPoly) { map.removeLayer(streetEditPoly); streetEditPoly = null; }
+    streetEditMarkers.forEach(function(m) { map.removeLayer(m); });
+    streetEditMarkers = [];
+    if (streetEditId && streetPolylines[streetEditId]) {
+      streetPolylines[streetEditId].layer.setStyle({opacity: 0.8});
+      if (streetPolylines[streetEditId].label) streetPolylines[streetEditId].label.setOpacity(1);
+    }
+    streetEditId = null;
+    streetEditPoints = [];
+  }
+
+  function updateStreetDrawPoly() {
+    if (streetDrawPoly) {
+      streetDrawPoly.setLatLngs(streetDrawPoints.map(function(p) { return [p.lat, p.lng]; }));
+    } else if (streetDrawPoints.length >= 1) {
+      streetDrawPoly = L.polyline(streetDrawPoints.map(function(p) { return [p.lat, p.lng]; }), {
+        color: '#3B82F6', weight: 4, opacity: 1, dashArray: '6,4',
+      }).addTo(map);
+    }
+    streetDrawMarkers.forEach(function(m) { map.removeLayer(m); });
+    streetDrawMarkers = [];
+    streetDrawPoints.forEach(function(pt, idx) {
+      var m = L.marker([pt.lat, pt.lng], {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'edit-vertex',
+          html: '<div class="vertex-outer"><div class="vertex-inner" style="background:#3B82F6;"></div><div class="vertex-num">' + (idx+1) + '</div></div>',
+          iconAnchor: [24, 24],
+        })
+      }).addTo(map);
+      streetDrawMarkers.push(m);
+    });
+  }
+
+  function clearStreetDraw() {
+    if (streetDrawPoly) { map.removeLayer(streetDrawPoly); streetDrawPoly = null; }
+    streetDrawMarkers.forEach(function(m) { map.removeLayer(m); });
+    streetDrawMarkers = [];
+    streetDrawPoints = [];
+  }
+
+  map.on('click', function(e) {
+    if (streetDrawModeActive) {
+      streetDrawPoints.push({lat: e.latlng.lat, lng: e.latlng.lng});
+      updateStreetDrawPoly();
+      window.parent.postMessage(JSON.stringify({type:'street_draw_points', points: streetDrawPoints}), '*');
+    }
+  });
+
   window.addEventListener('message', function(evt) {
     try {
       var d = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
@@ -1091,6 +1246,37 @@ function generateLeafletHtml(
       if (d.type === 'sync_hazard_zones' && Array.isArray(d.hazardZones)) {
         syncHazardZones(d.hazardZones);
       }
+      if (d.type === 'sync_streets' && Array.isArray(d.streets)) {
+        syncStreets(d.streets);
+      }
+      if (d.type === 'select_street') {
+        selectedStreetId = d.id || null;
+        refreshStreetStyles();
+      }
+      if (d.type === 'start_street_edit' && d.id && Array.isArray(d.points)) {
+        startStreetEdit(d.id, d.points);
+      }
+      if (d.type === 'clear_street_edit') {
+        clearStreetEdit();
+      }
+      if (d.type === 'set_street_draw_mode') {
+        streetDrawModeActive = !!d.enabled;
+        if (!d.enabled) clearStreetDraw();
+      }
+      if (d.type === 'add_street_draw_point' && typeof d.lat === 'number') {
+        streetDrawPoints.push({lat: d.lat, lng: d.lng});
+        updateStreetDrawPoly();
+        window.parent.postMessage(JSON.stringify({type:'street_draw_points', points: streetDrawPoints}), '*');
+      }
+      if (d.type === 'undo_street_draw_point' && streetDrawPoints.length > 0) {
+        streetDrawPoints.pop();
+        if (streetDrawMarkers.length > 0) { map.removeLayer(streetDrawMarkers.pop()); }
+        updateStreetDrawPoly();
+        window.parent.postMessage(JSON.stringify({type:'street_draw_points', points: streetDrawPoints}), '*');
+      }
+      if (d.type === 'clear_street_draw') {
+        clearStreetDraw();
+      }
       if (d.type === 'sync_locations' && Array.isArray(d.locations)) {
         var existingLocIds = {};
         d.locations.forEach(function(loc) { existingLocIds[loc.id] = true; addLocPolygon(loc); });
@@ -1198,6 +1384,13 @@ export function LeafletPreviewFallback({
   trackedUserIds,
   fitTrackedTrigger,
   legendHighlight,
+  streets,
+  selectedStreetId,
+  onStreetPress,
+  editingStreetId,
+  editingStreetPoints,
+  onEditingStreetPointsChange,
+  streetDrawMode,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -1324,11 +1517,20 @@ export function LeafletPreviewFallback({
         if (data.type === "personnel_select" && typeof data.userId === "number" && onPersonnelPress) {
           onPersonnelPress(data.userId);
         }
+        if (data.type === "street_select" && typeof data.id === "string" && onStreetPress) {
+          onStreetPress(data.id);
+        }
+        if (data.type === "street_edit_points" && Array.isArray(data.points) && onEditingStreetPointsChange) {
+          onEditingStreetPointsChange(data.points);
+        }
+        if (data.type === "street_draw_points" && Array.isArray(data.points)) {
+          (window as any).__streetDrawPoints = data.points;
+        }
       } catch {}
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange, onPersonnelPress]);
+  }, [onZonePress, onEditingPointsChange, onMapTap, onMapCenterChange, onShelterPress, onLocationPress, onEditingLocationPointsChange, onPersonnelPress, onStreetPress, onEditingStreetPointsChange]);
 
   const prevSheltersRef = useRef<string>("");
   useEffect(() => {
@@ -1432,6 +1634,39 @@ export function LeafletPreviewFallback({
     const t = setTimeout(() => postToIframe({ type: "sync_hazard_zones", hazardZones: active }), 120);
     return () => clearTimeout(t);
   }, [hazardZones]);
+
+  const prevStreetsRef = useRef<string>("");
+  useEffect(() => { prevStreetsRef.current = ""; }, [mapHtml]);
+  useEffect(() => {
+    if (!streets || streets.length === 0) {
+      postToIframe({ type: "sync_streets", streets: [] });
+      return;
+    }
+    const key = JSON.stringify(streets.map(s => ({ id: s.id, name: s.name, path: s.path })));
+    if (key === prevStreetsRef.current) return;
+    prevStreetsRef.current = key;
+    const t = setTimeout(() => postToIframe({ type: "sync_streets", streets }), 200);
+    return () => clearTimeout(t);
+  }, [streets, mapHtml]);
+
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "select_street", id: selectedStreetId ?? null }), 80);
+    return () => clearTimeout(t);
+  }, [selectedStreetId]);
+
+  useEffect(() => {
+    if (editingStreetId != null && editingStreetPoints) {
+      const t = setTimeout(() => postToIframe({ type: "start_street_edit", id: editingStreetId, points: editingStreetPoints }), 150);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(() => postToIframe({ type: "clear_street_edit" }), 80);
+      return () => clearTimeout(t);
+    }
+  }, [editingStreetId]);
+
+  useEffect(() => {
+    postToIframe({ type: "set_street_draw_mode", enabled: !!streetDrawMode });
+  }, [streetDrawMode]);
 
   const blobUrl = useMemo(() => {
     const blob = new Blob([mapHtml], { type: "text/html" });

@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 30;
+export const STORE_VERSION = 31;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -614,6 +614,12 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
     }
   }
 
+  if (version < 31) {
+    if (!Array.isArray(state.streets)) {
+      state.streets = [];
+    }
+  }
+
   return persisted as AppState;
 }
 
@@ -639,5 +645,6 @@ export function partialize(state: AppState) {
     emergencyModes: state.emergencyModes,
     permissionAssignments: state.permissionAssignments,
     incidentTimeline: state.incidentTimeline,
+    streets: state.streets,
   };
 }

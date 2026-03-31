@@ -279,6 +279,17 @@ export default function SettingsScreen() {
           <Card>
             <Pressable
               style={styles.navRow}
+              onPress={() => router.push("/(admin)/streets" as any)}
+            >
+              <View style={styles.navIcon}>
+                <Feather name="git-branch" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.navLabel}>Street Segments</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+            </Pressable>
+            <Divider />
+            <Pressable
+              style={styles.navRow}
               onPress={() => router.push("/(admin)/(tabs)/history")}
             >
               <View style={styles.navIcon}>

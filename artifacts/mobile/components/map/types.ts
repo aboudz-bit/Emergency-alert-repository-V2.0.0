@@ -1,4 +1,4 @@
-import type { LatLng, Zone, Shelter, Location, HazardZone } from "@/types";
+import type { LatLng, Zone, Shelter, Location, HazardZone, Street } from "@/types";
 import type { PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import type { LegendFilter } from "@/components/map/MapLegendCounts";
 
@@ -56,6 +56,13 @@ export interface ZoneMapProps {
   trackedUserIds?: number[];
   fitTrackedTrigger?: number;
   legendHighlight?: LegendFilter;
+  streets?: Street[];
+  selectedStreetId?: string | null;
+  onStreetPress?: (streetId: string) => void;
+  editingStreetId?: string | null;
+  editingStreetPoints?: LatLng[];
+  onEditingStreetPointsChange?: (points: LatLng[]) => void;
+  streetDrawMode?: boolean;
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

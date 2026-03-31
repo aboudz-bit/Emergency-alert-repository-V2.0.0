@@ -93,6 +93,14 @@ export interface LatLng {
   lng: number;
 }
 
+export interface Street {
+  id: string;
+  name: string;
+  path: LatLng[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ZoneAlertHistoryEntry {
   id: number;
   zoneId: number;
