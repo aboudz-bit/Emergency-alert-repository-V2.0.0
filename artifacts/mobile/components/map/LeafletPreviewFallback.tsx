@@ -13,10 +13,16 @@ import { Colors } from "@/constants/theme";
 import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
+const GMAPS_KEY =
+  typeof process !== "undefined" && (process as any).env?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+    ? (process as any).env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+    : "";
+
 function generateLeafletHtml(
   zones: Zone[],
   editingZoneId: number | null | undefined,
   initialEditPoints: LatLng[] | undefined,
+  googleMapsKey: string,
 ): string {
   const selectedZoneId: number | null = null;
   const allPoints = zones.flatMap((z) => z.polygonPoints);
@@ -158,10 +164,14 @@ function generateLeafletHtml(
     return parts.join("\n");
   })();
 
+  const useGoogleTiles = !!googleMapsKey;
+
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+${useGoogleTiles ? `<script src="https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}"><\/script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js"><\/script>` : ''}
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%}
@@ -295,6 +305,11 @@ function generateLeafletHtml(
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
+  .leaflet-google-mutant .gm-style .gmnoprint,
+  .leaflet-google-mutant .gm-style .gm-fullscreen-control,
+  .leaflet-google-mutant .gm-style .gm-bundled-control{display:none!important}
+  .leaflet-google-mutant .gm-style .gm-style-cc{opacity:0.5;font-size:8px!important}
+
 </style></head><body>
 <div id="map"></div>
 <div id="crosshair" class="map-crosshair"><div class="crosshair-dot"></div></div>
@@ -317,9 +332,11 @@ function generateLeafletHtml(
       <div class="gm-layer-opt" data-layer="standard" onclick="switchLayer('standard')">
         <div class="gm-layer-dot" style="background:#e8e4df"></div>Standard
       </div>
-      <div class="gm-layer-opt" data-layer="dark" onclick="switchLayer('dark')">
+      ${useGoogleTiles ? `<div class="gm-layer-opt" data-layer="terrain" onclick="switchLayer('terrain')">
+        <div class="gm-layer-dot" style="background:#b5d6a7"></div>Terrain
+      </div>` : `<div class="gm-layer-opt" data-layer="dark" onclick="switchLayer('dark')">
         <div class="gm-layer-dot" style="background:#263238"></div>Dark
-      </div>
+      </div>`}
     </div>
   </div>
   <div class="gm-zoom-group">
@@ -336,31 +353,46 @@ function generateLeafletHtml(
 <script>
   var map=L.map('map',{center:[${centerLat},${centerLng}],zoom:13,zoomControl:false,attributionControl:false,tap:true,tapTolerance:30});
 
-  var tileLayers = {
-    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}),
-    labels: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'}),
-    placeLabels: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'}),
-    standard: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}),
-    dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}),
-  };
+  var useGoogleTiles = ${useGoogleTiles ? 'true' : 'false'};
+  var tileLayers = {};
+  if (useGoogleTiles && typeof L.gridLayer.googleMutant === 'function') {
+    tileLayers.satellite = L.gridLayer.googleMutant({type:'satellite',maxZoom:22});
+    tileLayers.hybrid = L.gridLayer.googleMutant({type:'hybrid',maxZoom:22});
+    tileLayers.standard = L.gridLayer.googleMutant({type:'roadmap',maxZoom:22});
+    tileLayers.terrain = L.gridLayer.googleMutant({type:'terrain',maxZoom:22});
+  } else {
+    tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
+    tileLayers.labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'});
+    tileLayers.placeLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'});
+    tileLayers.standard = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19});
+    tileLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
+  }
 
   var currentLayer = 'hybrid';
-  tileLayers.satellite.addTo(map);
-  tileLayers.labels.addTo(map);
-  tileLayers.placeLabels.addTo(map);
+  if (useGoogleTiles && tileLayers.hybrid) {
+    tileLayers.hybrid.addTo(map);
+  } else {
+    tileLayers.satellite.addTo(map);
+    if (tileLayers.labels) tileLayers.labels.addTo(map);
+    if (tileLayers.placeLabels) tileLayers.placeLabels.addTo(map);
+  }
 
   function switchLayer(name) {
     Object.values(tileLayers).forEach(function(l){map.removeLayer(l)});
-    if (name === 'satellite') {
-      tileLayers.satellite.addTo(map);
-    } else if (name === 'hybrid') {
-      tileLayers.satellite.addTo(map);
-      tileLayers.labels.addTo(map);
-      tileLayers.placeLabels.addTo(map);
-    } else if (name === 'standard') {
-      tileLayers.standard.addTo(map);
-    } else if (name === 'dark') {
-      tileLayers.dark.addTo(map);
+    if (useGoogleTiles && tileLayers[name]) {
+      tileLayers[name].addTo(map);
+    } else {
+      if (name === 'satellite') {
+        tileLayers.satellite.addTo(map);
+      } else if (name === 'hybrid') {
+        tileLayers.satellite.addTo(map);
+        if (tileLayers.labels) tileLayers.labels.addTo(map);
+        if (tileLayers.placeLabels) tileLayers.placeLabels.addTo(map);
+      } else if (name === 'standard') {
+        tileLayers.standard.addTo(map);
+      } else if (name === 'dark' && tileLayers.dark) {
+        tileLayers.dark.addTo(map);
+      }
     }
     currentLayer = name;
     document.querySelectorAll('.gm-layer-opt').forEach(function(el){
@@ -1140,7 +1172,7 @@ export function LeafletPreviewFallback({
   );
 
   const mapHtml = useMemo(
-    () => generateLeafletHtml(zones, editingZoneId, initialEditPointsRef.current),
+    () => generateLeafletHtml(zones, editingZoneId, initialEditPointsRef.current, GMAPS_KEY),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [zonesStructureKey, editingZoneId]
   );
