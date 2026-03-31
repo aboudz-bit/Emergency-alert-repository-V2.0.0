@@ -167,8 +167,6 @@ function generateLeafletHtml(
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-${useGoogleTiles ? `<script src="https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}"><\/script>
-<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js"><\/script>` : ''}
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#map{width:100%;height:100%}
@@ -302,9 +300,6 @@ ${useGoogleTiles ? `<script src="https://maps.googleapis.com/maps/api/js?key=${g
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
-  .leaflet-google-mutant .gm-style .gmnoprint:not(.gm-style-cc),
-  .leaflet-google-mutant .gm-style .gm-fullscreen-control,
-  .leaflet-google-mutant .gm-style .gm-bundled-control{display:none!important}
 
 </style></head><body>
 <div id="map"></div>
@@ -351,17 +346,48 @@ ${useGoogleTiles ? `<script src="https://maps.googleapis.com/maps/api/js?key=${g
 
   var useGoogleTiles = ${useGoogleTiles ? 'true' : 'false'};
   var tileLayers = {};
-  if (useGoogleTiles && typeof L.gridLayer.googleMutant === 'function') {
-    tileLayers.satellite = L.gridLayer.googleMutant({type:'satellite',maxZoom:22});
-    tileLayers.hybrid = L.gridLayer.googleMutant({type:'hybrid',maxZoom:22});
-    tileLayers.standard = L.gridLayer.googleMutant({type:'roadmap',maxZoom:22});
-    tileLayers.terrain = L.gridLayer.googleMutant({type:'terrain',maxZoom:22});
+  if (useGoogleTiles) {
+    tileLayers.satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{maxZoom:22,attribution:'&copy; Google'});
+    tileLayers.hybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{maxZoom:22,attribution:'&copy; Google'});
+    tileLayers.standard = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{maxZoom:22,attribution:'&copy; Google'});
+    tileLayers.terrain = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{maxZoom:22,attribution:'&copy; Google'});
   } else {
     tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
     tileLayers.labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'});
     tileLayers.placeLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'});
     tileLayers.standard = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19});
     tileLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
+  }
+
+  var esriFallbackLayers = {
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}),
+    labels: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'}),
+    placeLabels: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,pane:'overlayPane'})
+  };
+
+  var googleTileErrors = 0;
+  var googleFallbackTriggered = false;
+  function onGoogleTileError() {
+    googleTileErrors++;
+    if (googleTileErrors >= 5 && !googleFallbackTriggered) {
+      googleFallbackTriggered = true;
+      useGoogleTiles = false;
+      Object.values(tileLayers).forEach(function(l){map.removeLayer(l)});
+      tileLayers = {
+        satellite: esriFallbackLayers.satellite,
+        labels: esriFallbackLayers.labels,
+        placeLabels: esriFallbackLayers.placeLabels,
+        standard: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19}),
+        dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19})
+      };
+      tileLayers.satellite.addTo(map);
+      tileLayers.labels.addTo(map);
+      tileLayers.placeLabels.addTo(map);
+      console.log('[ZoneMap] Google tiles failed — fell back to Esri');
+    }
+  }
+  if (useGoogleTiles) {
+    Object.values(tileLayers).forEach(function(l){l.on('tileerror', onGoogleTileError)});
   }
 
   var currentLayer = 'hybrid';
@@ -1379,14 +1405,26 @@ export function LeafletPreviewFallback({
     return () => clearTimeout(t);
   }, [hazardZones]);
 
+  const blobUrl = useMemo(() => {
+    const blob = new Blob([mapHtml], { type: "text/html" });
+    return URL.createObjectURL(blob);
+  }, [mapHtml]);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [blobUrl]);
+
   return (
     <View style={[styles.container, { height }]}>
       <iframe
         ref={(el: any) => {
           iframeRef.current = el;
         }}
-        srcDoc={mapHtml}
+        src={blobUrl}
         style={{ width: "100%", height: "100%", border: "none" }}
+        allow="geolocation"
       />
     </View>
   );
