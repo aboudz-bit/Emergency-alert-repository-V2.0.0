@@ -63,6 +63,7 @@ export interface ZoneMapProps {
   editingStreetPoints?: LatLng[];
   onEditingStreetPointsChange?: (points: LatLng[]) => void;
   streetDrawMode?: boolean;
+  routeStreetIds?: string[];
 }
 
 export type MapProvider = "google" | "leaflet-fallback";

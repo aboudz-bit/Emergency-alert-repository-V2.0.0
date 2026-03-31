@@ -24,6 +24,7 @@ import { createEmergencySlice } from './slices/emergency';
 import { createAccountabilitySlice, accountabilityInitialState } from './slices/accountability';
 import { createIncidentTimelineSlice, incidentTimelineInitialState } from './slices/incidentTimeline';
 import { createStreetSlice, streetInitialState } from './slices/streets';
+import { createRouteSlice, routeInitialState } from './slices/routes';
 
 export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState, defaultAlertSystemState } from './selectors';
 export {
@@ -135,6 +136,8 @@ export const useStore = create<AppState>()(
       ...createIncidentTimelineSlice(set, get),
       ...streetInitialState,
       ...createStreetSlice(set, get),
+      ...routeInitialState,
+      ...createRouteSlice(set, get),
     }),
     {
       name: STORE_NAME,

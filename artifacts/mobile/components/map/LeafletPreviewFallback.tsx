@@ -979,6 +979,7 @@ function generateLeafletHtml(
   var streetDrawPoints = [];
   var streetDrawMarkers = [];
   var streetDrawPoly = null;
+  var routeStreetIds = [];
 
   function syncStreets(streets) {
     var existingIds = {};
@@ -1034,10 +1035,13 @@ function generateLeafletHtml(
   function refreshStreetStyles() {
     Object.keys(streetPolylines).forEach(function(id) {
       var isSel = id === selectedStreetId;
+      var isRoute = routeStreetIds.indexOf(id) !== -1;
+      var color = isRoute ? '#10B981' : (isSel ? '#3B82F6' : '#9CA3AF');
+      var weight = isRoute ? 6 : (isSel ? 5 : 4);
       streetPolylines[id].layer.setStyle({
-        color: isSel ? '#3B82F6' : '#9CA3AF',
-        weight: isSel ? 5 : 4,
-        opacity: isSel ? 1 : 0.8,
+        color: color,
+        weight: weight,
+        opacity: (isSel || isRoute) ? 1 : 0.8,
       });
     });
   }
@@ -1263,6 +1267,10 @@ function generateLeafletHtml(
         streetDrawModeActive = !!d.enabled;
         if (!d.enabled) clearStreetDraw();
       }
+      if (d.type === 'set_route_streets') {
+        routeStreetIds = Array.isArray(d.ids) ? d.ids : [];
+        refreshStreetStyles();
+      }
       if (d.type === 'add_street_draw_point' && typeof d.lat === 'number') {
         streetDrawPoints.push({lat: d.lat, lng: d.lng});
         updateStreetDrawPoly();
@@ -1391,6 +1399,7 @@ export function LeafletPreviewFallback({
   editingStreetPoints,
   onEditingStreetPointsChange,
   streetDrawMode,
+  routeStreetIds,
 }: ZoneMapProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const prevTapCountRef = useRef(0);
@@ -1667,6 +1676,11 @@ export function LeafletPreviewFallback({
   useEffect(() => {
     postToIframe({ type: "set_street_draw_mode", enabled: !!streetDrawMode });
   }, [streetDrawMode]);
+
+  useEffect(() => {
+    const t = setTimeout(() => postToIframe({ type: "set_route_streets", ids: routeStreetIds || [] }), 100);
+    return () => clearTimeout(t);
+  }, [routeStreetIds]);
 
   const blobUrl = useMemo(() => {
     const blob = new Blob([mapHtml], { type: "text/html" });

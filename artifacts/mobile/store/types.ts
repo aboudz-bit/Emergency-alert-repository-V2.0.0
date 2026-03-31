@@ -10,8 +10,9 @@ import type {
 import type { AccountabilityState, AccountabilityActions } from './slices/accountability';
 import type { IncidentTimelineState, IncidentTimelineActions } from './slices/incidentTimeline';
 import type { StreetState, StreetActions } from './slices/streets';
+import type { RouteState, RouteActions } from './slices/routes';
 
-export interface AppState extends AccountabilityState, AccountabilityActions, IncidentTimelineState, IncidentTimelineActions, StreetState, StreetActions {
+export interface AppState extends AccountabilityState, AccountabilityActions, IncidentTimelineState, IncidentTimelineActions, StreetState, StreetActions, RouteState, RouteActions {
   isAuthenticated: boolean;
   currentUser: User | null;
   users: User[];

@@ -1,0 +1,125 @@
+Implement ECO Route Builder using existing Street Segments.
+
+GOAL:
+Allow ECO to create emergency routes dynamically during an active alert by selecting streets in sequence.
+
+========================
+CORE IDEA
+========================
+
+ECO does NOT draw routes manually.
+
+Instead:
+- ECO taps existing streets
+- System builds a connected route
+- Selected streets turn GREEN
+- Order matters (route sequence)
+
+========================
+USER FLOW (ECO)
+========================
+
+1) Alert is active
+2) ECO enters "Route Mode"
+3) ECO taps streets in order:
+
+Tap 1 → Street A
+Tap 2 → Street B
+Tap 3 → Street C
+
+→ System builds a route:
+A → B → C
+
+========================
+VISUAL BEHAVIOR
+========================
+
+- Selected streets turn GREEN
+- Route is directional (optional arrow indicators later)
+- Non-selected streets remain neutral (gray)
+
+Active route:
+- thicker stroke
+- glowing or highlighted
+
+========================
+CONNECTION RULE
+========================
+
+When selecting next street:
+
+- It must be CONNECTED to previous street
+- If not connected:
+  → Reject selection
+  → Show message: "Street not connected"
+
+This ensures valid routing.
+
+========================
+ROUTE STATE
+========================
+
+Create a new store slice:
+
+activeRoute = {
+  id
+  streetIds: string[]
+  createdBy (ECO id)
+  createdAt
+  status: "active" | "edited"
+}
+
+========================
+ECO CONTROLS
+========================
+
+Floating control panel:
+
+- Start Route
+- Undo Last Street
+- Clear Route
+- Confirm Route
+
+Behavior:
+- Undo removes last selected street
+- Clear resets everything
+- Confirm locks route
+
+========================
+EDITING DURING ALERT
+========================
+
+ECO can:
+
+- Add more streets
+- Remove last step
+- Clear and rebuild
+
+No need to exit mode
+
+========================
+MAP INTEGRATION
+========================
+
+- Use existing streets from store
+- Highlight selected streets dynamically
+- Maintain performance (no full redraw)
+
+========================
+OPTIONAL (IF EASY)
+========================
+
+- Show route length
+- Show estimated arrival path
+- Show arrow direction
+
+========================
+GOAL
+========================
+
+ECO should be able to:
+- Build route in seconds
+- Adjust live during emergency
+- Guide responders based on real conditions
+
+This transforms the system from monitoring → ACTIVE CONTROL.
