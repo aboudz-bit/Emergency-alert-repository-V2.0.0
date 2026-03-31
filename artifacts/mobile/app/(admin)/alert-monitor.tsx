@@ -16,6 +16,7 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
 import { ZoneMap } from "@/components/map";
+import { MapOverlayLayout } from "@/components/map/MapOverlayLayout";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
@@ -259,76 +260,83 @@ export default function AlertMonitorScreen() {
           trackedUserIds={intelTrackedIds}
           fitTrackedTrigger={fitTrigger}
         />
-        <SmartAlertPanel
-          intelligence={intelligence}
-          onFocusZone={handleIntelFocusZone}
-          onFocusLocation={handleIntelFocusLocation}
+        <MapOverlayLayout
+          bottomPadExtra={insets.bottom}
+          topLeft={
+            <>
+              <SmartAlertPanel
+                intelligence={intelligence}
+                onFocusZone={handleIntelFocusZone}
+                onFocusLocation={handleIntelFocusLocation}
+              />
+              <IncidentTimelinePanel />
+            </>
+          }
+          topRight={<WindIndicator />}
+          bottomCenter={
+            <View style={styles.legendOverlay}>
+              <Pressable
+                style={[styles.legendChip, activeFilters.has("safe") && styles.legendChipActive]}
+                onPress={() => toggleFilter("safe")}
+              >
+                <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
+                <Text style={styles.legendChipText}>Safe {safeFilterCount}</Text>
+                {activeFilters.has("safe") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+              </Pressable>
+              <Pressable
+                style={[styles.legendChip, activeFilters.has("pending") && styles.legendChipActive]}
+                onPress={() => toggleFilter("pending")}
+              >
+                <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
+                <Text style={styles.legendChipText}>Pending {pendingFilterCount}</Text>
+                {activeFilters.has("pending") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+              </Pressable>
+              <Pressable
+                style={[styles.legendChip, activeFilters.has("contract") && styles.legendChipActive]}
+                onPress={() => toggleFilter("contract")}
+              >
+                <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
+                <Text style={styles.legendChipText}>Contract {contractFilterCount}</Text>
+                {activeFilters.has("contract") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+              </Pressable>
+              <Pressable
+                style={[styles.legendChip, activeFilters.has("help") && styles.legendChipActive]}
+                onPress={() => toggleFilter("help")}
+              >
+                <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
+                <Text style={styles.legendChipText}>Help {helpFilterCount}</Text>
+                {activeFilters.has("help") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
+              </Pressable>
+              <Pressable
+                style={[styles.legendChip, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+                onPress={() => { if (activeFilters.size > 0) setActiveFilters(new Set()); }}
+              >
+                <Text style={styles.legendChipText}>
+                  {activeFilters.size > 0 ? `${filteredPersonnel.length}/${visiblePersonnel.length}` : `${visiblePersonnel.length}`} tracked
+                </Text>
+                {activeFilters.size > 0 && <Feather name="x-circle" size={11} color="rgba(255,255,255,0.6)" />}
+              </Pressable>
+            </View>
+          }
+          bottomAction={
+            <Pressable
+              style={styles.allClearBtn}
+              onPress={() => {
+                Alert.alert(
+                  "Send All Clear",
+                  "This will close the alert and mark everyone as safe. Continue?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Confirm", style: "default", onPress: sendAllClear },
+                  ]
+                );
+              }}
+            >
+              <Feather name="check-circle" size={20} color="#fff" />
+              <Text style={styles.allClearText}>All Clear</Text>
+            </Pressable>
+          }
         />
-        <IncidentTimelinePanel />
-        <WindIndicator />
-
-        <View style={[styles.legendOverlay, { bottom: insets.bottom + 72 }]} pointerEvents="box-none">
-          <Pressable
-            style={[styles.legendChip, activeFilters.has("safe") && styles.legendChipActive]}
-            onPress={() => toggleFilter("safe")}
-          >
-            <View style={[styles.legendDot, { backgroundColor: "#34D399" }]} />
-            <Text style={styles.legendChipText}>Safe {safeFilterCount}</Text>
-            {activeFilters.has("safe") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
-          </Pressable>
-          <Pressable
-            style={[styles.legendChip, activeFilters.has("pending") && styles.legendChipActive]}
-            onPress={() => toggleFilter("pending")}
-          >
-            <View style={[styles.legendDot, { backgroundColor: "#FBBF24" }]} />
-            <Text style={styles.legendChipText}>Pending {pendingFilterCount}</Text>
-            {activeFilters.has("pending") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
-          </Pressable>
-          <Pressable
-            style={[styles.legendChip, activeFilters.has("contract") && styles.legendChipActive]}
-            onPress={() => toggleFilter("contract")}
-          >
-            <View style={[styles.legendDot, { backgroundColor: "#9CA3AF", borderRadius: 2 }]} />
-            <Text style={styles.legendChipText}>Contract {contractFilterCount}</Text>
-            {activeFilters.has("contract") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
-          </Pressable>
-          <Pressable
-            style={[styles.legendChip, activeFilters.has("help") && styles.legendChipActive]}
-            onPress={() => toggleFilter("help")}
-          >
-            <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
-            <Text style={styles.legendChipText}>Help {helpFilterCount}</Text>
-            {activeFilters.has("help") && <Feather name="x" size={10} color="rgba(255,255,255,0.7)" />}
-          </Pressable>
-          <Pressable
-            style={[styles.legendChip, { backgroundColor: "rgba(0,0,0,0.5)" }]}
-            onPress={() => { if (activeFilters.size > 0) setActiveFilters(new Set()); }}
-          >
-            <Text style={styles.legendChipText}>
-              {activeFilters.size > 0 ? `${filteredPersonnel.length}/${visiblePersonnel.length}` : `${visiblePersonnel.length}`} tracked
-            </Text>
-            {activeFilters.size > 0 && <Feather name="x-circle" size={11} color="rgba(255,255,255,0.6)" />}
-          </Pressable>
-        </View>
-
-        <View style={[styles.allClearFab, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
-          <Pressable
-            style={styles.allClearBtn}
-            onPress={() => {
-              Alert.alert(
-                "Send All Clear",
-                "This will close the alert and mark everyone as safe. Continue?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Confirm", style: "default", onPress: sendAllClear },
-                ]
-              );
-            }}
-          >
-            <Feather name="check-circle" size={20} color="#fff" />
-            <Text style={styles.allClearText}>All Clear</Text>
-          </Pressable>
-        </View>
       </View>
 
       <Modal
@@ -523,9 +531,7 @@ const styles = StyleSheet.create({
   },
 
   legendOverlay: {
-    position: "absolute", left: 12, right: 12,
     flexDirection: "row", flexWrap: "wrap", gap: 6,
-    zIndex: 10,
   },
   legendChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -543,10 +549,6 @@ const styles = StyleSheet.create({
     fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#fff",
   },
 
-  allClearFab: {
-    position: "absolute", left: 16, right: 16,
-    zIndex: 15,
-  },
   allClearBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
     backgroundColor: "#059669",

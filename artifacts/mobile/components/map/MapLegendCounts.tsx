@@ -108,8 +108,6 @@ export const MapLegendCounts = React.memo(function MapLegendCounts({
 
 const s = StyleSheet.create({
   bar: {
-    position: "absolute",
-    bottom: 12,
     alignSelf: "center",
     backgroundColor: "rgba(15,23,42,0.88)",
     paddingHorizontal: 16,

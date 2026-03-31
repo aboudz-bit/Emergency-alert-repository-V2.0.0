@@ -15,6 +15,7 @@ import { WindIndicator } from "@/components/ui/WindIndicator";
 import { WindDirectionPicker } from "@/components/ui/WindDirectionPicker";
 import { ZoneMap } from "@/components/map";
 import { MapLegendCounts } from "@/components/map/MapLegendCounts";
+import { MapOverlayLayout } from "@/components/map/MapOverlayLayout";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectCanChangeWindDirection } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
@@ -97,6 +98,24 @@ export default function ECOLiveMapScreen() {
     [hazardZones, activeAlert]
   );
 
+  const windControlBtn = canChangeWind ? (
+    <Pressable
+      style={[styles.windButton, windDirection != null && styles.windButtonActive]}
+      onPress={() => setWindPickerVisible(true)}
+    >
+      <Feather name="wind" size={18} color={windDirection ? Colors.white : Colors.primary} />
+    </Pressable>
+  ) : null;
+
+  const windPicker = canChangeWind ? (
+    <WindDirectionPicker
+      visible={windPickerVisible}
+      current={windDirection}
+      onSelect={(dir) => setWindDirection(dir)}
+      onClose={() => setWindPickerVisible(false)}
+    />
+  ) : null;
+
   if (!activeAlert) {
     return (
       <View style={styles.container}>
@@ -110,30 +129,21 @@ export default function ECOLiveMapScreen() {
           locations={locations}
           shelters={shelters}
         />
-        <WindIndicator />
-        {canChangeWind && (
-          <>
-            <Pressable
-              style={[styles.windButton, windDirection != null && styles.windButtonActive]}
-              onPress={() => setWindPickerVisible(true)}
-            >
-              <Feather name="wind" size={18} color={windDirection ? Colors.white : Colors.primary} />
-            </Pressable>
-            <WindDirectionPicker
-              visible={windPickerVisible}
-              current={windDirection}
-              onSelect={(dir) => setWindDirection(dir)}
-              onClose={() => setWindPickerVisible(false)}
-            />
-          </>
-        )}
+        <MapOverlayLayout
+          topRight={
+            <>
+              <WindIndicator />
+              {windControlBtn}
+            </>
+          }
+        />
+        {windPicker}
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Full-screen map */}
       <ZoneMap
         key={focusCount}
         zones={zones}
@@ -150,51 +160,38 @@ export default function ECOLiveMapScreen() {
         fitTrackedTrigger={fitTrigger}
       />
 
-      {/* Floating alert info bar */}
-      <View style={styles.floatingBar}>
-        <View style={styles.alertInfoRow}>
-          <View style={styles.alertDot} />
-          <Text style={styles.alertTypeText}>{activeAlert.type}</Text>
-          <Text style={styles.alertSep}>{"\u00B7"}</Text>
-          <Text style={styles.alertZoneText}>{activeAlert.zone}</Text>
-          <Text style={styles.alertSep}>{"\u00B7"}</Text>
-          <Text style={styles.alertTimeText}>
-            {format(new Date(activeAlert.timestamp), "HH:mm")}
-          </Text>
-        </View>
-      </View>
-
-      <SmartAlertPanel
-        intelligence={intelligence}
-        onFocusZone={handleIntelFocusZone}
-        onFocusLocation={handleIntelFocusLocation}
+      <MapOverlayLayout
+        topLeft={
+          <>
+            <View style={styles.floatingBar}>
+              <View style={styles.alertInfoRow}>
+                <View style={styles.alertDot} />
+                <Text style={styles.alertTypeText}>{activeAlert.type}</Text>
+                <Text style={styles.alertSep}>{"\u00B7"}</Text>
+                <Text style={styles.alertZoneText}>{activeAlert.zone}</Text>
+                <Text style={styles.alertSep}>{"\u00B7"}</Text>
+                <Text style={styles.alertTimeText}>
+                  {format(new Date(activeAlert.timestamp), "HH:mm")}
+                </Text>
+              </View>
+            </View>
+            <SmartAlertPanel
+              intelligence={intelligence}
+              onFocusZone={handleIntelFocusZone}
+              onFocusLocation={handleIntelFocusLocation}
+            />
+            <IncidentTimelinePanel />
+          </>
+        }
+        topRight={
+          <>
+            <WindIndicator />
+            {windControlBtn}
+          </>
+        }
+        bottomCenter={<MapLegendCounts personnel={visiblePersonnel} />}
       />
-      <IncidentTimelinePanel />
-
-      {/* Wind indicator overlay */}
-      <WindIndicator />
-
-      {/* Wind control button (permission-gated) */}
-      {canChangeWind && (
-        <>
-          <Pressable
-            style={[styles.windButton, windDirection != null && styles.windButtonActive]}
-            onPress={() => setWindPickerVisible(true)}
-          >
-            <Feather name="wind" size={18} color={windDirection ? Colors.white : Colors.primary} />
-          </Pressable>
-
-          {/* Wind direction picker modal */}
-          <WindDirectionPicker
-            visible={windPickerVisible}
-            current={windDirection}
-            onSelect={(dir) => setWindDirection(dir)}
-            onClose={() => setWindPickerVisible(false)}
-          />
-        </>
-      )}
-
-      <MapLegendCounts personnel={visiblePersonnel} />
+      {windPicker}
 
       {/* Personnel Detail Modal */}
       <Modal
@@ -276,12 +273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  // Floating alert bar
   floatingBar: {
-    position: "absolute",
-    top: 8,
-    left: 12,
-    right: 12,
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: BorderRadius.md,
     paddingHorizontal: 14,
@@ -323,11 +315,7 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
 
-  // Wind control button
   windButton: {
-    position: "absolute",
-    top: 56,
-    left: 12,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -339,7 +327,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 5,
-    zIndex: 20,
   },
   windButtonActive: {
     backgroundColor: Colors.primary,

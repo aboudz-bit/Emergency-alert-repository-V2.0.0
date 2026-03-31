@@ -34,10 +34,8 @@ export function WindIndicator() {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: 56,
-    right: 12,
     alignItems: "center",
+    alignSelf: "flex-end",
     backgroundColor: "rgba(255,255,255,0.96)",
     borderRadius: BorderRadius.lg,
     paddingHorizontal: 14,
@@ -48,7 +46,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
-    zIndex: 20,
     minWidth: 56,
   },
   label: {

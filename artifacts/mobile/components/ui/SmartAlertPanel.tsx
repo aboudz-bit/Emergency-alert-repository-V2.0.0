@@ -129,11 +129,6 @@ export function SmartAlertPanel({
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: Platform.OS === "web" ? 52 : 100,
-    left: 10,
-    right: 60,
-    zIndex: 900,
     borderRadius: 8,
     overflow: "hidden",
     ...(Platform.OS === "web"

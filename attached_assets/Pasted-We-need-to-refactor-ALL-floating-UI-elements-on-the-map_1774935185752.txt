@@ -1,0 +1,124 @@
+We need to refactor ALL floating UI elements on the map into a clean, structured layout system.
+
+Current problem:
+- INTEL bar overlaps with WIND controls
+- Elements are randomly positioned
+- No consistent spacing or layout rules
+- ECO controls (wind direction) can be partially blocked
+
+========================
+GOAL
+========================
+
+Create a structured "Map Overlay Layout System" similar to enterprise tools (Apple Maps / internal control systems).
+
+========================
+1) DEFINE FIXED LAYOUT ZONES
+========================
+
+Top-left zone:
+- Alert banner
+- INTEL / Situation Awareness bar
+
+Top-right zone:
+- WIND card
+- Wind direction control (ECO interactive)
+
+Bottom zone:
+- Stats (Safe / Pending / Help / Aramco / Contractor)
+- "Tracked" badge
+- "All Clear" button
+
+========================
+2) STRICT POSITIONING RULES
+========================
+
+- No two elements share the same vertical layer if overlap is possible
+- Each zone has vertical stacking
+
+Top-left:
+[ Alert banner ]
+[ INTEL bar ]
+
+Top-right:
+[ WIND card ]
+[ Wind direction control ]
+
+Bottom:
+[ Stats panel ]
+[ Action button ]
+
+========================
+3) SAFE SPACING SYSTEM
+========================
+
+Apply consistent spacing:
+
+- Top padding: 16–24px from safe area
+- Between stacked elements: 12–16px
+- Side margins: 16px
+
+Add a shared spacing constant:
+MAP_UI_SPACING
+
+========================
+4) Z-INDEX PRIORITY
+========================
+
+Ensure proper layering:
+
+- Alert banner → highest
+- INTEL → below alert
+- WIND → below INTEL but separate side
+- Map → base layer
+
+NO overlapping between zones
+
+========================
+5) ECO INTERACTION SAFETY
+========================
+
+- Wind direction control MUST always be fully clickable
+- Add extra hitbox padding
+- Ensure no overlay blocks pointer events
+
+========================
+6) RESPONSIVE BEHAVIOR
+========================
+
+On smaller screens:
+- Stack vertically instead of squeezing
+- Never allow overlap
+- Maintain readability
+
+========================
+7) CLEAN VISUAL ALIGNMENT
+========================
+
+- Align left elements consistently
+- Align right elements consistently
+- Use same border radius / glass effect
+- Keep visual hierarchy clean
+
+========================
+8) DO NOT CHANGE
+========================
+
+- Map logic
+- Alert logic
+- Intel logic
+- Wind functionality
+
+Only fix layout + UX positioning
+
+========================
+GOAL
+========================
+
+The map UI should feel:
+- clean
+- intentional
+- non-overlapping
+- enterprise-grade
+
+No floating element should ever collide with another again.
