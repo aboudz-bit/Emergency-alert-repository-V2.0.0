@@ -13,10 +13,7 @@ import { Colors } from "@/constants/theme";
 import type { ZoneMapProps } from "./types";
 import type { Zone, LatLng } from "@/types";
 
-const GMAPS_KEY =
-  typeof process !== "undefined" && (process as any).env?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
-    ? (process as any).env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
-    : "";
+const GMAPS_KEY: string = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 function generateLeafletHtml(
   zones: Zone[],
@@ -305,10 +302,9 @@ ${useGoogleTiles ? `<script src="https://maps.googleapis.com/maps/api/js?key=${g
 
   .leaflet-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
-  .leaflet-google-mutant .gm-style .gmnoprint,
+  .leaflet-google-mutant .gm-style .gmnoprint:not(.gm-style-cc),
   .leaflet-google-mutant .gm-style .gm-fullscreen-control,
   .leaflet-google-mutant .gm-style .gm-bundled-control{display:none!important}
-  .leaflet-google-mutant .gm-style .gm-style-cc{opacity:0.5;font-size:8px!important}
 
 </style></head><body>
 <div id="map"></div>
