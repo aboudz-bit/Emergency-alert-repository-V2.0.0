@@ -1,0 +1,147 @@
+We need to upgrade the system from a display-based dashboard into a decision-driven emergency system.
+
+DO NOT change existing UI structure.
+DO NOT break current logic.
+Build on top of the existing system.
+
+==================================================
+GOAL
+==================================================
+
+The system must not only show data, but also:
+- Detect problems automatically
+- Suggest actions
+- Highlight critical situations
+- Guide the operator (ECO / Supervisor)
+
+==================================================
+PART 1 — MISSING PERSON DETECTION
+==================================================
+
+Automatically detect missing personnel:
+
+Condition:
+- status = "pending"
+- AND time since alertReceivedAt >= escalationTimeoutMinutes
+
+Then:
+
+1) Mark user as:
+- escalationLevel = 2 (critical)
+
+2) Group by:
+- zone
+- location
+
+3) Generate message:
+
+Example:
+"⚠️ OT-1 has 7 missing personnel"
+
+==================================================
+PART 2 — SMART ALERT PANEL
+==================================================
+
+Add a smart panel (top or floating card):
+
+Content:
+- Critical zones (sorted by severity)
+- Missing counts per location
+- Need Help count
+
+Example:
+
+"CPF — OT-1:
+7 Missing
+2 Need Help"
+
+==================================================
+PART 3 — SUGGESTED ACTIONS
+==================================================
+
+For each critical group, suggest action:
+
+If:
+- missing > 0
+
+Show:
+
+"Suggested Action:
+Supervisor must verify personnel in OT-1"
+
+If:
+- need_help > 0
+
+Show:
+
+"Immediate Action Required:
+Dispatch response team"
+
+==================================================
+PART 4 — MAP INTELLIGENCE
+==================================================
+
+Enhance map behavior:
+
+1) Auto focus:
+- If critical users exist → map centers on them
+
+2) Visual priority:
+- Critical users (pending + escalated) get:
+  - stronger pulse
+  - higher z-index
+
+3) Cluster by severity:
+- red cluster = contains need_help
+- yellow cluster = pending
+
+==================================================
+PART 5 — AUTO REACTION
+==================================================
+
+When user becomes "need_help":
+
+- Automatically:
+  - highlight on map
+  - notify ECO (if not already)
+  - optionally trigger map focus
+
+==================================================
+PART 6 — CONTEXT AWARENESS
+==================================================
+
+System must behave differently per role:
+
+Supervisor:
+- Focus on assigned location
+- Show only relevant missing
+
+ECO:
+- Show all affected zones
+- Highlight most critical zone
+
+Admin:
+- Full overview
+
+==================================================
+PART 7 — NO BREAKING RULES
+==================================================
+
+- Do NOT change:
+  - status logic
+  - alert delivery logic
+  - zone scoping
+
+- Only add intelligence layer on top
+
+==================================================
+GOAL RESULT
+==================================================
+
+The system should feel like:
+
+- It understands the situation
+- It guides the operator
+- It reduces decision time
+
+NOT just a map with dots

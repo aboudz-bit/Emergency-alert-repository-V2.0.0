@@ -21,6 +21,8 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { SelfStatusBar } from "@/components/ui/SelfStatusBar";
+import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
+import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
 
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
@@ -109,6 +111,11 @@ export default function SupervisorDashboardScreen() {
       (s) => s.isActive && (s.linkedLocationIds || []).includes(myLocation.id)
     );
   }, [shelters, myLocation]);
+
+  const intelligence = useEmergencyIntelligence({
+    type: "location",
+    locationId: myLocation?.id,
+  });
 
   const recentLogs = useMemo(
     () => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5),
@@ -282,6 +289,34 @@ export default function SupervisorDashboardScreen() {
                 {format(new Date(myZone.alertUpdatedAt), "MMM d, h:mm a")}
               </Text>
             )}
+          </View>
+        )}
+
+        {intelligence.hasCriticalSituation && (
+          <View style={styles.intelCard}>
+            <View style={styles.intelHeader}>
+              <View style={styles.intelDot} />
+              <Text style={styles.intelTitle}>SITUATION AWARENESS</Text>
+            </View>
+            {intelligence.suggestedActions.slice(0, 3).map((action) => (
+              <View
+                key={action.id}
+                style={[
+                  styles.intelAction,
+                  action.priority === "critical" && styles.intelActionCritical,
+                ]}
+              >
+                <Feather
+                  name={action.icon as any}
+                  size={14}
+                  color={action.priority === "critical" ? Colors.destructive : Colors.missing}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.intelActionTitle}>{action.title}</Text>
+                  <Text style={styles.intelActionDesc} numberOfLines={2}>{action.description}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
@@ -945,5 +980,53 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: "Inter_700Bold",
     color: Colors.white,
+  },
+  intelCard: {
+    backgroundColor: "rgba(30,20,50,0.95)",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  intelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: 4,
+  },
+  intelDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.destructive,
+  },
+  intelTitle: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  intelAction: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 8,
+    padding: Spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.missing,
+  },
+  intelActionCritical: {
+    borderLeftColor: Colors.destructive,
+    backgroundColor: "rgba(220,38,38,0.08)",
+  },
+  intelActionTitle: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  intelActionDesc: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    marginTop: 1,
   },
 });

@@ -294,6 +294,8 @@ function generateLeafletHtml(
   .personnel-dot.tracked.esc-critical{animation:help-pulse 1.4s ease-in-out infinite}
   .personnel-dot.dimmed{opacity:0.25;transform:scale(0.7);animation:none !important;box-shadow:none !important}
   .personnel-dot.highlighted{transform:scale(1.3);box-shadow:0 0 8px rgba(255,255,255,0.5)}
+  .personnel-dot.intel-focus{width:16px;height:16px;border:3px solid #fff;box-shadow:0 0 18px rgba(239,68,68,0.9),0 0 30px rgba(239,68,68,0.5);animation:intel-ring 1.2s ease-in-out infinite}
+  @keyframes intel-ring{0%,100%{box-shadow:0 0 14px rgba(239,68,68,0.7),0 0 24px rgba(239,68,68,0.3)}50%{box-shadow:0 0 22px rgba(239,68,68,1),0 0 40px rgba(239,68,68,0.6)}}
   @keyframes help-pulse{0%,100%{transform:scale(1);box-shadow:0 0 6px rgba(239,68,68,0.4)}50%{transform:scale(1.3);box-shadow:0 0 14px rgba(239,68,68,0.8)}}
   @keyframes esc-pulse{0%,100%{box-shadow:0 0 6px rgba(251,191,36,0.4)}50%{box-shadow:0 0 12px rgba(251,191,36,0.8)}}
   @keyframes track-glow{0%,100%{box-shadow:0 0 8px rgba(96,165,250,0.5),0 0 16px rgba(96,165,250,0.2)}50%{box-shadow:0 0 14px rgba(96,165,250,0.8),0 0 24px rgba(96,165,250,0.4)}}
@@ -718,6 +720,7 @@ function generateLeafletHtml(
 
   var personnelMarkers = {};
   var personnelData = {};
+  var intelFocusedIds = {};
   var trackedUserIds = {};
   function setTrackedUsers(ids) {
     trackedUserIds = {};
@@ -795,7 +798,8 @@ function generateLeafletHtml(
       if (currentLegendHighlight) {
         dimClass = matchesLegendFilter({status: p.status, userType: p.userType}, currentLegendHighlight) ? ' highlighted' : ' dimmed';
       }
-      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass + trackClass + dimClass;
+      var intelClass = intelFocusedIds[p.userId] ? ' intel-focus' : '';
+      var fullClass = 'personnel-dot ' + statusClass + shapeClass + escClass + trackClass + dimClass + intelClass;
       if (personnelMarkers[p.userId]) {
         personnelMarkers[p.userId].setLatLng([p.lat, p.lng]);
         var el = personnelMarkers[p.userId].getElement();
@@ -1059,6 +1063,30 @@ function generateLeafletHtml(
       }
       if (d.type === 'fit_tracked_users') {
         fitTrackedUsers();
+      }
+      if (d.type === 'focus_critical_users' && Array.isArray(d.userIds) && d.userIds.length > 0) {
+        intelFocusedIds = {};
+        var cBounds = [];
+        d.userIds.forEach(function(uid) {
+          intelFocusedIds[uid] = true;
+          if (personnelMarkers[uid]) {
+            cBounds.push(personnelMarkers[uid].getLatLng());
+            var cel = personnelMarkers[uid].getElement();
+            if (cel) { var cd = cel.querySelector('.personnel-dot'); if (cd && cd.className.indexOf('intel-focus') === -1) cd.className += ' intel-focus'; }
+            personnelMarkers[uid].setZIndexOffset(2000);
+          }
+        });
+        if (cBounds.length > 0) {
+          map.fitBounds(L.latLngBounds(cBounds).pad(0.3), {duration: 0.6, maxZoom: 17});
+        }
+      }
+      if (d.type === 'clear_intel_focus') {
+        intelFocusedIds = {};
+        Object.keys(personnelMarkers).forEach(function(uid) {
+          var el = personnelMarkers[uid].getElement();
+          if (el) { var dot = el.querySelector('.personnel-dot'); if (dot) dot.className = dot.className.replace(/ ?intel-focus/g, ''); }
+          personnelMarkers[uid].setZIndexOffset(500);
+        });
       }
       if (d.type === 'sync_hazard_zones' && Array.isArray(d.hazardZones)) {
         syncHazardZones(d.hazardZones);

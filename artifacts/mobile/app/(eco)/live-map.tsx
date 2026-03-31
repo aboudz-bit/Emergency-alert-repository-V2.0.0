@@ -21,6 +21,8 @@ import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
+import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
+import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
 import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -52,6 +54,35 @@ export default function ECOLiveMapScreen() {
   const setWindDirection = useStore((s) => s.setWindDirection);
   const canChangeWind = useStore(selectCanChangeWind);
   const [windPickerVisible, setWindPickerVisible] = useState(false);
+
+  const intelligence = useEmergencyIntelligence({
+    type: "zone",
+    zoneId: activeZoneIds.length === 1 ? activeZoneIds[0] : undefined,
+  });
+
+  const [intelTrackedIds, setIntelTrackedIds] = useState<number[]>([]);
+  const [fitTrigger, setFitTrigger] = useState(0);
+
+  const handleIntelFocusZone = useCallback((zoneId: number) => {
+    const zoneIntel = intelligence.zones.find((z) => z.zoneId === zoneId);
+    if (zoneIntel) {
+      const ids = [...(zoneIntel.locations.flatMap((l) => [...l.needHelpUserIds, ...l.criticalUserIds]))];
+      setIntelTrackedIds(ids);
+      setFitTrigger((v) => v + 1);
+    }
+  }, [intelligence.zones]);
+
+  const handleIntelFocusLocation = useCallback((locationId: number) => {
+    for (const z of intelligence.zones) {
+      const loc = z.locations.find((l) => l.locationId === locationId);
+      if (loc) {
+        const ids = [...loc.needHelpUserIds, ...loc.criticalUserIds];
+        setIntelTrackedIds(ids);
+        setFitTrigger((v) => v + 1);
+        break;
+      }
+    }
+  }, [intelligence.zones]);
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
 
@@ -114,6 +145,8 @@ export default function ECOLiveMapScreen() {
         personnelLocations={visiblePersonnel}
         onPersonnelPress={handlePersonnelPress}
         hazardZones={activeHazardZones}
+        trackedUserIds={intelTrackedIds}
+        fitTrackedTrigger={fitTrigger}
       />
 
       {/* Floating alert info bar */}
@@ -129,6 +162,12 @@ export default function ECOLiveMapScreen() {
           </Text>
         </View>
       </View>
+
+      <SmartAlertPanel
+        intelligence={intelligence}
+        onFocusZone={handleIntelFocusZone}
+        onFocusLocation={handleIntelFocusLocation}
+      />
 
       {/* Wind indicator overlay */}
       <WindIndicator />

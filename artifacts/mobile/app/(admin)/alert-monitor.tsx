@@ -22,6 +22,8 @@ import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
 import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisiblePersonnel";
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
+import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
+import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
 import type { UserResponseStatus } from "@/types";
 import { useRouter } from "expo-router";
 
@@ -118,6 +120,32 @@ export default function AlertMonitorScreen() {
     () => hazardZones.filter((hz) => hz.isActive && (hz.alertId == null || (activeAlert && hz.alertId === activeAlert.id))),
     [hazardZones, activeAlert]
   );
+
+  const intelligence = useEmergencyIntelligence({ type: "all" });
+
+  const [intelTrackedIds, setIntelTrackedIds] = useState<number[]>([]);
+  const [fitTrigger, setFitTrigger] = useState(0);
+
+  const handleIntelFocusZone = useCallback((zoneId: number) => {
+    const zoneIntel = intelligence.zones.find((z) => z.zoneId === zoneId);
+    if (zoneIntel) {
+      const ids = [...(zoneIntel.locations.flatMap((l) => [...l.needHelpUserIds, ...l.criticalUserIds]))];
+      setIntelTrackedIds(ids);
+      setFitTrigger((v) => v + 1);
+    }
+  }, [intelligence.zones]);
+
+  const handleIntelFocusLocation = useCallback((locationId: number) => {
+    for (const z of intelligence.zones) {
+      const loc = z.locations.find((l) => l.locationId === locationId);
+      if (loc) {
+        const ids = [...loc.needHelpUserIds, ...loc.criticalUserIds];
+        setIntelTrackedIds(ids);
+        setFitTrigger((v) => v + 1);
+        break;
+      }
+    }
+  }, [intelligence.zones]);
 
   const zoneStats = useZoneBreakdown(users, zones, activeAlert);
 
@@ -227,6 +255,13 @@ export default function AlertMonitorScreen() {
           personnelLocations={filteredPersonnel}
           onPersonnelPress={handlePersonnelPress}
           hazardZones={activeHazardZones}
+          trackedUserIds={intelTrackedIds}
+          fitTrackedTrigger={fitTrigger}
+        />
+        <SmartAlertPanel
+          intelligence={intelligence}
+          onFocusZone={handleIntelFocusZone}
+          onFocusLocation={handleIntelFocusLocation}
         />
         <WindIndicator />
 

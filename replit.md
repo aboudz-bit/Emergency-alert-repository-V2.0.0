@@ -39,6 +39,7 @@ Not specified.
 - **Notification Triggers**: Admin/ECO/Supervisor roles receive local notifications on escalation level changes and immediate `need_help` submissions via store subscription. Settings page controls alert sound, push notifications, and escalation timeout (1–30 min stepper).
 - **Map Escalation Visualization**: Leaflet personnel dots add `.escalated` (amber glow pulse) and `.critical` (red glow pulse) CSS classes based on `escalationLevel` from `useVisiblePersonnel`.
 - **Users Escalation UI**: User cards show "Critical" (red) and "Escalated" (amber) badges. Users sorted by urgency: need_help → escalation level → status → name.
+- **Intelligence Layer**: Decision-driven situation awareness system. `useEmergencyIntelligence` hook (`hooks/useEmergencyIntelligence.ts`) provides zone/location-level intelligence with missing counts, need_help counts, severity ranking, and auto-generated suggested actions. Scoped by type: `"all"` (admin), `"zone"` (ECO), `"location"` (supervisor). `SmartAlertPanel` (`components/ui/SmartAlertPanel.tsx`) is a floating, collapsible overlay for map-centric screens (ECO live-map, Admin alert-monitor) showing suggested actions and affected areas. Supervisor dashboard uses inline intelligence card. Map supports `focus_critical_users` / `clear_intel_focus` postMessage commands with persistent `intelFocusedIds` set that survives personnel sync. Panel action taps focus map on critical personnel via existing `trackedUserIds` + `fitTrackedTrigger` props.
 
 ## External Dependencies
 
