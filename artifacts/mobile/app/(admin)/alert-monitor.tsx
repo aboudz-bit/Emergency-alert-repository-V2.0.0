@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
-  Alert,
   Dimensions,
   Modal,
   Pressable,
@@ -86,6 +85,7 @@ export default function AlertMonitorScreen() {
 
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
   const [showZoneBreakdown, setShowZoneBreakdown] = useState(false);
+  const [showAllClearConfirm, setShowAllClearConfirm] = useState(false);
 
   type FilterKey = "safe" | "pending" | "contract" | "help";
   const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
@@ -321,16 +321,7 @@ export default function AlertMonitorScreen() {
           bottomAction={
             <Pressable
               style={styles.allClearBtn}
-              onPress={() => {
-                Alert.alert(
-                  "Send All Clear",
-                  "This will close the alert and mark everyone as safe. Continue?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Confirm", style: "default", onPress: sendAllClear },
-                  ]
-                );
-              }}
+              onPress={() => setShowAllClearConfirm(true)}
             >
               <Feather name="check-circle" size={20} color="#fff" />
               <Text style={styles.allClearText}>All Clear</Text>
@@ -445,6 +436,46 @@ export default function AlertMonitorScreen() {
                     : "N/A"}
                 </Text>
               </View>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={showAllClearConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAllClearConfirm(false)}
+      >
+        <Pressable style={styles.confirmOverlay} onPress={() => setShowAllClearConfirm(false)}>
+          <View style={styles.confirmSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.confirmIconWrap}>
+              <Feather name="check-circle" size={36} color="#059669" />
+            </View>
+            <Text style={styles.confirmTitle}>Send All Clear</Text>
+            <Text style={styles.confirmMessage}>
+              This will close the alert and mark everyone as safe. Continue?
+            </Text>
+            <View style={styles.confirmBtnRow}>
+              <Pressable
+                style={styles.confirmCancelBtn}
+                onPress={() => setShowAllClearConfirm(false)}
+              >
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.confirmOkBtn}
+                onPress={() => {
+                  setShowAllClearConfirm(false);
+                  try {
+                    sendAllClear();
+                  } catch (e) {
+                    console.error("[ADMIN MAP] All Clear failed:", e);
+                  }
+                }}
+              >
+                <Text style={styles.confirmOkText}>Confirm</Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
@@ -678,5 +709,75 @@ const styles = StyleSheet.create({
   detailValue: {
     flex: 1, fontSize: 12, fontFamily: "Inter_600SemiBold",
     color: "#1F2937", textAlign: "right",
+  },
+
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  confirmSheet: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    gap: 12,
+  },
+  confirmIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    color: "#111827",
+  },
+  confirmMessage: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  confirmBtnRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+    width: "100%",
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmCancelText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: "#374151",
+  },
+  confirmOkBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmOkText: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
   },
 });

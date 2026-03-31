@@ -1,0 +1,102 @@
+Debug and fix the "All Clear" button on the Admin live map.
+
+This is an old bug.
+The button exists visually, but it does not work.
+
+READ the actual wiring first.
+Do not refactor broadly.
+Fix only the broken flow.
+
+========================
+GOAL
+========================
+
+Make the "All Clear" button on the Admin live map actually clear the active alert.
+
+========================
+1) TRACE THE BUTTON
+========================
+
+Find the exact Admin live map screen where the visible "All Clear" button is rendered.
+
+Verify:
+- the button has a real onPress handler
+- the handler is actually firing
+
+Add temporary logs:
+- console.log("[ADMIN MAP] All Clear pressed")
+- console.log("[ADMIN MAP] active alert:", activeAlert)
+- console.log("[ADMIN MAP] active zone ids:", activeZoneIds)
+
+========================
+2) TRACE THE ACTION FLOW
+========================
+
+Follow this exact chain:
+
+Admin live map button
+→ handler
+→ store action / slice action
+→ alert state update
+→ map / stats refresh
+
+Find where it breaks.
+
+========================
+3) VERIFY THE ACTION USED
+========================
+
+The button must call the real alert clearing action
+(e.g. sendAllClear / clearZoneAlert / equivalent)
+
+Do NOT leave it as a dead UI action.
+
+========================
+4) CHECK CONTEXT
+========================
+
+Verify the admin live map passes the correct:
+- active alert
+- zone / zoneId
+- scope
+- role permissions
+
+If the action requires a zoneId, make sure the live map is passing the correct one.
+
+========================
+5) ERROR HANDLING
+========================
+
+Do not allow silent failure.
+
+Wrap the action so that if it fails:
+- console.error shows the real error
+- the UI shows a visible message
+
+Example:
+- "Failed to clear alert"
+- "No active alert found"
+- "Zone context missing"
+
+========================
+6) SUCCESS BEHAVIOR
+========================
+
+When "All Clear" works, it must:
+- deactivate the alert
+- update counts immediately
+- refresh map state
+- remove live alert banner/state
+- log incident event if timeline exists
+
+========================
+7) OUTPUT REQUIRED
+========================
+
+Return only:
+
+1) exact file where the Admin live map button exists
+2) exact handler function used
+3) root cause of why it was not working
+4) exact fix applied
+5) whether it now works on the Admin live map
