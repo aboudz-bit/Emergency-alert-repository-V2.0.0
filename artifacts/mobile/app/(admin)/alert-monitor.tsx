@@ -24,6 +24,7 @@ import { useVisiblePersonnel, type PersonnelMapEntry } from "@/hooks/useVisibleP
 import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
 import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
+import IncidentTimelinePanel from "@/components/ui/IncidentTimelinePanel";
 import type { UserResponseStatus } from "@/types";
 import { useRouter } from "expo-router";
 
@@ -263,6 +264,7 @@ export default function AlertMonitorScreen() {
           onFocusZone={handleIntelFocusZone}
           onFocusLocation={handleIntelFocusLocation}
         />
+        <IncidentTimelinePanel />
         <WindIndicator />
 
         <View style={[styles.legendOverlay, { bottom: insets.bottom + 72 }]} pointerEvents="box-none">

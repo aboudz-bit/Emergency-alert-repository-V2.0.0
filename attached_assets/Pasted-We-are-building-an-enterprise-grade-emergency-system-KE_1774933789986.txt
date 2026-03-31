@@ -1,0 +1,184 @@
+We are building an enterprise-grade emergency system (KEAS).
+
+I want to implement a full **Incident Timeline + Replay System**.
+
+This is NOT a UI-only feature — it must be data-driven, accurate, and replayable.
+
+========================
+1) CORE CONCEPT
+========================
+
+Every emergency event must be recorded as a timeline of actions.
+
+We need the ability to:
+- View what happened
+- When it happened
+- Who did it
+- Replay it visually on the map
+
+========================
+2) TIMELINE DATA MODEL
+========================
+
+Create a new structure:
+
+IncidentEvent {
+  id: string
+  timestamp: number
+  type: 
+    | "alert_started"
+    | "user_received_alert"
+    | "user_safe"
+    | "user_need_help"
+    | "escalation_level_1"
+    | "escalation_critical"
+    | "broadcast_sent"
+    | "zone_updated"
+    | "shelter_assigned"
+  userId?: string
+  userName?: string
+  zoneId?: number
+  zoneName?: string
+  locationId?: number
+  locationName?: string
+  metadata?: any
+}
+
+Store events:
+- inside alert session
+OR
+- global store slice (incidentTimeline)
+
+========================
+3) EVENT CAPTURE
+========================
+
+Hook into existing system:
+
+WHEN:
+- alert starts → log "alert_started"
+- user receives alert → log "user_received_alert"
+- user presses safe → log "user_safe"
+- user presses need_help → log "user_need_help"
+- escalation changes → log escalation events
+- supervisor actions → log actions
+- ECO broadcasts → log broadcast
+
+IMPORTANT:
+All events must use real timestamps (Date.now()).
+
+========================
+4) TIMELINE UI
+========================
+
+Create a new component:
+
+IncidentTimelinePanel
+
+Features:
+- vertical timeline list
+- grouped by time (e.g., 05:01, 05:02…)
+- icons per event type
+- color-coded:
+  - green → safe
+  - red → need help
+  - yellow → pending/escalation
+- show:
+  "05:03 — Abdullah marked SAFE"
+  "05:04 — 3 users escalated to CRITICAL"
+  "05:05 — Broadcast sent"
+
+Placement:
+- Admin (Alert Monitor) → full panel
+- ECO → slide-up panel
+- Supervisor → compact version
+
+========================
+5) REPLAY SYSTEM (CRITICAL)
+========================
+
+Add a replay mode:
+
+Replay Controls:
+- Play / Pause
+- Timeline scrubber (slider)
+- Speed (1x / 2x / 4x)
+
+Replay behavior:
+
+At time T:
+- Only show events up to T
+- Update personnel status dynamically
+- Update counts (safe/pending/help)
+- Animate changes:
+  - pending → safe (fade green)
+  - pending → help (pulse red)
+
+Map integration:
+- Use existing ZoneMap / Leaflet iframe
+- Send filtered personnel state based on replay time
+
+========================
+6) MAP INTEGRATION
+========================
+
+Add new postMessage type:
+
+"type": "replay_state"
+
+Payload:
+{
+  time: number,
+  personnel: filteredPersonnel
+}
+
+Map should:
+- update markers based on replay state
+- animate status changes
+- optionally highlight critical users
+
+========================
+7) PERFORMANCE
+========================
+
+- Use useMemo for event filtering
+- Pre-sort timeline events once
+- Avoid re-rendering full map unnecessarily
+- Use indexed lookup by timestamp
+
+========================
+8) ENTERPRISE TOUCH
+========================
+
+Add:
+
+- "Export Incident Report (PDF)"
+- Summary:
+  - Total users
+  - Safe count
+  - Help count
+  - Response time
+- Timeline included in report
+
+========================
+9) RULES
+========================
+
+- Do NOT break existing system
+- Do NOT duplicate state unnecessarily
+- Reuse existing:
+  - personnel
+  - alert state
+  - escalation logic
+
+========================
+GOAL
+========================
+
+The system should allow:
+
+"Show me exactly what happened during this emergency — step by step."
+
+And visually replay it on the map.
+
+This is a mission-critical feature.

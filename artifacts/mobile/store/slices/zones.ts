@@ -212,7 +212,12 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           };
         }),
       }));
-      // Post-activation diagnostic
+      get().logIncidentEvent({
+        type: 'zone_updated',
+        zoneId,
+        zoneName: zone.name,
+        metadata: { action: 'activated', alertType, priority, message },
+      });
       const postState = get();
       const activeZoneCount = postState.zones.filter(z => z.isActive && z.alertActive).length;
       console.log('[activateZoneAlert] Post-activation state:', {
@@ -255,6 +260,12 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           }],
         } : l),
       }));
+      get().logIncidentEvent({
+        type: 'zone_updated',
+        zoneId,
+        zoneName: zone.name,
+        metadata: { action: 'deactivated' },
+      });
       const { zones: updatedZones, alerts: updatedAlerts } = get();
       const anyZoneActive = updatedZones.some(z => z.isActive && z.alertActive);
       const anyAlertActive = updatedAlerts.some(a => a.isActive);
@@ -326,6 +337,18 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
           }],
         } : l),
       }));
+      const zones = get().zones;
+      for (const zid of zoneIds) {
+        const z = zones.find(zz => zz.id === zid);
+        if (z) {
+          get().logIncidentEvent({
+            type: 'zone_updated',
+            zoneId: zid,
+            zoneName: z.name,
+            metadata: { action: 'activated', alertType, priority, message, bulk: true },
+          });
+        }
+      }
     },
 
     bulkDeactivateZoneAlerts: (zoneIds) => {
@@ -361,6 +384,17 @@ export function createZoneSlice(set: SetState, get: GetState): Pick<
         } : l),
       }));
       const { zones: updZ, alerts: updA } = get();
+      for (const zid of zoneIds) {
+        const z = updZ.find(zz => zz.id === zid);
+        if (z) {
+          get().logIncidentEvent({
+            type: 'zone_updated',
+            zoneId: zid,
+            zoneName: z.name,
+            metadata: { action: 'deactivated', bulk: true },
+          });
+        }
+      }
       const anyZA = updZ.some(z => z.isActive && z.alertActive);
       const anyAA = updA.some(a => a.isActive);
       if (!anyZA && !anyAA) {

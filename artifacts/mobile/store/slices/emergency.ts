@@ -35,6 +35,11 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           respondedAt: null,
         }),
       }));
+      get().logIncidentEvent({
+        type: 'shelter_in_activated',
+        userName: currentUser?.name ?? 'System',
+        metadata: { zones: zoneNames },
+      });
     },
 
     deactivateShelterIn: () => {
@@ -71,6 +76,11 @@ export function createEmergencySlice(set: SetState, get: GetState): Pick<
           respondedAt: null,
         }),
       }));
+      get().logIncidentEvent({
+        type: 'blackout_activated',
+        userName: currentUser?.name ?? 'System',
+        metadata: { zones: zoneNames },
+      });
     },
 
     deactivateBlackout: () => {

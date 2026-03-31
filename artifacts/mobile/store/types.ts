@@ -8,8 +8,9 @@ import type {
   AlertNotification, AlertNotificationScope,
 } from '@/types';
 import type { AccountabilityState, AccountabilityActions } from './slices/accountability';
+import type { IncidentTimelineState, IncidentTimelineActions } from './slices/incidentTimeline';
 
-export interface AppState extends AccountabilityState, AccountabilityActions {
+export interface AppState extends AccountabilityState, AccountabilityActions, IncidentTimelineState, IncidentTimelineActions {
   isAuthenticated: boolean;
   currentUser: User | null;
   users: User[];

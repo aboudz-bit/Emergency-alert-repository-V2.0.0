@@ -401,3 +401,32 @@ export interface AppSettings {
   hazardWarmRadius: number;
   hazardColdRadius: number;
 }
+
+export type IncidentEventType =
+  | 'alert_started'
+  | 'alert_ended'
+  | 'user_received_alert'
+  | 'user_safe'
+  | 'user_need_help'
+  | 'escalation_level_1'
+  | 'escalation_critical'
+  | 'broadcast_sent'
+  | 'zone_updated'
+  | 'shelter_assigned'
+  | 'shelter_in_activated'
+  | 'blackout_activated'
+  | 'supervisor_action'
+  | 'all_clear';
+
+export interface IncidentEvent {
+  id: string;
+  timestamp: number;
+  type: IncidentEventType;
+  userId?: number;
+  userName?: string;
+  zoneId?: number;
+  zoneName?: string;
+  locationId?: number;
+  locationName?: string;
+  metadata?: Record<string, unknown>;
+}

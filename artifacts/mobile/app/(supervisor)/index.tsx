@@ -23,6 +23,7 @@ import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { SelfStatusBar } from "@/components/ui/SelfStatusBar";
 import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
 import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
+import IncidentTimelinePanel from "@/components/ui/IncidentTimelinePanel";
 
 export default function SupervisorDashboardScreen() {
   const router = useRouter();
@@ -246,6 +247,7 @@ export default function SupervisorDashboardScreen() {
         }
       />
 
+      <IncidentTimelinePanel />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

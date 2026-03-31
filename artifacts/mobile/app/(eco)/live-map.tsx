@@ -23,6 +23,7 @@ import { usePersonnelSimulation } from "@/hooks/usePersonnelSimulation";
 import { useRefreshOnFocus } from "@/hooks/useRefreshOnFocus";
 import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
 import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
+import IncidentTimelinePanel from "@/components/ui/IncidentTimelinePanel";
 import type { UserResponseStatus, WindDirection } from "@/types";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -168,6 +169,7 @@ export default function ECOLiveMapScreen() {
         onFocusZone={handleIntelFocusZone}
         onFocusLocation={handleIntelFocusLocation}
       />
+      <IncidentTimelinePanel />
 
       {/* Wind indicator overlay */}
       <WindIndicator />

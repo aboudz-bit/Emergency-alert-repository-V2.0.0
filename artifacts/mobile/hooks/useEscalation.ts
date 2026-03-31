@@ -86,8 +86,21 @@ export function useEscalation() {
       }));
 
       const escalated = updates.filter((u) => u.level > u.prevLevel);
-      if (escalated.length > 0 && onEscalationChange) {
-        onEscalationChange(escalated);
+      if (escalated.length > 0) {
+        const { logIncidentEvent } = useStore.getState();
+        for (const e of escalated) {
+          logIncidentEvent({
+            type: e.level >= 2 ? 'escalation_critical' : 'escalation_level_1',
+            userId: e.id,
+            userName: e.name,
+            zoneName: e.zoneName,
+            locationName: e.locationName,
+            metadata: { level: e.level, prevLevel: e.prevLevel },
+          });
+        }
+        if (onEscalationChange) {
+          onEscalationChange(escalated);
+        }
       }
     }
   }, [emergencyMode, escalationTimeout]);

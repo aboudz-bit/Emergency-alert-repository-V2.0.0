@@ -61,6 +61,11 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         mobileUserResponse: null,
         alertSoundDismissed: false,
       }));
+      get().logIncidentEvent({
+        type: 'alert_started',
+        zoneName: data.zone,
+        metadata: { alertType: data.type, priority: data.priority, alertId: newAlert.id },
+      });
       return newAlert;
     },
 
@@ -128,6 +133,11 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
       };
       set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
+      get().logIncidentEvent({
+        type: 'all_clear',
+        userName: sentBy,
+        metadata: { totalUsers: users.length },
+      });
     },
 
     closeAlert: (alertId) => {
@@ -135,6 +145,7 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
         get().sendAllClear();
         return;
       }
+      const closedAlert = get().alerts.find(a => a.id === alertId);
       set(s => {
         const updatedAlerts = s.alerts.map(a =>
           a.id === alertId ? { ...a, isActive: false, status: 'closed' as const, closedAt: new Date().toISOString() } : a,
@@ -146,6 +157,10 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
           hazardZones: s.hazardZones.filter(hz => hz.alertId !== alertId),
           ...(!anyAlertActive && !anyZoneActive ? { personnelLocations: {} } : {}),
         };
+      });
+      get().logIncidentEvent({
+        type: 'alert_ended',
+        metadata: { alertId, alertType: closedAlert?.type },
       });
     },
 
@@ -168,6 +183,15 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
             : u,
         ),
       }));
+      get().logIncidentEvent({
+        type: response === 'confirmed' ? 'user_safe' : 'user_need_help',
+        userId: currentUser.id,
+        userName: currentUser.name,
+        zoneId: currentUser.zoneId,
+        zoneName: currentUser.zone,
+        locationId: currentUser.locationId,
+        locationName: currentUser.location,
+      });
     },
   };
 }
