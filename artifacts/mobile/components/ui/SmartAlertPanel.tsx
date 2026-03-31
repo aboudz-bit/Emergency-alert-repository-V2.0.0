@@ -1,20 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
   LayoutAnimation,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   UIManager,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import type {
   EmergencyIntelligence,
-  ZoneIntelligence,
   SuggestedAction,
 } from "@/hooks/useEmergencyIntelligence";
 
@@ -34,22 +31,27 @@ interface SmartAlertPanelProps {
 
 export function SmartAlertPanel({
   intelligence,
-  maxHeight = 320,
   onFocusZone,
   onFocusLocation,
 }: SmartAlertPanelProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const {
     isActive,
-    criticalZones,
     totalMissing,
     totalNeedHelp,
     suggestedActions,
+    criticalZones,
     hasCriticalSituation,
   } = intelligence;
 
   if (!isActive || !hasCriticalSituation) return null;
+
+  const topActions = suggestedActions.slice(0, 2);
+  const remainingCount = suggestedActions.length - topActions.length;
+  const remainingLocationCount = new Set(
+    suggestedActions.slice(2).map((a) => a.locationId ?? a.zoneId)
+  ).size;
 
   const toggleExpand = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -58,194 +60,70 @@ export function SmartAlertPanel({
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.header} onPress={toggleExpand}>
-        <View style={styles.headerLeft}>
-          <View style={styles.pulseOuter}>
-            <View style={styles.pulseDot} />
+      <Pressable style={styles.bar} onPress={toggleExpand}>
+        <View style={styles.pulseDot} />
+        <Text style={styles.barLabel}>INTEL</Text>
+        <View style={styles.barSep} />
+        {totalNeedHelp > 0 && (
+          <View style={styles.badgeRed}>
+            <Text style={styles.badgeText}>{totalNeedHelp} HELP</Text>
           </View>
-          <Text style={styles.headerTitle}>SITUATION AWARENESS</Text>
-        </View>
-        <View style={styles.headerRight}>
-          {totalNeedHelp > 0 && (
-            <View style={styles.headerBadgeRed}>
-              <Text style={styles.headerBadgeText}>{totalNeedHelp} HELP</Text>
-            </View>
-          )}
-          {totalMissing > 0 && (
-            <View style={styles.headerBadgeAmber}>
-              <Text style={styles.headerBadgeText}>
-                {totalMissing} MISSING
-              </Text>
-            </View>
-          )}
-          <Feather
-            name={expanded ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={Colors.white}
-          />
-        </View>
+        )}
+        {totalMissing > 0 && (
+          <View style={styles.badgeAmber}>
+            <Text style={styles.badgeText}>{totalMissing} MISSING</Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }} />
+        <Feather
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={14}
+          color="rgba(255,255,255,0.7)"
+        />
       </Pressable>
 
       {expanded && (
-        <ScrollView
-          style={[styles.body, { maxHeight }]}
-          contentContainerStyle={styles.bodyContent}
-          nestedScrollEnabled
-        >
-          {suggestedActions.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>SUGGESTED ACTIONS</Text>
-              {suggestedActions.slice(0, 4).map((action) => (
-                <ActionCard
-                  key={action.id}
-                  action={action}
-                  onPress={() => {
-                    if (action.locationId && onFocusLocation) {
-                      onFocusLocation(action.locationId);
-                    } else if (action.zoneId && onFocusZone) {
-                      onFocusZone(action.zoneId);
-                    }
-                  }}
-                />
-              ))}
-            </View>
+        <View style={styles.details}>
+          {topActions.map((action) => (
+            <Pressable
+              key={action.id}
+              style={styles.actionRow}
+              onPress={() => {
+                if (action.locationId && onFocusLocation) {
+                  onFocusLocation(action.locationId);
+                } else if (action.zoneId && onFocusZone) {
+                  onFocusZone(action.zoneId);
+                }
+              }}
+            >
+              <Feather
+                name={action.icon as any}
+                size={12}
+                color={
+                  action.priority === "critical"
+                    ? Colors.destructive
+                    : Colors.missing
+                }
+              />
+              <Text style={styles.actionDesc} numberOfLines={1}>
+                {action.description}
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={12}
+                color="rgba(255,255,255,0.4)"
+              />
+            </Pressable>
+          ))}
+          {remainingCount > 0 && (
+            <Text style={styles.moreText}>
+              and {remainingLocationCount} more affected location
+              {remainingLocationCount !== 1 ? "s" : ""}
+            </Text>
           )}
-
-          {criticalZones.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>AFFECTED AREAS</Text>
-              {criticalZones.map((zone) => (
-                <ZoneCard
-                  key={zone.zoneId}
-                  zone={zone}
-                  onPress={() => onFocusZone?.(zone.zoneId)}
-                />
-              ))}
-            </View>
-          )}
-        </ScrollView>
+        </View>
       )}
     </View>
-  );
-}
-
-function ActionCard({
-  action,
-  onPress,
-}: {
-  action: SuggestedAction;
-  onPress: () => void;
-}) {
-  const isCritical = action.priority === "critical";
-  return (
-    <Pressable
-      style={[
-        styles.actionCard,
-        isCritical && styles.actionCardCritical,
-      ]}
-      onPress={onPress}
-    >
-      <View
-        style={[
-          styles.actionIcon,
-          { backgroundColor: isCritical ? "rgba(220,38,38,0.15)" : "rgba(217,119,6,0.15)" },
-        ]}
-      >
-        <Feather
-          name={action.icon as any}
-          size={14}
-          color={isCritical ? Colors.destructive : Colors.missing}
-        />
-      </View>
-      <View style={styles.actionText}>
-        <Text
-          style={[
-            styles.actionTitle,
-            isCritical && { color: Colors.destructive },
-          ]}
-        >
-          {action.title}
-        </Text>
-        <Text style={styles.actionDesc} numberOfLines={2}>
-          {action.description}
-        </Text>
-      </View>
-      <Feather name="chevron-right" size={14} color={Colors.textTertiary} />
-    </Pressable>
-  );
-}
-
-function ZoneCard({
-  zone,
-  onPress,
-}: {
-  zone: ZoneIntelligence;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable style={styles.zoneCard} onPress={onPress}>
-      <View style={styles.zoneHeader}>
-        <View
-          style={[styles.zoneDot, { backgroundColor: zone.zoneColor }]}
-        />
-        <Text style={styles.zoneName} numberOfLines={1}>
-          {zone.zoneName}
-        </Text>
-      </View>
-      <View style={styles.zoneStats}>
-        {zone.needHelpCount > 0 && (
-          <View style={styles.zoneStat}>
-            <Text style={[styles.zoneStatValue, { color: Colors.destructive }]}>
-              {zone.needHelpCount}
-            </Text>
-            <Text style={styles.zoneStatLabel}>Help</Text>
-          </View>
-        )}
-        {zone.missingCount > 0 && (
-          <View style={styles.zoneStat}>
-            <Text style={[styles.zoneStatValue, { color: Colors.missing }]}>
-              {zone.missingCount}
-            </Text>
-            <Text style={styles.zoneStatLabel}>Missing</Text>
-          </View>
-        )}
-        {zone.pendingCount > 0 && (
-          <View style={styles.zoneStat}>
-            <Text style={[styles.zoneStatValue, { color: Colors.noreply }]}>
-              {zone.pendingCount}
-            </Text>
-            <Text style={styles.zoneStatLabel}>Pending</Text>
-          </View>
-        )}
-        <View style={styles.zoneStat}>
-          <Text style={[styles.zoneStatValue, { color: Colors.safe }]}>
-            {zone.safeCount}
-          </Text>
-          <Text style={styles.zoneStatLabel}>Safe</Text>
-        </View>
-      </View>
-      {zone.locations
-        .filter((l) => l.missingCount > 0 || l.needHelpCount > 0)
-        .slice(0, 3)
-        .map((loc) => (
-          <View key={loc.locationId} style={styles.locRow}>
-            <Feather name="map-pin" size={10} color={Colors.textTertiary} />
-            <Text style={styles.locName} numberOfLines={1}>
-              {loc.locationName}
-            </Text>
-            {loc.needHelpCount > 0 && (
-              <Text style={styles.locBadgeRed}>
-                {loc.needHelpCount} help
-              </Text>
-            )}
-            {loc.missingCount > 0 && (
-              <Text style={styles.locBadgeAmber}>
-                {loc.missingCount} missing
-              </Text>
-            )}
-          </View>
-        ))}
-    </Pressable>
   );
 }
 
@@ -256,37 +134,19 @@ const styles = StyleSheet.create({
     left: 10,
     right: 60,
     zIndex: 900,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: "hidden",
     ...(Platform.OS === "web"
-      ? { boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }
-      : { elevation: 8 }),
+      ? { boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }
+      : { elevation: 6 }),
   },
-  header: {
+  bar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(30,20,50,0.95)",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: "rgba(30,20,50,0.92)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     gap: 6,
-  },
-  pulseOuter: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "rgba(220,38,38,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
   },
   pulseDot: {
     width: 6,
@@ -294,139 +154,57 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.destructive,
   },
-  headerTitle: {
-    color: Colors.white,
-    fontSize: 11,
+  barLabel: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
-  headerBadgeRed: {
+  barSep: {
+    width: 1,
+    height: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  badgeRed: {
     backgroundColor: "rgba(220,38,38,0.25)",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  headerBadgeAmber: {
+  badgeAmber: {
     backgroundColor: "rgba(217,119,6,0.25)",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  headerBadgeText: {
+  badgeText: {
     color: Colors.white,
     fontSize: 9,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  body: {
+  details: {
     backgroundColor: "rgba(25,18,42,0.92)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
   },
-  bodyContent: {
-    padding: 10,
-    gap: 10,
-  },
-  section: {
-    gap: 6,
-  },
-  sectionLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginBottom: 2,
-  },
-  actionCard: {
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 8,
-    padding: 10,
-    gap: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.missing,
-  },
-  actionCardCritical: {
-    borderLeftColor: Colors.destructive,
-    backgroundColor: "rgba(220,38,38,0.08)",
-  },
-  actionIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: "700",
+    gap: 6,
+    paddingVertical: 4,
   },
   actionDesc: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 11,
-    marginTop: 1,
-  },
-  zoneCard: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 8,
-    padding: 10,
-    gap: 6,
-  },
-  zoneHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  zoneDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  zoneName: {
-    color: Colors.white,
-    fontSize: 13,
-    fontWeight: "600",
     flex: 1,
-  },
-  zoneStats: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 2,
-  },
-  zoneStat: {
-    alignItems: "center",
-  },
-  zoneStatValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  zoneStatLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 9,
-    fontWeight: "500",
-  },
-  locRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingLeft: 14,
-  },
-  locName: {
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.75)",
     fontSize: 11,
-    flex: 1,
   },
-  locBadgeRed: {
-    color: Colors.destructive,
+  moreText: {
+    color: "rgba(255,255,255,0.4)",
     fontSize: 10,
-    fontWeight: "600",
-  },
-  locBadgeAmber: {
-    color: Colors.missing,
-    fontSize: 10,
-    fontWeight: "600",
+    fontStyle: "italic",
+    paddingLeft: 18,
+    paddingTop: 2,
   },
 });
