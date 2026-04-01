@@ -5,7 +5,7 @@ import {
 import type { AppState } from './types';
 
 export const STORE_NAME = 'keas-mobile-store-v20';
-export const STORE_VERSION = 32;
+export const STORE_VERSION = 33;
 
 export function migrate(persisted: any, version: number): AppState {
   try {
@@ -623,6 +623,16 @@ function _migrateUnsafe(persisted: any, version: number): AppState {
   if (version < 32) {
     if (!Array.isArray(state.ecoRoutes)) {
       state.ecoRoutes = [];
+    }
+  }
+
+  if (version < 33) {
+    if (Array.isArray(state.zones)) {
+      state.zones = state.zones.map((z: any) => ({
+        ...z,
+        alertTargetScope: z.alertTargetScope ?? 'zone',
+        alertTargetLocationIds: Array.isArray(z.alertTargetLocationIds) ? z.alertTargetLocationIds : [],
+      }));
     }
   }
 

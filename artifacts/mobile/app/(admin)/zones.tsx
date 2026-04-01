@@ -303,6 +303,7 @@ export default function ZonesScreen() {
       locationId: formLocationId,
       alertActive: false, alertType: null, alertPriority: null,
       alertMessage: "", alertUpdatedAt: null, alertHistory: [],
+      alertTargetScope: "zone", alertTargetLocationIds: [],
     });
     setShowSaveSheet(false);
     setTapPoints([]);

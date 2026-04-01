@@ -389,6 +389,7 @@ export default function Zones() {
       isActive: true, color: data.color,
       alertActive: false, alertType: null, alertPriority: null,
       alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+      alertTargetScope: 'zone', alertTargetLocationIds: [],
     });
     const newZone = useStore.getState().zones[useStore.getState().zones.length - 1];
     setEditingZoneId(newZone.id);

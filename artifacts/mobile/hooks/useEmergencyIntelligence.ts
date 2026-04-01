@@ -89,9 +89,19 @@ export function useEmergencyIntelligence(scope?: {
     if (scopeType === "zone" && scopeZoneId != null && !activeZoneIds.includes(scopeZoneId)) return EMPTY;
 
     const activeZoneIdSet = new Set(activeZoneIds);
+    const zoneScopeMap = new Map<number, { scope: 'zone' | 'locations'; locIds: Set<number> }>();
+    for (const z of zones) {
+      if (activeZoneIdSet.has(z.id)) {
+        const s = z.alertTargetScope ?? 'zone';
+        const ids = s === 'locations' && Array.isArray(z.alertTargetLocationIds) ? new Set(z.alertTargetLocationIds) : new Set<number>();
+        zoneScopeMap.set(z.id, { scope: s, locIds: ids });
+      }
+    }
     const activeUsers = users.filter((u) => {
       if (!u.isActive) return false;
       if (!activeZoneIdSet.has(u.zoneId)) return false;
+      const zs = zoneScopeMap.get(u.zoneId);
+      if (zs && zs.scope === 'locations' && !zs.locIds.has(u.locationId)) return false;
       if (scopeType === "zone" && scopeZoneId != null && u.zoneId !== scopeZoneId) return false;
       if (scopeType === "location" && u.locationId !== scopeLocationId) return false;
       return true;

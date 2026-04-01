@@ -72,6 +72,8 @@ export default function AlertManagementScreen() {
   const [activateType, setActivateType] = useState<LocationAlertType>("Security Alert");
   const [activatePriority, setActivatePriority] = useState<AlertPriority>("High");
   const [activateMessage, setActivateMessage] = useState("");
+  const [activateScope, setActivateScope] = useState<"zone" | "locations">("zone");
+  const [activateLocationIds, setActivateLocationIds] = useState<number[]>([]);
 
   // Deactivate confirmation
   const [deactivateTarget, setDeactivateTarget] = useState<Zone | null>(null);
@@ -122,6 +124,11 @@ export default function AlertManagementScreen() {
     return locations.filter(l => l.zoneId === notifyTarget.id && l.isActive);
   }, [notifyTarget, locations]);
 
+  const activateZoneLocations = useMemo(() => {
+    if (!activateTarget) return [];
+    return locations.filter(l => l.zoneId === activateTarget.id && l.isActive);
+  }, [activateTarget, locations]);
+
   // ─── Derived counts ───
   const zoneStats = useMemo(() => {
     const map = new Map<number, { locationCount: number; userCount: number }>();
@@ -170,6 +177,8 @@ export default function AlertManagementScreen() {
         setActivateType("Security Alert");
         setActivatePriority("High");
         setActivateMessage(DEFAULT_MESSAGES["Security Alert"] || "");
+        setActivateScope("zone");
+        setActivateLocationIds([]);
         setActivateTarget(zone);
       }
     },
@@ -179,9 +188,10 @@ export default function AlertManagementScreen() {
   // ─── Activate confirm ───
   const handleConfirmActivate = useCallback(() => {
     if (!activateTarget) return;
-    activateZoneAlert(activateTarget.id, activateType, activatePriority, activateMessage.trim());
+    if (activateScope === "locations" && activateLocationIds.length === 0) return;
+    activateZoneAlert(activateTarget.id, activateType, activatePriority, activateMessage.trim(), activateScope, activateLocationIds);
     setActivateTarget(null);
-  }, [activateTarget, activateType, activatePriority, activateMessage, activateZoneAlert]);
+  }, [activateTarget, activateType, activatePriority, activateMessage, activateScope, activateLocationIds, activateZoneAlert]);
 
   // ─── Multi-select helpers ───
   const toggleZoneSelection = useCallback((zoneId: number) => {
@@ -317,6 +327,14 @@ export default function AlertManagementScreen() {
                   </View>
                   <Text style={styles.statusSep}>{"\u00B7"}</Text>
                   <Text style={styles.statusType}>{zone.alertType}</Text>
+                  {zone.alertTargetScope === 'locations' && zone.alertTargetLocationIds.length > 0 && (
+                    <>
+                      <Text style={styles.statusSep}>{"\u00B7"}</Text>
+                      <Text style={[styles.statusType, { color: Colors.info }]}>
+                        {zone.alertTargetLocationIds.length} loc{zone.alertTargetLocationIds.length !== 1 ? "s" : ""}
+                      </Text>
+                    </>
+                  )}
                   {zone.alertUpdatedAt && (
                     <>
                       <Text style={styles.statusSep}>{"\u00B7"}</Text>
@@ -690,7 +708,7 @@ export default function AlertManagementScreen() {
         onRequestClose={() => setActivateTarget(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { maxHeight: "85%" }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
@@ -704,12 +722,65 @@ export default function AlertManagementScreen() {
               </Pressable>
             </View>
 
+            <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
             {renderAlertForm(
               activateType, setActivateType,
               activatePriority, setActivatePriority,
               activateMessage, setActivateMessage,
               activateTarget,
             )}
+
+            <Text style={styles.modalLabel}>Target Scope</Text>
+            <View style={styles.notifyScopeRow}>
+              <Pressable
+                style={[styles.notifyScopeBtn, activateScope === "zone" && styles.notifyScopeBtnActive]}
+                onPress={() => { setActivateScope("zone"); setActivateLocationIds([]); }}
+              >
+                <Feather name="layers" size={14} color={activateScope === "zone" ? "#fff" : Colors.textSecondary} />
+                <Text style={[styles.notifyScopeBtnText, activateScope === "zone" && styles.notifyScopeBtnTextActive]}>
+                  Entire Zone
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.notifyScopeBtn, activateScope === "locations" && styles.notifyScopeBtnActive]}
+                onPress={() => setActivateScope("locations")}
+              >
+                <Feather name="map-pin" size={14} color={activateScope === "locations" ? "#fff" : Colors.textSecondary} />
+                <Text style={[styles.notifyScopeBtnText, activateScope === "locations" && styles.notifyScopeBtnTextActive]}>
+                  Selected Locations
+                </Text>
+              </Pressable>
+            </View>
+
+            {activateScope === "locations" && (
+              <View style={styles.notifyLocList}>
+                {activateZoneLocations.length === 0 && (
+                  <Text style={styles.notifyLocEmpty}>No active locations in this zone</Text>
+                )}
+                {activateZoneLocations.map(loc => {
+                  const isSelected = activateLocationIds.includes(loc.id);
+                  const locUserCount = users.filter(u => u.isActive && u.locationId === loc.id).length;
+                  return (
+                    <Pressable
+                      key={loc.id}
+                      style={[styles.notifyLocItem, isSelected && styles.notifyLocItemSelected]}
+                      onPress={() => {
+                        setActivateLocationIds(prev =>
+                          isSelected ? prev.filter(id => id !== loc.id) : [...prev, loc.id]
+                        );
+                      }}
+                    >
+                      <View style={[styles.notifyLocCheck, isSelected && styles.notifyLocCheckActive]}>
+                        {isSelected && <Feather name="check" size={12} color="#fff" />}
+                      </View>
+                      <Text style={styles.notifyLocName}>{loc.name}</Text>
+                      <Text style={styles.notifyLocCount}>{locUserCount} user{locUserCount !== 1 ? "s" : ""}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+            </ScrollView>
 
             <View style={styles.modalBtnRow}>
               <Pressable
@@ -719,8 +790,12 @@ export default function AlertManagementScreen() {
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.modalBtnConfirm, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [
+                  styles.modalBtnConfirm, pressed && { opacity: 0.8 },
+                  (activateScope === "locations" && activateLocationIds.length === 0) && { opacity: 0.4 },
+                ]}
                 onPress={handleConfirmActivate}
+                disabled={activateScope === "locations" && activateLocationIds.length === 0}
               >
                 <Feather name="zap" size={14} color="#fff" />
                 <Text style={styles.modalBtnConfirmText}>Activate</Text>

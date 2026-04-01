@@ -95,6 +95,8 @@ export interface Zone {
   alertMessage: string;
   alertUpdatedAt: string | null;
   alertHistory: ZoneAlertHistoryEntry[];
+  alertTargetScope: 'zone' | 'locations';
+  alertTargetLocationIds: number[];
 }
 
 // ─── Locations ────────────────────────────────────────────────────────────────

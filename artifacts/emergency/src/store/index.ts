@@ -118,7 +118,7 @@ interface AppState {
   updateZone: (id: number, partial: Partial<Zone>) => void;
   disableZone: (id: number) => void;
   deleteZone: (id: number) => void;
-  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string, targetScope?: 'zone' | 'locations', targetLocationIds?: number[]) => void;
   deactivateZoneAlert: (zoneId: number) => void;
   editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
@@ -680,6 +680,7 @@ export const useStore = create<AppState>()(
         set(s => ({ zones: [...s.zones, {
           alertActive: false, alertType: null, alertPriority: null,
           alertMessage: '', alertUpdatedAt: null, alertHistory: [],
+          alertTargetScope: 'zone' as const, alertTargetLocationIds: [],
           ...zone, id: Date.now(),
         }] }));
       },
@@ -696,11 +697,14 @@ export const useStore = create<AppState>()(
         set(s => ({ zones: s.zones.filter(z => z.id !== id) }));
       },
 
-      activateZoneAlert: (zoneId, alertType, priority, message) => {
+      activateZoneAlert: (zoneId, alertType, priority, message, targetScope, targetLocationIds) => {
         const now = new Date().toISOString();
         const user = get().currentUser?.name || null;
         const zone = get().zones.find(z => z.id === zoneId);
         if (!zone) return;
+        const scope = targetScope || 'zone';
+        const locIds = scope === 'locations' && Array.isArray(targetLocationIds) ? targetLocationIds : [];
+        const locIdSet = new Set(locIds);
         set(s => ({
           zones: s.zones.map(z => z.id === zoneId ? {
             ...z,
@@ -709,6 +713,8 @@ export const useStore = create<AppState>()(
             alertPriority: priority,
             alertMessage: message,
             alertUpdatedAt: now,
+            alertTargetScope: scope,
+            alertTargetLocationIds: locIds,
             alertHistory: [...z.alertHistory, {
               id: nextHistoryId(),
               zoneId,
@@ -720,29 +726,33 @@ export const useStore = create<AppState>()(
               user,
             }],
           } : z),
-          // Also update child locations to match zone alert state
-          locations: s.locations.map(l => l.zoneId === zoneId ? {
-            ...l,
-            alertActive: true,
-            alertType,
-            alertPriority: priority,
-            alertMessage: message,
-            alertUpdatedAt: now,
-            alertHistory: [...l.alertHistory, {
-              id: nextHistoryId(),
-              locationId: l.id,
-              action: 'activated' as const,
+          locations: s.locations.map(l => {
+            if (l.zoneId !== zoneId) return l;
+            if (scope === 'locations' && !locIdSet.has(l.id)) return l;
+            return {
+              ...l,
+              alertActive: true,
               alertType,
-              priority,
-              message,
-              timestamp: now,
-              user,
-            }],
-          } : l),
-          // Reset user statuses to pending for the affected zone
-          users: s.users.map(u => (u as any).zoneId === zoneId
-            ? { ...u, status: 'pending' as const }
-            : u),
+              alertPriority: priority,
+              alertMessage: message,
+              alertUpdatedAt: now,
+              alertHistory: [...l.alertHistory, {
+                id: nextHistoryId(),
+                locationId: l.id,
+                action: 'activated' as const,
+                alertType,
+                priority,
+                message,
+                timestamp: now,
+                user,
+              }],
+            };
+          }),
+          users: s.users.map(u => {
+            if ((u as any).zoneId !== zoneId) return u;
+            if (scope === 'locations' && !locIdSet.has((u as any).locationId)) return u;
+            return { ...u, status: 'pending' as const };
+          }),
           mobileUserResponse: null,
         }));
       },
@@ -760,6 +770,8 @@ export const useStore = create<AppState>()(
             alertPriority: null,
             alertMessage: '',
             alertUpdatedAt: now,
+            alertTargetScope: 'zone' as const,
+            alertTargetLocationIds: [],
             alertHistory: [...z.alertHistory, {
               id: nextHistoryId(),
               zoneId,
@@ -771,7 +783,6 @@ export const useStore = create<AppState>()(
               user,
             }],
           } : z),
-          // Also deactivate child locations
           locations: s.locations.map(l => l.zoneId === zoneId ? {
             ...l,
             alertActive: false,

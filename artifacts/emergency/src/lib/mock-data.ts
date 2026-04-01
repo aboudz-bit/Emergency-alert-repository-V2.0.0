@@ -186,6 +186,8 @@ export const seedZones: Zone[] = [
     alertMessage: '',
     alertUpdatedAt: null,
     alertHistory: [],
+    alertTargetScope: 'zone',
+    alertTargetLocationIds: [],
   },
   {
     id: 2,
@@ -210,6 +212,8 @@ export const seedZones: Zone[] = [
     alertMessage: '',
     alertUpdatedAt: null,
     alertHistory: [],
+    alertTargetScope: 'zone',
+    alertTargetLocationIds: [],
   },
 ];
 
