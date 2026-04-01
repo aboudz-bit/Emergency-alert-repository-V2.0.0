@@ -1,0 +1,126 @@
+You are an expert Expo + EAS + Apple TestFlight setup engineer.
+
+I want you to fully prepare my project so it can be built and uploaded to TestFlight WITHOUT errors.
+
+Do NOT explain. Do the work and verify everything.
+
+========================
+GOAL
+========================
+
+Make this project ready for:
+- iOS build using EAS
+- Upload to TestFlight
+- No missing configs
+- No App Store rejection issues (basic level)
+
+========================
+TASKS
+========================
+
+1) VERIFY / FIX PROJECT CONFIG
+
+- Ensure app.json or app.config.js is valid
+- Ensure it has:
+
+{
+  "expo": {
+    "name": "KEAS",
+    "slug": "keas-app",
+    "version": "1.0.0",
+    "scheme": "keas",
+    "ios": {
+      "bundleIdentifier": "com.keas.app",
+      "buildNumber": "1"
+    }
+  }
+}
+
+- If fields are missing → add them
+- If wrong → fix them
+
+========================
+2) ADD REQUIRED PERMISSIONS
+
+Add to ios.infoPlist:
+
+- NSLocationWhenInUseUsageDescription
+- NSLocationAlwaysAndWhenInUseUsageDescription
+
+Use this text:
+
+"This app uses location for emergency personnel tracking inside controlled industrial environments."
+
+========================
+3) APP ICON CHECK
+
+- Ensure app has a valid icon (1024x1024)
+- If missing → generate a simple placeholder
+
+========================
+4) EAS CONFIGURATION
+
+- Ensure eas.json exists
+- If not → create it
+
+Use standard config:
+
+{
+  "build": {
+    "production": {
+      "ios": {
+        "simulator": false
+      }
+    }
+  }
+}
+
+========================
+5) INSTALL & VERIFY EAS
+
+- Install eas-cli if not installed
+- Ensure project is ready for:
+  eas build -p ios
+
+========================
+6) PRE-BUILD VALIDATION
+
+Check:
+- No missing fields
+- No invalid JSON
+- No Expo config errors
+- No iOS config issues
+
+========================
+7) OUTPUT REQUIRED
+
+Return ONLY:
+
+- Updated app.json
+- Updated eas.json
+- Exact commands to run (in order):
+
+1. eas login
+2. eas build -p ios
+3. eas submit -p ios
+
+========================
+RULES
+========================
+
+- Do NOT explain theory
+- Do NOT skip validation
+- Do NOT assume things are correct
+- Fix everything required for TestFlight readiness
+
+========================
+GOAL RESULT
+========================
+
+After following your output,
+I should be able to:
+- run build
+- upload to TestFlight
+- install app on iPhone
+
+WITHOUT errors.
