@@ -1,0 +1,82 @@
+8"}
+You are an expert Expo EAS + Apple TestFlight release engineer.
+
+I want you to fully prepare this project for iOS TestFlight and execute as much of the release flow as possible.
+
+IMPORTANT:
+Do the work directly.
+Do not give me theory.
+Do not stop early unless Apple authentication or App Store Connect permissions require my direct input.
+
+========================
+GOAL
+========================
+
+Prepare this app for TestFlight and complete everything that can be completed automatically.
+
+========================
+TASKS
+========================
+
+1) VERIFY AND FIX EXPO CONFIG
+- check app.json / app.config.js
+- ensure:
+  - name = KEAS
+  - slug = keas-app
+  - version = 1.0.0
+  - scheme = keas
+  - ios.bundleIdentifier = com.keas.app
+  - ios.buildNumber = 1
+- ensure location usage descriptions exist in ios.infoPlist
+- ensure icon is valid
+
+2) VERIFY EAS CONFIG
+- ensure eas.json exists
+- ensure production iOS profile is valid
+- ensure project is ready for:
+  - eas build -p ios --profile production
+  - eas submit -p ios --profile production
+
+3) VALIDATE PROJECT
+- check for config errors
+- check for missing fields
+- check for invalid json
+- confirm project is TestFlight-ready
+
+4) RUN BUILD
+- run the correct iOS production build command
+- wait for build completion
+- capture build result clearly
+
+5) ATTEMPT SUBMIT
+- attempt to submit to TestFlight if possible
+- if submission requires Apple login / 2FA / Team selection / App Store Connect app creation, stop only at that exact blocker
+
+6) IF BLOCKED
+If blocked by Apple-side requirements, return ONLY the exact remaining items I must do manually, in order, such as:
+- Apple login
+- 2FA code
+- Team selection
+- create app in App Store Connect
+- provide ascAppId
+
+========================
+OUTPUT REQUIRED
+========================
+
+Return only:
+
+1) what was fixed
+2) whether build succeeded
+3) whether submit succeeded
+4) exact blocker if submit could not complete
+5) exact next step for me
+
+========================
+RULES
+========================
+
+- Do the actual work
+- Do not give general advice unless blocked
+- Do not stop at “project is ready”
+- Continue through build and submission as far as possi

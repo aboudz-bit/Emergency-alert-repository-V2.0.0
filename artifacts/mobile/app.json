@@ -23,7 +23,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -42,7 +45,13 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
@@ -75,6 +84,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "892138e3-cab1-4568-b483-49d441773851"
+      }
+    },
+    "owner": "mirza-12"
   }
 }
