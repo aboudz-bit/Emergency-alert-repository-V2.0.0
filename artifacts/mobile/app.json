@@ -17,9 +17,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.keas.app",
       "buildNumber": "1",
-      "config": {
-        "googleMapsApiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
-      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",

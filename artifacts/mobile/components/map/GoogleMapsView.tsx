@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useCallback } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import MapView, { Marker, Polygon, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from "react-native-maps";
 
 import type { ZoneMapProps } from "./types";
 import { zoneToPolygon, zonesToRegion } from "./types";
@@ -70,13 +70,13 @@ export function GoogleMapsView({
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         initialRegion={region}
         mapType="standard"
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
-        customMapStyle={lightMapStyle}
+        {...(Platform.OS === "android" ? { customMapStyle: lightMapStyle } : {})}
       >
         {polygons.map((poly) => {
           if (isEditing && poly.id === editingZoneId) return null;
