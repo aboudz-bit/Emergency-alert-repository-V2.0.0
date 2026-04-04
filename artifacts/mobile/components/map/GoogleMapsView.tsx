@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useCallback } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polygon, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { Marker, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
 
 import type { ZoneMapProps } from "./types";
 import { zoneToPolygon, zonesToRegion } from "./types";
@@ -70,7 +70,7 @@ export function GoogleMapsView({
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         initialRegion={region}
         mapType="standard"
         showsUserLocation
