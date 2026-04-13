@@ -49,9 +49,11 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    feather: require("@/assets/fonts/Feather.ttf"),
+    ionicons: require("@/assets/fonts/Ionicons.ttf"),
   });
 
-  const [ready, setReady] = useState(IS_WEB);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (I18nManager.isRTL !== rtl) {
