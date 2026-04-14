@@ -108,6 +108,7 @@ export default function AlertManagementScreen() {
   const sendAlertNotification = useStore((s) => s.sendAlertNotification);
   const currentUser = useStore((s) => s.currentUser);
   const permissionAssignments = useStore((s) => s.permissionAssignments);
+  const defaultAlarmZoneIds = useStore((s) => s.settings.defaultAlarmZoneIds);
 
   const canSendNotification = useMemo(() => {
     if (!currentUser) return false;
@@ -611,7 +612,15 @@ export default function AlertManagementScreen() {
         {!selectionMode ? (
           <Pressable
             style={({ pressed }) => [styles.selectModeBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => setSelectionMode(true)}
+            onPress={() => {
+              if (defaultAlarmZoneIds.length > 0) {
+                const validDefaults = defaultAlarmZoneIds.filter((id) =>
+                  activeZones.some((z) => z.id === id)
+                );
+                setSelectedZoneIds(new Set(validDefaults));
+              }
+              setSelectionMode(true);
+            }}
           >
             <Feather name="check-square" size={12} color={Colors.primary} />
             <Text style={styles.selectModeBtnText}>Select</Text>

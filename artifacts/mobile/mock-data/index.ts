@@ -330,4 +330,5 @@ export const seedSettings: AppSettings = {
   hazardHotRadius: 200,
   hazardWarmRadius: 500,
   hazardColdRadius: 1000,
+  defaultAlarmZoneIds: [],
 };

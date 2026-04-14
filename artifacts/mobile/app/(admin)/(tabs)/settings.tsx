@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Pressable,
   ScrollView,
@@ -21,6 +21,35 @@ export default function SettingsScreen() {
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
   const logout = useStore((s) => s.logout);
+  const zones = useStore((s) => s.zones);
+
+  const availableZones = useMemo(
+    () => zones.filter((z) => z.isActive && !z.isArchived),
+    [zones]
+  );
+
+  const defaultIds = settings.defaultAlarmZoneIds || [];
+
+  const toggleDefaultZone = useCallback(
+    (zoneId: number) => {
+      const current = settings.defaultAlarmZoneIds || [];
+      const next = current.includes(zoneId)
+        ? current.filter((id) => id !== zoneId)
+        : [...current, zoneId];
+      updateSettings({ defaultAlarmZoneIds: next });
+    },
+    [settings.defaultAlarmZoneIds, updateSettings]
+  );
+
+  const clearAllDefaults = useCallback(() => {
+    updateSettings({ defaultAlarmZoneIds: [] });
+  }, [updateSettings]);
+
+  const selectAllDefaults = useCallback(() => {
+    updateSettings({
+      defaultAlarmZoneIds: availableZones.map((z) => z.id),
+    });
+  }, [availableZones, updateSettings]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -160,6 +189,73 @@ export default function SettingsScreen() {
                 Applies to new warning zones. Use "Apply Defaults" on the Zones page to update existing zones.
               </Text>
             </View>
+          </Card>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Default Alarm Zones</Text>
+          <Card>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>Pre-selected Zones</Text>
+                <Text style={styles.settingDescription}>
+                  These zones will be automatically selected when creating a new alarm
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {defaultIds.length > 0 && (
+                  <Pressable
+                    onPress={clearAllDefaults}
+                    style={styles.defaultZoneHeaderBtn}
+                  >
+                    <Text style={[styles.defaultZoneHeaderBtnText, { color: Colors.primary }]}>Clear</Text>
+                  </Pressable>
+                )}
+                {defaultIds.length < availableZones.length && (
+                  <Pressable
+                    onPress={selectAllDefaults}
+                    style={styles.defaultZoneHeaderBtn}
+                  >
+                    <Text style={[styles.defaultZoneHeaderBtnText, { color: Colors.primary }]}>All</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+            <Divider />
+            {availableZones.length === 0 ? (
+              <View style={{ paddingVertical: Spacing.md }}>
+                <Text style={styles.settingDescription}>No zones available</Text>
+              </View>
+            ) : (
+              availableZones.map((zone, idx) => {
+                const isDefault = defaultIds.includes(zone.id);
+                return (
+                  <React.Fragment key={zone.id}>
+                    <Pressable
+                      style={styles.defaultZoneRow}
+                      onPress={() => toggleDefaultZone(zone.id)}
+                    >
+                      <View style={[styles.defaultZoneDot, { backgroundColor: zone.color }]} />
+                      <Text style={styles.defaultZoneName} numberOfLines={1}>{zone.name}</Text>
+                      <View style={[styles.defaultZoneCheck, isDefault && styles.defaultZoneCheckActive]}>
+                        {isDefault && <Feather name="check" size={12} color="#fff" />}
+                      </View>
+                    </Pressable>
+                    {idx < availableZones.length - 1 && <Divider />}
+                  </React.Fragment>
+                );
+              })
+            )}
+            {defaultIds.length > 0 && (
+              <>
+                <Divider />
+                <View style={{ paddingVertical: Spacing.sm }}>
+                  <Text style={{ fontSize: FontSize.xs, fontFamily: "Inter_400Regular", color: Colors.textTertiary }}>
+                    {defaultIds.length} zone{defaultIds.length !== 1 ? "s" : ""} will be pre-selected in Alert Management selection mode.
+                  </Text>
+                </View>
+              </>
+            )}
           </Card>
         </View>
 
@@ -487,5 +583,46 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minWidth: 36,
     textAlign: "center",
+  },
+  defaultZoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+  },
+  defaultZoneDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  defaultZoneName: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontFamily: "Inter_500Medium",
+    color: Colors.text,
+  },
+  defaultZoneCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+  },
+  defaultZoneCheckActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  defaultZoneHeaderBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surface,
+  },
+  defaultZoneHeaderBtnText: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_600SemiBold",
   },
 });

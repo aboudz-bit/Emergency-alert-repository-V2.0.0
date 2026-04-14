@@ -410,6 +410,7 @@ export interface AppSettings {
   hazardHotRadius: number;
   hazardWarmRadius: number;
   hazardColdRadius: number;
+  defaultAlarmZoneIds: number[];
 }
 
 export type IncidentEventType =
