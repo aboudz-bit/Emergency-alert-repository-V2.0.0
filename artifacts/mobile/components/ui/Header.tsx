@@ -10,17 +10,20 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  leftAction?: React.ReactNode;
   rightAction?: React.ReactNode;
 }
 
-export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) {
+export function Header({ title, subtitle, showBack, leftAction, rightAction }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
       <View style={styles.row}>
-        {showBack && (
+        {leftAction ? (
+          <View>{leftAction}</View>
+        ) : showBack ? (
           <Pressable
             onPress={() => router.back()}
             style={styles.backBtn}
@@ -28,7 +31,7 @@ export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) 
           >
             <Feather name="chevron-left" size={22} color={Colors.headerText} />
           </Pressable>
-        )}
+        ) : null}
         <View style={styles.titleWrap}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}

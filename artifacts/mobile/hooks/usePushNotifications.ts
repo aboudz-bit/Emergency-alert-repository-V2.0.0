@@ -8,6 +8,8 @@ import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     priority: Notifications.AndroidNotificationPriority.MAX,
@@ -73,9 +75,7 @@ export function usePushNotifications() {
       }
     });
     return () => {
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      responseListener.current?.remove();
     };
   }, [router]);
 

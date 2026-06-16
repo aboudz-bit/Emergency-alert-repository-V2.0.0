@@ -1,6 +1,9 @@
 // ─── Roles & Auth ─────────────────────────────────────────────────────────────
 
-export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Superior';
+// 'ECO' is an operational assignment (see User.isECOAssigned/ecoSlot), not a
+// login role, but several screens compare currentUser.role === 'ECO'. It is
+// kept in the union so those (runtime-false) comparisons type-check.
+export type UserRole = 'User' | 'IT' | 'Super Admin' | 'Supervisor' | 'Back Superior' | 'ECO';
 export type AccountStatus = 'active' | 'disabled';
 export type EcoSlot = 'A' | 'B' | 'C';
 export type UserType = 'Aramco' | 'Contract';

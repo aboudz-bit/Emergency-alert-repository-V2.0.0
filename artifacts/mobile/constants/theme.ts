@@ -33,6 +33,7 @@ export const Colors = {
   amberDim: 'rgba(217, 119, 6, 0.08)',
 
   destructive: '#DC2626',
+  danger: '#DC2626',
 
   white: '#FFFFFF',
   black: '#000000',
