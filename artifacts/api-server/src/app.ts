@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import accountabilityRouter from "./routes/accountability";
+import keasRouter from "./routes/keas";
 
 const app: Express = express();
 
@@ -16,6 +17,7 @@ app.get("/api/healthz", (_req, res) => {
 });
 
 app.use("/api/accountability", accountabilityRouter);
+app.use("/api/keas", keasRouter);
 
 app.use(
   createProxyMiddleware({

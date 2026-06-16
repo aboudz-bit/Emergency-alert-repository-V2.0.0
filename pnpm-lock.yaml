@@ -172,6 +172,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/keas-core':
+        specifier: workspace:*
+        version: link:../../lib/keas-core
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
