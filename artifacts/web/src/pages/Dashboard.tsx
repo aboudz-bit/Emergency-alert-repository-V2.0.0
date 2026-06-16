@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
-import { Lightbulb, Siren, Wifi, WifiOff } from "lucide-react";
+import { Bell, Users, CheckCircle2, LifeBuoy, HelpCircle, Lightbulb, Siren, Wifi, WifiOff } from "lucide-react";
 import { scopedAlertStats, type AlertStats, type UserResponseStatus, type Zone } from "@workspace/keas-core";
 import { useUsers, useZones } from "@/lib/hooks";
 
@@ -63,11 +63,11 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <KPICard label="Active alerts" value={live && zonesQ.data ? zonesQ.data.filter((z) => z.alertActive).length : 2} />
-        <KPICard label="Personnel" value={stats.total} />
-        <KPICard label="Safe" value={stats.confirmed} tone="safe" />
-        <KPICard label="Need help" value={stats.needHelp} tone="help" />
-        <KPICard label="Missing" value={missing} tone="pending" />
+        <KPICard label="Active alerts" value={live && zonesQ.data ? zonesQ.data.filter((z) => z.alertActive).length : 2} icon={Bell} />
+        <KPICard label="Personnel" value={stats.total} icon={Users} />
+        <KPICard label="Safe" value={stats.confirmed} tone="safe" icon={CheckCircle2} />
+        <KPICard label="Need help" value={stats.needHelp} tone="help" icon={LifeBuoy} />
+        <KPICard label="Missing" value={missing} tone="pending" icon={HelpCircle} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

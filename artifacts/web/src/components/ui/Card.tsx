@@ -15,7 +15,8 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--keas-border)] bg-[var(--keas-surface)] p-4",
+        // radius/padding mirror mobile Card (BorderRadius.lg=12, Spacing.lg=18)
+        "rounded-[var(--keas-radius-lg)] border border-[var(--keas-border)] bg-[var(--keas-surface)] p-[var(--keas-space-lg)]",
         className,
       )}
     >
