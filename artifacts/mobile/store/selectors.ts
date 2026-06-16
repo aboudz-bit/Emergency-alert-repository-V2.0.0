@@ -51,6 +51,14 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
 
   if (activeZones.length > 0) {
     const first = activeZones[0];
+    // Stats are scoped to users in an active zone AND matching that zone's
+    // location scope (location-scoped alerts count only targeted locations;
+    // whole-zone alerts count the whole zone).
+    const activeZoneMap = new Map(activeZones.map(z => [z.id, z] as const));
+    const zoneUsers = activeUsers.filter(u => {
+      const z = activeZoneMap.get(u.zoneId);
+      return z ? userMatchesZoneScope(z, u) : false;
+    });
     return {
       id: -1,
       type: first.alertType || 'Zone Alert',
@@ -62,7 +70,12 @@ export const selectActiveAlert = (s: AppState): Alert | null => {
       priority: first.alertPriority || 'High',
       status: 'active' as const,
       isActive: true,
-      stats: { confirmed, pending, needHelp, total },
+      stats: {
+        confirmed: zoneUsers.filter(u => u.status === 'confirmed').length,
+        pending: zoneUsers.filter(u => u.status === 'pending').length,
+        needHelp: zoneUsers.filter(u => u.status === 'need_help').length,
+        total: zoneUsers.length,
+      },
     } as Alert;
   }
 

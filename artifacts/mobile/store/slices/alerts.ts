@@ -1,7 +1,7 @@
 import type { Alert, UserResponseStatus } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
 import { nextHistoryId } from '../helpers';
-import { selectIsCurrentUserTargeted } from '../selectors';
+import { selectIsCurrentUserTargeted, userMatchesZoneScope } from '../selectors';
 
 export function createAlertSlice(set: SetState, get: GetState): Pick<
   AppState,
@@ -21,11 +21,18 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
           // Handle comma-separated zone names from multi-zone alerts
           const zoneNames = a.zone.includes(', ') ? a.zone.split(', ').map(n => n.trim()) : [a.zone];
           const targetZones = isAllZones ? [] : s.zones.filter(z => zoneNames.includes(z.name));
-          const targetZoneIds = new Set(targetZones.map(z => z.id));
+          // Map by id so we can apply each zone's location scope: a location-scoped
+          // alert counts only users in its targeted locations; a whole-zone alert
+          // counts the whole zone.
+          const targetZoneMap = new Map(targetZones.map(z => [z.id, z] as const));
           const relevantUsers = isAllZones
             ? users.filter(u => u.isActive)
-            : targetZoneIds.size > 0
-              ? users.filter(u => targetZoneIds.has(u.zoneId) && u.isActive)
+            : targetZoneMap.size > 0
+              ? users.filter(u => {
+                  if (!u.isActive) return false;
+                  const z = targetZoneMap.get(u.zoneId);
+                  return z ? userMatchesZoneScope(z, u) : false;
+                })
               : users.filter(u => u.isActive);
           return {
             ...a,
