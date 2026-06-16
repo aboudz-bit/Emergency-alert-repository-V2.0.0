@@ -19,6 +19,10 @@ export const alertEq = (a: Alert | null, b: Alert | null): boolean => {
     a.zone === b.zone &&
     a.status === b.status &&
     a.timestamp === b.timestamp &&
+    a.lifecycle === b.lifecycle &&
+    a.hazardClearedAt === b.hazardClearedAt &&
+    a.accountabilityComplete === b.accountabilityComplete &&
+    a.isDrill === b.isDrill &&
     a.stats?.confirmed === b.stats?.confirmed &&
     a.stats?.pending === b.stats?.pending &&
     a.stats?.needHelp === b.stats?.needHelp &&
@@ -204,7 +208,7 @@ function computeInputKey(s: AppState): string {
 
   const activeAlert = alerts.find(a => a.isActive);
   const activeAlertKey = activeAlert
-    ? `${activeAlert.id}:${activeAlert.timestamp}:${activeAlert.status}:${activeAlert.stats?.confirmed ?? 0}:${activeAlert.stats?.pending ?? 0}:${activeAlert.stats?.needHelp ?? 0}:${activeAlert.stats?.total ?? 0}:${activeAlert.message}:${activeAlert.priority}:${activeAlert.zone}`
+    ? `${activeAlert.id}:${activeAlert.timestamp}:${activeAlert.status}:${activeAlert.stats?.confirmed ?? 0}:${activeAlert.stats?.pending ?? 0}:${activeAlert.stats?.needHelp ?? 0}:${activeAlert.stats?.total ?? 0}:${activeAlert.message}:${activeAlert.priority}:${activeAlert.zone}:${activeAlert.lifecycle ?? ''}:${activeAlert.hazardClearedAt ?? ''}:${activeAlert.accountabilityComplete ?? ''}:${activeAlert.isDrill ?? ''}`
     : 'none';
   const zoneKey = zones
     .filter(z => z.isActive && z.alertActive)

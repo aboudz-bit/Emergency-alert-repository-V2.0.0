@@ -23,6 +23,53 @@ export function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(1)}km`;
 }
 
+/** Forward geodesic: point at `bearingDeg` (0=N, 90=E) and `distanceM` from origin. */
+export function destinationPoint(
+  lat: number,
+  lng: number,
+  bearingDeg: number,
+  distanceM: number,
+): LatLng {
+  const R = 6371000;
+  const br = (bearingDeg * Math.PI) / 180;
+  const lat1 = (lat * Math.PI) / 180;
+  const lng1 = (lng * Math.PI) / 180;
+  const dr = distanceM / R;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(br),
+  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(br) * Math.sin(dr) * Math.cos(lat1),
+      Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2),
+    );
+  return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI };
+}
+
+/**
+ * Simple downwind plume wedge (cone) — NOT a scientific dispersion model.
+ * Returns a closed polygon: center → arc across ±halfAngle around the downwind
+ * bearing at `radiusM` → back to center.
+ */
+export function plumeWedgePoints(
+  center: LatLng,
+  bearingDeg: number,
+  radiusM: number,
+  halfAngleDeg = 28,
+  steps = 10,
+): LatLng[] {
+  const pts: LatLng[] = [{ lat: center.lat, lng: center.lng }];
+  const start = bearingDeg - halfAngleDeg;
+  const end = bearingDeg + halfAngleDeg;
+  for (let i = 0; i <= steps; i++) {
+    const b = start + ((end - start) * i) / steps;
+    pts.push(destinationPoint(center.lat, center.lng, b, radiusM));
+  }
+  pts.push({ lat: center.lat, lng: center.lng });
+  return pts;
+}
+
 export function pointInPolygon(pt: LatLng, polygon: LatLng[]): boolean {
   if (polygon.length < 3) return false;
   let inside = false;

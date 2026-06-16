@@ -835,8 +835,27 @@ function generateLeafletHtml(
     });
   }
 
+  // ── downwind plume (placeholder cone) helpers ──
+  function __plumeDest(lat, lng, bearingDeg, distM) {
+    var R = 6371000, br = bearingDeg*Math.PI/180;
+    var la = lat*Math.PI/180, lo = lng*Math.PI/180, dr = distM/R;
+    var la2 = Math.asin(Math.sin(la)*Math.cos(dr) + Math.cos(la)*Math.sin(dr)*Math.cos(br));
+    var lo2 = lo + Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la), Math.cos(dr)-Math.sin(la)*Math.sin(la2));
+    return [la2*180/Math.PI, lo2*180/Math.PI];
+  }
+  function __plumeWedge(lat, lng, bearing, radius, half, steps) {
+    var pts = [[lat, lng]];
+    var start = bearing - half, end = bearing + half;
+    for (var i = 0; i <= steps; i++) {
+      pts.push(__plumeDest(lat, lng, start + (end-start)*i/steps, radius));
+    }
+    pts.push([lat, lng]);
+    return pts;
+  }
+
   var hazardCircles = {};
-  function syncHazardZones(list) {
+  var hazardPlumes = {};
+  function syncHazardZones(list, windDeg) {
     var seen = {};
     list.forEach(function(hz) {
       seen[hz.id] = true;
@@ -862,6 +881,25 @@ function generateLeafletHtml(
         }).addTo(map);
         hazardCircles[hz.id] = { hot: hot, warm: warm, cold: cold };
       }
+
+      // Downwind plume cone — uses hazard's own wind dir, else the global wind.
+      var dir = (typeof hz.windDirectionDeg === 'number') ? hz.windDirectionDeg
+              : (typeof windDeg === 'number') ? windDeg : null;
+      if (dir !== null) {
+        var wpts = __plumeWedge(hz.centerLat, hz.centerLng, dir, (hz.coldRadius || 300) * 1.2, 26, 10);
+        if (hazardPlumes[hz.id]) {
+          hazardPlumes[hz.id].setLatLngs(wpts);
+        } else {
+          hazardPlumes[hz.id] = L.polygon(wpts, {
+            color: '#DC2626', fillColor: '#F87171', fillOpacity: 0.16,
+            weight: 1.5, dashArray: '6,5', interactive: false,
+          }).addTo(map);
+          hazardPlumes[hz.id].bringToFront();
+        }
+      } else if (hazardPlumes[hz.id]) {
+        map.removeLayer(hazardPlumes[hz.id]);
+        delete hazardPlumes[hz.id];
+      }
     });
     Object.keys(hazardCircles).forEach(function(idStr) {
       if (!seen[idStr]) {
@@ -869,6 +907,12 @@ function generateLeafletHtml(
         map.removeLayer(hazardCircles[idStr].warm);
         map.removeLayer(hazardCircles[idStr].cold);
         delete hazardCircles[idStr];
+      }
+    });
+    Object.keys(hazardPlumes).forEach(function(idStr) {
+      if (!seen[idStr]) {
+        map.removeLayer(hazardPlumes[idStr]);
+        delete hazardPlumes[idStr];
       }
     });
   }
@@ -1248,7 +1292,7 @@ function generateLeafletHtml(
         });
       }
       if (d.type === 'sync_hazard_zones' && Array.isArray(d.hazardZones)) {
-        syncHazardZones(d.hazardZones);
+        syncHazardZones(d.hazardZones, d.windDeg);
       }
       if (d.type === 'sync_streets' && Array.isArray(d.streets)) {
         syncStreets(d.streets);
@@ -1642,7 +1686,7 @@ export function LeafletPreviewFallback({
     const active = hazardZones.filter((hz) => hz.isActive);
     const t = setTimeout(() => postToIframe({ type: "sync_hazard_zones", hazardZones: active }), 120);
     return () => clearTimeout(t);
-  }, [hazardZones]);
+  }, [hazardZones, windDirectionDeg, mapHtml]);
 
   const prevStreetsRef = useRef<string>("");
   useEffect(() => { prevStreetsRef.current = ""; }, [mapHtml]);

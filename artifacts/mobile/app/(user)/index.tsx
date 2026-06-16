@@ -24,6 +24,9 @@ import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
 import { formatDistance, findBestShelter } from "@/utils/geo";
 import type { LatLng } from "@/types";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
+import { DrillBanner } from "@/components/ui/DrillBanner";
+import { isDrillAlert } from "@/utils/incident";
+import { safeHaptic } from "@/utils/haptics";
 import { useTranslation } from "@/i18n/useTranslation";
 import { translateAlertType, translateAlertTitle, translateAlertMessage, translateShelterName } from "@/i18n/translations";
 
@@ -146,6 +149,9 @@ export default function UserHomeScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <EmergencyModeBanner />
+      {activeAlert && isDrillAlert(activeAlert) ? (
+        <View style={styles.drillWrap}><DrillBanner /></View>
+      ) : null}
       <View style={styles.headerArea}>
         <View style={styles.greetingRow}>
           <View style={styles.greetingTextWrap}>
@@ -230,23 +236,26 @@ export default function UserHomeScreen() {
               </Card>
             ) : (
               <View style={styles.responseButtons}>
+                {/* Safe — clear but secondary to Need Help */}
                 <Pressable
                   style={({ pressed }) => [styles.responseBtn, styles.safeBtnBg, pressed && styles.pressed]}
                   onPress={() => respondToAlert("confirmed")}
                   accessibilityRole="button"
                   accessibilityLabel={t.iAmSafe}
                 >
-                  <Feather name="shield" size={28} color={Colors.white} />
-                  <Text style={styles.responseBtnText}>{t.iAmSafe}</Text>
+                  <Feather name="shield" size={24} color={Colors.white} />
+                  <Text style={styles.safeBtnText}>{t.iAmSafe}</Text>
                 </Pressable>
+                {/* Need Help — dominant, urgent, red, larger, separated */}
                 <Pressable
                   style={({ pressed }) => [styles.responseBtn, styles.helpBtnBg, pressed && styles.pressed]}
                   onPress={() => respondToAlert("need_help")}
                   accessibilityRole="button"
                   accessibilityLabel={t.needHelp}
                 >
-                  <Feather name="alert-circle" size={28} color={Colors.white} />
-                  <Text style={styles.responseBtnText}>{t.needHelp}</Text>
+                  <Feather name="alert-circle" size={34} color={Colors.white} />
+                  <Text style={styles.helpBtnText}>{t.needHelp}</Text>
+                  <Text style={styles.helpBtnHint}>Tap if you are in danger or injured</Text>
                 </Pressable>
               </View>
             )}
@@ -471,33 +480,58 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.textTertiary,
   },
+  drillWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
   responseButtons: {
-    flexDirection: "row",
+    flexDirection: "column",
     gap: Spacing.md,
   },
-  responseBtn: {
-    flex: 1,
+  // Safe — secondary weight
+  safeBtn: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.xl,
-    borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
-    minHeight: 96,
-  },
-  safeBtnBg: {
     backgroundColor: Colors.safe,
+    height: 64,
+    borderRadius: BorderRadius.lg,
   },
-  helpBtnBg: {
-    backgroundColor: Colors.primary,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  responseBtnText: {
-    fontSize: FontSize.md,
+  safeBtnText: {
+    fontSize: FontSize.lg,
     fontFamily: "Inter_700Bold",
     color: Colors.white,
     letterSpacing: 0.5,
+  },
+  // Need Help — dominant, urgent
+  helpBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    backgroundColor: Colors.destructive,
+    minHeight: 128,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: "#B91C1C",
+  },
+  helpBtnPressed: {
+    opacity: 0.9,
+    backgroundColor: "#B91C1C",
+  },
+  helpBtnText: {
+    fontSize: FontSize.xxl,
+    fontFamily: "Inter_700Bold",
+    color: Colors.white,
+    letterSpacing: 1,
+  },
+  helpBtnHint: {
+    fontSize: FontSize.xs,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.9)",
+  },
+  pressed: {
+    opacity: 0.85,
   },
   confirmedCard: {
     borderColor: Colors.safeBorder,

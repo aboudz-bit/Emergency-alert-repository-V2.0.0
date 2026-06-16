@@ -106,6 +106,12 @@ export default function SupervisorDashboardScreen() {
     return { actual, expected, safe, pending, needHelp, critical, zoneAlerts, hasBoundary: (myLocation?.polygonPoints?.length ?? 0) >= 3 };
   }, [locationUsers, alerts, zoneName, myLocation]);
 
+  const activeAlert = useMemo(() => alerts.find((a) => a.isActive) ?? null, [alerts]);
+  const reconciliation = useMemo(
+    () => reconcileHeadcount(stats.expected, locationUsers),
+    [stats.expected, locationUsers],
+  );
+
   const myLinkedShelters = useMemo(() => {
     if (!myLocation) return [];
     return shelters.filter(
@@ -388,6 +394,12 @@ export default function SupervisorDashboardScreen() {
           </View>
         )}
 
+        {/* ── Headcount Reconciliation ── */}
+        <Card>
+          <Text style={styles.reconcileTitle}>Headcount Reconciliation</Text>
+          <HeadcountReconciliation data={reconciliation} />
+        </Card>
+
         {/* ── Action Buttons (supervisor only, not backup) ── */}
         {!isBackup && (
           <View style={styles.actionRow}>
@@ -490,6 +502,7 @@ export default function SupervisorDashboardScreen() {
           Expected: {stats.expected} • Actual: {stats.actual} • Safe:{" "}
           {stats.safe} • Pending: {stats.pending}
         </Text>
+
 
         {sessionActive && accountabilityPersonnel.length > 0
           ? accountabilityPersonnel.map((p) => (
@@ -637,6 +650,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.md },
+  drillWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
+  reconcileTitle: {
+    fontSize: FontSize.md,
+    fontFamily: "Inter_700Bold",
+    color: Colors.textTitle,
+    marginBottom: Spacing.sm,
+  },
+  escChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(220,38,38,0.10)",
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  escChipText: {
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    color: Colors.destructive,
+    letterSpacing: 0.3,
+  },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",

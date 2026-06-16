@@ -13,6 +13,9 @@ import { Feather } from "@expo/vector-icons";
 
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DrillBanner } from "@/components/ui/DrillBanner";
+import { IncidentTimeline } from "@/components/ui/IncidentTimeline";
+import { isDrillAlert } from "@/utils/incident";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore, selectIsCurrentUserTargeted } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
@@ -190,6 +193,7 @@ export default function AlertDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {isDrillAlert(activeAlert) ? <DrillBanner /> : null}
         {/* Alert Type Icon and Title */}
         <View style={styles.heroSection}>
           <View style={styles.heroIconWrap}>
@@ -269,6 +273,14 @@ export default function AlertDetailScreen() {
             </View>
           </View>
         </Card>
+
+        {/* Incident Timeline */}
+        {activeAlert.timeline && activeAlert.timeline.length > 0 && (
+          <Card style={styles.messageCard}>
+            <Text style={styles.messageSectionLabel}>Incident Timeline</Text>
+            <IncidentTimeline events={activeAlert.timeline} max={6} />
+          </Card>
+        )}
 
         {/* Response Buttons or Confirmed Status */}
         {mobileUserResponse ? (

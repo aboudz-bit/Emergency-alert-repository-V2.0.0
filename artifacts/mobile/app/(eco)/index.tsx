@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert as RNAlert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { format } from "date-fns";
@@ -8,6 +8,12 @@ import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DrillBanner } from "@/components/ui/DrillBanner";
+import { IncidentLifecycleCard } from "@/components/ui/IncidentLifecycleCard";
+import { EcoChecklistCard } from "@/components/ui/EcoChecklistCard";
+import { CommsTreeCard } from "@/components/ui/CommsTreeCard";
+import { IncidentTimeline } from "@/components/ui/IncidentTimeline";
+import { isDrillAlert } from "@/utils/incident";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useStore } from "@/store";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
@@ -23,6 +29,10 @@ export default function ECODashboardScreen() {
   const alerts = useStore((s) => s.alerts);
   const activityLogs = useStore((s) => s.activityLogs);
   const logout = useStore((s) => s.logout);
+  const sendAllClear = useStore((s) => s.sendAllClear);
+  const completePersonnelAccountability = useStore((s) => s.completePersonnelAccountability);
+  const closeIncident = useStore((s) => s.closeIncident);
+  const toggleChecklistItem = useStore((s) => s.toggleChecklistItem);
 
   const zoneName = currentUser?.ecoZoneName ?? currentUser?.zone ?? "";
   const zoneObj = useMemo(
@@ -87,6 +97,9 @@ export default function ECODashboardScreen() {
     [alerts, zoneName]
   );
 
+  // Active broadcast incident this ECO manages (lifecycle/checklist/timeline live here).
+  const activeAlert = useMemo(() => alerts.find((a) => a.isActive) ?? null, [alerts]);
+
   const recentLogs = useMemo(() => activityLogs.filter(l => l.type === 'alert' || l.type === 'action').slice(0, 5), [activityLogs]);
 
   const handleLogout = useCallback(() => {
@@ -109,6 +122,7 @@ export default function ECODashboardScreen() {
       />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {activeAlert && isDrillAlert(activeAlert) ? <DrillBanner /> : null}
         <View style={styles.roleBanner}>
           <View style={styles.roleBannerLeft}>
             <Feather name="shield" size={18} color={Colors.info} />
@@ -169,6 +183,35 @@ export default function ECODashboardScreen() {
               </View>
             ))}
           </Card>
+        )}
+
+        {/* ── Incident Management (ECO) ── */}
+        {activeAlert && (
+          <>
+            <IncidentLifecycleCard
+              alert={activeAlert}
+              canManage
+              onDeclareHazardAllClear={() => { sendAllClear(); }}
+              onCompleteAccountability={() => { completePersonnelAccountability(); }}
+              onCloseIncident={(override) => {
+                const r = closeIncident(override);
+                if (!r.success && r.error) RNAlert.alert("Cannot close incident", r.error);
+              }}
+            />
+            {activeAlert.checklist && activeAlert.checklist.length > 0 && (
+              <Card>
+                <EcoChecklistCard
+                  items={activeAlert.checklist}
+                  onToggle={(id) => toggleChecklistItem(activeAlert.id, id)}
+                />
+              </Card>
+            )}
+            <Card><CommsTreeCard /></Card>
+            <Card>
+              <Text style={styles.timelineTitle}>Incident Timeline</Text>
+              <IncidentTimeline events={activeAlert.timeline ?? []} max={8} />
+            </Card>
+          </>
         )}
 
         <Text style={styles.sectionTitle}>Location Breakdown</Text>
@@ -265,6 +308,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg, fontFamily: "Inter_700Bold", color: Colors.text,
     marginTop: Spacing.sm,
+  },
+  timelineTitle: {
+    fontSize: FontSize.md, fontFamily: "Inter_700Bold", color: Colors.textTitle,
+    marginBottom: Spacing.sm,
   },
   locationCard: { gap: Spacing.sm },
   locationHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
