@@ -301,7 +301,12 @@ export default function ECOLiveMapScreen() {
 
       {!routeMode && (
         <View style={[styles.routeFab, { bottom: insets.bottom + 80 }]}>
-          <Pressable style={styles.routeFabBtn} onPress={handleStartRoute}>
+          <Pressable
+            style={styles.routeFabBtn}
+            onPress={handleStartRoute}
+            accessibilityRole="button"
+            accessibilityLabel="Start route mode"
+          >
             <Feather name="navigation" size={20} color="#fff" />
             <Text style={styles.routeFabText}>Route Mode</Text>
           </Pressable>
@@ -360,7 +365,12 @@ export default function ECOLiveMapScreen() {
 
             {!routeConfirmed && (
               <View style={styles.routeBtnRow}>
-                <Pressable style={styles.routeBtnSecondary} onPress={handleExitRoute}>
+                <Pressable
+                  style={styles.routeBtnSecondary}
+                  onPress={handleExitRoute}
+                  accessibilityRole="button"
+                  accessibilityLabel="Exit route mode"
+                >
                   <Feather name="x" size={16} color={Colors.text} />
                   <Text style={styles.routeBtnSecText}>Exit</Text>
                 </Pressable>
@@ -368,6 +378,8 @@ export default function ECOLiveMapScreen() {
                   style={[styles.routeBtnSecondary, routeStreetIds.length === 0 && styles.routeBtnDisabled]}
                   onPress={handleUndoRoute}
                   disabled={routeStreetIds.length === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel="Undo last route segment"
                 >
                   <Feather name="corner-up-left" size={16} color={routeStreetIds.length === 0 ? Colors.textTertiary : Colors.text} />
                   <Text style={[styles.routeBtnSecText, routeStreetIds.length === 0 && styles.routeBtnDisabledText]}>Undo</Text>
@@ -376,6 +388,8 @@ export default function ECOLiveMapScreen() {
                   style={[styles.routeBtnSecondary, routeStreetIds.length === 0 && styles.routeBtnDisabled]}
                   onPress={handleClearRoute}
                   disabled={routeStreetIds.length === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear route"
                 >
                   <Feather name="trash-2" size={16} color={routeStreetIds.length === 0 ? Colors.textTertiary : Colors.danger} />
                   <Text style={[styles.routeBtnSecText, routeStreetIds.length === 0 && styles.routeBtnDisabledText]}>Clear</Text>
@@ -384,6 +398,8 @@ export default function ECOLiveMapScreen() {
                   style={[styles.routeBtnConfirm, routeStreetIds.length === 0 && styles.routeBtnDisabled]}
                   onPress={handleConfirmRoute}
                   disabled={routeStreetIds.length === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm route"
                 >
                   <Feather name="check" size={16} color="#fff" />
                   <Text style={styles.routeBtnConfirmText}>Confirm</Text>

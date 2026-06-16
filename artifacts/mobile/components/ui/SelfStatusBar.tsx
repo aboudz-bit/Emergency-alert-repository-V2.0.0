@@ -33,6 +33,8 @@ export function SelfStatusBar() {
               <Pressable
                 style={[styles.smallBtn, styles.safeSmall]}
                 onPress={() => respondToAlert("confirmed")}
+                accessibilityRole="button"
+                accessibilityLabel="I'm Safe"
               >
                 <Feather name="check" size={12} color="#34D399" />
                 <Text style={[styles.smallBtnText, { color: "#34D399" }]}>I'm Safe</Text>
@@ -42,6 +44,8 @@ export function SelfStatusBar() {
               <Pressable
                 style={[styles.smallBtn, styles.helpSmall]}
                 onPress={() => respondToAlert("need_help")}
+                accessibilityRole="button"
+                accessibilityLabel="Need Help"
               >
                 <Feather name="alert-triangle" size={12} color="#EF4444" />
                 <Text style={[styles.smallBtnText, { color: "#EF4444" }]}>Need Help</Text>
@@ -54,6 +58,8 @@ export function SelfStatusBar() {
           <Pressable
             style={[styles.btn, styles.safeBtn]}
             onPress={() => respondToAlert("confirmed")}
+            accessibilityRole="button"
+            accessibilityLabel="I am Safe"
           >
             <Feather name="check-circle" size={18} color="#fff" />
             <Text style={styles.btnText}>I am Safe</Text>
@@ -61,6 +67,8 @@ export function SelfStatusBar() {
           <Pressable
             style={[styles.btn, styles.helpBtn]}
             onPress={() => respondToAlert("need_help")}
+            accessibilityRole="button"
+            accessibilityLabel="Need Help"
           >
             <Feather name="alert-triangle" size={18} color="#fff" />
             <Text style={styles.btnText}>Need Help</Text>

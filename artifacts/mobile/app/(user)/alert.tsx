@@ -321,6 +321,8 @@ export default function AlertDetailScreen() {
                 pressed && styles.pressed,
               ]}
               onPress={() => handleRespond("confirmed")}
+              accessibilityRole="button"
+              accessibilityLabel={t.iAmSafe}
             >
               <Feather name="shield" size={28} color={Colors.white} />
               <Text style={styles.responseBtnTitle}>{t.iAmSafe}</Text>
@@ -335,6 +337,8 @@ export default function AlertDetailScreen() {
                 pressed && styles.pressed,
               ]}
               onPress={() => handleRespond("need_help")}
+              accessibilityRole="button"
+              accessibilityLabel={t.needHelp}
             >
               <Feather name="alert-circle" size={28} color={Colors.white} />
               <Text style={styles.responseBtnTitle}>{t.needHelp}</Text>

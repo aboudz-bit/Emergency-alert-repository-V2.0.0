@@ -322,6 +322,8 @@ export default function AlertMonitorScreen() {
             <Pressable
               style={styles.allClearBtn}
               onPress={() => setShowAllClearConfirm(true)}
+              accessibilityRole="button"
+              accessibilityLabel="All Clear"
             >
               <Feather name="check-circle" size={20} color="#fff" />
               <Text style={styles.allClearText}>All Clear</Text>
@@ -473,6 +475,8 @@ export default function AlertMonitorScreen() {
                     console.error("[ADMIN MAP] All Clear failed:", e);
                   }
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Confirm All Clear"
               >
                 <Text style={styles.confirmOkText}>Confirm</Text>
               </Pressable>

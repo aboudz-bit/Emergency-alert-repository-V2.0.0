@@ -233,6 +233,8 @@ export default function UserHomeScreen() {
                 <Pressable
                   style={({ pressed }) => [styles.responseBtn, styles.safeBtnBg, pressed && styles.pressed]}
                   onPress={() => respondToAlert("confirmed")}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.iAmSafe}
                 >
                   <Feather name="shield" size={28} color={Colors.white} />
                   <Text style={styles.responseBtnText}>{t.iAmSafe}</Text>
@@ -240,6 +242,8 @@ export default function UserHomeScreen() {
                 <Pressable
                   style={({ pressed }) => [styles.responseBtn, styles.helpBtnBg, pressed && styles.pressed]}
                   onPress={() => respondToAlert("need_help")}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.needHelp}
                 >
                   <Feather name="alert-circle" size={28} color={Colors.white} />
                   <Text style={styles.responseBtnText}>{t.needHelp}</Text>
