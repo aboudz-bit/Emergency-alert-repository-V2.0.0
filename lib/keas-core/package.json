@@ -10,10 +10,14 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./theme": "./src/theme.ts",
-    "./targeting": "./src/targeting.ts"
+    "./targeting": "./src/targeting.ts",
+    "./api": "./src/api.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "~5.9.2"

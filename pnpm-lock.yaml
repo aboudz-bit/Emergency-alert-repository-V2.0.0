@@ -921,6 +921,10 @@ importers:
         version: 0.31.9(supports-color@8.1.1)
 
   lib/keas-core:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: ~5.9.2

@@ -3,3 +3,4 @@
 export * from './types';
 export * from './targeting';
 export * from './theme';
+export * from './api';
