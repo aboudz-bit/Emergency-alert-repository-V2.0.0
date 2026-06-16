@@ -14,7 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectIsCurrentUserTargeted } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useTranslation } from "@/i18n/useTranslation";
 import { translateAlertType, translateAlertTitle, translateAlertMessage, translateZone } from "@/i18n/translations";
@@ -114,7 +114,10 @@ function PulsingDot({ size = 14 }: { size?: number }) {
 export default function AlertDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeAlert } = useAlertSystemState();
+  const { activeAlert: rawActiveAlert } = useAlertSystemState();
+  // Non-targeted users (same zone, unselected location) see no active alert.
+  const isUserTargeted = useStore(selectIsCurrentUserTargeted);
+  const activeAlert = isUserTargeted ? rawActiveAlert : null;
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const dismissAlertSound = useStore((s) => s.dismissAlertSound);

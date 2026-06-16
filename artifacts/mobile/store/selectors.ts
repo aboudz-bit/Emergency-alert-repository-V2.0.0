@@ -1,4 +1,4 @@
-import type { Alert, PermissionKey, AlertSystemState, BannerState } from '@/types';
+import type { Alert, PermissionKey, AlertSystemState, BannerState, Zone, User } from '@/types';
 import type { AppState } from './types';
 
 export const defaultAlertSystemState: AlertSystemState = {
@@ -125,6 +125,59 @@ export const selectIsEmergencyActive = (s: AppState) => {
 export const selectHasRealAlert = (s: AppState) => {
   const alerts = Array.isArray(s.alerts) ? s.alerts : [];
   return alerts.some(a => a.isActive);
+};
+
+/**
+ * Single source of truth for location-scope targeting on a zone alert.
+ * - scope 'zone' (or unset): the whole zone is targeted.
+ * - scope 'locations': only users whose locationId is in alertTargetLocationIds.
+ */
+export const userMatchesZoneScope = (
+  zone: Pick<Zone, 'alertTargetScope' | 'alertTargetLocationIds'>,
+  user: Pick<User, 'locationId'>,
+): boolean => {
+  if (zone.alertTargetScope === 'locations') {
+    const ids = Array.isArray(zone.alertTargetLocationIds) ? zone.alertTargetLocationIds : [];
+    return ids.includes(user.locationId);
+  }
+  return true;
+};
+
+/**
+ * Whether the CURRENT user should receive/respond to the active emergency.
+ * Mirrors the alarm gate in useEmergencyAlerts so the UI, the alarm, and the
+ * response action all agree on who is targeted.
+ *  - real broadcast alert  -> app-wide (every user)
+ *  - zone alert            -> user's own zone must be active AND pass location scope
+ *  - shelter-in / blackout -> by zone name (empty target list = all zones)
+ */
+export const selectIsCurrentUserTargeted = (s: AppState): boolean => {
+  const user = s.currentUser;
+  if (!user) return false;
+
+  // A real broadcast alert is app-wide (preserves existing broadcast semantics).
+  const alerts = Array.isArray(s.alerts) ? s.alerts : [];
+  if (alerts.some(a => a.isActive)) return true;
+
+  const zones = Array.isArray(s.zones) ? s.zones : [];
+
+  // Zone alert affecting the user's own zone, honoring per-location targeting.
+  const userZoneAlert = zones.find(z => z.isActive && z.alertActive && z.id === user.zoneId);
+  if (userZoneAlert && userMatchesZoneScope(userZoneAlert, user)) return true;
+
+  // Shelter-in / blackout are scoped by zone NAME (empty list = all zones).
+  const em = s.emergencyModes;
+  const userZoneName = zones.find(z => z.id === user.zoneId)?.name ?? null;
+  if (em?.shelterIn) {
+    const tz = Array.isArray(em.shelterInZones) ? em.shelterInZones : [];
+    if (tz.length === 0 || (userZoneName != null && tz.includes(userZoneName))) return true;
+  }
+  if (em?.blackout) {
+    const tz = Array.isArray(em.blackoutZones) ? em.blackoutZones : [];
+    if (tz.length === 0 || (userZoneName != null && tz.includes(userZoneName))) return true;
+  }
+
+  return false;
 };
 
 let _cachedAlertSystemState: AlertSystemState = defaultAlertSystemState;

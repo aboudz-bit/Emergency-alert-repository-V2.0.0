@@ -17,7 +17,7 @@ import * as ExpoLocation from "expo-location";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-import { useStore } from "@/store";
+import { useStore, selectIsCurrentUserTargeted } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useDetectedLocation } from "@/hooks/useDetectedLocation";
 import { usePersonnelTracking } from "@/hooks/usePersonnelTracking";
@@ -83,7 +83,10 @@ export default function UserHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const currentUser = useStore((s) => s.currentUser);
-  const { activeAlert, emergencyMode } = useAlertSystemState();
+  const { activeAlert: rawActiveAlert, emergencyMode } = useAlertSystemState();
+  // Only users targeted by the active alert (zone + location scope) receive it.
+  const isUserTargeted = useStore(selectIsCurrentUserTargeted);
+  const activeAlert = isUserTargeted ? rawActiveAlert : null;
   const mobileUserResponse = useStore((s) => s.mobileUserResponse);
   const respondToAlert = useStore((s) => s.respondToAlert);
   const shelters = useStore((s) => s.shelters);
@@ -95,7 +98,7 @@ export default function UserHomeScreen() {
 
   const { detectedLocationId } = useDetectedLocation(userLocation);
 
-  const hasActiveAlert = emergencyMode !== null;
+  const hasActiveAlert = isUserTargeted && emergencyMode !== null;
   usePersonnelTracking(hasActiveAlert);
 
   const activeShelters = useMemo(() => shelters.filter((s) => s.isActive), [shelters]);

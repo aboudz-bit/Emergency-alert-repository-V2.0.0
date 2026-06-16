@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Platform, Vibration } from "react-native";
 import { Audio } from "expo-av";
-import { useStore } from "@/store";
+import { useStore, userMatchesZoneScope } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 
 const VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
@@ -121,7 +121,12 @@ export function useEmergencyAlerts() {
   const userInAffectedZone = (() => {
     if (emergencyMode === "broadcastAlert") return true;
     if (emergencyMode === "zoneAlert") {
-      return userZoneId != null && activeZoneIds.includes(userZoneId);
+      if (userZoneId == null || !activeZoneIds.includes(userZoneId)) return false;
+      // Respect per-location targeting: a location-scoped zone alert only
+      // reaches users whose locationId is in alertTargetLocationIds.
+      const userZone = zones.find((z) => z.id === userZoneId);
+      if (!userZone || !currentUser) return true;
+      return userMatchesZoneScope(userZone, currentUser);
     }
     if (emergencyMode === "shelterIn") {
       const targetZones = emergencyModes?.shelterInZones ?? [];

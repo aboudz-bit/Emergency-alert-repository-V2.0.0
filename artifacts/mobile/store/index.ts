@@ -26,7 +26,7 @@ import { createIncidentTimelineSlice, incidentTimelineInitialState } from './sli
 import { createStreetSlice, streetInitialState } from './slices/streets';
 import { createRouteSlice, routeInitialState } from './slices/routes';
 
-export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState, defaultAlertSystemState } from './selectors';
+export { selectActiveAlert, alertEq, selectHasActiveAlert, selectIsEmergencyActive, selectHasRealAlert, selectAlertSystemState, defaultAlertSystemState, selectIsCurrentUserTargeted, userMatchesZoneScope } from './selectors';
 export {
   selectCanViewGlobalLiveMap,
   selectCanPlaceWarningZone,

@@ -1,6 +1,7 @@
 import type { Alert, UserResponseStatus } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
 import { nextHistoryId } from '../helpers';
+import { selectIsCurrentUserTargeted } from '../selectors';
 
 export function createAlertSlice(set: SetState, get: GetState): Pick<
   AppState,
@@ -167,6 +168,9 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
     respondToAlert: (response) => {
       const { currentUser } = get();
       if (!currentUser) return;
+      // Guard: a user who is not targeted by the active alert (e.g. same zone
+      // but an unselected location) must not be able to respond and pollute stats.
+      if (!selectIsCurrentUserTargeted(get())) return;
       const now = new Date().toISOString();
       get().updateUserResponse(currentUser.id, response);
       set(s => ({
