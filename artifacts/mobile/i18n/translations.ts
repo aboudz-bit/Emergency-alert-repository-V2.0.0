@@ -1,10 +1,14 @@
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
+import { reloadAppAsync } from 'expo';
 import type { Language } from '@/types';
 
 /**
  * Apply RTL layout flags based on language.
- * The root _layout.tsx useEffect + GestureHandlerRootView direction style
- * handle the actual visual update — no app reload needed.
+ * On native, I18nManager.forceRTL only takes effect after an app reload — without
+ * it the UI stays half-mirrored (text flips but row layouts keep their LTR
+ * direction). So when the direction actually changes we reload the app once. On
+ * web the layout flips via the GestureHandlerRootView `direction` style (CSS),
+ * so no reload is needed there.
  */
 export function applyRTL(lang: Language): void {
   const shouldBeRTL = lang === 'ar' || lang === 'ur';
@@ -12,6 +16,9 @@ export function applyRTL(lang: Language): void {
   if (I18nManager.isRTL !== shouldBeRTL) {
     I18nManager.allowRTL(shouldBeRTL);
     I18nManager.forceRTL(shouldBeRTL);
+    if (Platform.OS !== 'web') {
+      reloadAppAsync().catch(() => {});
+    }
   }
 }
 
