@@ -1,19 +1,51 @@
 @import "tailwindcss";
 
 :root {
+  /* Colors — mirror artifacts/mobile/constants/theme.ts Colors */
   --keas-primary: #5b3a8e;
   --keas-primary-dim: rgba(91, 58, 142, 0.08);
+  --keas-primary-border: rgba(91, 58, 142, 0.16);
   --keas-bg: #f5f6f8;
   --keas-surface: #ffffff;
   --keas-surface-2: #f0f1f4;
   --keas-border: #e5e7eb;
+  --keas-border-light: #d1d5db;
   --keas-text: #111111;
+  --keas-text-title: #1f2937;
   --keas-text-secondary: #6b7280;
   --keas-text-tertiary: #9ca3af;
   --keas-safe: #16a34a;
   --keas-pending: #d97706;
+  --keas-amber: #d97706;
   --keas-help: #ef4444;
   --keas-danger: #dc2626;
+
+  /* Spacing — mirror mobile Spacing scale (px) */
+  --keas-space-xs: 4px;
+  --keas-space-sm: 8px;
+  --keas-space-md: 14px;
+  --keas-space-lg: 18px;
+  --keas-space-xl: 24px;
+  --keas-space-xxl: 32px;
+  --keas-space-xxxl: 40px;
+
+  /* Border radius — mirror mobile BorderRadius scale (px) */
+  --keas-radius-sm: 6px;
+  --keas-radius-md: 10px;
+  --keas-radius-lg: 12px;
+  --keas-radius-xl: 16px;
+  --keas-radius-xxl: 20px;
+  --keas-radius-full: 9999px;
+
+  /* Font size — mirror mobile FontSize scale (px) */
+  --keas-text-xs: 11px;
+  --keas-text-sm: 13px;
+  --keas-text-md: 15px;
+  --keas-text-lg: 17px;
+  --keas-text-xl: 20px;
+  --keas-text-xxl: 24px;
+  --keas-text-xxxl: 30px;
+  --keas-text-display: 36px;
 }
 
 html,
@@ -26,7 +58,8 @@ body {
   margin: 0;
   background: var(--keas-bg);
   color: var(--keas-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Inter first — matches the mobile app's loaded typeface; system stack is fallback. */
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
