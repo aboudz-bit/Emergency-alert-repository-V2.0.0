@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useStore } from "@/store";
@@ -17,6 +18,7 @@ function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap
 export default function ECOLayout() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const currentUser = useStore((s) => s.currentUser);
+  const insets = useSafeAreaInsets();
 
   if (!isAuthenticated || !currentUser) {
     return <Redirect href="/(auth)/login" />;
@@ -33,7 +35,7 @@ export default function ECOLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: 60 + insets.bottom, paddingBottom: Math.max(insets.bottom, 8) }],
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
       }}
@@ -82,8 +84,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopColor: Colors.border,
     borderTopWidth: 1,
-    height: Platform.OS === "ios" ? 88 : 68,
-    paddingBottom: Platform.OS === "ios" ? 28 : 8,
     paddingTop: 6,
     paddingHorizontal: Spacing.sm,
   },
