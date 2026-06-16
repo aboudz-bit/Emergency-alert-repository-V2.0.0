@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --keas-primary: #5b3a8e;
+  --keas-primary-dim: rgba(91, 58, 142, 0.08);
+  --keas-bg: #f5f6f8;
+  --keas-surface: #ffffff;
+  --keas-surface-2: #f0f1f4;
+  --keas-border: #e5e7eb;
+  --keas-text: #111111;
+  --keas-text-secondary: #6b7280;
+  --keas-text-tertiary: #9ca3af;
+  --keas-safe: #16a34a;
+  --keas-pending: #d97706;
+  --keas-help: #ef4444;
+  --keas-danger: #dc2626;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--keas-bg);
+  color: var(--keas-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
