@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import { useStore } from "@/store";
 import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
 import { useEscalation, setEscalationCallback, type EscalationEntry } from "@/hooks/useEscalation";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { immediateEmergencyTrigger } from "@/utils/notifications";
 import * as Notifications from "expo-notifications";
 
 if (Platform.OS !== "web") {
@@ -29,6 +31,9 @@ export function SystemServices() {
 function SystemServicesInner() {
   useEmergencyAlerts();
   useEscalation();
+  // Mount the push-notification pipeline (permission request, token registration,
+  // Android channel, primary emergency notification, notification-tap deep link).
+  usePushNotifications();
 
   const currentUser = useStore((s) => s.currentUser);
   const role = currentUser?.role;
@@ -52,7 +57,7 @@ function SystemServicesInner() {
             sound: "default",
             priority: Notifications.AndroidNotificationPriority.MAX,
           },
-          trigger: null,
+          trigger: immediateEmergencyTrigger(),
         });
       } catch {}
     },

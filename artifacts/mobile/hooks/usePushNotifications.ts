@@ -1,20 +1,24 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { useStore } from "@/store";
+import { useStore, selectIsCurrentUserTargeted } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
+import { ensureAndroidNotificationChannel, immediateEmergencyTrigger } from "@/utils/notifications";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    priority: Notifications.AndroidNotificationPriority.MAX,
-  }),
-});
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      priority: Notifications.AndroidNotificationPriority.MAX,
+    }),
+  });
+}
 
 export type NotificationPermissionStatus = "granted" | "denied" | "undetermined";
 
@@ -23,6 +27,9 @@ export function usePushNotifications() {
   const currentUser = useStore((s) => s.currentUser);
   const pushEnabled = useStore((s) => s.settings.notifications.pushNotifications);
   const { emergencyMode, activeAlert } = useAlertSystemState();
+  // Mirror the in-app/alarm gating: only users targeted by the active alert
+  // (zone + location scope) get the emergency notification.
+  const isUserTargeted = useStore(selectIsCurrentUserTargeted);
 
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>("undetermined");
   const [pushToken, setPushToken] = useState<string | null>(null);
@@ -53,11 +60,19 @@ export function usePushNotifications() {
   const registerToken = useCallback(async () => {
     if (Platform.OS === "web") return;
     try {
-      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const tokenData = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      );
       setPushToken(tokenData.data);
     } catch {
-      // Token registration failed
+      // Token registration failed (e.g. no APNs/FCM credentials configured)
     }
+  }, []);
+
+  // Create the Android emergency notification channel once on mount.
+  useEffect(() => {
+    ensureAndroidNotificationChannel();
   }, []);
 
   useEffect(() => {
@@ -81,7 +96,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (!pushEnabled || !currentUser) return;
-    if (!emergencyMode || !activeAlert) {
+    if (!emergencyMode || !activeAlert || !isUserTargeted) {
       lastNotifiedAlertRef.current = null;
       return;
     }
@@ -113,10 +128,10 @@ export function usePushNotifications() {
           priority: Notifications.AndroidNotificationPriority.MAX,
           data: { screen: "alert", alertId: activeAlert.id },
         },
-        trigger: null,
+        trigger: immediateEmergencyTrigger(),
       }).catch(() => {});
     }
-  }, [emergencyMode, activeAlert?.id, pushEnabled, currentUser?.id]);
+  }, [emergencyMode, activeAlert?.id, isUserTargeted, pushEnabled, currentUser?.id]);
 
   const sendLocalNotification = useCallback(async (title: string, body: string, data?: Record<string, unknown>) => {
     if (Platform.OS === "web") {
@@ -131,7 +146,7 @@ export function usePushNotifications() {
         priority: Notifications.AndroidNotificationPriority.MAX,
         data: data ?? {},
       },
-      trigger: null,
+      trigger: immediateEmergencyTrigger(),
     }).catch(() => {});
   }, []);
 

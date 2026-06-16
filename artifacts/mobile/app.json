@@ -21,7 +21,8 @@
         "NSLocationWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
         "UIBackgroundModes": [
-          "location"
+          "location",
+          "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -48,7 +49,8 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -75,6 +77,12 @@
           "locationAlwaysAndWhenInUsePermission": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
           "locationWhenInUsePermission": "This app uses location for emergency personnel tracking inside controlled industrial environments.",
           "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#5B3A8E"
         }
       ]
     ],
