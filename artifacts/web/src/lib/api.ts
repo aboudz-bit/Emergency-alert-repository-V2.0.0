@@ -1,7 +1,7 @@
 // Typed fetch client for the KEAS backend of record (api-server /api/keas).
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
-async function apiGet<T>(path: string): Promise<T> {
+export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
   });

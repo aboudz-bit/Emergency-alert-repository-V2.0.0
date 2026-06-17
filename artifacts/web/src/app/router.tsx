@@ -4,6 +4,7 @@ import { LoginPage } from "@/pages/Login";
 import { DashboardPage } from "@/pages/Dashboard";
 import { LiveMapPage } from "@/pages/LiveMap";
 import { AlertCenterPage } from "@/pages/AlertCenter";
+import { AccountabilityCenterPage } from "@/pages/AccountabilityCenter";
 import { TimelinePage } from "@/pages/Timeline";
 import { Placeholder } from "@/pages/Placeholder";
 
@@ -17,7 +18,7 @@ export const router = createBrowserRouter([
       { path: "dashboard", element: <DashboardPage /> },
       { path: "map", element: <LiveMapPage /> },
       { path: "alerts", element: <AlertCenterPage /> },
-      { path: "accountability", element: <Placeholder title="Accountability" phase="3.5" /> },
+      { path: "accountability", element: <AccountabilityCenterPage /> },
       { path: "streets", element: <Placeholder title="Streets" phase="3.3" /> },
       { path: "routes", element: <Placeholder title="Route builder" phase="3.3" /> },
       { path: "personnel", element: <Placeholder title="Personnel tracking" phase="3.3" /> },
