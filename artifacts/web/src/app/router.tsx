@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Shell } from "@/app/Shell";
 import { LoginPage } from "@/pages/Login";
 import { DashboardPage } from "@/pages/Dashboard";
+import { LiveMapPage } from "@/pages/LiveMap";
 import { Placeholder } from "@/pages/Placeholder";
 
 export const router = createBrowserRouter([
@@ -12,7 +13,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: "dashboard", element: <DashboardPage /> },
-      { path: "map", element: <Placeholder title="Live map" phase="3.3" /> },
+      { path: "map", element: <LiveMapPage /> },
       { path: "alerts", element: <Placeholder title="Alert center" phase="3.4" /> },
       { path: "accountability", element: <Placeholder title="Accountability" phase="3.5" /> },
       { path: "streets", element: <Placeholder title="Streets" phase="3.3" /> },

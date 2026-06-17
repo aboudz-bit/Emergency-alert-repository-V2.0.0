@@ -66,3 +66,21 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Leaflet zone label — small pill matching the mobile zone label chip. */
+.leaflet-tooltip.keas-zone-label {
+  background: var(--keas-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--keas-radius-sm);
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+}
+.leaflet-tooltip.keas-zone-label::before {
+  display: none;
+}
+.leaflet-container {
+  font-family: inherit;
+}
