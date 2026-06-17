@@ -5,10 +5,14 @@ import type {
   UserType, CompanyType, PersonnelLocation, ZoneNotification,
   PermissionKey, UserPermissionAssignment,
   EmergencyModes, WindDirection, Language,
-  TimelineEventType, TimelineEvent,
+  AlertNotification, AlertNotificationScope,
 } from '@/types';
+import type { AccountabilityState, AccountabilityActions } from './slices/accountability';
+import type { IncidentTimelineState, IncidentTimelineActions } from './slices/incidentTimeline';
+import type { StreetState, StreetActions } from './slices/streets';
+import type { RouteState, RouteActions } from './slices/routes';
 
-export interface AppState {
+export interface AppState extends AccountabilityState, AccountabilityActions, IncidentTimelineState, IncidentTimelineActions, StreetState, StreetActions, RouteState, RouteActions {
   isAuthenticated: boolean;
   currentUser: User | null;
   users: User[];
@@ -18,12 +22,15 @@ export interface AppState {
   settings: AppSettings;
   activityLogs: ActivityLog[];
   mobileUserResponse: UserResponseStatus | null;
+  alertSoundDismissed: boolean;
+  dismissAlertSound: () => void;
   ecoAssignments: EcoAssignment[];
   supervisorAssignments: SupervisorAssignment[];
   shelters: Shelter[];
   hazardZones: HazardZone[];
   personnelLocations: Record<number, PersonnelLocation>;
   zoneNotifications: ZoneNotification[];
+  alertNotifications: AlertNotification[];
   emergencyModes: EmergencyModes;
 
   // Wind direction (set by ECO)
@@ -55,20 +62,7 @@ export interface AppState {
   updateUserResponse: (userId: number, status: UserResponseStatus) => void;
 
   createAlert: (data: Omit<Alert, 'id' | 'stats' | 'isActive' | 'status'>) => Alert;
-  /**
-   * Declares HAZARD ALL CLEAR only. Does NOT mark personnel safe/confirmed and
-   * does NOT reset response counts. Personnel accountability remains open.
-   * (Name kept for backward compatibility with existing callers.)
-   */
   sendAllClear: () => void;
-  /** Marks personnel accountability complete for the active incident. */
-  completePersonnelAccountability: () => void;
-  /** Final incident closure. Allowed only when accountability is complete unless override=true. */
-  closeIncident: (override?: boolean) => { success: boolean; error?: string };
-  /** Toggle an ECO incident-checklist item on an alert. */
-  toggleChecklistItem: (alertId: number, itemId: string) => void;
-  /** Append an event to an alert's incident timeline. */
-  appendTimelineEvent: (alertId: number, type: TimelineEventType, label?: string, meta?: TimelineEvent['meta']) => void;
   closeAlert: (alertId: number) => void;
   respondToAlert: (response: 'confirmed' | 'need_help') => void;
 
@@ -78,6 +72,8 @@ export interface AppState {
   archiveZone: (id: number) => void;
   restoreZone: (id: number) => void;
   safeDeleteZone: (id: number) => { success: boolean; error?: string };
+  bulkReassignUsersToZone: (sourceZoneId: number, targetZoneId: number) => { success: boolean; count: number; error?: string };
+  renameZone: (id: number, newName: string) => { success: boolean; error?: string };
   reorderZones: (orderedIds: number[]) => void;
   reorderLocations: (zoneId: number, orderedIds: number[]) => void;
 
@@ -91,7 +87,7 @@ export interface AppState {
 
   bulkActivateZoneAlerts: (zoneIds: number[], alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
   bulkDeactivateZoneAlerts: (zoneIds: number[]) => void;
-  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
+  activateZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string, targetScope?: 'zone' | 'locations', targetLocationIds?: number[]) => void;
   deactivateZoneAlert: (zoneId: number) => void;
   editZoneAlert: (zoneId: number, alertType: LocationAlertType, priority: AlertPriority, message: string) => void;
 
@@ -119,6 +115,12 @@ export interface AppState {
   clearHazardZones: () => void;
 
   sendZoneNotification: (zoneId: number, message: string) => void;
+  sendAlertNotification: (opts: {
+    zoneId: number;
+    scope: AlertNotificationScope;
+    targetLocationIds: number[];
+    message: string;
+  }) => AlertNotification | null;
 
   assignEco: (slot: import('@/types').EcoSlot, userId: number | null, zoneId: number | null) => void;
   toggleEcoActive: (slot: import('@/types').EcoSlot) => void;

@@ -240,48 +240,6 @@ export type AlertType =
 export type AlertPriority = 'High' | 'Medium' | 'Low';
 export type AlertStatus = 'active' | 'closed' | 'draft';
 
-// ─── Incident lifecycle (added) ───────────────────────────────────────────────
-// Separates HAZARD clearance from PERSONNEL ACCOUNTABILITY. "Hazard All Clear"
-// must NOT imply all personnel are safe/accounted for.
-export type IncidentPhase =
-  | 'draft'
-  | 'active'
-  | 'hazard_active'
-  | 'hazard_cleared'          // main hazard controlled; accountability still open
-  | 'accountability_open'
-  | 'accountability_complete'
-  | 'closed';                 // final incident closure
-
-export type TimelineEventType =
-  | 'alert_created'
-  | 'alert_activated'
-  | 'zones_selected'
-  | 'response_safe'
-  | 'response_need_help'
-  | 'response_pending'
-  | 'accountability_started'
-  | 'personnel_verified'
-  | 'escalation_required'
-  | 'hazard_all_clear'
-  | 'accountability_complete'
-  | 'incident_closed'
-  | 'report_generated';
-
-export interface TimelineEvent {
-  id: number;
-  type: TimelineEventType;
-  label: string;
-  timestamp: string;
-  actor?: string | null;
-  meta?: Record<string, string | number | boolean | null>;
-}
-
-export interface ChecklistItem {
-  id: string;
-  label: string;
-  done: boolean;
-}
-
 export interface Alert {
   id: number;
   type: AlertType;
@@ -300,61 +258,6 @@ export interface Alert {
     total: number;
   };
   isActive: boolean;
-
-  // ── Incident lifecycle (all optional → backward compatible with persisted data) ──
-  isDrill?: boolean;
-  lifecycle?: IncidentPhase;
-  hazardClearedAt?: string | null;
-  hazardClearedBy?: string | null;
-  accountabilityComplete?: boolean;
-  accountabilityCompletedAt?: string | null;
-  accountabilityCompletedBy?: string | null;
-  closedBy?: string | null;
-  timeline?: TimelineEvent[];
-  checklist?: ChecklistItem[];
-}
-
-// ─── Escalation (derived locally; not a stored user status) ───────────────────
-export type EscalationStatus =
-  | 'normal'
-  | 'pending'
-  | 'escalation_required'
-  | 'escalated_supervisor'
-  | 'escalated_eco';
-
-// ─── Headcount reconciliation ─────────────────────────────────────────────────
-export type ReconciliationStatus =
-  | 'balanced'
-  | 'under_count'
-  | 'over_count'
-  | 'pending_verification';
-
-export interface HeadcountReconciliation {
-  expected: number;
-  actual: number;       // personnel currently assigned/present
-  safe: number;
-  needHelp: number;
-  pending: number;
-  missing: number;      // unaccounted = max(0, expected - accountedFor)
-  status: ReconciliationStatus;
-  message: string;
-}
-
-// ─── ECO communication tree (placeholder structure) ───────────────────────────
-export type CommsContactCategory =
-  | 'ECO'
-  | 'Supervisor'
-  | 'Area Owner'
-  | 'Security'
-  | 'Medical'
-  | 'Fire Team'
-  | 'Management';
-
-export interface CommsContact {
-  id: string;
-  category: CommsContactCategory;
-  label: string;
-  detail?: string;       // placeholder contact info / role note (no real dialing yet)
 }
 
 // ─── Shelters ────────────────────────────────────────────────────────────────

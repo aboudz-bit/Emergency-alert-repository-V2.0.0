@@ -14,12 +14,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmergencyModeBanner } from "@/components/ui/EmergencyModeBanner";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WindIndicator } from "@/components/ui/WindIndicator";
-import { DrillBanner } from "@/components/ui/DrillBanner";
-import { IncidentLifecycleCard } from "@/components/ui/IncidentLifecycleCard";
 import { ZoneMap } from "@/components/map";
 import { MapOverlayLayout } from "@/components/map/MapOverlayLayout";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
-import { isDrillAlert, countEscalations, getEscalationStatus, ESCALATION_LABELS } from "@/utils/incident";
 import { useStore } from "@/store";
 import { useAlertSystemState } from "@/hooks/useAlertSystemState";
 import { useZoneBreakdown } from "@/hooks/useZoneBreakdown";
@@ -29,7 +26,6 @@ import { useEmergencyIntelligence } from "@/hooks/useEmergencyIntelligence";
 import { SmartAlertPanel } from "@/components/ui/SmartAlertPanel";
 import IncidentTimelinePanel from "@/components/ui/IncidentTimelinePanel";
 import type { UserResponseStatus } from "@/types";
-import { WIND_DIRECTIONS } from "@/types";
 import { useRouter } from "expo-router";
 
 export default function AlertMonitorScreen() {
@@ -42,19 +38,9 @@ export default function AlertMonitorScreen() {
   const shelters = useStore((s) => s.shelters);
   const hazardZones = useStore((s) => s.hazardZones);
   const sendAllClear = useStore((s) => s.sendAllClear);
-  const completePersonnelAccountability = useStore((s) => s.completePersonnelAccountability);
-  const closeIncident = useStore((s) => s.closeIncident);
-  const settings = useStore((s) => s.settings);
-  const windDirection = useStore((s) => s.windDirection);
-  const windDirectionDeg = useMemo(
-    () => WIND_DIRECTIONS.find((w) => w.key === windDirection)?.degrees ?? null,
-    [windDirection],
-  );
 
   const currentUser = useStore((s) => s.currentUser);
   const supervisorAssignments = useStore((s) => s.supervisorAssignments);
-  const canManageIncident =
-    currentUser?.role === "Super Admin" || currentUser?.role === "IT" || currentUser?.isECOAssigned === true;
 
   const { activeZoneIds } = useAlertSystemState();
   const hasActiveAlert = emergencyMode !== null;
@@ -100,13 +86,6 @@ export default function AlertMonitorScreen() {
   const [personnelDetail, setPersonnelDetail] = useState<PersonnelMapEntry | null>(null);
   const [showZoneBreakdown, setShowZoneBreakdown] = useState(false);
   const [showAllClearConfirm, setShowAllClearConfirm] = useState(false);
-  const [showLifecycle, setShowLifecycle] = useState(false);
-
-  // Local escalation flag count (pending/no-response past the configured timeout).
-  const escalationCount = useMemo(
-    () => countEscalations(users, activeAlert, settings, Date.now()),
-    [users, activeAlert, settings],
-  );
 
   type FilterKey = "safe" | "pending" | "contract" | "help";
   const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
@@ -266,18 +245,6 @@ export default function AlertMonitorScreen() {
         )}
       </View>
 
-      {isDrillAlert(activeAlert) && (
-        <View style={styles.drillStrip}><DrillBanner compact /></View>
-      )}
-      {escalationCount > 0 && (
-        <View style={styles.escalationStrip}>
-          <Feather name="alert-triangle" size={13} color="#FCA5A5" />
-          <Text style={styles.escalationStripText}>
-            {escalationCount} personnel require escalation (pending past {settings?.notifications?.escalationTimeoutMinutes ?? 15} min)
-          </Text>
-        </View>
-      )}
-
       <View style={styles.mapWrapper}>
         <ZoneMap
           zones={zones}
@@ -365,36 +332,6 @@ export default function AlertMonitorScreen() {
         />
       </View>
 
-      {/* Staged incident lifecycle — Hazard All Clear is separate from accountability */}
-      <Modal
-        visible={showLifecycle}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowLifecycle(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowLifecycle(false)}>
-          <Pressable style={[styles.lifecycleSheet, { paddingBottom: insets.bottom + 16 }]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.sheetHandle} />
-            {activeAlert && (
-              <IncidentLifecycleCard
-                alert={activeAlert}
-                canManage={canManageIncident}
-                onDeclareHazardAllClear={() => { sendAllClear(); }}
-                onCompleteAccountability={() => { completePersonnelAccountability(); }}
-                onCloseIncident={(override) => {
-                  const r = closeIncident(override);
-                  if (!r.success && r.error) {
-                    Alert.alert("Cannot close incident", r.error);
-                  } else if (r.success) {
-                    setShowLifecycle(false);
-                  }
-                }}
-              />
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <Modal
         visible={showZoneBreakdown}
         transparent
@@ -481,16 +418,6 @@ export default function AlertMonitorScreen() {
                 <Feather name="activity" size={14} color="#9CA3AF" />
                 <Text style={styles.detailLabel}>Status</Text>
                 <StatusBadge status={personnelDetail?.status as UserResponseStatus ?? "pending"} />
-              </View>
-              <View style={styles.detailRow}>
-                <Feather name="alert-triangle" size={14} color="#9CA3AF" />
-                <Text style={styles.detailLabel}>Escalation</Text>
-                <Text style={styles.detailValue}>
-                  {(() => {
-                    const u = users.find((x) => x.id === personnelDetail?.userId);
-                    return u ? ESCALATION_LABELS[getEscalationStatus(u, activeAlert, settings, Date.now())] : "N/A";
-                  })()}
-                </Text>
               </View>
               <View style={styles.detailRow}>
                 <Feather name="map-pin" size={14} color="#9CA3AF" />
@@ -633,32 +560,6 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
 
-  drillStrip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#111827",
-  },
-  escalationStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "rgba(220,38,38,0.18)",
-  },
-  escalationStripText: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: "#FCA5A5",
-    flexShrink: 1,
-  },
-  lifecycleSheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    gap: 10,
-  },
   mapWrapper: {
     flex: 1,
     position: "relative",

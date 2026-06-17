@@ -6,7 +6,6 @@ import { Feather } from "@expo/vector-icons";
 import type { ZoneMapProps } from "./types";
 import type { HazardZone } from "@/types";
 import { zoneToPolygon, zonesToRegion } from "./types";
-import { plumeWedgePoints } from "@/utils/geo";
 
 // Personnel status -> dot color (mirrors the web Leaflet preview).
 function personnelColor(status: string): string {

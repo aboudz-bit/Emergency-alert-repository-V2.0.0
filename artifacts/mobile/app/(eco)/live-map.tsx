@@ -61,10 +61,6 @@ export default function ECOLiveMapScreen() {
   const windDirection = useStore((s) => s.windDirection);
   const setWindDirection = useStore((s) => s.setWindDirection);
   const canChangeWind = useStore(selectCanChangeWind);
-  const windDirectionDeg = useMemo(
-    () => WIND_DIRECTIONS.find((w) => w.key === windDirection)?.degrees ?? null,
-    [windDirection],
-  );
   const [windPickerVisible, setWindPickerVisible] = useState(false);
 
   const intelligence = useEmergencyIntelligence({

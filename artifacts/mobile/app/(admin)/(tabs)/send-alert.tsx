@@ -13,7 +13,6 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { Header } from "@/components/ui/Header";
-import { ActivationConfirmModal, type ActivationPreview } from "@/components/ui/ActivationConfirmModal";
 import { Colors, DEFAULT_MESSAGES } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Zone, Location, LocationAlertType, AlertPriority, ZoneAlertHistoryEntry } from "@/types";
@@ -75,11 +74,6 @@ export default function AlertManagementScreen() {
   const [activateMessage, setActivateMessage] = useState("");
   const [activateScope, setActivateScope] = useState<"zone" | "locations">("zone");
   const [activateLocationIds, setActivateLocationIds] = useState<number[]>([]);
-
-  // Pre-activation safety preview (preview + confirm / hold-to-send)
-  const [pendingActivate, setPendingActivate] = useState<{
-    zone: Zone; type: LocationAlertType; priority: AlertPriority; message: string;
-  } | null>(null);
 
   // Deactivate confirmation
   const [deactivateTarget, setDeactivateTarget] = useState<Zone | null>(null);
@@ -192,7 +186,7 @@ export default function AlertManagementScreen() {
     []
   );
 
-  // ─── Activate: step 1 → open safety preview (does NOT activate yet) ───
+  // ─── Activate confirm ───
   const handleConfirmActivate = useCallback(() => {
     if (!activateTarget) return;
     if (activateScope === "locations" && activateLocationIds.length === 0) return;
@@ -812,21 +806,13 @@ export default function AlertManagementScreen() {
                 onPress={handleConfirmActivate}
                 disabled={activateScope === "locations" && activateLocationIds.length === 0}
               >
-                <Feather name="chevron-right" size={14} color="#fff" />
-                <Text style={styles.modalBtnConfirmText}>Review</Text>
+                <Feather name="zap" size={14} color="#fff" />
+                <Text style={styles.modalBtnConfirmText}>Activate</Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
-
-      {/* ═══ PRE-ACTIVATION SAFETY (preview + confirm / hold-to-send) ═══ */}
-      <ActivationConfirmModal
-        visible={pendingActivate !== null}
-        preview={activationPreview}
-        onConfirm={handleExecuteActivate}
-        onCancel={() => setPendingActivate(null)}
-      />
 
       {/* ═══ DEACTIVATE CONFIRMATION ═══ */}
       <Modal

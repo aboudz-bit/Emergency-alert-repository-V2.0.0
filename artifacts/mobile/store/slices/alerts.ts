@@ -2,13 +2,10 @@ import type { Alert, UserResponseStatus } from '@/types';
 import type { SetState, GetState, AppState } from '../types';
 import { nextHistoryId } from '../helpers';
 import { selectIsCurrentUserTargeted, userMatchesZoneScope } from '../selectors';
-import { makeTimelineEvent } from '@/utils/incident';
-import { checklistForAlert } from '@/constants/incident';
 
 export function createAlertSlice(set: SetState, get: GetState): Pick<
   AppState,
-  'updateUserResponse' | 'createAlert' | 'sendAllClear' | 'completePersonnelAccountability' |
-  'closeIncident' | 'toggleChecklistItem' | 'appendTimelineEvent' | 'closeAlert' | 'respondToAlert'
+  'updateUserResponse' | 'createAlert' | 'sendAllClear' | 'closeAlert' | 'respondToAlert'
 > {
   return {
     updateUserResponse: (userId, status) => {
@@ -52,29 +49,10 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
     },
 
     createAlert: (data) => {
-      const { users, currentUser } = get();
+      const { users } = get();
       const now = new Date().toISOString();
-      const id = Date.now();
-      const isDrill = data.isDrill === true || data.type === 'Drill';
-      const actor = data.sentBy || currentUser?.name || 'System';
-      const timeline = [
-        makeTimelineEvent(nextHistoryId(), 'alert_created', now, actor),
-        makeTimelineEvent(nextHistoryId(), 'alert_activated', now, actor, undefined, { zone: data.zone, priority: data.priority }),
-      ];
       const newAlert: Alert = {
-        ...data,
-        id,
-        status: 'active',
-        isActive: true,
-        isDrill,
-        lifecycle: 'hazard_active',
-        hazardClearedAt: null,
-        hazardClearedBy: null,
-        accountabilityComplete: false,
-        accountabilityCompletedAt: null,
-        accountabilityCompletedBy: null,
-        timeline,
-        checklist: checklistForAlert(data.type, isDrill),
+        ...data, id: Date.now(), status: 'active', isActive: true,
         stats: { confirmed: 0, pending: users.length, needHelp: 0, total: users.length },
       };
       set(s => ({
@@ -99,126 +77,79 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
       return newAlert;
     },
 
-    // ── HAZARD ALL CLEAR ONLY ──────────────────────────────────────────────────
-    // Business rule: "All Clear" clears only the hazard/emergency condition.
-    // It must NOT mark personnel safe/confirmed and must NOT reset response counts.
-    // The active alert stays active so personnel accountability remains OPEN.
     sendAllClear: () => {
-      const { currentUser } = get();
+      const { currentUser, users } = get();
       const sentBy = currentUser?.name || 'System Auto';
       const now = new Date().toISOString();
       set(s => ({
-        // Keep the active alert active for accountability; record hazard-cleared phase.
-        alerts: s.alerts.map(a => {
-          if (!a.isActive) return a;
-          const ev = makeTimelineEvent(nextHistoryId(), 'hazard_all_clear', now, sentBy);
-          return {
-            ...a,
-            lifecycle: 'accountability_open' as const,
-            hazardClearedAt: now,
-            hazardClearedBy: sentBy,
-            timeline: [...(a.timeline || []), ev],
-            // stats deliberately UNTOUCHED — they reflect real personnel responses
-          };
-        }),
-        // Hazard conditions themselves are cleared:
+        alerts: s.alerts.map(a => a.isActive ? { ...a, isActive: false, status: 'closed' as const, closedAt: now } : a),
+        users: s.users.map(u => ({
+          ...u,
+          status: 'confirmed' as UserResponseStatus,
+          escalationLevel: 0,
+          alertReceivedAt: null,
+          receiptConfirmedAt: null,
+          respondedAt: null,
+        })),
         zones: s.zones.map(z => z.alertActive ? {
           ...z,
-          alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: now,
+          alertActive: false,
+          alertType: null,
+          alertPriority: null,
+          alertMessage: '',
+          alertUpdatedAt: now,
           alertHistory: [...(z.alertHistory || []), {
             id: nextHistoryId(), zoneId: z.id, action: 'deactivated' as const,
-            alertType: z.alertType, priority: z.alertPriority, message: z.alertMessage, timestamp: now, user: sentBy,
+            alertType: z.alertType, priority: z.alertPriority, message: z.alertMessage,
+            timestamp: now, user: sentBy,
           }],
         } : z),
         locations: s.locations.map(l => l.alertActive ? {
           ...l,
-          alertActive: false, alertType: null, alertPriority: null, alertMessage: '', alertUpdatedAt: now,
+          alertActive: false,
+          alertType: null,
+          alertPriority: null,
+          alertMessage: '',
+          alertUpdatedAt: now,
           alertHistory: [...(l.alertHistory || []), {
             id: nextHistoryId(), locationId: l.id, action: 'deactivated' as const,
-            alertType: l.alertType, priority: l.alertPriority, message: l.alertMessage, timestamp: now, user: sentBy,
+            alertType: l.alertType, priority: l.alertPriority, message: l.alertMessage,
+            timestamp: now, user: sentBy,
           }],
         } : l),
+        personnelLocations: {},
+        mobileUserResponse: 'confirmed' as UserResponseStatus,
         hazardZones: s.hazardZones.filter(hz => hz.alertId == null),
         emergencyModes: {
-          shelterIn: false, blackout: false, shelterInZones: [], blackoutZones: [],
-          shelterInActivatedAt: null, shelterInActivatedBy: null,
-          blackoutActivatedAt: null, blackoutActivatedBy: null,
+          shelterIn: false,
+          blackout: false,
+          shelterInZones: [],
+          blackoutZones: [],
+          shelterInActivatedAt: null,
+          shelterInActivatedBy: null,
+          blackoutActivatedAt: null,
+          blackoutActivatedBy: null,
         },
-        windDirection: null, windSetBy: null, windSetAt: null,
-        // NOTE: users, mobileUserResponse and personnelLocations are intentionally
-        // left as-is — accountability continues after the hazard is cleared.
+        windDirection: null,
+        windSetBy: null,
+        windSetAt: null,
       }));
-    },
-
-    completePersonnelAccountability: () => {
-      const { currentUser } = get();
-      const by = currentUser?.name || 'System';
-      const now = new Date().toISOString();
-      set(s => ({
-        alerts: s.alerts.map(a => {
-          if (!a.isActive) return a;
-          const ev = makeTimelineEvent(nextHistoryId(), 'accountability_complete', now, by);
-          return {
-            ...a,
-            accountabilityComplete: true,
-            accountabilityCompletedAt: now,
-            accountabilityCompletedBy: by,
-            lifecycle: 'accountability_complete' as const,
-            timeline: [...(a.timeline || []), ev],
-          };
-        }),
-      }));
-    },
-
-    closeIncident: (override = false) => {
-      const active = get().alerts.find(a => a.isActive);
-      if (!active) return { success: false, error: 'No active incident to close.' };
-      if (!active.accountabilityComplete && !override) {
-        return { success: false, error: 'Personnel accountability is not complete. Authorized override required to force closure.' };
-      }
-      const { currentUser } = get();
-      const by = currentUser?.name || 'System';
-      const now = new Date().toISOString();
-      set(s => ({
-        alerts: s.alerts.map(a => {
-          if (a.id !== active.id) return a;
-          const closeEv = makeTimelineEvent(nextHistoryId(), 'incident_closed', now, by,
-            override ? 'Final incident closure (OVERRIDE — accountability incomplete)' : undefined);
-          const reportEv = makeTimelineEvent(nextHistoryId(), 'report_generated', now, by);
-          return {
-            ...a, isActive: false, status: 'closed' as const, closedAt: now, closedBy: by,
-            lifecycle: 'closed' as const, timeline: [...(a.timeline || []), closeEv, reportEv],
-          };
-        }),
-        personnelLocations: {},
-      }));
-      get().addActivityLog({
-        type: 'report',
-        message: `Incident "${active.title}" closed by ${by}${override ? ' (override)' : ''}. Report stored.`,
-        timestamp: now, actorName: by,
+      const allClearAlert: Alert = {
+        id: Date.now(), type: 'All Clear', zone: 'All Zones', title: 'ALL CLEAR',
+        message: 'The emergency condition has been fully resolved. All personnel may return to normal operations.',
+        timestamp: now, sentBy, priority: 'High', status: 'closed', isActive: false,
+        stats: { confirmed: users.length, pending: 0, needHelp: 0, total: users.length },
+      };
+      set(s => ({ alerts: [allClearAlert, ...s.alerts] }));
+      get().logIncidentEvent({
+        type: 'all_clear',
+        userName: sentBy,
+        metadata: { totalUsers: users.length },
       });
-      return { success: true };
-    },
-
-    toggleChecklistItem: (alertId, itemId) => set(s => ({
-      alerts: s.alerts.map(a => a.id === alertId
-        ? { ...a, checklist: (a.checklist || []).map(c => c.id === itemId ? { ...c, done: !c.done } : c) }
-        : a),
-    })),
-
-    appendTimelineEvent: (alertId, type, label, meta) => {
-      const now = new Date().toISOString();
-      const by = get().currentUser?.name || null;
-      set(s => ({
-        alerts: s.alerts.map(a => a.id === alertId
-          ? { ...a, timeline: [...(a.timeline || []), makeTimelineEvent(nextHistoryId(), type, now, by, label, meta)] }
-          : a),
-      }));
     },
 
     closeAlert: (alertId) => {
       if (alertId === -1) {
-        // synthetic (zone/emergency-mode) alert → hazard-clear path
         get().sendAllClear();
         return;
       }
@@ -263,15 +194,6 @@ export function createAlertSlice(set: SetState, get: GetState): Pick<
             : u,
         ),
       }));
-      const active = get().alerts.find(a => a.isActive);
-      if (active) {
-        get().appendTimelineEvent(
-          active.id,
-          response === 'need_help' ? 'response_need_help' : 'response_safe',
-          undefined,
-          { user: currentUser.name },
-        );
-      }
       get().logIncidentEvent({
         type: response === 'confirmed' ? 'user_safe' : 'user_need_help',
         userId: currentUser.id,

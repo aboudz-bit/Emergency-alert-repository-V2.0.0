@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   FlatList,
   Pressable,
@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { Header } from "@/components/ui/Header";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { IncidentTimeline } from "@/components/ui/IncidentTimeline";
 import { Colors, FontSize, Spacing, BorderRadius, ALERT_TYPES } from "@/constants/theme";
 import { useStore } from "@/store";
 import type { Alert } from "@/types";
@@ -38,72 +37,6 @@ const alertTypeColors: Record<string, string> = {
   Custom: Colors.textSecondary,
 };
 
-// Self-contained card so each row can expand its own incident timeline
-// without re-rendering the whole list.
-function AlertHistoryCard({ item }: { item: Alert }) {
-  const [expanded, setExpanded] = useState(false);
-  const iconName = alertTypeIcons[item.type] || "alert-triangle";
-  const iconColor = alertTypeColors[item.type] || Colors.primary;
-  const hasTimeline = !!(item.timeline && item.timeline.length > 0);
-
-  return (
-    <Card style={styles.alertCard}>
-      <View style={styles.alertHeader}>
-        <View style={[styles.alertIconWrap, { backgroundColor: iconColor + "20" }]}>
-          <Feather name={iconName} size={18} color={iconColor} />
-        </View>
-        <View style={styles.alertInfo}>
-          <Text style={styles.alertTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.alertMeta}>
-            {item.zone} · {format(new Date(item.timestamp), "MMM d, HH:mm")}
-          </Text>
-        </View>
-        <StatusBadge status={item.status} />
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: Colors.safe }]}>{item.stats.confirmed}</Text>
-          <Text style={styles.statLabel}>Safe</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: Colors.noreply }]}>{item.stats.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: Colors.primary }]}>{item.stats.needHelp}</Text>
-          <Text style={styles.statLabel}>Help</Text>
-        </View>
-      </View>
-
-      {item.closedAt && (
-        <View style={styles.closedRow}>
-          <Feather name="check-circle" size={12} color={Colors.textTertiary} />
-          <Text style={styles.closedAt}>
-            Closed {format(new Date(item.closedAt), "MMM d, HH:mm")}
-          </Text>
-        </View>
-      )}
-
-      {hasTimeline && (
-        <Pressable style={styles.timelineToggle} onPress={() => setExpanded((e) => !e)}>
-          <Feather name={expanded ? "chevron-up" : "chevron-down"} size={14} color={Colors.primary} />
-          <Text style={styles.timelineToggleText}>
-            {expanded ? "Hide timeline" : `View timeline (${item.timeline!.length})`}
-          </Text>
-        </Pressable>
-      )}
-      {expanded && hasTimeline && (
-        <View style={styles.timelineWrap}>
-          <IncidentTimeline events={item.timeline!} />
-        </View>
-      )}
-    </Card>
-  );
-}
-
 export default function HistoryScreen() {
   const alerts = useStore((s) => s.alerts);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -125,6 +58,63 @@ export default function HistoryScreen() {
     }
     return counts;
   }, [alerts]);
+
+  const renderAlertCard = useCallback(
+    ({ item }: { item: Alert }) => {
+      const iconName = alertTypeIcons[item.type] || "alert-triangle";
+      const iconColor = alertTypeColors[item.type] || Colors.primary;
+
+      return (
+        <Card style={styles.alertCard}>
+          <View style={styles.alertHeader}>
+            <View style={[styles.alertIconWrap, { backgroundColor: iconColor + "20" }]}>
+              <Feather name={iconName} size={18} color={iconColor} />
+            </View>
+            <View style={styles.alertInfo}>
+              <Text style={styles.alertTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.alertMeta}>
+                {item.zone} · {format(new Date(item.timestamp), "MMM d, HH:mm")}
+              </Text>
+            </View>
+            <StatusBadge status={item.status} />
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.safe }]}>
+                {item.stats.confirmed}
+              </Text>
+              <Text style={styles.statLabel}>Safe</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.noreply }]}>
+                {item.stats.pending}
+              </Text>
+              <Text style={styles.statLabel}>Pending</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.primary }]}>
+                {item.stats.needHelp}
+              </Text>
+              <Text style={styles.statLabel}>Help</Text>
+            </View>
+          </View>
+
+          {item.closedAt && (
+            <View style={styles.closedRow}>
+              <Feather name="check-circle" size={12} color={Colors.textTertiary} />
+              <Text style={styles.closedAt}>
+                Closed {format(new Date(item.closedAt), "MMM d, HH:mm")}
+              </Text>
+            </View>
+          )}
+        </Card>
+      );
+    },
+    []
+  );
 
   return (
     <View style={styles.container}>
@@ -197,7 +187,7 @@ export default function HistoryScreen() {
         data={sortedAlerts}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <AlertHistoryCard item={item} />}
+        renderItem={renderAlertCard}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -371,23 +361,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: "Inter_400Regular",
     color: Colors.textTertiary,
-  },
-  timelineToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  timelineToggleText: {
-    fontSize: FontSize.sm,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.primary,
-  },
-  timelineWrap: {
-    paddingTop: Spacing.sm,
   },
 
   // ─── Empty ───
