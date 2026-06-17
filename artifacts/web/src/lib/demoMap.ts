@@ -9,6 +9,7 @@ import type {
   ShelterDto,
   HazardZoneDto,
   StreetDto,
+  EcoRouteDto,
 } from "@workspace/keas-core";
 
 const C: [number, number] = [25.131, 48.776];
@@ -62,9 +63,19 @@ export const DEMO_HAZARDS: HazardZoneDto[] = [
 
 export const DEMO_STREETS: StreetDto[] = [
   { id: "s1", name: "Main Access", path: [{ lat: 25.135, lng: 48.770 }, { lat: 25.131, lng: 48.776 }, { lat: 25.128, lng: 48.781 }], createdAt: 0 },
+  { id: "s2", name: "Perimeter Road", path: [{ lat: 25.128, lng: 48.781 }, { lat: 25.124, lng: 48.786 }, { lat: 25.120, lng: 48.790 }], createdAt: 0 },
+  { id: "s3", name: "Camp Spur", path: [{ lat: 25.120, lng: 48.790 }, { lat: 25.119, lng: 48.788 }], createdAt: 0 },
 ];
 
-export const DEMO_ROUTE_STREET_IDS = new Set<string>(["s1"]);
+export const DEMO_ROUTE_STREET_IDS = new Set<string>(["s1", "s2"]);
+
+// Demo ECO routes — the Route List/Details need full EcoRoute objects (useMapData
+// only flattens the active street IDs). Mobile EcoRoute has NO name field, so
+// routes are labeled by index/status/date, never an invented title.
+export const DEMO_ROUTES: EcoRouteDto[] = [
+  { id: "r1", streetIds: ["s1", "s2"], createdBy: 8, status: "active", createdAt: 0, updatedAt: 0 },
+  { id: "r0", streetIds: ["s1"], createdBy: 8, status: "edited", createdAt: 0, updatedAt: 0 },
+];
 
 export const DEMO_CENTER = C;
 

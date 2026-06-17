@@ -6,6 +6,7 @@ import { LiveMapPage } from "@/pages/LiveMap";
 import { AlertCenterPage } from "@/pages/AlertCenter";
 import { AccountabilityCenterPage } from "@/pages/AccountabilityCenter";
 import { PersonnelCenterPage } from "@/pages/PersonnelCenter";
+import { StreetsRoutesPage } from "@/pages/StreetsRoutes";
 import { TimelinePage } from "@/pages/Timeline";
 import { Placeholder } from "@/pages/Placeholder";
 
@@ -20,8 +21,8 @@ export const router = createBrowserRouter([
       { path: "map", element: <LiveMapPage /> },
       { path: "alerts", element: <AlertCenterPage /> },
       { path: "accountability", element: <AccountabilityCenterPage /> },
-      { path: "streets", element: <Placeholder title="Streets" phase="3.3" /> },
-      { path: "routes", element: <Placeholder title="Route builder" phase="3.3" /> },
+      { path: "streets", element: <StreetsRoutesPage initialTab="streets" /> },
+      { path: "routes", element: <StreetsRoutesPage initialTab="routes" /> },
       { path: "personnel", element: <PersonnelCenterPage /> },
       { path: "timeline", element: <TimelinePage /> },
       { path: "reports", element: <Placeholder title="Reports" phase="3.7" /> },
