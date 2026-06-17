@@ -22,7 +22,6 @@ import type {
 } from "@workspace/keas-core";
 import {
   TILES,
-  zoneFill,
   zoneStroke,
   HAZARD,
   STREET,
@@ -48,16 +47,9 @@ export interface Selection {
   rows: Array<{ label: string; value: string }>;
 }
 
-export interface LayerVisibility {
-  zones: boolean;
-  locations: boolean;
-  personnel: boolean;
-  shelters: boolean;
-  streets: boolean;
-  routes: boolean;
-  hazards: boolean;
-}
-
+// Parity note: the native mobile map (GoogleMapsView) renders every operational
+// layer always-on — there are no layer-visibility toggles on iOS/Android. The web
+// map mirrors that exactly: all layers always render, no show/hide controls.
 interface LiveMapViewProps {
   zones: ZoneDto[];
   locations: LocationDto[];
@@ -66,7 +58,6 @@ interface LiveMapViewProps {
   streets: StreetDto[];
   routeStreetIds: Set<string>;
   hazards: HazardZoneDto[];
-  visible: LayerVisibility;
   selectedKey: string | null;
   onSelect: (sel: Selection | null) => void;
 }
@@ -74,7 +65,8 @@ interface LiveMapViewProps {
 type LL = [number, number];
 const toLL = (p: { lat: number; lng: number }): LL => [p.lat, p.lng];
 
-// Fit the map to all rendered geometry once, the first time data arrives.
+// Fit the map to all rendered geometry once, the first time data arrives
+// (mirrors the mobile map's auto fit-to-coordinates camera behavior).
 function FitBounds({ points }: { points: LL[] }) {
   const map = useMap();
   const done = useRef(false);
@@ -98,7 +90,6 @@ export function LiveMapView({
   streets,
   routeStreetIds,
   hazards,
-  visible,
   selectedKey,
   onSelect,
 }: LiveMapViewProps) {
@@ -125,211 +116,196 @@ export function LiveMapView({
       <FitBounds points={allPoints} />
 
       {/* ── Zones ── */}
-      {visible.zones && (
-        <LayerGroup>
-          {zones
-            .filter((z) => !z.isArchived && (z.polygonPoints?.length ?? 0) > 2)
-            .map((z) => {
-              const sel = selectedKey === `Zone:${z.id}`;
-              return (
-                <Polygon
-                  key={`zone-${z.id}`}
-                  positions={z.polygonPoints.map(toLL)}
-                  pathOptions={{
-                    color: zoneStroke(z.color, z.isActive),
-                    weight: sel ? 3 : 2,
-                    fillColor: z.color,
-                    fillOpacity: sel ? 0.35 : z.alertActive ? 0.2 : 0.08,
-                  }}
-                  eventHandlers={{
-                    click: () =>
-                      onSelect({
-                        kind: "Zone",
-                        key: `Zone:${z.id}`,
-                        title: z.name,
-                        tone: z.alertActive ? "danger" : "default",
-                        rows: [
-                          { label: "Type", value: z.type },
-                          { label: "Alert", value: z.alertActive ? `${z.alertType ?? "active"} · ${z.alertPriority ?? ""}` : "—" },
-                          { label: "Scope", value: z.alertTargetScope === "locations" ? `${z.alertTargetLocationIds.length} location(s)` : "Whole zone" },
-                          { label: "Status", value: z.isActive ? "Active" : "Inactive" },
-                        ],
-                      }),
-                  }}
-                >
-                  <Tooltip permanent direction="center" className="keas-zone-label">
-                    {z.name}
-                  </Tooltip>
-                </Polygon>
-              );
-            })}
-        </LayerGroup>
-      )}
-
-      {/* ── Locations (location-scoped alert indicators highlight when alertActive) ── */}
-      {visible.locations && (
-        <LayerGroup>
-          {locations
-            .filter((l) => (l.polygonPoints?.length ?? 0) > 2)
-            .map((l) => {
-              const sel = selectedKey === `Location:${l.id}`;
-              const color = l.alertActive ? "#DC2626" : "#5B3A8E";
-              return (
-                <Polygon
-                  key={`loc-${l.id}`}
-                  positions={l.polygonPoints.map(toLL)}
-                  pathOptions={{
-                    color,
-                    weight: l.alertActive ? 2 : 1,
-                    dashArray: l.alertActive ? undefined : "4 4",
-                    fillColor: color,
-                    fillOpacity: sel ? 0.3 : l.alertActive ? 0.18 : 0.05,
-                  }}
-                  eventHandlers={{
-                    click: () =>
-                      onSelect({
-                        kind: "Location",
-                        key: `Location:${l.id}`,
-                        title: l.name,
-                        tone: l.alertActive ? "danger" : "default",
-                        rows: [
-                          { label: "Zone", value: l.zone || "—" },
-                          { label: "Expected", value: String(l.expectedManpower) },
-                          { label: "Alert", value: l.alertActive ? `${l.alertType ?? "active"} · ${l.alertPriority ?? ""}` : "—" },
-                        ],
-                      }),
-                  }}
-                />
-              );
-            })}
-        </LayerGroup>
-      )}
-
-      {/* ── Streets + ECO route highlight ── */}
-      {(visible.streets || visible.routes) && (
-        <LayerGroup>
-          {streets
-            .filter((st) => (st.path?.length ?? 0) >= 2)
-            .map((st) => {
-              const isRoute = routeStreetIds.has(st.id);
-              if (isRoute && !visible.routes) return visible.streets ? null : null;
-              if (!isRoute && !visible.streets) return null;
-              const useRouteStyle = isRoute && visible.routes;
-              return (
-                <Polyline
-                  key={`st-${st.id}`}
-                  positions={st.path.map(toLL)}
-                  pathOptions={{
-                    color: useRouteStyle ? STREET.route : STREET.normal,
-                    weight: useRouteStyle ? 6 : 4,
-                  }}
-                />
-              );
-            })}
-        </LayerGroup>
-      )}
-
-      {/* ── Hazard rings (cold > warm > hot) + downwind plume ── */}
-      {visible.hazards && (
-        <LayerGroup>
-          {hazards
-            .filter((h) => h.isActive !== false)
-            .map((h) => {
-              const center: LL = [h.centerLat, h.centerLng];
-              const select = () =>
-                onSelect({
-                  kind: "Hazard",
-                  key: `Hazard:${h.id}`,
-                  title: `Hazard · ${h.warningLevel}`,
-                  tone: "help",
-                  rows: [
-                    { label: "Shape", value: h.hazardShape ?? "circle" },
-                    { label: "Hot", value: `${Math.round(h.hotRadius)} m` },
-                    { label: "Warm", value: `${Math.round(h.warmRadius)} m` },
-                    { label: "Cold", value: `${Math.round(h.coldRadius)} m` },
-                    { label: "Wind", value: h.windDirectionDeg != null ? `${Math.round(h.windDirectionDeg)}°` : "—" },
-                  ],
-                });
-              return (
-                <LayerGroup key={`hz-${h.id}`}>
-                  {h.hazardShape === "plume" && h.windDirectionDeg != null && (
-                    <Polygon
-                      positions={plumeCone(h)}
-                      pathOptions={{ color: HAZARD.plume.stroke, weight: 1.5, fillColor: HAZARD.plume.fill, fillOpacity: HAZARD.plume.fillOpacity }}
-                      eventHandlers={{ click: select }}
-                    />
-                  )}
-                  <Circle center={center} radius={h.coldRadius} pathOptions={{ color: HAZARD.cold.stroke, weight: 1.5, fillColor: HAZARD.cold.fill, fillOpacity: HAZARD.cold.fillOpacity }} eventHandlers={{ click: select }} />
-                  <Circle center={center} radius={h.warmRadius} pathOptions={{ color: HAZARD.warm.stroke, weight: 1.5, fillColor: HAZARD.warm.fill, fillOpacity: HAZARD.warm.fillOpacity }} eventHandlers={{ click: select }} />
-                  <Circle center={center} radius={h.hotRadius} pathOptions={{ color: HAZARD.hot.stroke, weight: 2, fillColor: HAZARD.hot.fill, fillOpacity: HAZARD.hot.fillOpacity }} eventHandlers={{ click: select }} />
-                </LayerGroup>
-              );
-            })}
-        </LayerGroup>
-      )}
-
-      {/* ── Shelters ── */}
-      {visible.shelters && (
-        <LayerGroup>
-          {shelters
-            .filter((s) => s.isActive !== false)
-            .map((s) => (
-              <CircleMarker
-                key={`sh-${s.id}`}
-                center={[s.lat, s.lng]}
-                radius={7}
-                pathOptions={{ color: "#ffffff", weight: 2, fillColor: SHELTER_COLOR, fillOpacity: 1 }}
+      <LayerGroup>
+        {zones
+          .filter((z) => !z.isArchived && (z.polygonPoints?.length ?? 0) > 2)
+          .map((z) => {
+            const sel = selectedKey === `Zone:${z.id}`;
+            return (
+              <Polygon
+                key={`zone-${z.id}`}
+                positions={z.polygonPoints.map(toLL)}
+                pathOptions={{
+                  color: zoneStroke(z.color, z.isActive),
+                  weight: sel ? 3 : 2,
+                  fillColor: z.color,
+                  fillOpacity: sel ? 0.35 : z.alertActive ? 0.2 : 0.08,
+                }}
                 eventHandlers={{
                   click: () =>
                     onSelect({
-                      kind: "Shelter",
-                      key: `Shelter:${s.id}`,
-                      title: s.name,
-                      tone: "default",
+                      kind: "Zone",
+                      key: `Zone:${z.id}`,
+                      title: z.name,
+                      tone: z.alertActive ? "danger" : "default",
                       rows: [
-                        { label: "Linked locations", value: String(s.linkedLocationIds?.length ?? 0) },
-                        { label: "Coordinates", value: `${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` },
+                        { label: "Type", value: z.type },
+                        { label: "Alert", value: z.alertActive ? `${z.alertType ?? "active"} · ${z.alertPriority ?? ""}` : "—" },
+                        { label: "Scope", value: z.alertTargetScope === "locations" ? `${z.alertTargetLocationIds.length} location(s)` : "Whole zone" },
+                        { label: "Status", value: z.isActive ? "Active" : "Inactive" },
                       ],
                     }),
                 }}
               >
-                <Tooltip direction="top">{s.name}</Tooltip>
-              </CircleMarker>
-            ))}
-        </LayerGroup>
-      )}
+                <Tooltip permanent direction="center" className="keas-zone-label">
+                  {z.name}
+                </Tooltip>
+              </Polygon>
+            );
+          })}
+      </LayerGroup>
 
-      {/* ── Personnel (status-colored, mobile palette) ── */}
-      {visible.personnel && (
-        <LayerGroup>
-          {personnel.map((p) => {
-            const color = personnelColor(p.status ?? "pending");
-            const critical = p.status === "need_help";
+      {/* ── Locations (location-scoped alert indicators highlight when alertActive) ── */}
+      <LayerGroup>
+        {locations
+          .filter((l) => (l.polygonPoints?.length ?? 0) > 2)
+          .map((l) => {
+            const sel = selectedKey === `Location:${l.id}`;
+            const color = l.alertActive ? "#DC2626" : "#5B3A8E";
             return (
-              <CircleMarker
-                key={`pp-${p.userId}`}
-                center={[p.lat, p.lng]}
-                radius={critical ? 7 : 5}
-                pathOptions={{ color: "#ffffff", weight: critical ? 2 : 1, fillColor: color, fillOpacity: 1 }}
+              <Polygon
+                key={`loc-${l.id}`}
+                positions={l.polygonPoints.map(toLL)}
+                pathOptions={{
+                  color,
+                  weight: l.alertActive ? 2 : 1,
+                  dashArray: l.alertActive ? undefined : "4 4",
+                  fillColor: color,
+                  fillOpacity: sel ? 0.3 : l.alertActive ? 0.18 : 0.05,
+                }}
                 eventHandlers={{
                   click: () =>
                     onSelect({
-                      kind: "Personnel",
-                      key: `Personnel:${p.userId}`,
-                      title: p.name ?? `User #${p.userId}`,
-                      tone: p.status === "confirmed" ? "safe" : p.status === "need_help" ? "help" : "pending",
+                      kind: "Location",
+                      key: `Location:${l.id}`,
+                      title: l.name,
+                      tone: l.alertActive ? "danger" : "default",
                       rows: [
-                        { label: "Status", value: statusLabel(p.status) },
-                        { label: "Type", value: p.userType ?? "—" },
-                        { label: "Coordinates", value: `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}` },
+                        { label: "Zone", value: l.zone || "—" },
+                        { label: "Expected", value: String(l.expectedManpower) },
+                        { label: "Alert", value: l.alertActive ? `${l.alertType ?? "active"} · ${l.alertPriority ?? ""}` : "—" },
                       ],
                     }),
                 }}
               />
             );
           })}
-        </LayerGroup>
-      )}
+      </LayerGroup>
+
+      {/* ── Streets + ECO route highlight (always-on, like the mobile map) ── */}
+      <LayerGroup>
+        {streets
+          .filter((st) => (st.path?.length ?? 0) >= 2)
+          .map((st) => {
+            const isRoute = routeStreetIds.has(st.id);
+            return (
+              <Polyline
+                key={`st-${st.id}`}
+                positions={st.path.map(toLL)}
+                pathOptions={{
+                  color: isRoute ? STREET.route : STREET.normal,
+                  weight: isRoute ? 6 : 4,
+                }}
+              />
+            );
+          })}
+      </LayerGroup>
+
+      {/* ── Hazard rings (cold > warm > hot) + downwind plume ── */}
+      <LayerGroup>
+        {hazards
+          .filter((h) => h.isActive !== false)
+          .map((h) => {
+            const center: LL = [h.centerLat, h.centerLng];
+            const select = () =>
+              onSelect({
+                kind: "Hazard",
+                key: `Hazard:${h.id}`,
+                title: `Hazard · ${h.warningLevel}`,
+                tone: "help",
+                rows: [
+                  { label: "Shape", value: h.hazardShape ?? "circle" },
+                  { label: "Hot", value: `${Math.round(h.hotRadius)} m` },
+                  { label: "Warm", value: `${Math.round(h.warmRadius)} m` },
+                  { label: "Cold", value: `${Math.round(h.coldRadius)} m` },
+                  { label: "Wind", value: h.windDirectionDeg != null ? `${Math.round(h.windDirectionDeg)}°` : "—" },
+                ],
+              });
+            return (
+              <LayerGroup key={`hz-${h.id}`}>
+                {h.hazardShape === "plume" && h.windDirectionDeg != null && (
+                  <Polygon
+                    positions={plumeCone(h)}
+                    pathOptions={{ color: HAZARD.plume.stroke, weight: 1.5, fillColor: HAZARD.plume.fill, fillOpacity: HAZARD.plume.fillOpacity }}
+                    eventHandlers={{ click: select }}
+                  />
+                )}
+                <Circle center={center} radius={h.coldRadius} pathOptions={{ color: HAZARD.cold.stroke, weight: 1.5, fillColor: HAZARD.cold.fill, fillOpacity: HAZARD.cold.fillOpacity }} eventHandlers={{ click: select }} />
+                <Circle center={center} radius={h.warmRadius} pathOptions={{ color: HAZARD.warm.stroke, weight: 1.5, fillColor: HAZARD.warm.fill, fillOpacity: HAZARD.warm.fillOpacity }} eventHandlers={{ click: select }} />
+                <Circle center={center} radius={h.hotRadius} pathOptions={{ color: HAZARD.hot.stroke, weight: 2, fillColor: HAZARD.hot.fill, fillOpacity: HAZARD.hot.fillOpacity }} eventHandlers={{ click: select }} />
+              </LayerGroup>
+            );
+          })}
+      </LayerGroup>
+
+      {/* ── Shelters ── */}
+      <LayerGroup>
+        {shelters
+          .filter((s) => s.isActive !== false)
+          .map((s) => (
+            <CircleMarker
+              key={`sh-${s.id}`}
+              center={[s.lat, s.lng]}
+              radius={7}
+              pathOptions={{ color: "#ffffff", weight: 2, fillColor: SHELTER_COLOR, fillOpacity: 1 }}
+              eventHandlers={{
+                click: () =>
+                  onSelect({
+                    kind: "Shelter",
+                    key: `Shelter:${s.id}`,
+                    title: s.name,
+                    tone: "default",
+                    rows: [
+                      { label: "Linked locations", value: String(s.linkedLocationIds?.length ?? 0) },
+                      { label: "Coordinates", value: `${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` },
+                    ],
+                  }),
+              }}
+            >
+              <Tooltip direction="top">{s.name}</Tooltip>
+            </CircleMarker>
+          ))}
+      </LayerGroup>
+
+      {/* ── Personnel (status-colored, mobile palette) ── */}
+      <LayerGroup>
+        {personnel.map((p) => {
+          const color = personnelColor(p.status ?? "pending");
+          const critical = p.status === "need_help";
+          return (
+            <CircleMarker
+              key={`pp-${p.userId}`}
+              center={[p.lat, p.lng]}
+              radius={critical ? 7 : 5}
+              pathOptions={{ color: "#ffffff", weight: critical ? 2 : 1, fillColor: color, fillOpacity: 1 }}
+              eventHandlers={{
+                click: () =>
+                  onSelect({
+                    kind: "Personnel",
+                    key: `Personnel:${p.userId}`,
+                    title: p.name ?? `User #${p.userId}`,
+                    tone: p.status === "confirmed" ? "safe" : p.status === "need_help" ? "help" : "pending",
+                    rows: [
+                      { label: "Status", value: statusLabel(p.status) },
+                      { label: "Type", value: p.userType ?? "—" },
+                      { label: "Coordinates", value: `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}` },
+                    ],
+                  }),
+              }}
+            />
+          );
+        })}
+      </LayerGroup>
     </MapContainer>
   );
 }

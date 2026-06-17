@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Wifi, WifiOff, X, Layers, Siren } from "lucide-react";
+import { X, Siren } from "lucide-react";
 import {
   scopedAlertStats,
   type AlertStats,
@@ -21,7 +21,6 @@ import {
   LiveMapView,
   statusLabel,
   type Selection,
-  type LayerVisibility,
   type PersonnelOnMap,
 } from "@/components/map/LiveMapView";
 import {
@@ -33,16 +32,6 @@ import {
   DEMO_ROUTE_STREET_IDS,
 } from "@/lib/demoMap";
 import { cn } from "@/lib/cn";
-
-const LAYERS: Array<{ key: keyof LayerVisibility; label: string }> = [
-  { key: "zones", label: "Zones" },
-  { key: "locations", label: "Locations" },
-  { key: "personnel", label: "Personnel" },
-  { key: "shelters", label: "Shelters" },
-  { key: "streets", label: "Streets" },
-  { key: "routes", label: "ECO routes" },
-  { key: "hazards", label: "Hazards" },
-];
 
 const TONE_COLOR: Record<NonNullable<Selection["tone"]>, string> = {
   safe: "var(--keas-safe)",
@@ -63,13 +52,10 @@ export function LiveMapPage() {
   const usersQ = useUsers();
   const alertsQ = useAlerts();
 
-  const [visible, setVisible] = useState<LayerVisibility>({
-    zones: true, locations: true, personnel: true, shelters: true,
-    streets: true, routes: true, hazards: true,
-  });
   const [selected, setSelected] = useState<Selection | null>(null);
 
-  // Live when the backend returned any operational geometry; else demo fallback.
+  // Backend data drives the map; fall back to demo geometry only when empty
+  // (silent fallback — mirrors the mobile demo/simulation path, no Live/Demo badge).
   const hasBackend =
     (zonesQ.data?.length ?? 0) > 0 ||
     (personnelQ.data?.length ?? 0) > 0 ||
@@ -140,43 +126,15 @@ export function LiveMapPage() {
         streets={streets}
         routeStreetIds={routeStreetIds}
         hazards={hazards}
-        visible={visible}
         selectedKey={selected?.key ?? null}
         onSelect={setSelected}
       />
 
-      {/* ── Layer toggles (top-left) ── */}
-      <FloatingCard className="left-3 top-3 w-44">
-        <div className="mb-2 flex items-center gap-1.5 text-[var(--keas-text-sm)] font-medium">
-          <Layers size={14} /> Layers
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {LAYERS.map((l) => (
-            <label key={l.key} className="flex cursor-pointer items-center gap-2 text-[var(--keas-text-sm)]">
-              <input
-                type="checkbox"
-                checked={visible[l.key]}
-                onChange={(e) => setVisible((v) => ({ ...v, [l.key]: e.target.checked }))}
-                className="accent-[var(--keas-primary)]"
-              />
-              {l.label}
-            </label>
-          ))}
-        </div>
-      </FloatingCard>
-
-      {/* ── Active incident summary (top-right) ── */}
+      {/* ── Active incident summary (top-right) — mirrors mobile alert-monitor stats strip ── */}
       <FloatingCard className="right-3 top-3 w-64">
         <div className="mb-2 flex items-center gap-2">
           <Siren size={14} color="var(--keas-danger)" />
           <span className="text-[var(--keas-text-sm)] font-medium">Active incidents</span>
-          <span
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[var(--keas-text-xs)] font-medium"
-            style={live ? { background: "rgba(22,163,74,0.10)", color: "var(--keas-safe)" } : { background: "var(--keas-surface-2)", color: "var(--keas-text-secondary)" }}
-          >
-            {live ? <Wifi size={11} /> : <WifiOff size={11} />}
-            {live ? "Live" : "Demo"}
-          </span>
         </div>
 
         <div className="mb-2 grid grid-cols-4 gap-1 text-center">
