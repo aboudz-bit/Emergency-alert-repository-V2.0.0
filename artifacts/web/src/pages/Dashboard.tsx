@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
-import { Bell, Users, CheckCircle2, LifeBuoy, HelpCircle, Lightbulb, Siren, Wifi, WifiOff } from "lucide-react";
+import { Bell, Users, CheckCircle2, LifeBuoy, HelpCircle, Lightbulb, Siren } from "lucide-react";
 import { scopedAlertStats, type AlertStats, type UserResponseStatus, type Zone } from "@workspace/keas-core";
 import { useUsers, useZones } from "@/lib/hooks";
 
@@ -49,17 +49,6 @@ export function DashboardPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-medium">Operational overview</h1>
-        <span
-          className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
-          style={
-            live
-              ? { background: "rgba(22,163,74,0.10)", color: "var(--keas-safe)" }
-              : { background: "var(--keas-surface-2)", color: "var(--keas-text-secondary)" }
-          }
-        >
-          {live ? <Wifi size={12} /> : <WifiOff size={12} />}
-          {live ? "Live" : usersQ.isLoading ? "Connecting…" : "Demo data"}
-        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
