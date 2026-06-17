@@ -11,6 +11,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5180,
+    // Replit/preview-ready: bind 0.0.0.0 so the external webview can reach the
+    // dev server, serve on Replit's webview port (5000), and allow the Replit
+    // *.replit.dev preview host (Vite 7 blocks unknown hosts by default).
+    host: true,
+    port: 5000,
+    strictPort: true,
+    allowedHosts: true,
   },
 });
