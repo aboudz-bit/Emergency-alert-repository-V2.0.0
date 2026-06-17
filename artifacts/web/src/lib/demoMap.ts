@@ -10,6 +10,7 @@ import type {
   HazardZoneDto,
   StreetDto,
   EcoRouteDto,
+  AlertDto,
 } from "@workspace/keas-core";
 
 const C: [number, number] = [25.131, 48.776];
@@ -78,6 +79,21 @@ export const DEMO_ROUTES: EcoRouteDto[] = [
 ];
 
 export const DEMO_CENTER = C;
+
+// Demo alert history — fallback for the Reports Center Alert History when the
+// backend has no alerts. Mirrors the AlertDto shape; real data takes precedence.
+export const DEMO_ALERTS: AlertDto[] = [
+  {
+    id: 1, type: "Security Alert", zone: "CPF", title: "Security Alert — CPF", message: "",
+    timestamp: "2026-06-17T08:10:00.000Z", sentBy: "Control Room", priority: "High",
+    status: "active", isActive: true, stats: { confirmed: 3, pending: 2, needHelp: 1, total: 7 },
+  },
+  {
+    id: 2, type: "Drill", zone: "Camp", title: "Drill — Camp", message: "",
+    timestamp: "2026-06-17T06:30:00.000Z", closedAt: "2026-06-17T06:45:00.000Z", sentBy: "Control Room",
+    priority: "Medium", status: "closed", isActive: false, stats: { confirmed: 5, pending: 0, needHelp: 0, total: 5 },
+  },
+];
 
 // Demo locations + roster — feed the shared emergency-intelligence engine and the
 // Dashboard KPIs when the backend roster is empty. Zone 1 (CPF) is alertActive,

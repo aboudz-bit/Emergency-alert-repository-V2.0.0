@@ -7,6 +7,7 @@ import { AlertCenterPage } from "@/pages/AlertCenter";
 import { AccountabilityCenterPage } from "@/pages/AccountabilityCenter";
 import { PersonnelCenterPage } from "@/pages/PersonnelCenter";
 import { StreetsRoutesPage } from "@/pages/StreetsRoutes";
+import { ReportsCenterPage } from "@/pages/ReportsCenter";
 import { TimelinePage } from "@/pages/Timeline";
 import { Placeholder } from "@/pages/Placeholder";
 
@@ -25,7 +26,7 @@ export const router = createBrowserRouter([
       { path: "routes", element: <StreetsRoutesPage initialTab="routes" /> },
       { path: "personnel", element: <PersonnelCenterPage /> },
       { path: "timeline", element: <TimelinePage /> },
-      { path: "reports", element: <Placeholder title="Reports" phase="3.7" /> },
+      { path: "reports", element: <ReportsCenterPage /> },
       { path: "settings", element: <Placeholder title="Settings" phase="3.8" /> },
     ],
   },
