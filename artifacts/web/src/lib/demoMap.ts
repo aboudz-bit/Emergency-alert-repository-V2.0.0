@@ -3,6 +3,8 @@
 // CPF area to match the mobile seed. Real backend data always takes precedence.
 import type {
   ZoneDto,
+  LocationDto,
+  UserDto,
   PersonnelLocationDto,
   ShelterDto,
   HazardZoneDto,
@@ -65,3 +67,32 @@ export const DEMO_STREETS: StreetDto[] = [
 export const DEMO_ROUTE_STREET_IDS = new Set<string>(["s1"]);
 
 export const DEMO_CENTER = C;
+
+// Demo locations + roster — feed the shared emergency-intelligence engine and the
+// Dashboard KPIs when the backend roster is empty. Zone 1 (CPF) is alertActive,
+// so intelligence is computed over its users (need_help + missing present).
+export const DEMO_LOCATIONS: LocationDto[] = [
+  { id: 1, name: "OT-1", zone: "CPF", zoneId: 1, expectedManpower: 4, isActive: true, sortOrder: 0, polygonPoints: [], alertActive: false, alertMessage: "", alertHistory: [] },
+  { id: 2, name: "Gas Train-1", zone: "CPF", zoneId: 1, expectedManpower: 4, isActive: true, sortOrder: 1, polygonPoints: [], alertActive: true, alertMessage: "", alertHistory: [] },
+  { id: 3, name: "Camp", zone: "Camp", zoneId: 2, expectedManpower: 5, isActive: true, sortOrder: 2, polygonPoints: [], alertActive: false, alertMessage: "", alertHistory: [] },
+];
+
+function du(id: number, name: string, zoneId: number, zone: string, locationId: number, location: string, status: string, escalationLevel = 0): UserDto {
+  return {
+    id, name, badge: `B${1000 + id}`, role: "User", zone, zoneId, location, locationId,
+    status: status as UserDto["status"], accountStatus: "active", isActive: true,
+    userType: id % 2 === 0 ? "Contract" : "Aramco", escalationLevel,
+  };
+}
+
+export const DEMO_USERS: UserDto[] = [
+  du(1, "A. Salem", 1, "CPF", 1, "OT-1", "confirmed"),
+  du(2, "M. Khan", 1, "CPF", 1, "OT-1", "confirmed"),
+  du(3, "S. Ali", 1, "CPF", 1, "OT-1", "pending"),
+  du(4, "R. Omar", 1, "CPF", 2, "Gas Train-1", "need_help"),
+  du(5, "K. Idris", 1, "CPF", 2, "Gas Train-1", "pending", 2),
+  du(6, "F. Hadi", 1, "CPF", 2, "Gas Train-1", "pending"),
+  du(7, "T. Noor", 1, "CPF", 2, "Gas Train-1", "confirmed"),
+  du(8, "Y. Said", 2, "Camp", 3, "Camp", "confirmed"),
+  du(9, "N. Aziz", 2, "Camp", 3, "Camp", "pending"),
+];

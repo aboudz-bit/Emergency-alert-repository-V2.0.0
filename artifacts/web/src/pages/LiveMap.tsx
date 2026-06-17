@@ -1,36 +1,9 @@
 import { useMemo, useState } from "react";
 import { X, Siren } from "lucide-react";
-import {
-  scopedAlertStats,
-  type AlertStats,
-  type UserResponseStatus,
-  type Zone,
-} from "@workspace/keas-core";
-import {
-  useZones,
-  useLocations,
-  usePersonnel,
-  useShelters,
-  useStreets,
-  useRoutes,
-  useHazardZones,
-  useUsers,
-  useAlerts,
-} from "@/lib/hooks";
-import {
-  LiveMapView,
-  statusLabel,
-  type Selection,
-  type PersonnelOnMap,
-} from "@/components/map/LiveMapView";
-import {
-  DEMO_ZONES,
-  DEMO_PERSONNEL,
-  DEMO_SHELTERS,
-  DEMO_HAZARDS,
-  DEMO_STREETS,
-  DEMO_ROUTE_STREET_IDS,
-} from "@/lib/demoMap";
+import { computeEmergencyIntelligence, type UserResponseStatus } from "@workspace/keas-core";
+import { useAlerts } from "@/lib/hooks";
+import { useMapData } from "@/lib/useMapData";
+import { LiveMapView, statusLabel, type Selection } from "@/components/map/LiveMapView";
 import { cn } from "@/lib/cn";
 
 const TONE_COLOR: Record<NonNullable<Selection["tone"]>, string> = {
@@ -42,65 +15,28 @@ const TONE_COLOR: Record<NonNullable<Selection["tone"]>, string> = {
 };
 
 export function LiveMapPage() {
-  const zonesQ = useZones();
-  const locationsQ = useLocations();
-  const personnelQ = usePersonnel();
-  const sheltersQ = useShelters();
-  const streetsQ = useStreets();
-  const routesQ = useRoutes();
-  const hazardsQ = useHazardZones();
-  const usersQ = useUsers();
+  const { live, users, zones, locations, personnel, shelters, streets, hazards, routeStreetIds } = useMapData();
   const alertsQ = useAlerts();
-
   const [selected, setSelected] = useState<Selection | null>(null);
 
-  // Backend data drives the map; fall back to demo geometry only when empty
-  // (silent fallback — mirrors the mobile demo/simulation path, no Live/Demo badge).
-  const hasBackend =
-    (zonesQ.data?.length ?? 0) > 0 ||
-    (personnelQ.data?.length ?? 0) > 0 ||
-    (sheltersQ.data?.length ?? 0) > 0 ||
-    (hazardsQ.data?.length ?? 0) > 0 ||
-    (streetsQ.data?.length ?? 0) > 0;
-  const live = hasBackend;
-
-  // Join personnel positions with the user roster for status/name (when synced).
-  const userById = useMemo(() => {
-    const m = new Map<number, { name: string; status: string; userType?: string }>();
-    (usersQ.data ?? []).forEach((u) => m.set(u.id, { name: u.name, status: u.status, userType: u.userType }));
-    return m;
-  }, [usersQ.data]);
-
-  const zones = live ? (zonesQ.data ?? []) : DEMO_ZONES;
-  const locations = live ? (locationsQ.data ?? []) : [];
-  const shelters = live ? (sheltersQ.data ?? []) : DEMO_SHELTERS;
-  const streets = live ? (streetsQ.data ?? []) : DEMO_STREETS;
-  const hazards = live ? (hazardsQ.data ?? []) : DEMO_HAZARDS;
-
-  const personnel: PersonnelOnMap[] = useMemo(() => {
-    if (!live) return DEMO_PERSONNEL;
-    return (personnelQ.data ?? []).map((p) => {
-      const u = userById.get(p.userId);
-      return { ...p, name: u?.name, status: u?.status ?? "pending", userType: u?.userType };
-    });
-  }, [live, personnelQ.data, userById]);
-
-  const routeStreetIds = useMemo(() => {
-    if (!live) return DEMO_ROUTE_STREET_IDS;
-    const ids = new Set<string>();
-    (routesQ.data ?? []).filter((r) => r.status === "active").forEach((r) => r.streetIds.forEach((id) => ids.add(id)));
-    return ids;
-  }, [live, routesQ.data]);
-
-  // Active incident summary — scoped stats over the live roster (mobile logic).
+  // Active incident summary via the shared emergency-intelligence engine — the
+  // SAME computation the Dashboard uses (mobile useEmergencyIntelligence), so
+  // safe/pending/help/missing agree across pages. Escalated personnel count as
+  // missing (not pending), exactly like mobile.
   const activeZones = zones.filter((z) => z.alertActive);
-  const incidentStats: AlertStats = useMemo(() => {
-    if (live && (usersQ.data?.length ?? 0) > 0) {
-      const az = activeZones.map((z) => ({ id: z.id, alertTargetScope: z.alertTargetScope, alertTargetLocationIds: z.alertTargetLocationIds })) as Array<Pick<Zone, "id" | "alertTargetScope" | "alertTargetLocationIds">>;
-      const us = (usersQ.data ?? []).map((u) => ({ zoneId: u.zoneId, locationId: u.locationId, status: u.status as UserResponseStatus, isActive: u.isActive }));
-      if (az.length > 0) return scopedAlertStats(az, us);
+  const intel = useMemo(
+    () =>
+      computeEmergencyIntelligence(
+        users.map((u) => ({ id: u.id, status: u.status as UserResponseStatus, zoneId: u.zoneId, locationId: u.locationId, location: u.location, isActive: u.isActive, escalationLevel: u.escalationLevel })),
+        zones.map((z) => ({ id: z.id, name: z.name, color: z.color, alertActive: z.alertActive, alertTargetScope: z.alertTargetScope, alertTargetLocationIds: z.alertTargetLocationIds })),
+        locations.map((l) => ({ id: l.id, name: l.name })),
+      ),
+    [users, zones, locations],
+  );
+  const incidentStats = useMemo(() => {
+    if (intel.isActive) {
+      return { total: intel.totalPersonnel, confirmed: intel.totalSafe, pending: intel.totalPending, needHelp: intel.totalNeedHelp, missing: intel.totalMissing };
     }
-    // Fallback: aggregate personnel-on-map statuses.
     const c = personnel.reduce(
       (acc, p) => {
         if (p.status === "confirmed") acc.confirmed++;
@@ -110,8 +46,8 @@ export function LiveMapPage() {
       },
       { confirmed: 0, pending: 0, needHelp: 0 },
     );
-    return { ...c, total: personnel.length };
-  }, [live, usersQ.data, activeZones, personnel]);
+    return { ...c, total: personnel.length, missing: 0 };
+  }, [intel, personnel]);
 
   const activeAlerts = (live ? (alertsQ.data ?? []) : []).filter((a) => a.isActive);
   const activeIncidentCount = Math.max(activeAlerts.length, activeZones.length);
@@ -137,11 +73,12 @@ export function LiveMapPage() {
           <span className="text-[var(--keas-text-sm)] font-medium">Active incidents</span>
         </div>
 
-        <div className="mb-2 grid grid-cols-4 gap-1 text-center">
+        <div className="mb-2 grid grid-cols-5 gap-1 text-center">
           <Stat label="Total" value={incidentStats.total} />
           <Stat label="Safe" value={incidentStats.confirmed} color="var(--keas-safe)" />
           <Stat label="Pending" value={incidentStats.pending} color="var(--keas-pending)" />
           <Stat label="Help" value={incidentStats.needHelp} color="var(--keas-help)" />
+          <Stat label="Missing" value={incidentStats.missing} color="var(--keas-pending)" />
         </div>
 
         {activeIncidentCount === 0 ? (

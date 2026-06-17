@@ -1,58 +1,80 @@
+import { useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { KPICard } from "@/components/ui/KPICard";
-import { Bell, Users, CheckCircle2, LifeBuoy, HelpCircle, Lightbulb, Siren } from "lucide-react";
-import { scopedAlertStats, type AlertStats, type UserResponseStatus, type Zone } from "@workspace/keas-core";
-import { useUsers, useZones } from "@/lib/hooks";
+import { LiveMapView } from "@/components/map/LiveMapView";
+import { Bell, Users, CheckCircle2, LifeBuoy, HelpCircle, Lightbulb, Siren, AlertOctagon, AlertTriangle } from "lucide-react";
+import {
+  computeEmergencyIntelligence,
+  type AlertStats,
+  type UserResponseStatus,
+} from "@workspace/keas-core";
+import { useMapData } from "@/lib/useMapData";
 
-// Demo fallback so the dashboard renders without a backend (Phase 3.1 parity).
-const DEMO_STATS: AlertStats = { confirmed: 240, pending: 66, needHelp: 6, total: 312 };
-
-const ZONE_STATUS: Array<{ name: string; tone: "ok" | "warn" | "alert" }> = [
-  { name: "OT-1", tone: "ok" },
-  { name: "OT-2", tone: "alert" },
-  { name: "Gas-1", tone: "warn" },
-  { name: "Camp", tone: "ok" },
-  { name: "CCR", tone: "ok" },
-  { name: "OT-3", tone: "warn" },
-  { name: "Gas-2", tone: "ok" },
-  { name: "+4", tone: "ok" },
-];
-
+// Desktop overview mirroring the mobile role dashboards (KPIs + zone status +
+// emergency intelligence + embedded ZoneMap). All values are data-driven from the
+// shared hooks/engine — no hardcoded content. Demo data fills in when the backend
+// is empty (silent fallback, like the Live Map).
 export function DashboardPage() {
-  const usersQ = useUsers();
-  const zonesQ = useZones();
+  const map = useMapData();
+  const { users, zones, locations } = map;
 
-  // Live when the backend returned data; otherwise fall back to demo numbers.
-  const live = (usersQ.data?.length ?? 0) > 0 && zonesQ.data !== undefined;
-  let stats = DEMO_STATS;
-  if (live && usersQ.data && zonesQ.data) {
-    const activeZones = zonesQ.data
-      .filter((z) => z.alertActive)
-      .map((z) => ({
-        id: z.id,
-        alertTargetScope: z.alertTargetScope,
-        alertTargetLocationIds: z.alertTargetLocationIds,
-      })) as Array<Pick<Zone, "id" | "alertTargetScope" | "alertTargetLocationIds">>;
-    const users = usersQ.data.map((u) => ({
-      zoneId: u.zoneId,
-      locationId: u.locationId,
-      status: u.status as UserResponseStatus,
-      isActive: u.isActive,
-    }));
-    stats = activeZones.length > 0
-      ? scopedAlertStats(activeZones, users)
-      : { confirmed: users.filter((u) => u.status === "confirmed").length, pending: users.filter((u) => u.status === "pending").length, needHelp: users.filter((u) => u.status === "need_help").length, total: users.length };
-  }
-  const missing = 11;
+  const activeZones = useMemo(() => zones.filter((z) => z.alertActive), [zones]);
+
+  const intel = useMemo(
+    () =>
+      computeEmergencyIntelligence(
+        users.map((u) => ({
+          id: u.id, status: u.status as UserResponseStatus, zoneId: u.zoneId,
+          locationId: u.locationId, location: u.location, isActive: u.isActive,
+          escalationLevel: u.escalationLevel,
+        })),
+        zones.map((z) => ({
+          id: z.id, name: z.name, color: z.color, alertActive: z.alertActive,
+          alertTargetScope: z.alertTargetScope, alertTargetLocationIds: z.alertTargetLocationIds,
+        })),
+        locations.map((l) => ({ id: l.id, name: l.name })),
+      ),
+    [users, zones, locations],
+  );
+
+  // Incident-scoped breakdown when an incident is active (mirrors alert-monitor),
+  // else roster aggregate. safe+pending+help(+missing) always sum to the total.
+  const stats: AlertStats = intel.isActive
+    ? { confirmed: intel.totalSafe, pending: intel.totalPending, needHelp: intel.totalNeedHelp, total: intel.totalPersonnel }
+    : {
+        confirmed: users.filter((u) => u.status === "confirmed").length,
+        pending: users.filter((u) => u.status === "pending").length,
+        needHelp: users.filter((u) => u.status === "need_help").length,
+        total: users.length,
+      };
+  const missing = intel.totalMissing;
+
+  const incidents = activeZones.map((z) => {
+    const zi = intel.zones.find((i) => i.zoneId === z.id);
+    return {
+      id: z.id, name: z.name,
+      type: z.alertType ?? "Alert", priority: z.alertPriority ?? "",
+      safe: zi?.safeCount ?? 0, pending: zi?.pendingCount ?? 0, help: zi?.needHelpCount ?? 0,
+    };
+  });
+
+  const zoneTiles = zones
+    .filter((z) => !z.isArchived)
+    .map((z) => {
+      const zi = intel.zones.find((i) => i.zoneId === z.id);
+      const tone: "ok" | "warn" | "alert" =
+        zi && (zi.needHelpCount > 0 || zi.missingCount > 0) ? "alert" : zi && zi.pendingCount > 0 ? "warn" : "ok";
+      return { name: z.name, tone };
+    });
+  const shownTiles = zoneTiles.slice(0, 11);
+  const extraTiles = zoneTiles.length - shownTiles.length;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-lg font-medium">Operational overview</h1>
-      </div>
+      <h1 className="text-lg font-medium">Operational overview</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <KPICard label="Active alerts" value={live && zonesQ.data ? zonesQ.data.filter((z) => z.alertActive).length : 2} icon={Bell} />
+        <KPICard label="Active alerts" value={activeZones.length} icon={Bell} />
         <KPICard label="Personnel" value={stats.total} icon={Users} />
         <KPICard label="Safe" value={stats.confirmed} tone="safe" icon={CheckCircle2} />
         <KPICard label="Need help" value={stats.needHelp} tone="help" icon={LifeBuoy} />
@@ -61,16 +83,18 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="Active incidents" icon={<Siren size={16} color="var(--keas-danger)" />}>
-          <div className="mb-2 py-1 pl-2" style={{ borderLeft: "3px solid var(--keas-danger)" }}>
-            <div className="text-sm font-medium">Zone A · Security alert</div>
-            <div className="text-xs text-[var(--keas-text-secondary)]">
-              high · safe {stats.confirmed} · pending {stats.pending} · help {stats.needHelp}
-            </div>
-          </div>
-          <div className="py-1 pl-2" style={{ borderLeft: "3px solid var(--keas-pending)" }}>
-            <div className="text-sm font-medium">Camp · Shelter-in-place</div>
-            <div className="text-xs text-[var(--keas-text-secondary)]">12 min · 48 personnel</div>
-          </div>
+          {incidents.length === 0 ? (
+            <div className="text-sm text-[var(--keas-text-secondary)]">No active incidents.</div>
+          ) : (
+            incidents.map((inc) => (
+              <div key={inc.id} className="mb-2 py-1 pl-2 last:mb-0" style={{ borderLeft: "3px solid var(--keas-danger)" }}>
+                <div className="text-sm font-medium">{inc.name} · {inc.type}</div>
+                <div className="text-xs text-[var(--keas-text-secondary)]">
+                  {inc.priority ? `${inc.priority} · ` : ""}safe {inc.safe} · pending {inc.pending} · help {inc.help}
+                </div>
+              </div>
+            ))
+          )}
         </Card>
 
         <Card title="Emergency intelligence" icon={<Lightbulb size={16} color="var(--keas-primary)" />}>
@@ -82,37 +106,69 @@ export function DashboardPage() {
               {missing} missing
             </span>
           </div>
-          <p className="text-xs leading-relaxed text-[var(--keas-text-secondary)]">
-            Critical at OT-2 and Gas train-1. Suggested: dispatch ECO to OT-2, open muster at Camp.
-          </p>
+          {intel.suggestedActions.length === 0 ? (
+            <p className="text-xs text-[var(--keas-text-secondary)]">
+              {intel.isActive ? "No critical actions — all personnel accounted for." : "No active incidents."}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {intel.suggestedActions.slice(0, 4).map((a) => {
+                const crit = a.priority === "critical";
+                const Icon = crit ? AlertOctagon : AlertTriangle;
+                const color = crit ? "var(--keas-help)" : "var(--keas-pending)";
+                return (
+                  <div key={a.id} className="flex items-start gap-2">
+                    <Icon size={14} color={color} className="mt-0.5 shrink-0" />
+                    <span className="text-xs leading-snug text-[var(--keas-text-secondary)]">{a.description}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="Zone / location status">
-          <div className="grid grid-cols-4 gap-1.5">
-            {ZONE_STATUS.map((z) => {
-              const bg = z.tone === "ok" ? "rgba(22,163,74,0.10)" : z.tone === "warn" ? "rgba(217,119,6,0.10)" : "rgba(239,68,68,0.12)";
-              const fg = z.tone === "ok" ? "var(--keas-safe)" : z.tone === "warn" ? "var(--keas-pending)" : "var(--keas-help)";
-              return (
-                <span key={z.name} className="rounded-md px-1 py-1 text-center text-xs font-medium" style={{ background: bg, color: fg }}>
-                  {z.name}
+          {shownTiles.length === 0 ? (
+            <div className="text-sm text-[var(--keas-text-secondary)]">No zones.</div>
+          ) : (
+            <div className="grid grid-cols-4 gap-1.5">
+              {shownTiles.map((z, i) => {
+                const bg = z.tone === "ok" ? "rgba(22,163,74,0.10)" : z.tone === "warn" ? "rgba(217,119,6,0.10)" : "rgba(239,68,68,0.12)";
+                const fg = z.tone === "ok" ? "var(--keas-safe)" : z.tone === "warn" ? "var(--keas-pending)" : "var(--keas-help)";
+                return (
+                  <span key={`${z.name}-${i}`} className="truncate rounded-md px-1 py-1 text-center text-xs font-medium" style={{ background: bg, color: fg }} title={z.name}>
+                    {z.name}
+                  </span>
+                );
+              })}
+              {extraTiles > 0 && (
+                <span className="rounded-md px-1 py-1 text-center text-xs font-medium text-[var(--keas-text-secondary)]" style={{ background: "var(--keas-surface-2)" }}>
+                  +{extraTiles}
                 </span>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
         </Card>
 
-        <Card title="Mini live map" className="bg-[var(--keas-surface-2)]">
-          <div className="flex min-h-[96px] flex-col items-center justify-center gap-1.5 text-[var(--keas-text-secondary)]">
-            <span className="text-xs">react-leaflet live map arrives in Phase 3.3</span>
-            <div className="flex gap-3 text-xs">
-              <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-full" style={{ background: "#34D399" }} /> safe</span>
-              <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-full" style={{ background: "#FBBF24" }} /> pending</span>
-              <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-full" style={{ background: "#EF4444" }} /> help</span>
-            </div>
+        {/* Embedded operational map — mirrors the mobile dashboard ZoneMap preview */}
+        <div className="overflow-hidden rounded-[var(--keas-radius-lg)] border border-[var(--keas-border)] bg-[var(--keas-surface)]">
+          <div className="px-[var(--keas-space-lg)] pb-2 pt-[14px] text-sm font-medium">Live map</div>
+          <div className="h-[240px] w-full">
+            <LiveMapView
+              zones={map.zones}
+              locations={map.locations}
+              personnel={map.personnel}
+              shelters={map.shelters}
+              streets={map.streets}
+              routeStreetIds={map.routeStreetIds}
+              hazards={map.hazards}
+              selectedKey={null}
+              onSelect={() => {}}
+            />
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
