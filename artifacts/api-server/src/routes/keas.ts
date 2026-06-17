@@ -9,6 +9,7 @@ import {
   alerts,
   shelters,
   personnelLocations,
+  hazardZones,
   incidentEvents,
   appSettings,
 } from "@workspace/db";
@@ -22,6 +23,7 @@ import {
   AlertDtoSchema,
   ShelterDtoSchema,
   PersonnelLocationDtoSchema,
+  HazardZoneDtoSchema,
   IncidentEventDtoSchema,
   AppSettingsDtoSchema,
 } from "@workspace/keas-core/api";
@@ -39,6 +41,7 @@ const LIST_TABLES: Record<string, unknown> = {
   alerts,
   shelters,
   personnel: personnelLocations,
+  hazardZones,
   incidentEvents,
   settings: appSettings,
 };
@@ -153,6 +156,20 @@ async function upsertRecord(entity: string, raw: unknown): Promise<void> {
         .insert(personnelLocations)
         .values(v)
         .onConflictDoUpdate({ target: personnelLocations.userId, set: v });
+      return;
+    }
+    case "hazardZones": {
+      const h = HazardZoneDtoSchema.parse(raw);
+      const v = {
+        id: h.id, zoneId: h.zoneId ?? null, locationId: h.locationId ?? null,
+        centerLat: h.centerLat, centerLng: h.centerLng,
+        hotRadius: h.hotRadius, warmRadius: h.warmRadius, coldRadius: h.coldRadius,
+        alertId: h.alertId ?? null, warningLevel: h.warningLevel,
+        isActive: h.isActive, isLocked: h.isLocked, createdBy: h.createdBy,
+        createdAt: h.createdAt ?? null, windDirectionDeg: h.windDirectionDeg ?? null,
+        windMode: h.windMode ?? null, hazardShape: h.hazardShape ?? null, updatedAt: now,
+      };
+      await db.insert(hazardZones).values(v).onConflictDoUpdate({ target: hazardZones.id, set: v });
       return;
     }
     case "incidentEvents": {

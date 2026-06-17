@@ -32,6 +32,7 @@ function SyncServiceInner() {
         ["alerts", s.alerts],
         ["shelters", s.shelters],
         ["personnel", Object.values(s.personnelLocations ?? {})],
+        ["hazardZones", s.hazardZones],
         ["incidentEvents", s.incidentTimeline],
         ["settings", [s.settings]],
       ];

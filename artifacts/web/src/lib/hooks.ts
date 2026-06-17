@@ -9,6 +9,7 @@ import type {
   AlertDto,
   ShelterDto,
   PersonnelLocationDto,
+  HazardZoneDto,
   IncidentEventDto,
 } from "@workspace/keas-core";
 
@@ -32,4 +33,5 @@ export const useRoutes = () => entityQuery<EcoRouteDto>("routes");
 export const useAlerts = () => entityQuery<AlertDto>("alerts");
 export const useShelters = () => entityQuery<ShelterDto>("shelters");
 export const usePersonnel = () => entityQuery<PersonnelLocationDto>("personnel");
+export const useHazardZones = () => entityQuery<HazardZoneDto>("hazardZones");
 export const useIncidentEvents = () => entityQuery<IncidentEventDto>("incidentEvents");

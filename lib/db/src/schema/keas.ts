@@ -170,6 +170,30 @@ export const shelters = pgTable("shelters", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ─── Hazard zones (warning rings + optional downwind plume) ───────────────────
+// Mirrors artifacts/mobile/types/index.ts HazardZone. hot/warm/cold radii are
+// metres; plume needs windDirectionDeg. Standalone warnings have alertId = null.
+export const hazardZones = pgTable("hazard_zones", {
+  id: integer("id").primaryKey(),
+  zoneId: integer("zone_id"),
+  locationId: integer("location_id"),
+  centerLat: doublePrecision("center_lat").notNull(),
+  centerLng: doublePrecision("center_lng").notNull(),
+  hotRadius: doublePrecision("hot_radius").notNull(),
+  warmRadius: doublePrecision("warm_radius").notNull(),
+  coldRadius: doublePrecision("cold_radius").notNull(),
+  alertId: integer("alert_id"),
+  warningLevel: varchar("warning_level", { length: 8 }).notNull().default("warm"),
+  isActive: boolean("is_active").notNull().default(true),
+  isLocked: boolean("is_locked").notNull().default(false),
+  createdBy: varchar("created_by", { length: 255 }).notNull().default(""),
+  createdAt: varchar("created_at", { length: 40 }),
+  windDirectionDeg: doublePrecision("wind_direction_deg"),
+  windMode: varchar("wind_mode", { length: 8 }),
+  hazardShape: varchar("hazard_shape", { length: 8 }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // ─── App settings (singleton row, id = 1) ─────────────────────────────────────
 export const appSettings = pgTable("app_settings", {
   id: integer("id").primaryKey().default(1),

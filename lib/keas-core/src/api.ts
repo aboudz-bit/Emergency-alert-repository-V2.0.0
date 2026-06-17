@@ -169,6 +169,29 @@ export const IncidentEventDtoSchema = z
   .passthrough();
 export type IncidentEventDto = z.infer<typeof IncidentEventDtoSchema>;
 
+export const HazardZoneDtoSchema = z
+  .object({
+    id: z.number(),
+    zoneId: z.number().nullable().optional(),
+    locationId: z.number().nullable().optional(),
+    centerLat: z.number(),
+    centerLng: z.number(),
+    hotRadius: z.number(),
+    warmRadius: z.number(),
+    coldRadius: z.number(),
+    alertId: z.number().nullable().optional(),
+    warningLevel: z.enum(["hot", "warm", "green"]).default("warm"),
+    isActive: z.boolean().default(true),
+    isLocked: z.boolean().default(false),
+    createdBy: z.string().default(""),
+    createdAt: z.string().optional(),
+    windDirectionDeg: z.number().nullable().optional(),
+    windMode: z.enum(["manual", "auto"]).nullable().optional(),
+    hazardShape: z.enum(["circle", "plume"]).nullable().optional(),
+  })
+  .passthrough();
+export type HazardZoneDto = z.infer<typeof HazardZoneDtoSchema>;
+
 export const AppSettingsDtoSchema = z.record(z.string(), z.unknown());
 export type AppSettingsDto = z.infer<typeof AppSettingsDtoSchema>;
 
@@ -182,6 +205,7 @@ export const SYNC_ENTITIES = [
   "alerts",
   "shelters",
   "personnel",
+  "hazardZones",
   "incidentEvents",
   "settings",
 ] as const;
@@ -203,6 +227,7 @@ export const ENTITY_SCHEMAS = {
   alerts: AlertDtoSchema,
   shelters: ShelterDtoSchema,
   personnel: PersonnelLocationDtoSchema,
+  hazardZones: HazardZoneDtoSchema,
   incidentEvents: IncidentEventDtoSchema,
   settings: AppSettingsDtoSchema,
 } as const;
