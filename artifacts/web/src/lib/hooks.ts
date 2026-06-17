@@ -11,6 +11,7 @@ import type {
   PersonnelLocationDto,
   HazardZoneDto,
   IncidentEventDto,
+  AppSettings,
 } from "@workspace/keas-core";
 
 // Server-state hooks (the web's source of truth). Polling cadence is the v1
@@ -35,3 +36,15 @@ export const useShelters = () => entityQuery<ShelterDto>("shelters");
 export const usePersonnel = () => entityQuery<PersonnelLocationDto>("personnel");
 export const useHazardZones = () => entityQuery<HazardZoneDto>("hazardZones");
 export const useIncidentEvents = () => entityQuery<IncidentEventDto>("incidentEvents");
+
+// Settings is a SINGLETON wrapped row { id:1, data:<AppSettings>, updatedAt } —
+// unwrap records[0].data. Read-only; mobile is the sole author.
+export const useSettings = () =>
+  useQuery({
+    queryKey: ["keas", "settings"],
+    queryFn: async () => {
+      const rows = await listEntity<{ id: number; data: AppSettings; updatedAt: string }>("settings");
+      return rows[0]?.data ?? null;
+    },
+    refetchInterval: REFETCH,
+  });

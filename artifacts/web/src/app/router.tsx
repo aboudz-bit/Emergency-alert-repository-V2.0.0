@@ -8,8 +8,8 @@ import { AccountabilityCenterPage } from "@/pages/AccountabilityCenter";
 import { PersonnelCenterPage } from "@/pages/PersonnelCenter";
 import { StreetsRoutesPage } from "@/pages/StreetsRoutes";
 import { ReportsCenterPage } from "@/pages/ReportsCenter";
+import { SettingsCenterPage } from "@/pages/SettingsCenter";
 import { TimelinePage } from "@/pages/Timeline";
-import { Placeholder } from "@/pages/Placeholder";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
       { path: "personnel", element: <PersonnelCenterPage /> },
       { path: "timeline", element: <TimelinePage /> },
       { path: "reports", element: <ReportsCenterPage /> },
-      { path: "settings", element: <Placeholder title="Settings" phase="3.8" /> },
+      { path: "settings", element: <SettingsCenterPage /> },
     ],
   },
   { path: "*", element: <Navigate to="/dashboard" replace /> },
